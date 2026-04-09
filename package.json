@@ -22,6 +22,7 @@
 		"db:migrate": "drizzle-kit migrate",
 		"db:studio": "drizzle-kit studio",
 		"cf:types": "wrangler types --no-include-runtime",
+		"paraglide:compile": "paraglide-js compile --project ./project.inlang --outdir ./src/lib/paraglide --strategy url cookie baseLocale",
 		"auth:schema": "better-auth generate --config src/lib/server/auth.ts --output src/lib/server/db/auth.schema.ts --yes",
 		"storybook": "svelte-kit sync && storybook dev -p 6006",
 		"build:storybook": "svelte-kit sync && storybook build"
