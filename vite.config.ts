@@ -1,9 +1,10 @@
-import { defineConfig } from 'vite-plus';
+import { defineConfig } from 'vitest/config';
 import { sveltekit } from '@sveltejs/kit/vite';
 import tailwindcss from '@tailwindcss/vite';
 import { paraglideVitePlugin } from '@inlang/paraglide-js';
 import devtoolsJson from 'vite-plugin-devtools-json';
 import { storybookTest } from '@storybook/addon-vitest/vitest-plugin';
+import { playwright } from '@vitest/browser-playwright';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -33,16 +34,8 @@ export default defineConfig({
 		}),
 		devtoolsJson(),
 	],
-	staged: {
-		'*': ['vp lint --threads=1 --fix', 'vp check --no-lint --fix'],
-	},
-	lint: {
-		options: {
-			typeAware: true,
-			typeCheck: true,
-		},
-	},
 	test: {
+		passWithNoTests: true,
 		expect: {
 			requireAssertions: true,
 		},
@@ -61,8 +54,7 @@ export default defineConfig({
 					name: 'client',
 					browser: {
 						enabled: true,
-						// @ts-expect-error -- vite-plus override causes type mismatch with vitest browser provider
-						provider: 'playwright',
+						provider: playwright(),
 						instances: [{ browser: 'chromium', headless: true }],
 					},
 					include: ['src/**/*.svelte.{test,spec}.{js,ts}'],
@@ -90,8 +82,7 @@ export default defineConfig({
 					browser: {
 						enabled: true,
 						headless: true,
-						// @ts-expect-error -- vite-plus override causes type mismatch with vitest browser provider
-						provider: 'playwright',
+						provider: playwright(),
 						instances: [{ browser: 'chromium' }],
 					},
 				},

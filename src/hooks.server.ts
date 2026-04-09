@@ -6,10 +6,11 @@ import { getTextDirection } from '$lib/paraglide/runtime';
 import { svelteKitHandler } from 'better-auth/svelte-kit';
 import { building } from '$app/environment';
 
-const paraglide_handle: Handle = ({ event, resolve }) =>
-	paraglideMiddleware(event.request, ({ request: localized_request, locale }) => {
-		event.request = localized_request;
+const paraglideHandle: Handle = ({ event, resolve }) =>
+	paraglideMiddleware(event.request, ({ request: localizedRequest, locale }) => {
+		event.request = localizedRequest;
 		return resolve(event, {
+			preload: ({ type }) => type === 'js' || type === 'css' || type === 'font',
 			transformPageChunk: ({ html }) =>
 				html
 					.replace('%paraglide.lang%', locale)
@@ -17,15 +18,15 @@ const paraglide_handle: Handle = ({ event, resolve }) =>
 		});
 	});
 
-const auth_handle: Handle = async ({ event, resolve }) => {
-	const session_data = await auth.api.getSession({ headers: event.request.headers });
+const authHandle: Handle = async ({ event, resolve }) => {
+	const sessionData = await auth.api.getSession({ headers: event.request.headers });
 
-	if (session_data) {
-		event.locals.session = session_data.session;
-		event.locals.user = session_data.user;
+	if (sessionData) {
+		event.locals.session = sessionData.session;
+		event.locals.user = sessionData.user;
 	}
 
 	return svelteKitHandler({ event, resolve, auth, building });
 };
 
-export const handle = sequence(paraglide_handle, auth_handle);
+export const handle = sequence(paraglideHandle, authHandle);
