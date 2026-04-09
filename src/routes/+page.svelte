@@ -12,6 +12,7 @@
 	import { Button } from '$lib/components/ui/button/index.js';
 	import { Badge } from '$lib/components/ui/badge/index.js';
 	import { Separator } from '$lib/components/ui/separator/index.js';
+	import { resolve } from '$app/paths';
 	import Mail from '@lucide/svelte/icons/mail';
 	import Loader from '@lucide/svelte/icons/loader';
 
@@ -53,9 +54,17 @@
 			<p class="text-muted-foreground text-lg">
 				shadcn-svelte components with a green theme, light &amp; dark mode support.
 			</p>
-			<Badge variant="secondary" class={selectionCount.current > 0 ? '' : 'invisible'}>
-				{selectionCount.current} selection{selectionCount.current === 1 ? '' : 's'} made
-			</Badge>
+			<div class="flex items-center justify-center gap-4">
+				<Badge variant="secondary" class={selectionCount.current > 0 ? '' : 'invisible'}>
+					{selectionCount.current} selection{selectionCount.current === 1 ? '' : 's'} made
+				</Badge>
+				<a
+					href={resolve('/showcase')}
+					class="inline-flex items-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow hover:bg-primary/90"
+				>
+					Tree Generator
+				</a>
+			</div>
 		</section>
 
 		<Separator />
