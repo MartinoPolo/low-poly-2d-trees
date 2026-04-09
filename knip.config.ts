@@ -12,8 +12,6 @@ const config: KnipConfig = {
 	ignoreDependencies: [
 		'@typescript-eslint/parser',
 		'@node-rs/argon2',
-		'@fontsource-variable/figtree',
-		'@fontsource-variable/noto-sans',
 		'shadcn-svelte',
 		'tw-animate-css',
 		'vitest-browser-svelte',
