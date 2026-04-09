@@ -1,6 +1,7 @@
 import tseslint from 'typescript-eslint';
 import sveltePlugin from 'eslint-plugin-svelte';
 import svelteParser from 'svelte-eslint-parser';
+import checkFile from 'eslint-plugin-check-file';
 import storybook from 'eslint-plugin-storybook';
 import globals from 'globals';
 import svelteConfig from './svelte.config.js';
@@ -43,12 +44,12 @@ export default [
 				'warn',
 				{
 					selector: 'variableLike',
-					format: ['snake_case', 'PascalCase'],
+					format: ['camelCase', 'PascalCase'],
 					leadingUnderscore: 'allow',
 				},
 				{
 					selector: 'variable',
-					format: ['UPPER_CASE', 'snake_case', 'PascalCase'],
+					format: ['UPPER_CASE', 'camelCase', 'PascalCase'],
 					modifiers: ['global', 'const'],
 					leadingUnderscore: 'allow',
 				},
@@ -79,6 +80,36 @@ export default [
 					experimentalGenerics: true,
 				},
 			},
+		},
+	},
+	{
+		files: ['**/*.svelte.ts', '**/*.svelte.js'],
+		languageOptions: {
+			parser: tseslint.parser,
+			parserOptions: {
+				project: true,
+				tsconfigRootDir: import.meta.dirname,
+			},
+		},
+	},
+	{
+		files: ['src/**/*.ts'],
+		ignores: ['src/routes/**/+*'],
+		plugins: { 'check-file': checkFile },
+		rules: {
+			'check-file/filename-naming-convention': [
+				'error',
+				{ '**/*.ts': 'SNAKE_CASE' },
+				{ ignoreMiddleExtensions: true },
+			],
+		},
+	},
+	{
+		files: ['src/lib/**/*.svelte'],
+		ignores: ['src/lib/components/ui/**'],
+		plugins: { 'check-file': checkFile },
+		rules: {
+			'check-file/filename-naming-convention': ['error', { '**/*.svelte': 'PASCAL_CASE' }],
 		},
 	},
 ];

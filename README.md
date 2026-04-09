@@ -4,21 +4,23 @@ Production-ready SvelteKit template with authentication, i18n, database, and mod
 
 ## Stack
 
-| Layer         | Technology                                  |
-| ------------- | ------------------------------------------- |
-| Framework     | SvelteKit 2 + Svelte 5 (runes)              |
-| Build         | Vite 7 via Vite Plus                        |
-| Language      | TypeScript (strict mode)                    |
-| Styling       | Tailwind CSS 4                              |
-| Database      | PostgreSQL + Drizzle ORM (strict mode)      |
-| Auth          | BetterAuth (email/password, Google OAuth)   |
-| i18n          | Paraglide JS (en, cs)                       |
-| Testing       | Vitest + Playwright + Testing Library       |
-| Linting       | ESLint + Stylelint + OxLint (via Vite Plus) |
-| Formatting    | OxFormatter (via Vite Plus)                 |
-| Dead code     | Knip                                        |
-| Component dev | Storybook 10                                |
-| Deployment    | Cloudflare Pages                            |
+| Layer         | Technology                                |
+| ------------- | ----------------------------------------- |
+| Framework     | SvelteKit 2 + Svelte 5 (runes)            |
+| Build         | Vite 7                                    |
+| Language      | TypeScript (strict mode)                  |
+| Styling       | Tailwind CSS 4                            |
+| UI Components | shadcn-svelte (green theme)               |
+| Theme         | mode-watcher (light / dark / system)      |
+| Database      | PostgreSQL + Drizzle ORM (strict mode)    |
+| Auth          | BetterAuth (email/password, Google OAuth) |
+| i18n          | Paraglide JS (en, cs)                     |
+| Testing       | Vitest + Playwright + Testing Library     |
+| Linting       | ESLint + Stylelint + OxLint               |
+| Formatting    | Prettier                                  |
+| Dead code     | Knip                                      |
+| Component dev | Storybook 10                              |
+| Deployment    | Cloudflare Pages                          |
 
 ## Getting Started
 
@@ -46,19 +48,20 @@ pnpm run dev
 
 | Script               | Description                          |
 | -------------------- | ------------------------------------ |
-| `pnpm run dev`       | Start dev server (`vp dev`)          |
-| `pnpm run build`     | Production build (`vp build`)        |
+| `pnpm run dev`       | Start dev server                     |
+| `pnpm run build`     | Production build                     |
 | `pnpm run preview`   | Preview via Cloudflare Pages locally |
 | `pnpm run storybook` | Start Storybook on port 6006         |
 
 ### Code Quality
 
-| Script               | Description                                                             |
-| -------------------- | ----------------------------------------------------------------------- |
-| `pnpm run lint`      | OxLint + ESLint (type-aware)                                            |
-| `pnpm run lint:css`  | Stylelint for CSS and Svelte                                            |
-| `pnpm run format`    | Format with OxFormatter                                                 |
-| `pnpm run check:all` | Full suite: lint + typecheck + eslint + stylelint + knip + svelte-check |
+| Script                 | Description                                                            |
+| ---------------------- | ---------------------------------------------------------------------- |
+| `pnpm run lint`        | OxLint                                                                 |
+| `pnpm run lint:eslint` | ESLint (type-aware)                                                    |
+| `pnpm run lint:css`    | Stylelint for CSS and Svelte                                           |
+| `pnpm run format`      | Format with Prettier                                                   |
+| `pnpm run check:all`   | Full suite: format + oxlint + stylelint + knip + svelte-check + eslint |
 
 ### Testing
 
@@ -144,11 +147,10 @@ Configured in `vite.config.ts` as `['url', 'cookie', 'baseLocale']`:
 
 ```svelte
 <script>
-  import * as m from '$lib/paraglide/messages';
+	import * as m from '$lib/paraglide/messages';
 </script>
 
-<h1>{m.welcome()}</h1>
-<p>{m.hello_world({ name: 'World' })}</p>
+<h1>{m.welcome()}</h1><p>{m.hello_world({ name: 'World' })}</p>
 ```
 
 ### Adding a locale
@@ -186,6 +188,60 @@ Type-safe client-server RPC. Functions defined with the remote function API run 
 ### Async Components
 
 Use `await` directly in Svelte components without `{#await}` blocks. Enabled via `compilerOptions.experimental.async` in `svelte.config.js`.
+
+## UI Components (shadcn-svelte)
+
+Pre-configured [shadcn-svelte](https://next.shadcn-svelte.com/) component library with a green theme.
+Components live in `src/lib/components/ui/`. Use the `cn()` utility from `$lib/utils` for conditional class merging.
+
+### Component Architecture
+
+Components follow a two-tier structure:
+
+| Tier           | Directory                      | Naming                                    | Purpose                                                                   |
+| -------------- | ------------------------------ | ----------------------------------------- | ------------------------------------------------------------------------- |
+| **Primitives** | `src/lib/components/ui/`       | kebab-case files, dual PascalCase exports | CLI-managed shadcn-svelte components — do not edit directly               |
+| **Composed**   | `src/lib/components/composed/` | PascalCase files                          | App-level composites that reduce nesting by combining multiple primitives |
+
+Composed components use descriptive PascalCase names that avoid collisions with the `ui/` namespace (e.g. `LabeledSelect` instead of `Select`, `SectionCard` instead of `Card`). Inside composed components, import `ui/` primitives with their standard namespace import (`import * as Select from '$lib/components/ui/select/index.js'`).
+
+Standalone components that don't compose multiple primitives (like `DarkModeToggle`) stay at the `src/lib/components/` root.
+
+## Dark Mode
+
+Theme toggling powered by [mode-watcher](https://github.com/svecosystem/mode-watcher) with three modes: light, dark, and system.
+The `DarkModeToggle` component cycles through modes on click. A flash-prevention script in `app.html` ensures no FOUC on page load.
+
+## Font Optimization
+
+Two variable fonts loaded via inline `@font-face` declarations:
+
+| Font               | Usage    |
+| ------------------ | -------- |
+| Figtree Variable   | Headings |
+| Noto Sans Variable | Body     |
+
+Both fonts include `latin` and `latin-ext` subsets. Metric-adjusted Arial fallback fonts prevent CLS (Cumulative Layout Shift). Fonts are preloaded via `<link rel="preload">` in server hooks.
+
+## Reactivity Utilities
+
+Reusable reactive primitives in `src/lib/reactivity/`:
+
+| Class          | Description                                                               |
+| -------------- | ------------------------------------------------------------------------- |
+| `StateRaw<T>`  | Simple reactive wrapper around `$state.raw`                               |
+| `Derived<T>`   | Reactive derived value using `$derived.by`                                |
+| `Persisted<T>` | Reactive state persisted to `localStorage` with JSON serde and type guard |
+
+`Persisted<T>` accepts a key, default value, and a type guard function. It reads from `localStorage` on init and writes back on every change.
+
+## Context Pattern
+
+Type-safe Svelte context using `setContext` / `getContext`. Context keys are centralized in `src/lib/context/context_key.ts`.
+
+Each context module exports a `set` function (called in the parent layout) and a `get` function (called in child components). See `src/lib/context/showcase_form.context.svelte.ts` for a working example that combines `Persisted`, `StateRaw`, and `Derived`.
+
+For SSR of persisted values, use Skeleton placeholders to avoid hydration mismatches.
 
 ## Storybook
 
@@ -268,7 +324,7 @@ src/
   hooks.ts                 # Client hooks (i18n URL rerouting)
   hooks.server.ts          # Server hooks (i18n middleware + auth session)
   lib/
-    auth-client.ts         # BetterAuth client (for use in components)
+    auth_client.ts         # BetterAuth client (for use in components)
     index.ts               # $lib public exports
     assets/                # Static assets (favicon, etc.)
     paraglide/             # Generated i18n runtime (gitignored)

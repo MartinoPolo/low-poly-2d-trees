@@ -1,2 +1,0 @@
-export NODE_OPTIONS="--experimental-strip-types --disable-warning=ExperimentalWarning"
-vp staged
