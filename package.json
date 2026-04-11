@@ -8,7 +8,7 @@
 		"build": "vite build",
 		"preview": "wrangler dev .svelte-kit/cloudflare/_worker.js --port 4173",
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
-		"check:all": "svelte-kit sync && prettier --write . && oxlint && stylelint \"src/**/*.{css,svelte}\" && knip && svelte-check --tsconfig ./tsconfig.json && eslint .",
+		"check:all": "svelte-kit sync && prettier --write --log-level warn . && oxlint && stylelint \"src/**/*.{css,svelte}\" && knip && svelte-check --tsconfig ./tsconfig.json && eslint .",
 		"lint": "oxlint",
 		"lint:eslint": "eslint .",
 		"lint:css": "stylelint \"src/**/*.{css,svelte}\"",
