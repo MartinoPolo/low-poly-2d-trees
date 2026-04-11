@@ -670,6 +670,328 @@ export function sampleTierBoundary(
 }
 
 // ---------------------------------------------------------------------------
+// Segment/shape intersection helpers (issue #7 — branch visibility)
+// ---------------------------------------------------------------------------
+
+/**
+ * Intersect a line segment (x1,y1)-(x2,y2) with an axis-aligned ellipse
+ * centered at (cx,cy) with radii (rx,ry). Returns the parametric entry/exit
+ * values clipped to [0,1], or null if the segment misses the ellipse.
+ *
+ * Parameterization: point on segment = (x1,y1) + t * (x2-x1, y2-y1) for t∈[0,1].
+ */
+export function raySegmentEllipseIntersection(
+	x1: number,
+	y1: number,
+	x2: number,
+	y2: number,
+	cx: number,
+	cy: number,
+	rx: number,
+	ry: number,
+): [number, number] | null {
+	if (rx <= 0 || ry <= 0) {
+		return null;
+	}
+	// Transform segment into unit-circle space (divide by rx, ry, translate to origin).
+	const ax = (x1 - cx) / rx;
+	const ay = (y1 - cy) / ry;
+	const dx = (x2 - x1) / rx;
+	const dy = (y2 - y1) / ry;
+	// |a + t*d|^2 = 1 → A t^2 + 2 B t + C = 0 where
+	//   A = d·d, B = a·d, C = a·a - 1
+	const A = dx * dx + dy * dy;
+	const B = ax * dx + ay * dy;
+	const C = ax * ax + ay * ay - 1;
+	if (A === 0) {
+		return C <= 0 ? [0, 1] : null;
+	}
+	const disc = B * B - A * C;
+	if (disc < 0) {
+		return null;
+	}
+	const sqrtDisc = Math.sqrt(Math.max(0, disc));
+	let tEnter = (-B - sqrtDisc) / A;
+	let tExit = (-B + sqrtDisc) / A;
+	if (tEnter > tExit) {
+		const tmp = tEnter;
+		tEnter = tExit;
+		tExit = tmp;
+	}
+	if (tExit < 0 || tEnter > 1) {
+		return null;
+	}
+	tEnter = Math.max(0, tEnter);
+	tExit = Math.min(1, tExit);
+	return [tEnter, tExit];
+}
+
+/**
+ * Intersect a segment with a triangle (Tier) using Liang–Barsky clipping
+ * against the three half-planes defined by its edges. Returns the parametric
+ * entry/exit values clipped to [0,1], or null if the segment misses.
+ */
+export function raySegmentTriangleIntersection(
+	x1: number,
+	y1: number,
+	x2: number,
+	y2: number,
+	triangle: Tier,
+): [number, number] | null {
+	const vertices: readonly [number, number][] = [
+		[triangle.tipX, triangle.tipY],
+		[triangle.baseRightX, triangle.baseRightY],
+		[triangle.baseLeftX, triangle.baseLeftY],
+	];
+
+	// Signed-area (cross product) for the triangle — used to pick the inward
+	// orientation of each edge normal so we can clip consistently.
+	const cross = (
+		x0: number,
+		y0: number,
+		xa: number,
+		ya: number,
+		xb: number,
+		yb: number,
+	): number => (xa - x0) * (yb - y0) - (ya - y0) * (xb - x0);
+
+	const [v0x, v0y] = vertices[0]!;
+	const [v1x, v1y] = vertices[1]!;
+	const [v2x, v2y] = vertices[2]!;
+	const orient = cross(v0x, v0y, v1x, v1y, v2x, v2y);
+	if (orient === 0) {
+		return null;
+	}
+	const sign = orient > 0 ? 1 : -1;
+
+	const dx = x2 - x1;
+	const dy = y2 - y1;
+	let tEnter = 0;
+	let tExit = 1;
+
+	for (let i = 0; i < 3; i++) {
+		const [ax, ay] = vertices[i]!;
+		const [bx, by] = vertices[(i + 1) % 3]!;
+		// Inward normal for this edge (rotate edge vector 90° depending on orientation).
+		const ex = bx - ax;
+		const ey = by - ay;
+		const nx = -ey * sign;
+		const ny = ex * sign;
+		// Half-plane: n · (p - a) >= 0 inside.
+		// n · (start - a) + t * (n · dir) >= 0
+		const startDot = nx * (x1 - ax) + ny * (y1 - ay);
+		const dirDot = nx * dx + ny * dy;
+		if (dirDot === 0) {
+			if (startDot < 0) {
+				return null;
+			}
+			continue;
+		}
+		const t = -startDot / dirDot;
+		if (dirDot > 0) {
+			// Entering the half-plane at t.
+			if (t > tEnter) {
+				tEnter = t;
+			}
+		} else {
+			// Leaving the half-plane at t.
+			if (t < tExit) {
+				tExit = t;
+			}
+		}
+		if (tEnter > tExit) {
+			return null;
+		}
+	}
+
+	return [tEnter, tExit];
+}
+
+/**
+ * Compute the portion of a branch segment that is NOT covered by any canopy
+ * blob or tier. Intervals from all shapes are merged before measuring so
+ * overlapping coverage is not double-counted.
+ */
+export function computeVisibleBranchLength(
+	branch: BranchSegment,
+	blobs: readonly Blob[],
+	tiers: readonly Tier[],
+): number {
+	const dx = branch.x2 - branch.x1;
+	const dy = branch.y2 - branch.y1;
+	const segmentLength = Math.sqrt(dx * dx + dy * dy);
+	if (segmentLength === 0) {
+		return 0;
+	}
+
+	const intervals: [number, number][] = [];
+	for (const b of blobs) {
+		const hit = raySegmentEllipseIntersection(
+			branch.x1,
+			branch.y1,
+			branch.x2,
+			branch.y2,
+			b.cx,
+			b.cy,
+			b.rx,
+			b.ry,
+		);
+		if (hit) {
+			intervals.push(hit);
+		}
+	}
+	for (const t of tiers) {
+		const hit = raySegmentTriangleIntersection(branch.x1, branch.y1, branch.x2, branch.y2, t);
+		if (hit) {
+			intervals.push(hit);
+		}
+	}
+
+	if (intervals.length === 0) {
+		return segmentLength;
+	}
+
+	// Merge overlapping intervals.
+	intervals.sort((a, b) => a[0] - b[0]);
+	let covered = 0;
+	let curStart = intervals[0]![0];
+	let curEnd = intervals[0]![1];
+	for (let i = 1; i < intervals.length; i++) {
+		const [s, e] = intervals[i]!;
+		if (s <= curEnd) {
+			if (e > curEnd) {
+				curEnd = e;
+			}
+		} else {
+			covered += curEnd - curStart;
+			curStart = s;
+			curEnd = e;
+		}
+	}
+	covered += curEnd - curStart;
+
+	const coveredFraction = Math.min(1, Math.max(0, covered));
+	return segmentLength * (1 - coveredFraction);
+}
+
+/**
+ * Returns true if two segments (p1->p2 and p3->p4) intersect as thin lines.
+ */
+function segmentsIntersect(
+	p1x: number,
+	p1y: number,
+	p2x: number,
+	p2y: number,
+	p3x: number,
+	p3y: number,
+	p4x: number,
+	p4y: number,
+): boolean {
+	const d1x = p2x - p1x;
+	const d1y = p2y - p1y;
+	const d2x = p4x - p3x;
+	const d2y = p4y - p3y;
+	const denom = d1x * d2y - d1y * d2x;
+	if (denom === 0) {
+		// Parallel — treat collinear overlap as intersection.
+		const cross1 = (p3x - p1x) * d1y - (p3y - p1y) * d1x;
+		if (cross1 !== 0) {
+			return false;
+		}
+		// Collinear: project onto the longer axis and check overlap.
+		const useX = Math.abs(d1x) >= Math.abs(d1y);
+		const a0 = useX ? p1x : p1y;
+		const a1 = useX ? p2x : p2y;
+		const b0 = useX ? p3x : p3y;
+		const b1 = useX ? p4x : p4y;
+		const aMin = Math.min(a0, a1);
+		const aMax = Math.max(a0, a1);
+		const bMin = Math.min(b0, b1);
+		const bMax = Math.max(b0, b1);
+		return aMax >= bMin && bMax >= aMin;
+	}
+	const tNum = (p3x - p1x) * d2y - (p3y - p1y) * d2x;
+	const uNum = (p3x - p1x) * d1y - (p3y - p1y) * d1x;
+	const t = tNum / denom;
+	const u = uNum / denom;
+	return t >= 0 && t <= 1 && u >= 0 && u <= 1;
+}
+
+/**
+ * Thick-segment overlap test. First does an AABB reject, then checks a
+ * centerline intersection, then falls back to sampling points of each branch
+ * against the other's thick body to catch near-coincident but non-crossing
+ * cases.
+ */
+export function branchesOverlap(a: BranchSegment, b: BranchSegment): boolean {
+	const halfA = Math.max(a.widthStart, a.widthEnd) / 2;
+	const halfB = Math.max(b.widthStart, b.widthEnd) / 2;
+
+	const aMinX = Math.min(a.x1, a.x2) - halfA;
+	const aMaxX = Math.max(a.x1, a.x2) + halfA;
+	const aMinY = Math.min(a.y1, a.y2) - halfA;
+	const aMaxY = Math.max(a.y1, a.y2) + halfA;
+	const bMinX = Math.min(b.x1, b.x2) - halfB;
+	const bMaxX = Math.max(b.x1, b.x2) + halfB;
+	const bMinY = Math.min(b.y1, b.y2) - halfB;
+	const bMaxY = Math.max(b.y1, b.y2) + halfB;
+
+	if (aMaxX < bMinX || bMaxX < aMinX || aMaxY < bMinY || bMaxY < aMinY) {
+		return false;
+	}
+
+	// Analytic centerline intersection catches crossing branches regardless of
+	// sample density.
+	if (segmentsIntersect(a.x1, a.y1, a.x2, a.y2, b.x1, b.y1, b.x2, b.y2)) {
+		return true;
+	}
+
+	// Fallback: sample each branch at dense points and check thick inclusion
+	// against the other. Catches near-coincident cases the analytic test missed.
+	const SAMPLES = 21;
+	for (let i = 0; i <= SAMPLES; i++) {
+		const t = i / SAMPLES;
+		const px = a.x1 + t * (a.x2 - a.x1);
+		const py = a.y1 + t * (a.y2 - a.y1);
+		if (isPointInBranch(px, py, [b])) {
+			return true;
+		}
+	}
+	for (let i = 0; i <= SAMPLES; i++) {
+		const t = i / SAMPLES;
+		const px = b.x1 + t * (b.x2 - b.x1);
+		const py = b.y1 + t * (b.y2 - b.y1);
+		if (isPointInBranch(px, py, [a])) {
+			return true;
+		}
+	}
+	return false;
+}
+
+/**
+ * Resolve the effective branch length range for a given base range, taking
+ * branchLength scaling and branchLengthVariance spread into account.
+ *
+ * Trunk-origin branches draw from the upper half of the variance window,
+ * sub-branches from the lower half (REQ-T-15).
+ */
+export function resolveBranchLengthRange(
+	baseMin: number,
+	baseMax: number,
+	branchLength: number,
+	branchLengthVariance: number,
+	isTrunkOrigin: boolean,
+): { min: number; max: number } {
+	const scale = branchLength / 100;
+	const mid = ((baseMin + baseMax) / 2) * scale;
+	const half = (((baseMax - baseMin) / 2) * scale * branchLengthVariance) / 100;
+	if (isTrunkOrigin) {
+		return { min: mid, max: mid + half };
+	}
+	return { min: mid - half, max: mid };
+}
+
+// ---------------------------------------------------------------------------
 // Hierarchical branching (D1, D2, D3)
 // ---------------------------------------------------------------------------
 
@@ -711,11 +1033,236 @@ function angleDivergence(a: number, b: number): number {
 	return diff;
 }
 
+// Base length ranges for branches at branchLength=100. The effective min/max
+// is derived by resolveBranchLengthRange using config.branchLength and
+// branchLengthVariance. These bases were rescaled ~1.6x to track the canopy
+// rescale in #4 (commit 85c067e), which previously left branches too short to
+// clear the enlarged canopy under the new visibility check.
+const TRUNK_BRANCH_BASE_MIN = 40;
+const TRUNK_BRANCH_BASE_MAX = 80;
+const SUB_BRANCH_BASE_MIN = 25;
+const SUB_BRANCH_BASE_MAX = 55;
+
+const BRANCH_RETRY_ATTEMPTS = 3;
+const TRUNK_BRANCH_MIN_VISIBLE = 15;
+const SUB_BRANCH_MIN_VISIBLE = 10;
+
+interface BranchCandidateContext {
+	readonly rng: () => number;
+	readonly config: TreeConfig;
+	readonly trunkJunctions: readonly Point2D[];
+	readonly blobs: readonly Blob[];
+	readonly trunkTop: number;
+	readonly trunkHeight: number;
+	readonly canopyBottom: number;
+	readonly trunkAxisAngle: number;
+}
+
+/**
+ * Snap an endpoint to the same side of the trunk center as the start point so
+ * the branch cannot cross the trunk axis. If the endpoint is already on the
+ * correct side, returns it unchanged.
+ */
+function reflectEndpointIfCrossing(startX: number, endX: number, centerX: number): number {
+	const startSide = Math.sign(startX - centerX);
+	const endSide = Math.sign(endX - centerX);
+	if (startSide === 0 || endSide === 0 || startSide === endSide) {
+		return endX;
+	}
+	// Reflect endX about centerX.
+	return centerX + (centerX - endX);
+}
+
+/**
+ * Progressive branchT window per retry attempt. Later attempts push the
+ * origin lower on the trunk (away from the dense canopy core) so the branch
+ * has more unobstructed length below the canopy.
+ */
+const TRUNK_BRANCH_T_WINDOWS: readonly [number, number][] = [
+	[0.05, 0.35],
+	[0.2, 0.5],
+	[0.35, 0.6],
+];
+
+/**
+ * If a branch's endpoint is above the canopy bottom and NOT inside any blob,
+ * walk forward along the branch direction (both x and y) until the point
+ * lands inside a blob. Returns the adjusted endpoint, or the original if no
+ * blob is reached within the extension cap. This satisfies REQ-T-09 while
+ * preserving the branch direction (unlike the buggy original code that only
+ * updated endY and warped the branch).
+ */
+function extendTipIntoCanopy(
+	startX: number,
+	startY: number,
+	endX: number,
+	endY: number,
+	blobs: readonly Blob[],
+	canopyBottom: number,
+	maxExtension: number,
+): { endX: number; endY: number } {
+	if (endY >= canopyBottom || isPointInBlobs(endX, endY, blobs)) {
+		return { endX, endY };
+	}
+	const dirX = endX - startX;
+	const dirY = endY - startY;
+	const dirLen = Math.sqrt(dirX * dirX + dirY * dirY);
+	if (dirLen === 0) {
+		return { endX, endY };
+	}
+	const ux = dirX / dirLen;
+	const uy = dirY / dirLen;
+	for (let ext = 1; ext <= maxExtension; ext++) {
+		const px = endX + ux * ext;
+		const py = endY + uy * ext;
+		if (isPointInBlobs(px, py, blobs)) {
+			return { endX: px, endY: py };
+		}
+	}
+	return { endX, endY };
+}
+
+function rollTrunkBranchCandidate(
+	ctx: BranchCandidateContext,
+	side: 1 | -1,
+	branchThicknessScale: number,
+	attempt: number,
+): BranchSegment {
+	const {
+		rng,
+		config,
+		trunkJunctions,
+		blobs,
+		trunkTop,
+		trunkHeight,
+		canopyBottom,
+		trunkAxisAngle,
+	} = ctx;
+	const tWindow = TRUNK_BRANCH_T_WINDOWS[Math.min(attempt, TRUNK_BRANCH_T_WINDOWS.length - 1)]!;
+	const branchT = randomInRange(rng, tWindow[0], tWindow[1]);
+	const startY = trunkTop + trunkHeight * branchT;
+	const startX = sampleTrunkCenterX(trunkJunctions, startY);
+	const { min: lenMin, max: lenMax } = resolveBranchLengthRange(
+		TRUNK_BRANCH_BASE_MIN,
+		TRUNK_BRANCH_BASE_MAX,
+		config.branchLength,
+		config.branchLengthVariance,
+		true,
+	);
+	const length = randomInRange(rng, lenMin, lenMax);
+
+	let upAngle = 0;
+	for (let angleAttempt = 0; angleAttempt < BRANCH_ANGLE_MAX_ATTEMPTS; angleAttempt++) {
+		upAngle = randomInRange(rng, 0.3, 1.2);
+		const candidateAngle = Math.atan2(
+			-Math.sin(upAngle) * length,
+			Math.cos(upAngle) * length * side,
+		);
+		if (angleDivergence(candidateAngle, trunkAxisAngle) >= BRANCH_ANGLE_MIN_RAD) {
+			break;
+		}
+	}
+
+	const rawEndX = startX + Math.cos(upAngle) * length * side;
+	const rawEndY = startY - Math.sin(upAngle) * length;
+	const reflectedEndX = reflectEndpointIfCrossing(startX, rawEndX, startX);
+	const extended = extendTipIntoCanopy(
+		startX,
+		startY,
+		reflectedEndX,
+		rawEndY,
+		blobs,
+		canopyBottom,
+		40,
+	);
+	const widthStart = randomInRange(rng, 7, 12.25) * branchThicknessScale;
+	const widthEnd = randomInRange(rng, 1.75, 5.25) * branchThicknessScale;
+
+	return {
+		x1: startX,
+		y1: startY,
+		x2: extended.endX,
+		y2: extended.endY,
+		widthStart,
+		widthEnd,
+	};
+}
+
+function rollSubBranchCandidate(
+	ctx: BranchCandidateContext,
+	parent: BranchSegment,
+	side: 1 | -1,
+	branchThicknessScale: number,
+): BranchSegment {
+	const { rng, config, trunkJunctions, blobs, canopyBottom } = ctx;
+	const parentAngle = computeAxisAngle(parent.x1, parent.y1, parent.x2, parent.y2);
+	const startT = randomInRange(rng, 0.3, 0.7);
+	const startX = parent.x1 + startT * (parent.x2 - parent.x1);
+	const startY = parent.y1 + startT * (parent.y2 - parent.y1);
+
+	const { min: lenMin, max: lenMax } = resolveBranchLengthRange(
+		SUB_BRANCH_BASE_MIN,
+		SUB_BRANCH_BASE_MAX,
+		config.branchLength,
+		config.branchLengthVariance,
+		false,
+	);
+	const length = randomInRange(rng, lenMin, lenMax);
+
+	let upAngle = 0;
+	for (let angleAttempt = 0; angleAttempt < BRANCH_ANGLE_MAX_ATTEMPTS; angleAttempt++) {
+		upAngle = randomInRange(rng, 0.2, 1.0);
+		const candidateAngle = Math.atan2(
+			-Math.sin(upAngle) * length,
+			Math.cos(upAngle) * length * side,
+		);
+		if (angleDivergence(candidateAngle, parentAngle) >= BRANCH_ANGLE_MIN_RAD) {
+			break;
+		}
+	}
+
+	const rawEndX = startX + Math.cos(upAngle) * length * side;
+	// Keep sub-branch on the same side of the trunk axis as its origin.
+	const centerX = sampleTrunkCenterX(trunkJunctions, startY);
+	const reflectedEndX = reflectEndpointIfCrossing(startX, rawEndX, centerX);
+	const rawEndY = startY - Math.sin(upAngle) * length;
+	const extended = extendTipIntoCanopy(
+		startX,
+		startY,
+		reflectedEndX,
+		rawEndY,
+		blobs,
+		canopyBottom,
+		30,
+	);
+	const widthStart =
+		randomInRange(rng, SUB_BRANCH_WIDTH_MIN, SUB_BRANCH_WIDTH_MAX) * branchThicknessScale;
+	const widthEnd = randomInRange(rng, 1.75, 3.5) * branchThicknessScale;
+
+	return {
+		x1: startX,
+		y1: startY,
+		x2: extended.endX,
+		y2: extended.endY,
+		widthStart,
+		widthEnd,
+	};
+}
+
+function overlapsAny(candidate: BranchSegment, existing: readonly BranchSegment[]): boolean {
+	for (const other of existing) {
+		if (branchesOverlap(candidate, other)) {
+			return true;
+		}
+	}
+	return false;
+}
+
 export function generateBranches(
 	rng: () => number,
 	trunkTop: number,
 	trunkBottom: number,
-	trunkTopWidth: number,
+	_trunkTopWidth: number,
 	config: TreeConfig,
 	trunkJunctions: readonly Point2D[],
 	blobs: readonly Blob[],
@@ -730,10 +1277,8 @@ export function generateBranches(
 
 	const branches: BranchSegment[] = [];
 	const trunkHeight = trunkBottom - trunkTop;
-	const canopyBottom = getBlobsBounds(blobs).maxY;
+	const canopyBottom = blobs.length > 0 ? getBlobsBounds(blobs).maxY : trunkTop;
 
-	// Overall trunk axis from base junction to top junction for branch divergence
-	// checks. Branch origins still sample the local center from the polyline.
 	const baseJunction = trunkJunctions[0]!;
 	const topJunction = trunkJunctions[trunkJunctions.length - 1]!;
 	const trunkAxisAngle = computeAxisAngle(
@@ -743,55 +1288,42 @@ export function generateBranches(
 		topJunction.y,
 	);
 
+	const ctx: BranchCandidateContext = {
+		rng,
+		config,
+		trunkJunctions,
+		blobs,
+		trunkTop,
+		trunkHeight,
+		canopyBottom,
+		trunkAxisAngle,
+	};
+
 	const trunkBranchCount = Math.max(1, Math.round(branchCount * trunkBranchRatio));
 	const subBranchCount = branchCount - trunkBranchCount;
 
+	// --- Trunk-origin branches ---
 	for (let i = 0; i < trunkBranchCount; i++) {
-		const side = i % 2 === 0 ? 1 : -1;
-		const branchT = randomInRange(rng, 0.05, 0.35);
-		const startY = trunkTop + trunkHeight * branchT;
-		const startX = sampleTrunkCenterX(trunkJunctions, startY);
-		const length = randomInRange(rng, 25, 50);
-
-		// D2: branch angle constraint ≥ 30°
-		let upAngle = 0;
-		for (let attempt = 0; attempt < BRANCH_ANGLE_MAX_ATTEMPTS; attempt++) {
-			upAngle = randomInRange(rng, 0.3, 1.2);
-			const candidateAngle = Math.atan2(
-				-Math.sin(upAngle) * length,
-				Math.cos(upAngle) * length * side,
-			);
-			if (angleDivergence(candidateAngle, trunkAxisAngle) >= BRANCH_ANGLE_MIN_RAD) {
-				break;
+		const side: 1 | -1 = i % 2 === 0 ? 1 : -1;
+		let accepted: BranchSegment | null = null;
+		for (let attempt = 0; attempt < BRANCH_RETRY_ATTEMPTS; attempt++) {
+			const candidate = rollTrunkBranchCandidate(ctx, side, branchThicknessScale, attempt);
+			if (overlapsAny(candidate, branches)) {
+				continue;
 			}
-		}
-
-		const endX = startX + Math.cos(upAngle) * length * side;
-		let endY = startY - Math.sin(upAngle) * length;
-		const widthStart = randomInRange(rng, 7, 12.25) * branchThicknessScale;
-		const widthEnd = randomInRange(rng, 1.75, 5.25) * branchThicknessScale;
-
-		if (endY < canopyBottom && !isPointInBlobs(endX, endY, blobs)) {
-			const dirX = endX - startX;
-			const dirY = endY - startY;
-			const dirLen = Math.sqrt(dirX * dirX + dirY * dirY);
-			if (dirLen > 0) {
-				const ux = dirX / dirLen;
-				const uy = dirY / dirLen;
-				for (let ext = 1; ext <= 40; ext++) {
-					const px = endX + ux * ext;
-					const py = endY + uy * ext;
-					if (isPointInBlobs(px, py, blobs)) {
-						endY = py;
-						break;
-					}
-				}
+			const visible = computeVisibleBranchLength(candidate, blobs, []);
+			if (visible < TRUNK_BRANCH_MIN_VISIBLE) {
+				continue;
 			}
+			accepted = candidate;
+			break;
 		}
-
-		branches.push({ x1: startX, y1: startY, x2: endX, y2: endY, widthStart, widthEnd });
+		if (accepted !== null) {
+			branches.push(accepted);
+		}
 	}
 
+	// --- Sub-branches ---
 	const isolatedBlobIndices = findIsolatedBlobs(blobs);
 	const isolatedReached = new Set<number>();
 
@@ -799,67 +1331,32 @@ export function generateBranches(
 		if (branches.length === 0) {
 			break;
 		}
-		const parent = branches[Math.floor(rng() * branches.length)]!;
-		const parentAngle = computeAxisAngle(parent.x1, parent.y1, parent.x2, parent.y2);
-		const startT = randomInRange(rng, 0.3, 0.7);
-		const startX = parent.x1 + startT * (parent.x2 - parent.x1);
-		const startY = parent.y1 + startT * (parent.y2 - parent.y1);
-
-		const side = i % 2 === 0 ? 1 : -1;
-		const length = randomInRange(rng, 15, 35);
-
-		// D2: branch angle constraint ≥ 30° from parent direction
-		let upAngle = 0;
-		for (let attempt = 0; attempt < BRANCH_ANGLE_MAX_ATTEMPTS; attempt++) {
-			upAngle = randomInRange(rng, 0.2, 1.0);
-			const candidateAngle = Math.atan2(
-				-Math.sin(upAngle) * length,
-				Math.cos(upAngle) * length * side,
-			);
-			if (angleDivergence(candidateAngle, parentAngle) >= BRANCH_ANGLE_MIN_RAD) {
-				break;
+		const side: 1 | -1 = i % 2 === 0 ? 1 : -1;
+		let accepted: BranchSegment | null = null;
+		for (let attempt = 0; attempt < BRANCH_RETRY_ATTEMPTS; attempt++) {
+			const parent = branches[Math.floor(rng() * branches.length)]!;
+			const candidate = rollSubBranchCandidate(ctx, parent, side, branchThicknessScale);
+			if (overlapsAny(candidate, branches)) {
+				continue;
 			}
+			const visible = computeVisibleBranchLength(candidate, blobs, []);
+			if (visible < SUB_BRANCH_MIN_VISIBLE) {
+				continue;
+			}
+			accepted = candidate;
+			break;
 		}
-
-		const endX = startX + Math.cos(upAngle) * length * side;
-		let endY = startY - Math.sin(upAngle) * length;
-
-		if (endY < canopyBottom && !isPointInBlobs(endX, endY, blobs)) {
-			const dirX = endX - startX;
-			const dirY = endY - startY;
-			const dirLen = Math.sqrt(dirX * dirX + dirY * dirY);
-			if (dirLen > 0) {
-				const ux = dirX / dirLen;
-				const uy = dirY / dirLen;
-				for (let ext = 1; ext <= 30; ext++) {
-					const px = endX + ux * ext;
-					const py = endY + uy * ext;
-					if (isPointInBlobs(px, py, blobs)) {
-						endY = py;
-						break;
-					}
+		if (accepted !== null) {
+			for (const idx of isolatedBlobIndices) {
+				if (isPointInSingleBlob(accepted.x2, accepted.y2, blobs[idx]!)) {
+					isolatedReached.add(idx);
 				}
 			}
+			branches.push(accepted);
 		}
-
-		for (const idx of isolatedBlobIndices) {
-			if (isPointInSingleBlob(endX, endY, blobs[idx]!)) {
-				isolatedReached.add(idx);
-			}
-		}
-
-		branches.push({
-			x1: startX,
-			y1: startY,
-			x2: endX,
-			y2: endY,
-			widthStart:
-				randomInRange(rng, SUB_BRANCH_WIDTH_MIN, SUB_BRANCH_WIDTH_MAX) *
-				branchThicknessScale,
-			widthEnd: randomInRange(rng, 1.75, 3.5) * branchThicknessScale,
-		});
 	}
 
+	// --- Floating-blob fallback (exempt from visibility/crossing checks) ---
 	for (const idx of isolatedBlobIndices) {
 		if (isolatedReached.has(idx)) {
 			continue;

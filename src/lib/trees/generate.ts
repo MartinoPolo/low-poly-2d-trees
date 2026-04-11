@@ -489,7 +489,7 @@ export function generateTree(config: TreeConfig): TreeGeometry {
 	const branches = isPine
 		? []
 		: generateBranches(
-				rng,
+				createPrng(config.seed + 7777),
 				trunkTop,
 				trunkBottom,
 				shapeDef.trunkTopWidth * (config.trunkThickness / 100),

@@ -445,25 +445,31 @@ describe('REQ-T: Trunk & Branch Generation', () => {
 	});
 
 	describe('REQ-T-09: branch endpoint terminates inside canopy', () => {
-		it('branch tip falls within canopy x-bounds when tip is in canopy vertical range', () => {
+		it('branch tip is inside a canopy triangle when tip is above canopy bottom', () => {
 			const geo = generateTree(makeConfig({ branchCount: 1, seed: 42 }));
 			expect(geo.branchTriangles.length).toBeGreaterThan(0);
 			const { min: tip } = extremeYVertices(geo.branchTriangles);
-			const canopyXs = geo.canopyBlobs.flatMap((b) =>
-				b.triangles.flatMap((t) => t.points.map((p) => p.x)),
-			);
 			const canopyYs = geo.canopyBlobs.flatMap((b) =>
 				b.triangles.flatMap((t) => t.points.map((p) => p.y)),
 			);
 			const canopyMaxY = Math.max(...canopyYs);
-			// Skip x-range check only if branch tip is visually below canopy
-			// (branch extends past canopy bottom, also valid).
-			if (tip.y < canopyMaxY) {
-				const canopyMinX = Math.min(...canopyXs);
-				const canopyMaxX = Math.max(...canopyXs);
-				expect(tip.x).toBeGreaterThanOrEqual(canopyMinX);
-				expect(tip.x).toBeLessThanOrEqual(canopyMaxX);
+			// REQ-T-09: if tip is below canopy bottom, it may end in open air.
+			if (tip.y >= canopyMaxY) {
+				return;
 			}
+			// Otherwise, the tip must terminate inside a canopy blob. Check via
+			// point-in-any-canopy-triangle (the blob tessellation).
+			const allCanopyTris = geo.canopyBlobs.flatMap((b) => b.triangles);
+			const tipInsideBlob = allCanopyTris.some((tri) => {
+				const [a, b, c] = tri.points;
+				const d1 = (tip.x - b.x) * (a.y - b.y) - (a.x - b.x) * (tip.y - b.y);
+				const d2 = (tip.x - c.x) * (b.y - c.y) - (b.x - c.x) * (tip.y - c.y);
+				const d3 = (tip.x - a.x) * (c.y - a.y) - (c.x - a.x) * (tip.y - a.y);
+				const hasNeg = d1 < 0 || d2 < 0 || d3 < 0;
+				const hasPos = d1 > 0 || d2 > 0 || d3 > 0;
+				return !(hasNeg && hasPos);
+			});
+			expect(tipInsideBlob).toBe(true);
 		});
 	});
 
@@ -733,23 +739,28 @@ describe('Parameter scaling', () => {
 	});
 
 	describe('branchThickness scaling', () => {
-		it('branchThickness 200 produces wider branches than 50', () => {
+		it('branchThickness 200 produces visually thicker branches than 50', () => {
 			const geoWide = generateTree(
 				makeConfig({ branchThickness: 200, branchCount: 5, seed: 42 }),
 			);
 			const geoNarrow = generateTree(
 				makeConfig({ branchThickness: 50, branchCount: 5, seed: 42 }),
 			);
-			const getXRange = (tris: readonly Triangle[]) => {
-				if (tris.length === 0) {
-					return 0;
+			// Since issue #7 added a thickness-dependent overlap check (wider
+			// branches reject more candidates and re-roll), branch positions
+			// diverge between runs, so a naive x-range metric is unreliable.
+			// Total triangle area is a direct measure of visual thickness.
+			const totalArea = (tris: readonly Triangle[]): number => {
+				let sum = 0;
+				for (const tri of tris) {
+					const [a, b, c] = tri.points;
+					sum += Math.abs((b.x - a.x) * (c.y - a.y) - (c.x - a.x) * (b.y - a.y)) / 2;
 				}
-				const xs = tris.flatMap((t) => t.points.map((p) => p.x));
-				return Math.max(...xs) - Math.min(...xs);
+				return sum;
 			};
-			expect(getXRange(geoWide.branchTriangles)).toBeGreaterThanOrEqual(
-				getXRange(geoNarrow.branchTriangles),
-			);
+			const wideArea = totalArea(geoWide.branchTriangles);
+			const narrowArea = totalArea(geoNarrow.branchTriangles);
+			expect(wideArea).toBeGreaterThan(narrowArea);
 		});
 	});
 });
