@@ -49,9 +49,7 @@ test.describe('Issue #3 — Slider UX + UI control reorganization', () => {
 		await page.goto('http://localhost:4173/showcase');
 		await page.waitForLoadState('networkidle');
 
-		// Select pine shape using the select component
-		const select = page.locator('select, [role="combobox"]').first();
-		// Try to use shadcn select — click trigger then pick pine
+		// Select pine shape via shadcn select trigger
 		const trigger = page.locator('[role="combobox"]').first();
 		await trigger.click();
 		await page.waitForTimeout(300);
@@ -71,10 +69,6 @@ test.describe('Issue #3 — Slider UX + UI control reorganization', () => {
 
 		expect(branchDisabled).not.toBeNull();
 		expect(trunkBranchDisabled).not.toBeNull();
-
-		// Check opacity-50 on parent wrapper
-		const branchWrapper = branchCountSlider.locator('..');
-		const trunkWrapper = trunkBranchSlider.locator('..');
 
 		// Visual check via screenshot
 		await page.screenshot({ path: '/tmp/pine_disabled.png', fullPage: false });
