@@ -32,8 +32,9 @@ const H = VIEWBOX_HEIGHT;
 const TRUNK_ENTRY_MIN_PX = 15;
 const RADIAL_JITTER_FACTOR = 0.15;
 const ACUTE_ANGLE_THRESHOLD_RAD = Math.PI / 2;
-const SUB_BRANCH_WIDTH_MIN = 2;
-const SUB_BRANCH_WIDTH_MAX = 4;
+// Sub-branch widths pre-scaled by 1.75 (issue #4 base rescale).
+const SUB_BRANCH_WIDTH_MIN = 3.5;
+const SUB_BRANCH_WIDTH_MAX = 7;
 const BRANCH_ANGLE_MIN_RAD = (30 * Math.PI) / 180;
 const BRANCH_ANGLE_MAX_ATTEMPTS = 20;
 
@@ -82,44 +83,46 @@ function ensureLargestBlobInBottomHalf(blobs: Blob[]): void {
 	}
 }
 
+function generateOakBlobs(rng: () => number, blobCount: number): Blob[] {
+	const blobs: Blob[] = [];
+	const centerX = W / 2;
+	const canopyCenterY = H * 0.3;
+	const spreadRadius = W * 0.22;
+
+	// D9: blob 0 on trunk axis
+	if (blobCount >= 1) {
+		const rx = randomInRange(rng, W * 0.2275, W * 0.385);
+		const ry = randomInRange(rng, H * 0.14, H * 0.2625);
+		blobs.push({ cx: centerX, cy: canopyCenterY, rx, ry });
+	}
+
+	// D9: remaining blobs balanced left/right
+	for (let i = 1; i < blobCount; i++) {
+		const side = i % 2 === 0 ? 1 : -1;
+		const dist = randomInRange(rng, spreadRadius * 0.3, spreadRadius * 0.9);
+		const angleJitter = randomInRange(rng, -0.5, 0.5);
+		const angle = (Math.PI / 4) * Math.ceil(i / 2) + angleJitter;
+		const cx = centerX + Math.cos(angle) * dist * side;
+		const cy = canopyCenterY + Math.sin(angle) * dist * 0.5 * (rng() > 0.5 ? -1 : 1);
+		const rx = randomInRange(rng, W * 0.2275, W * 0.385);
+		const ry = randomInRange(rng, H * 0.14, H * 0.2625);
+		blobs.push({ cx, cy, rx, ry });
+	}
+	ensureLargestBlobInBottomHalf(blobs);
+	return blobs;
+}
+
 const shapeDefinitions: Record<TreeShape, ShapeDefinition> = {
 	oak: {
-		trunkBaseWidth: 16,
-		trunkTopWidth: 10,
+		trunkBaseWidth: 28,
+		trunkTopWidth: 17.5,
 		trunkBottom: H * 0.95,
 		defaultTrunkTop: H * 0.45,
-		generateBlobs(rng, blobCount) {
-			const blobs: Blob[] = [];
-			const centerX = W / 2;
-			const canopyCenterY = H * 0.3;
-			const spreadRadius = W * 0.22;
-
-			// D9: blob 0 on trunk axis
-			if (blobCount >= 1) {
-				const rx = randomInRange(rng, W * 0.13, W * 0.22);
-				const ry = randomInRange(rng, H * 0.08, H * 0.15);
-				blobs.push({ cx: centerX, cy: canopyCenterY, rx, ry });
-			}
-
-			// D9: remaining blobs balanced left/right
-			for (let i = 1; i < blobCount; i++) {
-				const side = i % 2 === 0 ? 1 : -1;
-				const dist = randomInRange(rng, spreadRadius * 0.3, spreadRadius * 0.9);
-				const angleJitter = randomInRange(rng, -0.5, 0.5);
-				const angle = (Math.PI / 4) * Math.ceil(i / 2) + angleJitter;
-				const cx = centerX + Math.cos(angle) * dist * side;
-				const cy = canopyCenterY + Math.sin(angle) * dist * 0.5 * (rng() > 0.5 ? -1 : 1);
-				const rx = randomInRange(rng, W * 0.13, W * 0.22);
-				const ry = randomInRange(rng, H * 0.08, H * 0.15);
-				blobs.push({ cx, cy, rx, ry });
-			}
-			ensureLargestBlobInBottomHalf(blobs);
-			return blobs;
-		},
+		generateBlobs: generateOakBlobs,
 	},
 	pine: {
-		trunkBaseWidth: 12,
-		trunkTopWidth: 7,
+		trunkBaseWidth: 21,
+		trunkTopWidth: 12.25,
 		trunkBottom: H * 0.95,
 		defaultTrunkTop: H * 0.55,
 		generateBlobs() {
@@ -127,8 +130,8 @@ const shapeDefinitions: Record<TreeShape, ShapeDefinition> = {
 		},
 	},
 	birch: {
-		trunkBaseWidth: 10,
-		trunkTopWidth: 6,
+		trunkBaseWidth: 17.5,
+		trunkTopWidth: 10.5,
 		trunkBottom: H * 0.95,
 		defaultTrunkTop: H * 0.45,
 		generateBlobs(rng, blobCount) {
@@ -138,8 +141,8 @@ const shapeDefinitions: Record<TreeShape, ShapeDefinition> = {
 
 			// D9: blob 0 on trunk axis
 			if (blobCount >= 1) {
-				const rx = randomInRange(rng, W * 0.06, W * 0.12);
-				const ry = randomInRange(rng, H * 0.12, H * 0.22);
+				const rx = randomInRange(rng, W * 0.105, W * 0.21);
+				const ry = randomInRange(rng, H * 0.21, H * 0.385);
 				blobs.push({ cx: centerX, cy: canopyCenterY, rx, ry });
 			}
 
@@ -150,13 +153,44 @@ const shapeDefinitions: Record<TreeShape, ShapeDefinition> = {
 				const horizontalOffset = randomInRange(rng, W * 0.02, W * 0.08) * side;
 				const cx = centerX + horizontalOffset;
 				const cy = canopyCenterY + verticalOffset;
-				const rx = randomInRange(rng, W * 0.06, W * 0.12);
-				const ry = randomInRange(rng, H * 0.12, H * 0.22);
+				const rx = randomInRange(rng, W * 0.105, W * 0.21);
+				const ry = randomInRange(rng, H * 0.21, H * 0.385);
 				blobs.push({ cx, cy, rx, ry });
 			}
 			ensureLargestBlobInBottomHalf(blobs);
 			return blobs;
 		},
+	},
+	// Placeholder definitions for shapes whose real generators arrive in issue #8.
+	// Trunk widths rescaled by 1.75 per issue #4. Blob generators reuse oak's
+	// radial distribution until dedicated generators land.
+	fir: {
+		trunkBaseWidth: 21,
+		trunkTopWidth: 12.25,
+		trunkBottom: H * 0.95,
+		defaultTrunkTop: H * 0.55,
+		generateBlobs: generateOakBlobs,
+	},
+	maple: {
+		trunkBaseWidth: 28,
+		trunkTopWidth: 17.5,
+		trunkBottom: H * 0.95,
+		defaultTrunkTop: H * 0.45,
+		generateBlobs: generateOakBlobs,
+	},
+	willow: {
+		trunkBaseWidth: 28,
+		trunkTopWidth: 17.5,
+		trunkBottom: H * 0.95,
+		defaultTrunkTop: H * 0.45,
+		generateBlobs: generateOakBlobs,
+	},
+	custom: {
+		trunkBaseWidth: 28,
+		trunkTopWidth: 17.5,
+		trunkBottom: H * 0.95,
+		defaultTrunkTop: H * 0.45,
+		generateBlobs: generateOakBlobs,
 	},
 };
 
@@ -255,7 +289,7 @@ export function generateTiers(
 		const topScale = 1 / blobSizeVariance;
 		const widthScale = lerp(topScale, 1.0, widthT);
 
-		const baseHalfWidth = (W * 0.06 + t1 * W * 0.22) * widthScale * canopyScale;
+		const baseHalfWidth = (W * 0.105 + t1 * W * 0.385) * widthScale * canopyScale;
 
 		// D10: tiers follow trunk lean
 		const leanOffset =
@@ -659,8 +693,8 @@ export function generateBranches(
 
 		const endX = startX + Math.cos(upAngle) * length * side;
 		let endY = startY - Math.sin(upAngle) * length;
-		const widthStart = randomInRange(rng, 4, 7) * branchThicknessScale;
-		const widthEnd = randomInRange(rng, 1, 3) * branchThicknessScale;
+		const widthStart = randomInRange(rng, 7, 12.25) * branchThicknessScale;
+		const widthEnd = randomInRange(rng, 1.75, 5.25) * branchThicknessScale;
 
 		if (endY < canopyBottom && !isPointInBlobs(endX, endY, blobs)) {
 			const dirX = endX - startX;
@@ -747,7 +781,7 @@ export function generateBranches(
 			widthStart:
 				randomInRange(rng, SUB_BRANCH_WIDTH_MIN, SUB_BRANCH_WIDTH_MAX) *
 				branchThicknessScale,
-			widthEnd: randomInRange(rng, 1, 2) * branchThicknessScale,
+			widthEnd: randomInRange(rng, 1.75, 3.5) * branchThicknessScale,
 		});
 	}
 
@@ -765,8 +799,8 @@ export function generateBranches(
 			y1: originY,
 			x2: blob.cx,
 			y2: blob.cy,
-			widthStart: randomInRange(rng, 3, 5) * branchThicknessScale,
-			widthEnd: randomInRange(rng, 1, 2) * branchThicknessScale,
+			widthStart: randomInRange(rng, 5.25, 8.75) * branchThicknessScale,
+			widthEnd: randomInRange(rng, 1.75, 3.5) * branchThicknessScale,
 		});
 	}
 
@@ -863,8 +897,8 @@ export function validateNoFloatingBlobs(
 			y1: Math.min(trunkY, VIEWBOX_HEIGHT * 0.9),
 			x2: blob.cx,
 			y2: blob.cy,
-			widthStart: 4,
-			widthEnd: 1,
+			widthStart: 7,
+			widthEnd: 1.75,
 		});
 	}
 

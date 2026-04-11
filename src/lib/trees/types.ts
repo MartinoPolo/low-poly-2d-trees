@@ -2,6 +2,10 @@ export const TREE_SHAPES = {
 	oak: 'oak',
 	pine: 'pine',
 	birch: 'birch',
+	fir: 'fir',
+	maple: 'maple',
+	willow: 'willow',
+	custom: 'custom',
 } as const;
 
 export type TreeShape = (typeof TREE_SHAPES)[keyof typeof TREE_SHAPES];
@@ -10,6 +14,10 @@ export const TREE_SHAPE_OPTIONS: readonly { value: TreeShape; label: string }[] 
 	{ value: TREE_SHAPES.oak, label: 'Oak' },
 	{ value: TREE_SHAPES.pine, label: 'Pine' },
 	{ value: TREE_SHAPES.birch, label: 'Birch' },
+	{ value: TREE_SHAPES.fir, label: 'Fir' },
+	{ value: TREE_SHAPES.maple, label: 'Maple' },
+	{ value: TREE_SHAPES.willow, label: 'Willow' },
+	{ value: TREE_SHAPES.custom, label: 'Custom' },
 ] as const;
 
 export const GEOMETRY_GROUPS = {
@@ -97,7 +105,7 @@ export const DEFAULT_TREE_CONFIG: TreeConfig = {
 	trunkHue: 25,
 	trunkSaturation: 50,
 	trunkLightness: 25,
-	lightAngle: 315,
+	lightAngle: 130,
 	blobCount: 5,
 	branchCount: 2,
 	depthVariance: 1.0,
@@ -110,14 +118,63 @@ export const DEFAULT_TREE_CONFIG: TreeConfig = {
 	trunkBranchRatio: 70,
 } as const;
 
-export const SHAPE_DEFAULTS: Record<
-	TreeShape,
-	Pick<TreeConfig, 'blobCount' | 'branchCount' | 'blobSizeVariance' | 'blobCloseness'>
-> = {
-	[TREE_SHAPES.oak]: { blobCount: 5, branchCount: 2, blobSizeVariance: 3.0, blobCloseness: 50 },
-	[TREE_SHAPES.pine]: { blobCount: 3, branchCount: 0, blobSizeVariance: 3.0, blobCloseness: 50 },
-	[TREE_SHAPES.birch]: { blobCount: 3, branchCount: 1, blobSizeVariance: 3.0, blobCloseness: 50 },
-};
+/**
+ * Per-shape defaults from REQUIREMENTS.md §2.5. `custom` is intentionally
+ * excluded — the custom editor retains whatever the user has configured.
+ *
+ * Fields `trunkSegments` and `trunkCrookedness` from §2.5 are omitted until
+ * their own issues add them to `TreeConfig`.
+ */
+export const SHAPE_DEFAULTS = {
+	[TREE_SHAPES.oak]: {
+		blobCount: 5,
+		branchCount: 2,
+		blobSizeVariance: 3.0,
+		blobCloseness: 50,
+		branchThickness: 100,
+	},
+	[TREE_SHAPES.pine]: {
+		blobCount: 3,
+		branchCount: 0,
+		blobSizeVariance: 3.0,
+		blobCloseness: 50,
+		branchThickness: 100,
+	},
+	[TREE_SHAPES.birch]: {
+		blobCount: 3,
+		branchCount: 1,
+		blobSizeVariance: 3.0,
+		blobCloseness: 50,
+		branchThickness: 100,
+	},
+	[TREE_SHAPES.fir]: {
+		blobCount: 4,
+		branchCount: 0,
+		blobSizeVariance: 3.0,
+		blobCloseness: 50,
+		branchThickness: 100,
+	},
+	[TREE_SHAPES.maple]: {
+		blobCount: 5,
+		branchCount: 5,
+		blobSizeVariance: 2.0,
+		blobCloseness: 30,
+		branchThickness: 100,
+	},
+	[TREE_SHAPES.willow]: {
+		blobCount: 4,
+		branchCount: 4,
+		blobSizeVariance: 3.0,
+		blobCloseness: 50,
+		branchThickness: 150,
+	},
+} as const satisfies Record<
+	Exclude<TreeShape, 'custom'>,
+	Pick<
+		TreeConfig,
+		'blobCount' | 'branchCount' | 'blobSizeVariance' | 'blobCloseness' | 'branchThickness'
+	>
+>;
 
 export const VIEWBOX_WIDTH = 200;
 export const VIEWBOX_HEIGHT = 300;
