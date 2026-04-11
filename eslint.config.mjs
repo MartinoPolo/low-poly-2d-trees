@@ -11,6 +11,7 @@ export default [
 		ignores: [
 			'.svelte-kit',
 			'.storybook',
+			'.wrangler',
 			'build',
 			'node_modules',
 			'src/lib/paraglide',

@@ -1,0 +1,41 @@
+import { TREE_SHAPES, type TreeShape } from './types.js';
+
+/**
+ * Per-shape list of TreeConfig parameters that should be disabled in the UI.
+ *
+ * Note: `fir` will be added when issue #8 lands (same disabled set as `pine`).
+ */
+export const DISABLED_PARAMS_BY_SHAPE = {
+	[TREE_SHAPES.oak]: [],
+	[TREE_SHAPES.pine]: ['branchCount', 'trunkBranchRatio'],
+	[TREE_SHAPES.birch]: [],
+} as const satisfies Record<TreeShape, readonly string[]>;
+
+/**
+ * Config shape used for cross-param disable rules. Keeping this narrow so
+ * callers only pass the fields that actually affect disable state.
+ */
+interface DisabledParamConfig {
+	readonly trunkSegments?: number;
+}
+
+/**
+ * Returns `true` when a given parameter should be disabled for the current
+ * shape and config. Combines per-shape static rules with cross-param rules.
+ */
+export function isParamDisabled(
+	shape: TreeShape,
+	param: string,
+	config: DisabledParamConfig,
+): boolean {
+	const shapeDisabledParams: readonly string[] = DISABLED_PARAMS_BY_SHAPE[shape];
+	if (shapeDisabledParams.includes(param)) {
+		return true;
+	}
+
+	if (param === 'trunkCrookedness' && config.trunkSegments === 1) {
+		return true;
+	}
+
+	return false;
+}
