@@ -7,6 +7,7 @@ const config: KnipConfig = {
 		'src/lib/reactivity/*.svelte.ts',
 		'src/lib/context/*.context.svelte.ts',
 		'src/lib/components/ui/*/index.ts',
+		'src/lib/components/ui/*/*.svelte.ts',
 	],
 	project: ['src/**/*.{ts,svelte}'],
 	ignoreDependencies: [
