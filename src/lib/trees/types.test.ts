@@ -51,6 +51,8 @@ describe('SHAPE_DEFAULTS §2.5', () => {
 			branchThickness: 100,
 			trunkSegments: 1,
 			trunkCrookedness: 0,
+			branchLength: 100,
+			branchLengthVariance: 50,
 		});
 	});
 
@@ -63,6 +65,8 @@ describe('SHAPE_DEFAULTS §2.5', () => {
 			branchThickness: 100,
 			trunkSegments: 1,
 			trunkCrookedness: 0,
+			branchLength: 100,
+			branchLengthVariance: 50,
 		});
 	});
 
@@ -75,6 +79,8 @@ describe('SHAPE_DEFAULTS §2.5', () => {
 			branchThickness: 100,
 			trunkSegments: 1,
 			trunkCrookedness: 0,
+			branchLength: 100,
+			branchLengthVariance: 50,
 		});
 	});
 
@@ -87,6 +93,8 @@ describe('SHAPE_DEFAULTS §2.5', () => {
 			branchThickness: 100,
 			trunkSegments: 1,
 			trunkCrookedness: 0,
+			branchLength: 100,
+			branchLengthVariance: 50,
 		});
 	});
 
@@ -99,6 +107,8 @@ describe('SHAPE_DEFAULTS §2.5', () => {
 			branchThickness: 100,
 			trunkSegments: 1,
 			trunkCrookedness: 0,
+			branchLength: 100,
+			branchLengthVariance: 50,
 		});
 	});
 
@@ -111,6 +121,15 @@ describe('SHAPE_DEFAULTS §2.5', () => {
 			branchThickness: 150,
 			trunkSegments: 3,
 			trunkCrookedness: 40,
+			branchLength: 100,
+			branchLengthVariance: 50,
 		});
+	});
+
+	it('every shape entry has branchLength and branchLengthVariance (REQ-P-23/24)', () => {
+		for (const shape of nonCustomShapes) {
+			expect(SHAPE_DEFAULTS[shape].branchLength).toBe(100);
+			expect(SHAPE_DEFAULTS[shape].branchLengthVariance).toBe(50);
+		}
 	});
 });

@@ -94,6 +94,8 @@ export interface TreeConfig {
 	readonly trunkLean: number;
 	readonly trunkSegments: number;
 	readonly trunkCrookedness: number;
+	readonly branchLength: number;
+	readonly branchLengthVariance: number;
 }
 
 export const DEFAULT_TREE_CONFIG: TreeConfig = {
@@ -122,6 +124,8 @@ export const DEFAULT_TREE_CONFIG: TreeConfig = {
 	trunkLean: 0,
 	trunkSegments: 1,
 	trunkCrookedness: 0,
+	branchLength: 100,
+	branchLengthVariance: 50,
 } as const;
 
 /**
@@ -137,6 +141,8 @@ export const SHAPE_DEFAULTS = {
 		branchThickness: 100,
 		trunkSegments: 1,
 		trunkCrookedness: 0,
+		branchLength: 100,
+		branchLengthVariance: 50,
 	},
 	[TREE_SHAPES.pine]: {
 		blobCount: 3,
@@ -146,6 +152,8 @@ export const SHAPE_DEFAULTS = {
 		branchThickness: 100,
 		trunkSegments: 1,
 		trunkCrookedness: 0,
+		branchLength: 100,
+		branchLengthVariance: 50,
 	},
 	[TREE_SHAPES.birch]: {
 		blobCount: 3,
@@ -155,6 +163,8 @@ export const SHAPE_DEFAULTS = {
 		branchThickness: 100,
 		trunkSegments: 1,
 		trunkCrookedness: 0,
+		branchLength: 100,
+		branchLengthVariance: 50,
 	},
 	[TREE_SHAPES.fir]: {
 		blobCount: 4,
@@ -164,6 +174,8 @@ export const SHAPE_DEFAULTS = {
 		branchThickness: 100,
 		trunkSegments: 1,
 		trunkCrookedness: 0,
+		branchLength: 100,
+		branchLengthVariance: 50,
 	},
 	[TREE_SHAPES.maple]: {
 		blobCount: 5,
@@ -173,6 +185,8 @@ export const SHAPE_DEFAULTS = {
 		branchThickness: 100,
 		trunkSegments: 1,
 		trunkCrookedness: 0,
+		branchLength: 100,
+		branchLengthVariance: 50,
 	},
 	[TREE_SHAPES.willow]: {
 		blobCount: 4,
@@ -182,6 +196,8 @@ export const SHAPE_DEFAULTS = {
 		branchThickness: 150,
 		trunkSegments: 3,
 		trunkCrookedness: 40,
+		branchLength: 100,
+		branchLengthVariance: 50,
 	},
 } as const satisfies Record<
 	Exclude<TreeShape, 'custom'>,
@@ -194,6 +210,8 @@ export const SHAPE_DEFAULTS = {
 		| 'branchThickness'
 		| 'trunkSegments'
 		| 'trunkCrookedness'
+		| 'branchLength'
+		| 'branchLengthVariance'
 	>
 >;
 

@@ -34,6 +34,8 @@
 	let trunkLean = $state(DEFAULT_TREE_CONFIG.trunkLean);
 	let trunkSegments = $state(DEFAULT_TREE_CONFIG.trunkSegments);
 	let trunkCrookedness = $state(DEFAULT_TREE_CONFIG.trunkCrookedness);
+	let branchLength = $state(DEFAULT_TREE_CONFIG.branchLength);
+	let branchLengthVariance = $state(DEFAULT_TREE_CONFIG.branchLengthVariance);
 	let showAnchors = $state(false);
 	let showCanopy = $state(true);
 	let showBranches = $state(true);
@@ -215,6 +217,22 @@
 						bind:value={trunkCrookedness}
 						disabled={trunkCrookednessDisabled}
 					/>
+					<LabeledRangeSlider
+						label="Branch Length"
+						min={25}
+						max={400}
+						step={5}
+						unit="%"
+						bind:value={branchLength}
+					/>
+					<LabeledRangeSlider
+						label="Branch Length Variance"
+						min={0}
+						max={100}
+						step={5}
+						unit="%"
+						bind:value={branchLengthVariance}
+					/>
 				</SectionCard>
 
 				<SectionCard title="Canopy Color" contentClass="space-y-4">
@@ -380,6 +398,8 @@
 						{trunkLean}
 						{trunkSegments}
 						{trunkCrookedness}
+						{branchLength}
+						{branchLengthVariance}
 						blobCount={tree.blobCount}
 						branchCount={tree.branchCount}
 						{showCanopy}
