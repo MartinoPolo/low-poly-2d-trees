@@ -49,8 +49,8 @@ test.describe('Issue #3 — Slider UX + UI control reorganization', () => {
 		await page.goto('http://localhost:4173/showcase');
 		await page.waitForLoadState('networkidle');
 
-		// Select pine shape via shadcn select trigger
-		const trigger = page.locator('[role="combobox"]').first();
+		// Select pine shape via shadcn select trigger (bits-ui uses data-slot, not role=combobox)
+		const trigger = page.locator('[data-slot="select-trigger"]').first();
 		await trigger.click();
 		await page.waitForTimeout(300);
 		// Find pine option
@@ -60,7 +60,7 @@ test.describe('Issue #3 — Slider UX + UI control reorganization', () => {
 
 		// Find branchCount slider by id
 		const branchCountSlider = page.locator('#range-branches');
-		const trunkBranchSlider = page.locator('#range-trunk/branch-ratio');
+		const trunkBranchSlider = page.locator('#range-trunk-branch-ratio');
 
 		const branchDisabled = await branchCountSlider.getAttribute('disabled');
 		const trunkBranchDisabled = await trunkBranchSlider.getAttribute('disabled');
@@ -82,7 +82,7 @@ test.describe('Issue #3 — Slider UX + UI control reorganization', () => {
 
 		// Should be oak by default, but let's confirm
 		const branchCountSlider = page.locator('#range-branches');
-		const trunkBranchSlider = page.locator('#range-trunk/branch-ratio');
+		const trunkBranchSlider = page.locator('#range-trunk-branch-ratio');
 
 		const branchDisabled = await branchCountSlider.getAttribute('disabled');
 		const trunkBranchDisabled = await trunkBranchSlider.getAttribute('disabled');

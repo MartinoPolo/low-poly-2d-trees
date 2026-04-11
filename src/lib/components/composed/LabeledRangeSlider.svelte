@@ -27,7 +27,13 @@
 		class: className,
 	}: Props = $props();
 
-	const inputId = $derived(id ?? `range-${label.toLowerCase().replace(/\s+/g, '-')}`);
+	const inputId = $derived(
+		id ??
+			`range-${label
+				.toLowerCase()
+				.replace(/[^a-z0-9]+/g, '-')
+				.replace(/^-|-$/g, '')}`,
+	);
 	const displayValue = $derived(format ? format(value) : String(value));
 	const suffix = $derived(unit ?? '');
 </script>
