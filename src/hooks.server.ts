@@ -21,10 +21,8 @@ const paraglideHandle: Handle = ({ event, resolve }) =>
 const authHandle: Handle = async ({ event, resolve }) => {
 	const sessionData = await auth.api.getSession({ headers: event.request.headers });
 
-	if (sessionData) {
-		event.locals.session = sessionData.session;
-		event.locals.user = sessionData.user;
-	}
+	event.locals.session = sessionData?.session ?? null;
+	event.locals.user = sessionData?.user ?? null;
 
 	return svelteKitHandler({ event, resolve, auth, building });
 };
