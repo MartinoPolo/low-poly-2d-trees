@@ -150,13 +150,29 @@ Trunk color UI includes preset swatch buttons that set all three HSL sliders at 
 ### 3.3 Blob boundary shapes
 
 - [ ] **REQ-C-15** Blob boundaries can be one of: `circle` (default for oak/birch/maple/willow),
-      `teardrop` (fir top blob), or `egg` (available for custom tree).
+      `teardrop` (fir top blob), `egg`, `isoscelesTriangle`, or `equilateralTriangle` (the last
+      three are available for custom tree).
 - [ ] **REQ-C-15a** **Teardrop shape**: an ellipse where the top half is compressed to a point via
-      a parametric power curve. Pointy at the top, smoothly rounded at the bottom.
+      a parametric power curve. For vertical parameter `t ∈ [-1, +1]` (−1 = pointy top,
+      +1 = rounded bottom): top half (`t < 0`) → `x(t) = rx·√(1 − t²)·(1 + t)^p` with `p = 0.6`;
+      bottom half (`t ≥ 0`) → `x(t) = rx·√(1 − t²)` (standard ellipse). `y(t) = ry·t`. Pointy at
+      the top, smoothly rounded at the bottom.
 - [ ] **REQ-C-15b** **Egg shape**: slightly narrower top half, wider bottom half, no sharp point.
-      Implemented as a parametric curve with different top/bottom exponents.
-- [ ] **REQ-C-15c** Both teardrop and egg boundaries support an arbitrary rotation angle (0–360°).
+      For vertical parameter `t ∈ [-1, +1]`: top half (`t < 0`) → `x(t) = rx·√(1 − t²)·(1 − α·|t|)`
+      with `α = 0.15` (narrows the top); bottom half (`t ≥ 0`) → `x(t) = rx·√(1 − t²)·(1 + β·t)`
+      with `β = 0.15` (widens the bottom). `y(t) = ry·t`. α and β may be tuned for visual fit
+      during implementation.
+- [ ] **REQ-C-15c** All non-circle boundaries support an arbitrary rotation angle (0–360°).
       Triangulation uses the custom boundary for point-in-shape tests and boundary sampling.
+      Rotation is applied to sampled `(x, y)` pairs via a standard 2D rotation matrix.
+- [ ] **REQ-C-15d** **Isosceles triangle boundary**: fixed 40° apex angle (70°/70° base). Tip
+      points up at `(0, -ry)`; base corners flank the bottom. No per-shape apex angle control.
+- [ ] **REQ-C-15e** **Equilateral triangle boundary**: 60°/60°/60° angles, vertices on a circle
+      of radius `rx`; `ry` scales the vertical axis independently (allows squashing).
+- [ ] **REQ-C-15f** The boundary shape dispatch lives in a dedicated module
+      (`src/lib/trees/boundaries.ts`) that exports one entry per boundary kind with
+      `{ kind, sample, contains, rotate }`. Blob generators in `shapes.ts` dispatch on each blob's
+      `boundaryKind`.
 
 ### 3.4 Pine tier system
 
@@ -175,21 +191,33 @@ Trunk color UI includes preset swatch buttons that set all three HSL sliders at 
 - [ ] **REQ-C-16** For `shape = 'fir'`, canopy has `blobCount` blobs (default 4). Blob 0 (top) uses
       a teardrop boundary shape — pointy at top, rounded at bottom. Remaining blobs use circle
       boundary and cluster below the top blob, accumulating at the bottom of the canopy.
-- [ ] **REQ-C-16a** The top teardrop blob is larger than the bottom blobs. Bottom blobs are wider
-      and spread more horizontally, offset from center axis.
+- [ ] **REQ-C-16a** The top teardrop blob is placed on the trunk axis, larger than the bottom
+      blobs, with `rx ≈ W×0.18` and `ry ≈ H×0.28`. The 3 bottom circle blobs are arranged in a
+      **horizontal row** at the bottom of the canopy region: center blob on trunk axis, left/right
+      blobs at `cx = trunkCenterX ± (0.25 – 0.40)·W` with seeded jitter. All three bottom blobs
+      share a common `cy` near the canopy bottom with small ±5–10 px vertical jitter. Bottom blob
+      `rx/ry` ranges: `W × 0.22 – W × 0.32` / `H × 0.14 – H × 0.20` (wider than the top teardrop).
 
 ### 3.6 Maple tree canopy (new — Plan v4)
 
 - [ ] **REQ-C-17** For `shape = 'maple'`, canopy has `blobCount` blobs (default 5) spread in a
-      half-circle from left to right at the top. Each blob gets its own branch from the trunk.
-      `blobCloseness` is low (default 30) so blobs are visually separated with room for branches.
+      half-circle from left to right at the top. Each blob gets its own dedicated branch from the
+      trunk. `blobCloseness` is low (default 30) so blobs are visually separated with room for
+      branches.
 - [ ] **REQ-C-17a** Blobs are distributed radially in a 180° arc above the trunk, evenly spaced.
+- [ ] **REQ-C-17b** Maple branches are generated via a **shape-specific branch path** (not the
+      generic `generateBranches()`): for each maple blob, emit exactly one branch whose origin is
+      sampled on the trunk near the canopy base and whose tip is aimed toward that blob's
+      `(cx, cy)`. Branch count equals blob count. Length and thickness follow existing branch
+      defaults. The generic branch generator is untouched for oak/birch/willow/custom.
 
 ### 3.7 Oak blob spread improvement (Plan v4)
 
 - [ ] **REQ-C-18** For `shape = 'oak'`, secondary blobs (indices 1+) are distributed radially
       (360° around main blob), not just left/right of center axis. Non-primary blobs maintain a
-      minimum distance from the center axis to reduce excessive overlap.
+      minimum distance from the trunk center axis of `|cx − trunkCenterX| ≥ 0.15·W` to reduce
+      excessive overlap near the trunk. Rejected samples are re-rolled up to 5 times before being
+      clamped outward.
 
 ### 3.8 Birch canopy width (Plan v4)
 
@@ -465,51 +493,109 @@ Trunk color UI includes preset swatch buttons that set all three HSL sliders at 
 
 - [ ] **REQ-CUSTOM-01** A 7th shape option `'custom'` is available only in the single tree editor
       (not in scene mode).
-- [ ] **REQ-CUSTOM-02** `blobCount` (1–8) controls how many blobs exist. Each blob gets its own
-      collapsible UI section in a card.
-- [ ] **REQ-CUSTOM-03** Per-blob controls:
-    - **Boundary shape**: select from `circle`, `egg`, `teardrop`, `isoceles triangle`,
-      `equilateral triangle`
-    - **Rotation**: slider 0–360° (step 5)
-    - **Relative size**: slider 50–200 % (step 5) — scales rx and ry
-    - **Position**: x and y sliders relative to canopy center
-- [ ] **REQ-CUSTOM-04** Blob positions are initially seeded random (with closeness). The user can
-      then override positions per-blob via sliders.
-- [ ] **REQ-CUSTOM-05** All other tree parameters (branches, trunk, lighting, colors) apply normally.
+- [ ] **REQ-CUSTOM-02** `blobCount` (1–8) controls how many blobs are visible and editable. Each
+      blob gets its own collapsible UI section in a card (shadcn-svelte Accordion with
+      `type="multiple"` so multiple blob sub-cards can be expanded simultaneously).
+- [ ] **REQ-CUSTOM-03** Each custom blob is represented by a `CustomBlob` record with exactly
+      these fields, stored in `TreeConfig.customBlobs?: CustomBlob[]` (populated only when
+      `shape === 'custom'`):
+    - `boundaryKind`: one of `'circle' | 'egg' | 'teardrop' | 'isoscelesTriangle' | 'equilateralTriangle'`
+    - `rotationDeg`: `number` in `[0, 360]`, step 5
+    - `sizeScale`: `number` in `[0.5, 2.0]`, step 0.05 (UI shows 50 %–200 %); scales `rx` and `ry` uniformly
+    - `position`: `{ x: number; y: number }` with each axis in `[-1, +1]`, step 0.05 — see REQ-CUSTOM-03a
+- [ ] **REQ-CUSTOM-03a** Position is **normalized** relative to canopy half-extent. `x = -1` →
+      left edge of canopy spread; `x = +1` → right edge; `y = -1` → top; `y = +1` → bottom. At
+      render time: `cx = canopyCenterX + position.x · spreadRadius`,
+      `cy = canopyCenterY + position.y · spreadRadius`. Resolution-independent — survives
+      `canopySize` slider changes without retuning.
+- [ ] **REQ-CUSTOM-03b** Per-blob UI in the Custom Blobs card shows exactly 5 controls per blob:
+    1. Boundary shape `<Select>` (5 options)
+    2. Rotation `<input type="range" min="0" max="360" step="5">`
+    3. Size `<input type="range" min="0.5" max="2" step="0.05">`
+    4. Position X `<input type="range" min="-1" max="1" step="0.05">`
+    5. Position Y `<input type="range" min="-1" max="1" step="0.05">`
+- [ ] **REQ-CUSTOM-04** The `customBlobs` array is grown lazily and never truncated. When UI
+      `blobCount = M`, only indices `[0, M)` are rendered and editable. When the user increases
+      `blobCount` past `customBlobs.length`, append new seeded entries (random position via
+      `createPrng(seed)` + `blobCloseness`, `boundaryKind = 'circle'`, `rotationDeg = 0`,
+      `sizeScale = 1.0`). When the user decreases `blobCount`, **trailing entries are preserved
+      in memory**; growing back reveals the previously tuned values. Never lose user tuning on
+      accidental shrink.
+- [ ] **REQ-CUSTOM-04a** Custom tree generation is deterministic: seeded random is used **only**
+      to initialize newly appended `customBlobs` entries and for non-overridden triangulation
+      jitter. Once a blob has user-set field values, those values are authoritative and override
+      any seeded random on subsequent generation.
+- [ ] **REQ-CUSTOM-05** All other tree parameters (branches, trunk, lighting, colors) apply
+      normally. Custom trees use the generic `generateBranches()` — no per-blob branch coupling
+      (unlike maple, REQ-C-17b).
+- [ ] **REQ-CUSTOM-06** `SHAPE_DEFAULTS` does **not** contain an entry for `'custom'` — the
+      custom editor retains whatever the user has configured. When the user switches TO custom,
+      current `TreeConfig` values carry through unchanged and `customBlobs` is lazily seeded for
+      the current `blobCount`. When switching AWAY from custom, `customBlobs` is preserved but
+      unused (forward-preservation across round trips).
+- [ ] **REQ-CUSTOM-07** Custom shape is excluded from scene-editor shape lists and
+      shape-cycling helpers (per REQ-S-04b and REQ-S-06).
 
 ---
 
 ## 10. Authentication (separate task)
 
 - [ ] **REQ-AUTH-01** Implement BetterAuth for user authentication.
-- [ ] **REQ-AUTH-02** Supported auth methods:
+- [ ] **REQ-AUTH-02** Supported auth methods (v4 — simplified from original plan):
     - Google OAuth
     - GitHub OAuth
     - Passkey (WebAuthn)
-    - Email + password
+
+    > **Deviation note:** Email + password was explicitly dropped during Plan v4 HITL
+    > resolution to avoid standing up transactional email infrastructure (verification + reset
+    > flows) for a tree-drawing app. No email verification, no password reset, no email
+    > templates, no SMTP/Resend dependency. OAuth + Passkey provide sufficient sign-in coverage.
+
+- [ ] **REQ-AUTH-02a** Sign-in and sign-up collapse to a **single flow** for all enabled
+      providers: first successful OAuth/Passkey auth creates the user row; subsequent auths
+      sign the user in. No separate "Sign up" route.
 - [ ] **REQ-AUTH-03** Auth state is available server-side via hooks and client-side via auth client.
 - [ ] **REQ-AUTH-04** User session data is stored in the database (PostgreSQL via Drizzle ORM).
+- [ ] **REQ-AUTH-05** The `/auth` route is a single page containing three primary buttons:
+    1. "Continue with Google" → `authClient.signIn.social({ provider: 'google' })`
+    2. "Continue with GitHub" → `authClient.signIn.social({ provider: 'github' })`
+    3. "Continue with Passkey" → `authClient.signIn.passkey()` (falls back to registration
+       flow for new users)
+- [ ] **REQ-AUTH-06** Sign-out is a server action at `/auth/sign-out` (POST) that calls
+      `auth.api.signOut()` and redirects to `/`.
+- [ ] **REQ-AUTH-07** Required environment variables: `AUTH_SECRET`, `ORIGIN`,
+      `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`.
+      No email provider vars. Document in `.env.example`.
+- [ ] **REQ-AUTH-08** Drizzle auth schema lives in `src/lib/server/db/auth.schema.ts` and
+      includes the Passkey plugin tables. Schema is generated via
+      `pnpm dlx @better-auth/cli generate` and committed alongside a Drizzle migration.
 
 > **Implementation note:** Reference project `C:\_MP_projects\CryptoKamosh` has a BetterAuth
-> implementation to take inspiration from. Use Context7 MCP to fetch latest BetterAuth
+> implementation with the passkey plugin wired up. Use Context7 MCP to fetch latest BetterAuth
 > documentation before implementing.
 
 ---
 
 ## 11. Application Shell — Sidebar Navigation (separate task)
 
-- [ ] **REQ-NAV-01** The application has a sidebar navigation component (pick from shadcn-svelte
-      blocks). It replaces the current inline header navigation.
+- [ ] **REQ-NAV-01** The application uses the shadcn-svelte **`sidebar-07`** block (icon-collapsible
+      sidebar with a footer user section). Install via
+      `pnpm dlx shadcn-svelte@latest add sidebar` and integrate into `src/routes/+layout.svelte`,
+      wrapping `{@render children()}`.
 - [ ] **REQ-NAV-02** Sidebar includes links to all pages:
     - Single Tree Editor (`/showcase`)
     - Scene Editor (`/showcase/scene`)
     - Gallery (`/gallery`)
 - [ ] **REQ-NAV-03** Sidebar has a bottom user section:
-    - When signed out: sign-in button
-    - When signed in: user avatar, name, sign-out button
+    - When signed out: "Sign in" button linking to `/auth`
+    - When signed in: user avatar, name, sign-out button (posts to `/auth/sign-out`)
+- [ ] **REQ-NAV-04** The sidebar renders on **every route**, including `/`, `/auth`, `/showcase`,
+      `/showcase/scene`, and `/gallery`. Navigation links are always visible; the Gallery link
+      redirects anonymous users to `/auth` server-side. The bottom user section swaps based on
+      auth state but no route is hidden behind a layout fork.
 
-> **Implementation note:** Use Context7 MCP to fetch shadcn-svelte sidebar block documentation
-> for the latest patterns and components.
+> **Implementation note:** Use Context7 MCP to fetch shadcn-svelte `sidebar-07` block
+> documentation for the latest block structure before copying.
 
 ---
 
@@ -517,19 +603,75 @@ Trunk color UI includes preset swatch buttons that set all three HSL sliders at 
 
 ### 12.1 Save mechanism
 
-- [ ] **REQ-SAVE-01** A "Save" button in the single tree editor saves the current `TreeConfig`
-      (all parameters) to the database.
+- [ ] **REQ-SAVE-01** A "Save" button in the single tree editor (placed at the top of the
+      controls panel beside the shape picker) saves the current `TreeConfig` to the database.
+      The button is **not** present in the scene editor.
 - [ ] **REQ-SAVE-02** Saved trees are associated with the authenticated user. Anonymous users
-      cannot save.
-- [ ] **REQ-SAVE-03** Each saved tree stores: all `TreeConfig` fields, a user-provided name
-      (optional, defaults to "Tree #N"), creation timestamp, and the user ID.
+      cannot save — the button is disabled with a "Sign in to save" tooltip when no session
+      is present.
+- [ ] **REQ-SAVE-03** Each saved tree stores: all `TreeConfig` fields as a JSONB snapshot, an
+      auto-generated name, creation timestamp, `updatedAt` timestamp, and the user ID.
+      The row is identified by a nanoid primary key.
+- [ ] **REQ-SAVE-03a** **Auto-name format**: on save, new trees are named
+      **`"{Shape} #{N}"`** where `Shape` is the capitalized tree shape (`"Oak"`, `"Pine"`,
+      `"Birch"`, `"Fir"`, `"Maple"`, `"Willow"`, `"Custom"`) and `N` is the next sequential
+      integer scoped to that user + that shape. Examples: `"Oak #1"`, `"Pine #1"`, `"Oak #2"`,
+      `"Maple #1"`. No name-prompt dialog on save — the user can rename later in the gallery.
+- [ ] **REQ-SAVE-04** The `saved_trees` table has the following Drizzle schema:
+    ```ts
+    export const savedTrees = pgTable('saved_trees', {
+    	id: text('id').primaryKey(), // nanoid
+    	userId: text('user_id')
+    		.notNull()
+    		.references(() => user.id, { onDelete: 'cascade' }),
+    	name: text('name').notNull(),
+    	config: jsonb('config').$type<TreeConfig>().notNull(),
+    	createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    	updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+    });
+    ```
+    Lives in `src/lib/server/db/saved-trees.schema.ts` (separate file from `auth.schema.ts`).
+    A Drizzle migration is committed in `src/lib/server/db/migrations/`.
+- [ ] **REQ-SAVE-05** **Forward-compatibility**: `TreeConfig` has no `configVersion` field.
+      On restore, the stored JSONB is merged with `DEFAULT_TREE_CONFIG`:
+      `{ ...DEFAULT_TREE_CONFIG, ...stored.config }`. New fields added to `TreeConfig` in the
+      future inherit defaults on old saved rows. Field renames/removals are handled as explicit
+      data migrations when they occur — not pre-engineered.
 
 ### 12.2 Gallery page
 
 - [ ] **REQ-GALLERY-01** A `/gallery` page displays the authenticated user's saved trees.
-- [ ] **REQ-GALLERY-02** Each saved tree is rendered as a preview thumbnail (the SVG at small size)
-      with the tree name and creation date.
-- [ ] **REQ-GALLERY-03** Clicking a saved tree opens it in the single tree editor with all
-      parameters restored.
-- [ ] **REQ-GALLERY-04** Users can delete saved trees from the gallery.
+      Anonymous access redirects to `/auth`.
+- [ ] **REQ-GALLERY-02** Each saved tree is rendered as a preview thumbnail using the
+      existing `<LowPolyTree>` component spread with the stored config:
+      `<LowPolyTree {...savedTree.config} />`. Thumbnails are sized to a fixed 200×200 aspect
+      square with `overflow: hidden`. No reduced polygon count — SVG scales cheaply.
+      Display the tree name (inline-editable) and a relative creation date
+      (e.g., "2 hours ago" via `Intl.RelativeTimeFormat`).
+- [ ] **REQ-GALLERY-03** Clicking a saved tree navigates to **`/showcase?saved=<id>`**. The
+      `src/routes/showcase/+page.server.ts` `load()` function reads the `saved` query param,
+      fetches the `saved_trees` row by id (404 if not owned by the current user), merges
+      `config` with `DEFAULT_TREE_CONFIG`, and passes to the page as `data.initialConfig`.
+      The page initializes its reactive form state from `initialConfig`. The URL retains
+      `?saved=<id>` until the user modifies a slider.
+- [ ] **REQ-GALLERY-04** Users can delete saved trees from the gallery via a small trash icon
+      (top-right of the card). Delete triggers a confirmation dialog
+      ("Delete {name}? This cannot be undone.") before the server delete action runs.
 - [ ] **REQ-GALLERY-05** Gallery is user-specific — users only see their own saved trees.
+      The `load()` query scopes by `event.locals.user.id` and the delete/rename actions
+      enforce ownership server-side.
+- [ ] **REQ-GALLERY-06** Gallery cells are laid out in a CSS grid:
+      `grid-template-columns: repeat(auto-fill, minmax(200px, 1fr))` for a responsive flow.
+- [ ] **REQ-GALLERY-07** Inline rename: single-click on the tree name turns it into an
+      `<input>`; blur or Enter commits the new name via a rename server action with ownership
+      check. Escape cancels.
+
+### 12.3 Server CRUD module
+
+- [ ] **REQ-SAVE-06** All `saved_trees` database access goes through a single module
+      `src/lib/server/saved-trees.ts` exporting:
+    - `createSavedTree({ userId, shape, config })` — computes auto-name + inserts
+    - `listSavedTrees(userId)` — returns rows ordered by `created_at DESC`
+    - `getSavedTree(id, userId)` — returns single row scoped to user (404 on mismatch)
+    - `deleteSavedTree(id, userId)` — deletes with ownership check
+    - `renameSavedTree(id, userId, name)` — updates name with ownership check
