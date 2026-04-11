@@ -329,6 +329,51 @@ describe('REQ-T: Trunk & Branch Generation', () => {
 		});
 	});
 
+	describe('REQ-T-02b: canopy follows trunk height', () => {
+		// Oak: defaultTrunkTop = H*0.45 = 135, trunkBottom = H*0.95 = 285.
+		// trunkHeight=50 → eff = 285 - 150*0.5 = 210 → delta = +75 (canopy shifts down).
+		it('oak canopy centroid shifts down by 75 when trunkHeight drops 100 → 50', () => {
+			const base = generateTree(makeConfig({ trunkHeight: 100, seed: 42 }));
+			const shortTrunk = generateTree(makeConfig({ trunkHeight: 50, seed: 42 }));
+			const shift = shortTrunk.anchors.canopyCenter.y - base.anchors.canopyCenter.y;
+			expect(shift).toBeCloseTo(75, 5);
+		});
+
+		// Pine: defaultTrunkTop = H*0.55 = 165, trunkBottom = H*0.95 = 285.
+		// trunkHeight=50 → eff = 225 → delta = +60.
+		it('pine canopy centroid shifts down by 60 when trunkHeight drops 100 → 50', () => {
+			const base = generateTree(makeConfig({ trunkHeight: 100, seed: 42, shape: 'pine' }));
+			const shortTrunk = generateTree(
+				makeConfig({ trunkHeight: 50, seed: 42, shape: 'pine' }),
+			);
+			const shift = shortTrunk.anchors.canopyCenter.y - base.anchors.canopyCenter.y;
+			expect(shift).toBeCloseTo(60, 5);
+		});
+
+		// Canopy shift must equal the effectiveTrunkTop shift (delta invariant).
+		it('oak canopy shift equals trunkTop shift between trunkHeight 100 and 50', () => {
+			const base = generateTree(makeConfig({ trunkHeight: 100, seed: 42 }));
+			const shortTrunk = generateTree(makeConfig({ trunkHeight: 50, seed: 42 }));
+			const canopyShift = shortTrunk.anchors.canopyCenter.y - base.anchors.canopyCenter.y;
+			const trunkShift = shortTrunk.anchors.trunkTop.y - base.anchors.trunkTop.y;
+			expect(canopyShift).toBeCloseTo(trunkShift, 5);
+		});
+
+		it('trunk top enters largest blob by ≥15px across oak, pine, birch at 50/100/150', () => {
+			for (const shape of ['oak', 'pine', 'birch'] as const) {
+				for (const trunkHeight of [50, 100, 150]) {
+					const geo = generateTree(makeConfig({ trunkHeight, seed: 42, shape }));
+					const canopyMaxY = Math.max(
+						...geo.canopyBlobs.flatMap((b) =>
+							b.triangles.flatMap((t) => t.points.map((p) => p.y)),
+						),
+					);
+					expect(geo.anchors.trunkTop.y + 15).toBeLessThanOrEqual(canopyMaxY);
+				}
+			}
+		});
+	});
+
 	describe('REQ-T-05: branches in separate layer', () => {
 		it('branch triangles are separate from trunk', () => {
 			const geo = generateTree(makeConfig({ branchCount: 5 }));

@@ -29,7 +29,7 @@ export interface BranchSegment {
 const W = VIEWBOX_WIDTH;
 const H = VIEWBOX_HEIGHT;
 
-const TRUNK_ENTRY_MIN_PX = 15;
+export const TRUNK_ENTRY_MIN_PX = 15;
 const RADIAL_JITTER_FACTOR = 0.15;
 const ACUTE_ANGLE_THRESHOLD_RAD = Math.PI / 2;
 // Sub-branch widths pre-scaled by 1.75 (issue #4 base rescale).
@@ -206,11 +206,6 @@ export function getShapeDefinition(shape: TreeShape): ShapeDefinition {
 // Trunk helpers
 // ---------------------------------------------------------------------------
 
-export function computeTrunkTop(shapeDef: ShapeDefinition, blobs: readonly Blob[]): number {
-	const blobsBounds = getBlobsBounds(blobs);
-	return Math.min(shapeDef.defaultTrunkTop, blobsBounds.maxY - TRUNK_ENTRY_MIN_PX);
-}
-
 export function computeEffectiveTrunkTop(shapeDef: ShapeDefinition, trunkHeight: number): number {
 	const trunkBottom = shapeDef.trunkBottom;
 	const defaultTop = shapeDef.defaultTrunkTop;
@@ -266,12 +261,13 @@ export function generateTiers(
 	blobCloseness: number,
 	blobSizeVariance: number,
 	canopySize: number,
+	verticalShift: number,
 ): Tier[] {
 	const tiers: Tier[] = [];
 	const count = Math.max(1, blobCount);
 	const centerX = W / 2;
-	const tipY = H * 0.05;
-	const baseY = H * 0.6;
+	const tipY = H * 0.05 + verticalShift;
+	const baseY = H * 0.6 + verticalShift;
 	const totalHeight = baseY - tipY;
 
 	const canopyScale = canopySize / 100;
