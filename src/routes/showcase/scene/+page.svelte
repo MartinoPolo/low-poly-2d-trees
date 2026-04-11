@@ -3,8 +3,8 @@
 	import { Label } from '$lib/components/ui/label/index.js';
 	import { Input } from '$lib/components/ui/input/index.js';
 	import { Button } from '$lib/components/ui/button/index.js';
-	import * as Card from '$lib/components/ui/card/index.js';
 	import { Checkbox } from '$lib/components/ui/checkbox/index.js';
+	import SectionCard from '$lib/components/composed/SectionCard.svelte';
 	import { DEFAULT_TREE_CONFIG, SHAPE_DEFAULTS } from '$lib/trees/types.js';
 	import DarkModeToggle from '$lib/components/DarkModeToggle.svelte';
 	import { resolve } from '$app/paths';
@@ -63,258 +63,247 @@
 
 	<div class="grid grid-cols-[320px_1fr] overflow-hidden xl:grid-cols-[640px_1fr]">
 		<!-- Shared Controls -->
-		<aside class="overflow-y-auto p-6">
+		<aside class="select-none overflow-y-auto p-6">
 			<div class="grid grid-cols-1 gap-6 xl:grid-cols-2">
-				<Card.Root>
-					<Card.Header>
-						<Card.Title>Scene Settings</Card.Title>
-					</Card.Header>
-					<Card.Content class="space-y-4">
-						<div class="space-y-2">
-							<Label>Base Seed</Label>
-							<div class="flex gap-2">
-								<Input type="number" bind:value={seed} class="flex-1" />
-								<Button variant="outline" size="icon" onclick={randomizeSeed}>
-									<Shuffle />
-								</Button>
-							</div>
+				<SectionCard title="Scene Settings" contentClass="space-y-4">
+					<div class="space-y-2">
+						<Label>Base Seed</Label>
+						<div class="flex gap-2">
+							<Input type="number" bind:value={seed} class="flex-1" />
+							<Button variant="outline" size="icon" onclick={randomizeSeed}>
+								<Shuffle />
+							</Button>
 						</div>
-						<div class="space-y-2">
-							<Label>Canopy Polygons: {canopyPolygons}</Label>
-							<input
-								type="range"
-								min="10"
-								max="150"
-								bind:value={canopyPolygons}
-								class="w-full accent-primary"
-							/>
-						</div>
-						<div class="space-y-2">
-							<Label>Trunk Polygons: {trunkPolygons}</Label>
-							<input
-								type="range"
-								min="10"
-								max="100"
-								bind:value={trunkPolygons}
-								class="w-full accent-primary"
-							/>
-						</div>
-					</Card.Content>
-				</Card.Root>
+					</div>
+					<div class="space-y-2">
+						<Label>Canopy Polygons: {canopyPolygons}</Label>
+						<input
+							type="range"
+							min="10"
+							max="150"
+							bind:value={canopyPolygons}
+							class="w-full accent-primary"
+						/>
+					</div>
+					<div class="space-y-2">
+						<Label>Trunk Polygons: {trunkPolygons}</Label>
+						<input
+							type="range"
+							min="10"
+							max="100"
+							bind:value={trunkPolygons}
+							class="w-full accent-primary"
+						/>
+					</div>
+				</SectionCard>
 
-				<Card.Root>
-					<Card.Header>
-						<Card.Title>Canopy Color</Card.Title>
-					</Card.Header>
-					<Card.Content class="space-y-4">
-						<div class="space-y-2">
-							<Label>Hue: {canopyHue}°</Label>
-							<input
-								type="range"
-								min="0"
-								max="360"
-								bind:value={canopyHue}
-								class="w-full accent-primary"
-							/>
-						</div>
-						<div class="space-y-2">
-							<Label>Hue Spread: {canopyHueSpread}</Label>
-							<input
-								type="range"
-								min="0"
-								max="80"
-								bind:value={canopyHueSpread}
-								class="w-full accent-primary"
-							/>
-						</div>
-						<div class="space-y-2">
-							<Label>Saturation: {canopySaturation}%</Label>
-							<input
-								type="range"
-								min="0"
-								max="100"
-								bind:value={canopySaturation}
-								class="w-full accent-primary"
-							/>
-						</div>
-						<div class="space-y-2">
-							<Label>Lightness: {canopyLightness}%</Label>
-							<input
-								type="range"
-								min="10"
-								max="80"
-								bind:value={canopyLightness}
-								class="w-full accent-primary"
-							/>
-						</div>
-					</Card.Content>
-				</Card.Root>
+				<SectionCard title="Canopy" contentClass="space-y-4">
+					<div class="space-y-2">
+						<Label>Blob Size Variance: {blobSizeVariance.toFixed(1)}x</Label>
+						<input
+							type="range"
+							min="1"
+							max="10"
+							step="0.1"
+							bind:value={blobSizeVariance}
+							class="w-full accent-primary"
+						/>
+					</div>
+					<div class="space-y-2">
+						<Label>Blob Closeness: {blobCloseness}%</Label>
+						<input
+							type="range"
+							min="0"
+							max="100"
+							bind:value={blobCloseness}
+							class="w-full accent-primary"
+						/>
+					</div>
+					<div class="space-y-2">
+						<Label>Canopy Size: {canopySize}%</Label>
+						<input
+							type="range"
+							min="50"
+							max="200"
+							bind:value={canopySize}
+							class="w-full accent-primary"
+						/>
+					</div>
+				</SectionCard>
 
-				<Card.Root>
-					<Card.Header>
-						<Card.Title>Trunk Color</Card.Title>
-					</Card.Header>
-					<Card.Content class="space-y-4">
-						<div class="space-y-2">
-							<Label>Hue: {trunkHue}°</Label>
-							<input
-								type="range"
-								min="0"
-								max="360"
-								bind:value={trunkHue}
-								class="w-full accent-primary"
-							/>
-						</div>
-						<div class="space-y-2">
-							<Label>Saturation: {trunkSaturation}%</Label>
-							<input
-								type="range"
-								min="0"
-								max="100"
-								bind:value={trunkSaturation}
-								class="w-full accent-primary"
-							/>
-						</div>
-						<div class="space-y-2">
-							<Label>Lightness: {trunkLightness}%</Label>
-							<input
-								type="range"
-								min="5"
-								max="60"
-								bind:value={trunkLightness}
-								class="w-full accent-primary"
-							/>
-						</div>
-					</Card.Content>
-				</Card.Root>
+				<SectionCard title="Trunk & Branches" contentClass="space-y-4">
+					<div class="space-y-2">
+						<Label>Trunk Height: {trunkHeight}%</Label>
+						<input
+							type="range"
+							min="50"
+							max="150"
+							bind:value={trunkHeight}
+							class="w-full accent-primary"
+						/>
+					</div>
+					<div class="space-y-2">
+						<Label>Trunk Thickness: {trunkThickness}%</Label>
+						<input
+							type="range"
+							min="50"
+							max="200"
+							bind:value={trunkThickness}
+							class="w-full accent-primary"
+						/>
+					</div>
+					<div class="space-y-2">
+						<Label>Branch Thickness: {branchThickness}%</Label>
+						<input
+							type="range"
+							min="50"
+							max="200"
+							bind:value={branchThickness}
+							class="w-full accent-primary"
+						/>
+					</div>
+					<div class="space-y-2">
+						<Label>Trunk/Branch Ratio: {trunkBranchRatio}%</Label>
+						<input
+							type="range"
+							min="30"
+							max="100"
+							bind:value={trunkBranchRatio}
+							class="w-full accent-primary"
+						/>
+					</div>
+				</SectionCard>
 
-				<Card.Root>
-					<Card.Header>
-						<Card.Title>Lighting</Card.Title>
-					</Card.Header>
-					<Card.Content class="space-y-4">
-						<div class="space-y-2">
-							<Label>Light Angle: {lightAngle}°</Label>
-							<input
-								type="range"
-								min="0"
-								max="360"
-								bind:value={lightAngle}
-								class="w-full accent-primary"
-							/>
-						</div>
-						<div class="space-y-2">
-							<Label>Depth Variance: {depthVariance.toFixed(1)}</Label>
-							<input
-								type="range"
-								min="0"
-								max="2"
-								step="0.1"
-								bind:value={depthVariance}
-								class="w-full accent-primary"
-							/>
-						</div>
-						<div class="space-y-2">
-							<Label>Blob Size Variance: {blobSizeVariance.toFixed(1)}x</Label>
-							<input
-								type="range"
-								min="1"
-								max="10"
-								step="0.1"
-								bind:value={blobSizeVariance}
-								class="w-full accent-primary"
-							/>
-						</div>
-						<div class="space-y-2">
-							<Label>Blob Closeness: {blobCloseness}%</Label>
-							<input
-								type="range"
-								min="0"
-								max="100"
-								bind:value={blobCloseness}
-								class="w-full accent-primary"
-							/>
-						</div>
-						<div class="space-y-2">
-							<Label>Canopy Size: {canopySize}%</Label>
-							<input
-								type="range"
-								min="50"
-								max="200"
-								bind:value={canopySize}
-								class="w-full accent-primary"
-							/>
-						</div>
-						<div class="space-y-2">
-							<Label>Trunk Height: {trunkHeight}%</Label>
-							<input
-								type="range"
-								min="50"
-								max="150"
-								bind:value={trunkHeight}
-								class="w-full accent-primary"
-							/>
-						</div>
-						<div class="space-y-2">
-							<Label>Trunk Thickness: {trunkThickness}%</Label>
-							<input
-								type="range"
-								min="50"
-								max="200"
-								bind:value={trunkThickness}
-								class="w-full accent-primary"
-							/>
-						</div>
-						<div class="space-y-2">
-							<Label>Branch Thickness: {branchThickness}%</Label>
-							<input
-								type="range"
-								min="50"
-								max="200"
-								bind:value={branchThickness}
-								class="w-full accent-primary"
-							/>
-						</div>
-						<div class="space-y-2">
-							<Label>Trunk/Branch Ratio: {trunkBranchRatio}%</Label>
-							<input
-								type="range"
-								min="30"
-								max="100"
-								bind:value={trunkBranchRatio}
-								class="w-full accent-primary"
-							/>
-						</div>
-						<div class="flex items-center gap-2">
-							<Checkbox
-								checked={showCanopy}
-								onCheckedChange={(v) => (showCanopy = v === true)}
-							/>
-							<Label>Show Canopy</Label>
-						</div>
-						<div class="flex items-center gap-2">
-							<Checkbox
-								checked={showBranches}
-								onCheckedChange={(v) => (showBranches = v === true)}
-							/>
-							<Label>Show Branches</Label>
-						</div>
-						<div class="flex items-center gap-2">
-							<Checkbox
-								checked={showTrunk}
-								onCheckedChange={(v) => (showTrunk = v === true)}
-							/>
-							<Label>Show Trunk</Label>
-						</div>
-						<div class="flex items-center gap-2">
-							<Checkbox
-								checked={showAnchors}
-								onCheckedChange={(v) => (showAnchors = v === true)}
-							/>
-							<Label>Show Anchor Points</Label>
-						</div>
-					</Card.Content>
-				</Card.Root>
+				<SectionCard title="Canopy Color" contentClass="space-y-4">
+					<div class="space-y-2">
+						<Label>Hue: {canopyHue}°</Label>
+						<input
+							type="range"
+							min="0"
+							max="360"
+							bind:value={canopyHue}
+							class="w-full accent-primary"
+						/>
+					</div>
+					<div class="space-y-2">
+						<Label>Hue Spread: {canopyHueSpread}</Label>
+						<input
+							type="range"
+							min="0"
+							max="80"
+							bind:value={canopyHueSpread}
+							class="w-full accent-primary"
+						/>
+					</div>
+					<div class="space-y-2">
+						<Label>Saturation: {canopySaturation}%</Label>
+						<input
+							type="range"
+							min="0"
+							max="100"
+							bind:value={canopySaturation}
+							class="w-full accent-primary"
+						/>
+					</div>
+					<div class="space-y-2">
+						<Label>Lightness: {canopyLightness}%</Label>
+						<input
+							type="range"
+							min="10"
+							max="80"
+							bind:value={canopyLightness}
+							class="w-full accent-primary"
+						/>
+					</div>
+				</SectionCard>
+
+				<SectionCard title="Trunk Color" contentClass="space-y-4">
+					<div class="space-y-2">
+						<Label>Hue: {trunkHue}°</Label>
+						<input
+							type="range"
+							min="0"
+							max="360"
+							bind:value={trunkHue}
+							class="w-full accent-primary"
+						/>
+					</div>
+					<div class="space-y-2">
+						<Label>Saturation: {trunkSaturation}%</Label>
+						<input
+							type="range"
+							min="0"
+							max="100"
+							bind:value={trunkSaturation}
+							class="w-full accent-primary"
+						/>
+					</div>
+					<div class="space-y-2">
+						<Label>Lightness: {trunkLightness}%</Label>
+						<input
+							type="range"
+							min="5"
+							max="60"
+							bind:value={trunkLightness}
+							class="w-full accent-primary"
+						/>
+					</div>
+				</SectionCard>
+
+				<SectionCard title="Lighting" contentClass="space-y-4">
+					<div class="space-y-2">
+						<Label>Light Angle: {lightAngle}°</Label>
+						<input
+							type="range"
+							min="0"
+							max="360"
+							bind:value={lightAngle}
+							class="w-full accent-primary"
+						/>
+					</div>
+					<div class="space-y-2">
+						<Label>Depth Variance: {depthVariance.toFixed(1)}</Label>
+						<input
+							type="range"
+							min="0"
+							max="2"
+							step="0.1"
+							bind:value={depthVariance}
+							class="w-full accent-primary"
+						/>
+					</div>
+				</SectionCard>
+
+				<SectionCard title="Debug" contentClass="space-y-4">
+					<div class="flex items-center gap-2">
+						<Checkbox
+							checked={showCanopy}
+							onCheckedChange={(v) => (showCanopy = v === true)}
+						/>
+						<Label>Show Canopy</Label>
+					</div>
+					<div class="flex items-center gap-2">
+						<Checkbox
+							checked={showBranches}
+							onCheckedChange={(v) => (showBranches = v === true)}
+						/>
+						<Label>Show Branches</Label>
+					</div>
+					<div class="flex items-center gap-2">
+						<Checkbox
+							checked={showTrunk}
+							onCheckedChange={(v) => (showTrunk = v === true)}
+						/>
+						<Label>Show Trunk</Label>
+					</div>
+					<div class="flex items-center gap-2">
+						<Checkbox
+							checked={showAnchors}
+							onCheckedChange={(v) => (showAnchors = v === true)}
+						/>
+						<Label>Show Anchor Points</Label>
+					</div>
+				</SectionCard>
 			</div>
 		</aside>
 

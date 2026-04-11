@@ -1,6 +1,7 @@
 <script lang="ts">
 	import LowPolyTree from '$lib/trees/LowPolyTree.svelte';
 	import LabeledSelect from '$lib/components/composed/LabeledSelect.svelte';
+	import LabeledRangeSlider from '$lib/components/composed/LabeledRangeSlider.svelte';
 	import { Label } from '$lib/components/ui/label/index.js';
 	import { Input } from '$lib/components/ui/input/index.js';
 	import { Button } from '$lib/components/ui/button/index.js';
@@ -12,6 +13,7 @@
 		DEFAULT_TREE_CONFIG,
 		type TreeShape,
 	} from '$lib/trees/types.js';
+	import { isParamDisabled } from '$lib/trees/disabled_params.js';
 	import DarkModeToggle from '$lib/components/DarkModeToggle.svelte';
 	import { resolve } from '$app/paths';
 	import Shuffle from '@lucide/svelte/icons/shuffle';
@@ -42,6 +44,9 @@
 	let showCanopy = $state(true);
 	let showBranches = $state(true);
 	let showTrunk = $state(true);
+
+	const branchCountDisabled = $derived(isParamDisabled(shape, 'branchCount', {}));
+	const trunkBranchRatioDisabled = $derived(isParamDisabled(shape, 'trunkBranchRatio', {}));
 
 	function onShapeChange(value: string) {
 		shape = value as TreeShape;
@@ -75,7 +80,7 @@
 
 	<div class="grid grid-cols-[320px_1fr] overflow-hidden xl:grid-cols-[640px_1fr]">
 		<!-- Controls -->
-		<aside class="overflow-y-auto p-6">
+		<aside class="select-none overflow-y-auto p-6">
 			<div class="grid grid-cols-1 gap-6 xl:grid-cols-2">
 				<Card.Root>
 					<Card.Header>
@@ -136,16 +141,13 @@
 								class="w-full accent-primary"
 							/>
 						</div>
-						<div class="space-y-2">
-							<Label>Branches: {branchCount}</Label>
-							<input
-								type="range"
-								min="0"
-								max="20"
-								bind:value={branchCount}
-								class="w-full accent-primary"
-							/>
-						</div>
+						<LabeledRangeSlider
+							label="Branches"
+							min={0}
+							max={20}
+							bind:value={branchCount}
+							disabled={branchCountDisabled}
+						/>
 						<div class="space-y-2">
 							<Label>Blob Size Variance: {blobSizeVariance.toFixed(1)}x</Label>
 							<input
@@ -301,16 +303,14 @@
 								class="w-full accent-primary"
 							/>
 						</div>
-						<div class="space-y-2">
-							<Label>Trunk/Branch Ratio: {trunkBranchRatio}%</Label>
-							<input
-								type="range"
-								min="30"
-								max="100"
-								bind:value={trunkBranchRatio}
-								class="w-full accent-primary"
-							/>
-						</div>
+						<LabeledRangeSlider
+							label="Trunk/Branch Ratio"
+							min={30}
+							max={100}
+							unit="%"
+							bind:value={trunkBranchRatio}
+							disabled={trunkBranchRatioDisabled}
+						/>
 					</Card.Content>
 				</Card.Root>
 
