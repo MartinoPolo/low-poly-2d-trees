@@ -29,6 +29,10 @@ import {
 	getTiersBounds,
 	buildTrunkPath,
 	sampleTrunkCenterX,
+	generateCustomBlobs,
+	CUSTOM_BLOB_CANOPY_CENTER_X,
+	CUSTOM_BLOB_CANOPY_CENTER_Y,
+	CUSTOM_BLOB_SPREAD_RADIUS,
 	TRUNK_ENTRY_MIN_PX,
 	TRUNK_BRANCH_WIDTH_START_MIN,
 	TRUNK_BRANCH_WIDTH_START_MAX,
@@ -498,6 +502,7 @@ export function generateTree(config: TreeConfig): TreeGeometry {
 	const rng = createPrng(config.seed);
 	const shapeDef = getShapeDefinition(config.shape);
 	const isPine = config.shape === TREE_SHAPES.pine;
+	const isCustom = config.shape === TREE_SHAPES.custom;
 
 	const effectiveTrunkTop = computeEffectiveTrunkTop(shapeDef, config.trunkHeight);
 	// Canopy must follow trunk top so that raising/lowering the trunk shifts the
@@ -521,18 +526,33 @@ export function generateTree(config: TreeConfig): TreeGeometry {
 	const topJunctionInitial = trunkJunctions[trunkJunctions.length - 1]!;
 	const horizontalCanopyShift = topJunctionInitial.x - VIEWBOX_WIDTH / 2;
 
-	const blobs = isPine ? [] : shapeDef.generateBlobs(rng, config.blobCount);
-
-	if (!isPine) {
+	let blobs: Blob[];
+	if (isPine) {
+		blobs = [];
+	} else if (isCustom) {
+		// Custom tree: user-placed blobs from `config.customBlobs`. The spread
+		// radius, canopy center, and trunkDelta follow the trunk top so the
+		// custom layout rises/falls with the trunkHeight slider exactly like
+		// the other shapes — but we skip size-variance, closeness, and
+		// canopy-size scaling because those are the user's job per blob.
+		blobs = generateCustomBlobs(
+			config.customBlobs ?? [],
+			config.blobCount,
+			CUSTOM_BLOB_CANOPY_CENTER_X,
+			CUSTOM_BLOB_CANOPY_CENTER_Y,
+			CUSTOM_BLOB_SPREAD_RADIUS,
+		);
+		for (const blob of blobs) {
+			blob.cy += canopyDelta;
+			blob.cx += horizontalCanopyShift;
+		}
+	} else {
+		blobs = shapeDef.generateBlobs(rng, config.blobCount);
 		applyBlobSizeVariance(blobs, config.blobSizeVariance);
-	}
-
-	if (!isPine && blobs.length > 1) {
-		const spreadRadius = VIEWBOX_WIDTH * 0.22;
-		applyBlobCloseness(blobs, config.blobCloseness, spreadRadius);
-	}
-
-	if (!isPine) {
+		if (blobs.length > 1) {
+			const spreadRadius = VIEWBOX_WIDTH * 0.22;
+			applyBlobCloseness(blobs, config.blobCloseness, spreadRadius);
+		}
 		applyCanopySize(blobs, config.canopySize);
 		for (const blob of blobs) {
 			blob.cy += canopyDelta;
@@ -553,7 +573,20 @@ export function generateTree(config: TreeConfig): TreeGeometry {
 			)
 		: [];
 
-	const canopyBounds = isPine ? getTiersBounds(tiers) : getBlobsBounds(blobs);
+	// Custom trees may legitimately have zero blobs (user dragged blobCount to
+	// 0 with no overrides yet). Fall back to trivial bounds anchored on the
+	// current trunk top so `computeAnchors` and the trunk-penetration clamp
+	// below stay well-defined.
+	const canopyBounds = isPine
+		? getTiersBounds(tiers)
+		: blobs.length > 0
+			? getBlobsBounds(blobs)
+			: {
+					minX: VIEWBOX_WIDTH / 2,
+					minY: effectiveTrunkTop,
+					maxX: VIEWBOX_WIDTH / 2,
+					maxY: effectiveTrunkTop + TRUNK_ENTRY_MIN_PX,
+				};
 
 	// Enforce the trunk-penetration invariant: trunk top must enter the lowest
 	// canopy edge by at least TRUNK_ENTRY_MIN_PX. If the user's chosen trunk

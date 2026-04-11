@@ -96,6 +96,13 @@ export interface TreeConfig {
 	readonly trunkCrookedness: number;
 	readonly branchLength: number;
 	readonly branchLengthVariance: number;
+	/**
+	 * Per-blob overrides for the `custom` tree shape. Only consulted when
+	 * `shape === 'custom'`. Grown lazily in UI state as the user raises the
+	 * blobCount slider; entries past the current blobCount are preserved but
+	 * unused so re-growing never loses prior user tuning.
+	 */
+	readonly customBlobs?: readonly CustomBlob[];
 }
 
 export const DEFAULT_TREE_CONFIG: TreeConfig = {
@@ -250,3 +257,65 @@ export const SHAPE_DEFAULTS = {
 
 export const VIEWBOX_WIDTH = 200;
 export const VIEWBOX_HEIGHT = 300;
+
+// ---------------------------------------------------------------------------
+// Issue #10: custom tree mode — per-blob editor types
+// ---------------------------------------------------------------------------
+
+/**
+ * Boundary shapes available to a `custom`-tree blob. This is a subset of the
+ * internal `BOUNDARY_KINDS` registry: `teardrop`, `circle`, `egg`, plus two
+ * triangle variants. The custom editor exposes these as a dropdown per blob.
+ */
+export const CUSTOM_BLOB_BOUNDARY_KINDS = {
+	circle: 'circle',
+	egg: 'egg',
+	teardrop: 'teardrop',
+	isoscelesTriangle: 'isoscelesTriangle',
+	equilateralTriangle: 'equilateralTriangle',
+} as const;
+
+export type CustomBlobBoundaryKind =
+	(typeof CUSTOM_BLOB_BOUNDARY_KINDS)[keyof typeof CUSTOM_BLOB_BOUNDARY_KINDS];
+
+export const CUSTOM_BLOB_BOUNDARY_OPTIONS: readonly {
+	value: CustomBlobBoundaryKind;
+	label: string;
+}[] = [
+	{ value: CUSTOM_BLOB_BOUNDARY_KINDS.circle, label: 'Circle' },
+	{ value: CUSTOM_BLOB_BOUNDARY_KINDS.egg, label: 'Egg' },
+	{ value: CUSTOM_BLOB_BOUNDARY_KINDS.teardrop, label: 'Teardrop' },
+	{ value: CUSTOM_BLOB_BOUNDARY_KINDS.isoscelesTriangle, label: 'Isosceles Triangle' },
+	{ value: CUSTOM_BLOB_BOUNDARY_KINDS.equilateralTriangle, label: 'Equilateral Triangle' },
+] as const;
+
+/**
+ * Per-blob override for a `custom`-shape tree. `position.x` and `position.y`
+ * are normalized to [-1, +1] relative to the canopy spread radius so the
+ * placement is resolution-independent.
+ */
+export interface CustomBlob {
+	readonly boundaryKind: CustomBlobBoundaryKind;
+	/** Rotation applied around the blob centroid, in degrees. */
+	readonly rotationDeg: number;
+	/** Uniform scale on rx and ry. 1.0 is the baseline size. */
+	readonly sizeScale: number;
+	/** Position offset normalized to the canopy spread radius. */
+	readonly position: { readonly x: number; readonly y: number };
+}
+
+export const CUSTOM_BLOB_ROTATION_STEP = 5;
+export const CUSTOM_BLOB_SIZE_MIN = 0.5;
+export const CUSTOM_BLOB_SIZE_MAX = 2.0;
+export const CUSTOM_BLOB_SIZE_STEP = 0.05;
+export const CUSTOM_BLOB_POSITION_MIN = -1;
+export const CUSTOM_BLOB_POSITION_MAX = 1;
+export const CUSTOM_BLOB_POSITION_STEP = 0.05;
+
+/** Default values used when seeding a brand-new custom blob entry. */
+export const CUSTOM_BLOB_DEFAULT = {
+	boundaryKind: CUSTOM_BLOB_BOUNDARY_KINDS.circle,
+	rotationDeg: 0,
+	sizeScale: 1.0,
+	position: { x: 0, y: 0 },
+} as const satisfies CustomBlob;

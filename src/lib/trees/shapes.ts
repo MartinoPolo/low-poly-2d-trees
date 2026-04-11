@@ -1,6 +1,6 @@
-import type { TreeShape, Tier, TreeConfig, Point2D } from './types.js';
-import { VIEWBOX_WIDTH, VIEWBOX_HEIGHT } from './types.js';
-import { randomInRange } from './prng.js';
+import type { TreeShape, Tier, TreeConfig, Point2D, CustomBlob } from './types.js';
+import { VIEWBOX_WIDTH, VIEWBOX_HEIGHT, CUSTOM_BLOB_DEFAULT } from './types.js';
+import { createPrng, randomInRange } from './prng.js';
 import { BOUNDARIES, BOUNDARY_KINDS, type BoundaryKind } from './boundaries.js';
 
 // ---------------------------------------------------------------------------
@@ -296,6 +296,122 @@ function generateWillowBlobs(rng: () => number, blobCount: number): Blob[] {
 	return blobs;
 }
 
+// ---------------------------------------------------------------------------
+// Custom shape blob generator (issue #10)
+// ---------------------------------------------------------------------------
+//
+// Custom tree mode lets the user author each canopy blob individually —
+// boundary shape, rotation, size, and position are driven by `customBlobs`
+// entries rather than seeded-random generators. Position is stored in
+// normalized [-1, +1] coordinates relative to the canopy spread radius so the
+// layout is resolution-independent.
+//
+// The public surface is:
+//   - `generateCustomBlobs` — convert CustomBlob entries into render-ready
+//     Blob instances. Called by `generate.ts` when `shape === 'custom'`.
+//   - `growCustomBlobs` — lazily append seeded entries when the user raises
+//     blobCount. Preserves existing entries on shrink so prior tuning never
+//     vanishes on accidental slider jiggles.
+// ---------------------------------------------------------------------------
+
+// Baseline rx/ry for a user-placed custom blob at sizeScale = 1.0. Chosen
+// to match the oak primary blob's median so a default circle blob reads the
+// same visual weight as an oak canopy blob until the user changes sizeScale.
+const CUSTOM_BLOB_BASE_RX = W * 0.2275;
+const CUSTOM_BLOB_BASE_RY = H * 0.1925;
+// Canopy spread radius in world units — matches the generic applyBlobCloseness
+// radius so the slider math lines up with the other shapes. Re-exported so
+// generate.ts can pass the same radius to generateCustomBlobs.
+export const CUSTOM_BLOB_SPREAD_RADIUS = W * 0.22;
+export const CUSTOM_BLOB_CANOPY_CENTER_X = W / 2;
+export const CUSTOM_BLOB_CANOPY_CENTER_Y = H * 0.3;
+// Seed offset for the custom-blob PRNG so it does not collide with trunk
+// (seed + 0), branch (seed + 7777), or trunk-color (seed + 9999) streams.
+const CUSTOM_BLOB_SEED_OFFSET = 3333;
+
+/**
+ * Convert stored `customBlobs` entries into render-ready `Blob` objects. Only
+ * the first `blobCount` entries are consumed; trailing entries are ignored so
+ * the user's previous overrides survive a `blobCount` shrink.
+ *
+ * Layout math:
+ *   cx = canopyCenterX + position.x · spreadRadius
+ *   cy = canopyCenterY + position.y · spreadRadius
+ *   rx = CUSTOM_BLOB_BASE_RX · sizeScale
+ *   ry = CUSTOM_BLOB_BASE_RY · sizeScale
+ */
+export function generateCustomBlobs(
+	customBlobs: readonly CustomBlob[],
+	blobCount: number,
+	canopyCenterX: number,
+	canopyCenterY: number,
+	spreadRadius: number,
+): Blob[] {
+	const effectiveCount = Math.min(Math.max(0, blobCount), customBlobs.length);
+	const blobs: Blob[] = [];
+	for (let i = 0; i < effectiveCount; i++) {
+		const entry = customBlobs[i]!;
+		blobs.push({
+			cx: canopyCenterX + entry.position.x * spreadRadius,
+			cy: canopyCenterY + entry.position.y * spreadRadius,
+			rx: CUSTOM_BLOB_BASE_RX * entry.sizeScale,
+			ry: CUSTOM_BLOB_BASE_RY * entry.sizeScale,
+			// CustomBlobBoundaryKind is a subset of BoundaryKind (same literals),
+			// so the union is assignable directly.
+			boundary: entry.boundaryKind,
+			rotationDeg: entry.rotationDeg,
+		});
+	}
+	return blobs;
+}
+
+/**
+ * Seed a brand-new custom blob entry. Position is a seeded-random offset
+ * within the canopy extent, scaled by the `blobCloseness` slider so a tight
+ * canopy produces clustered blobs and a loose canopy spreads them out.
+ */
+function seedCustomBlob(rng: () => number, blobCloseness: number): CustomBlob {
+	const spreadFactor = Math.max(0.1, Math.min(1, 1 - blobCloseness / 100)) * 0.9 + 0.1;
+	return {
+		...CUSTOM_BLOB_DEFAULT,
+		position: {
+			x: randomInRange(rng, -spreadFactor, spreadFactor),
+			y: randomInRange(rng, -spreadFactor, spreadFactor),
+		},
+	};
+}
+
+/**
+ * Lazily extend `existing` so that its length ≥ `targetCount`, appending
+ * seeded defaults for new entries. Never truncates — a user who tunes 5
+ * blobs, drops `blobCount` to 2, then raises it back to 5 recovers their
+ * original tuning. Deterministic on `(seed, blobCloseness, existing.length,
+ * targetCount)`.
+ */
+export function growCustomBlobs(
+	existing: readonly CustomBlob[],
+	targetCount: number,
+	seed: number,
+	blobCloseness: number,
+): readonly CustomBlob[] {
+	const safeTarget = Math.max(0, Math.floor(targetCount));
+	if (existing.length >= safeTarget) {
+		return existing;
+	}
+	const rng = createPrng(seed + CUSTOM_BLOB_SEED_OFFSET);
+	// Advance the rng past the slots we are keeping, so newly appended slot
+	// `i` receives the same seeded draws whether or not the user shrank and
+	// regrew the array in between.
+	for (let i = 0; i < existing.length; i++) {
+		seedCustomBlob(rng, blobCloseness);
+	}
+	const result: CustomBlob[] = [...existing];
+	for (let i = existing.length; i < safeTarget; i++) {
+		result.push(seedCustomBlob(rng, blobCloseness));
+	}
+	return result;
+}
+
 const shapeDefinitions: Record<TreeShape, ShapeDefinition> = {
 	oak: {
 		trunkBaseWidth: 28,
@@ -386,7 +502,12 @@ const shapeDefinitions: Record<TreeShape, ShapeDefinition> = {
 		trunkTopWidth: 17.5,
 		trunkBottom: H * 0.95,
 		defaultTrunkTop: H * 0.45,
-		generateBlobs: generateOakBlobs,
+		// Custom blobs are dispatched directly in generate.ts via
+		// `generateCustomBlobs`, reading from `config.customBlobs`. This stub is
+		// only reached by code paths that treat custom like the other shapes.
+		generateBlobs() {
+			return [];
+		},
 	},
 };
 
