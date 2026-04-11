@@ -324,7 +324,8 @@ src/
   hooks.ts                 # Client hooks (i18n URL rerouting)
   hooks.server.ts          # Server hooks (i18n middleware + auth session)
   lib/
-    auth_client.ts         # BetterAuth client (for use in components)
+    auth/
+      client.ts            # BetterAuth client (for use in components)
     index.ts               # $lib public exports
     assets/                # Static assets (favicon, etc.)
     paraglide/             # Generated i18n runtime (gitignored)

@@ -3,7 +3,7 @@ import type { KnipConfig } from 'knip';
 const config: KnipConfig = {
 	entry: [
 		'src/hooks.ts',
-		'src/lib/auth_client.ts',
+		'src/lib/auth/client.ts',
 		'src/lib/reactivity/*.svelte.ts',
 		'src/lib/context/*.context.svelte.ts',
 		'src/lib/components/ui/*/index.ts',

@@ -1,48 +1,48 @@
 import { betterAuth } from 'better-auth/minimal';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { sveltekitCookies } from 'better-auth/svelte-kit';
+import { passkey } from '@better-auth/passkey';
 import { env } from '$env/dynamic/private';
 import { getRequestEvent } from '$app/server';
 import { db } from './db/index.js';
+import * as schema from './db/schema.js';
+
+if (env.AUTH_SECRET === undefined || env.AUTH_SECRET === '') {
+	throw new Error('AUTH_SECRET environment variable is required');
+}
+
+const ORIGIN = env.ORIGIN ?? 'http://localhost:5173';
+const RP_ID = new URL(ORIGIN).hostname;
+
+function buildSocialProvider<Name extends string>(
+	name: Name,
+	clientId: string | undefined,
+	clientSecret: string | undefined,
+): Record<Name, { clientId: string; clientSecret: string }> | Record<string, never> {
+	if (
+		clientId === undefined ||
+		clientId === '' ||
+		clientSecret === undefined ||
+		clientSecret === ''
+	) {
+		return {};
+	}
+	return { [name]: { clientId, clientSecret } } as Record<
+		Name,
+		{ clientId: string; clientSecret: string }
+	>;
+}
 
 export const auth = betterAuth({
-	baseURL: env.ORIGIN ?? 'http://localhost:5173',
+	baseURL: ORIGIN,
 	secret: env.AUTH_SECRET,
 
-	database: drizzleAdapter(db, { provider: 'pg' }),
+	database: drizzleAdapter(db, { provider: 'pg', schema }),
 
-	emailAndPassword: {
-		enabled: true,
-		minPasswordLength: 8,
-		maxPasswordLength: 128,
-		autoSignIn: true,
-		requireEmailVerification: false, // set to true in production
-		resetPasswordTokenExpiresIn: 3600,
-		sendResetPassword: async ({ user, url }) => {
-			// TODO: replace with your email service (e.g. Resend, SendGrid, Postmark)
-			console.log(`[Auth] Password reset for ${user.email}: ${url}`);
-		},
+	socialProviders: {
+		...buildSocialProvider('google', env.GOOGLE_CLIENT_ID, env.GOOGLE_CLIENT_SECRET),
+		...buildSocialProvider('github', env.GITHUB_CLIENT_ID, env.GITHUB_CLIENT_SECRET),
 	},
-
-	emailVerification: {
-		sendOnSignUp: false, // set to true in production
-		autoSignInAfterVerification: true,
-		expiresIn: 3600,
-		sendVerificationEmail: async ({ user, url }) => {
-			// TODO: replace with your email service
-			console.log(`[Auth] Verification email for ${user.email}: ${url}`);
-		},
-	},
-
-	socialProviders:
-		env.GOOGLE_CLIENT_ID !== undefined && env.GOOGLE_CLIENT_SECRET !== undefined
-			? {
-					google: {
-						clientId: env.GOOGLE_CLIENT_ID,
-						clientSecret: env.GOOGLE_CLIENT_SECRET,
-					},
-				}
-			: {},
 
 	session: {
 		cookieCache: {
@@ -51,5 +51,12 @@ export const auth = betterAuth({
 		},
 	},
 
-	plugins: [sveltekitCookies(getRequestEvent)],
+	plugins: [
+		passkey({
+			rpID: RP_ID,
+			rpName: 'Low-Poly 2D Trees',
+			origin: ORIGIN,
+		}),
+		sveltekitCookies(getRequestEvent), // must be last
+	],
 });
