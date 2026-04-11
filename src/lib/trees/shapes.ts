@@ -1,6 +1,7 @@
 import type { TreeShape, Tier, TreeConfig, Point2D } from './types.js';
 import { VIEWBOX_WIDTH, VIEWBOX_HEIGHT } from './types.js';
 import { randomInRange } from './prng.js';
+import { BOUNDARIES, BOUNDARY_KINDS, type BoundaryKind } from './boundaries.js';
 
 // ---------------------------------------------------------------------------
 // Public interfaces
@@ -11,6 +12,18 @@ export interface Blob {
 	cy: number;
 	rx: number;
 	ry: number;
+	/**
+	 * Per-blob boundary shape discriminator. Circle (axis-aligned ellipse) is
+	 * the default for oak/birch/willow/maple/etc. Teardrop is used for the top
+	 * blob of fir-style cone canopies. See boundaries.ts for the registry.
+	 */
+	boundary: BoundaryKind;
+	/**
+	 * Rotation applied to the boundary shape around (cx, cy), in degrees.
+	 * Ignored for axis-aligned circle boundaries; required for teardrop blobs
+	 * that need to point in a non-default direction.
+	 */
+	rotationDeg?: number;
 }
 
 export interface BranchSegment {
@@ -30,11 +43,17 @@ const W = VIEWBOX_WIDTH;
 const H = VIEWBOX_HEIGHT;
 
 export const TRUNK_ENTRY_MIN_PX = 15;
-const RADIAL_JITTER_FACTOR = 0.15;
-const ACUTE_ANGLE_THRESHOLD_RAD = Math.PI / 2;
 // Sub-branch widths pre-scaled by 1.75 (issue #4 base rescale).
 const SUB_BRANCH_WIDTH_MIN = 3.5;
 const SUB_BRANCH_WIDTH_MAX = 7;
+// Trunk-origin branch widths pre-scaled by 1.75 (issue #4 base rescale).
+// Shared by rollTrunkBranchCandidate (generic algorithm) and
+// generateMapleBranches (maple per-blob branches) so both paths produce
+// visually consistent branch proportions.
+export const TRUNK_BRANCH_WIDTH_START_MIN = 7;
+export const TRUNK_BRANCH_WIDTH_START_MAX = 12.25;
+export const TRUNK_BRANCH_WIDTH_END_MIN = 1.75;
+export const TRUNK_BRANCH_WIDTH_END_MAX = 5.25;
 const BRANCH_ANGLE_MIN_RAD = (30 * Math.PI) / 180;
 const BRANCH_ANGLE_MAX_ATTEMPTS = 20;
 
@@ -83,32 +102,197 @@ function ensureLargestBlobInBottomHalf(blobs: Blob[]): void {
 	}
 }
 
+const OAK_NON_PRIMARY_MIN_AXIS_DISTANCE_FACTOR = 0.15;
+const OAK_NON_PRIMARY_ANGLE_MAX_ATTEMPTS = 5;
+const WILLOW_NON_PRIMARY_SCALE_FACTOR = 0.85;
+
 function generateOakBlobs(rng: () => number, blobCount: number): Blob[] {
 	const blobs: Blob[] = [];
 	const centerX = W / 2;
 	const canopyCenterY = H * 0.3;
 	const spreadRadius = W * 0.22;
+	const minAxisDistance = W * OAK_NON_PRIMARY_MIN_AXIS_DISTANCE_FACTOR;
 
-	// D9: blob 0 on trunk axis
+	// D9: primary blob anchored on the trunk axis.
 	if (blobCount >= 1) {
 		const rx = randomInRange(rng, W * 0.2275, W * 0.385);
 		const ry = randomInRange(rng, H * 0.14, H * 0.2625);
-		blobs.push({ cx: centerX, cy: canopyCenterY, rx, ry });
+		blobs.push({
+			cx: centerX,
+			cy: canopyCenterY,
+			rx,
+			ry,
+			boundary: BOUNDARY_KINDS.circle,
+		});
 	}
 
-	// D9: remaining blobs balanced left/right
-	for (let i = 1; i < blobCount; i++) {
-		const side = i % 2 === 0 ? 1 : -1;
-		const dist = randomInRange(rng, spreadRadius * 0.3, spreadRadius * 0.9);
-		const angleJitter = randomInRange(rng, -0.5, 0.5);
-		const angle = (Math.PI / 4) * Math.ceil(i / 2) + angleJitter;
-		const cx = centerX + Math.cos(angle) * dist * side;
-		const cy = canopyCenterY + Math.sin(angle) * dist * 0.5 * (rng() > 0.5 ? -1 : 1);
-		const rx = randomInRange(rng, W * 0.2275, W * 0.385);
-		const ry = randomInRange(rng, H * 0.14, H * 0.2625);
-		blobs.push({ cx, cy, rx, ry });
+	// REQ-C-18: non-primary blobs distributed radially around the primary
+	// blob in the full 360° range, with a minimum distance from the trunk
+	// axis enforced so they never stack directly above the trunk.
+	const primary = blobs[0];
+	if (primary !== undefined) {
+		for (let i = 1; i < blobCount; i++) {
+			let acceptedCx = primary.cx;
+			let acceptedCy = primary.cy;
+			let attempts = 0;
+			while (attempts < OAK_NON_PRIMARY_ANGLE_MAX_ATTEMPTS) {
+				const angle = rng() * Math.PI * 2;
+				const dist = randomInRange(rng, spreadRadius * 0.3, spreadRadius * 0.9);
+				const cx = primary.cx + Math.cos(angle) * dist;
+				const cy = primary.cy + Math.sin(angle) * dist;
+				if (Math.abs(cx - centerX) >= minAxisDistance) {
+					acceptedCx = cx;
+					acceptedCy = cy;
+					break;
+				}
+				attempts++;
+				acceptedCx = cx;
+				acceptedCy = cy;
+			}
+			if (Math.abs(acceptedCx - centerX) < minAxisDistance) {
+				const sign = acceptedCx >= centerX ? 1 : -1;
+				acceptedCx = centerX + sign * minAxisDistance;
+			}
+			const rx = randomInRange(rng, W * 0.2275, W * 0.385);
+			const ry = randomInRange(rng, H * 0.14, H * 0.2625);
+			blobs.push({
+				cx: acceptedCx,
+				cy: acceptedCy,
+				rx,
+				ry,
+				boundary: BOUNDARY_KINDS.circle,
+			});
+		}
 	}
 	ensureLargestBlobInBottomHalf(blobs);
+	return blobs;
+}
+
+/**
+ * Fir canopy (issue #8): pointy conical silhouette. Top blob is a rotated
+ * teardrop pointing up; bottom row is three circles straddling the trunk.
+ * Extra blobs beyond the 4th are radially scattered around the center-bottom
+ * circle so higher blobCount still has something to triangulate.
+ */
+function generateFirBlobs(rng: () => number, blobCount: number): Blob[] {
+	const blobs: Blob[] = [];
+	const centerX = W / 2;
+
+	// Top teardrop blob — axis-aligned with pointy end up (rotationDeg=0).
+	if (blobCount >= 1) {
+		blobs.push({
+			cx: centerX,
+			cy: H * 0.18,
+			rx: W * 0.18,
+			ry: H * 0.28,
+			boundary: BOUNDARY_KINDS.teardrop,
+			rotationDeg: 0,
+		});
+	}
+
+	// Bottom three circles share a cy around H*0.42. Each gets a mild per-blob
+	// cy jitter so the row is not dead straight. Ordering: center → left →
+	// right. Lower blobCount values truncate from the right.
+	const bottomBaseCy = H * 0.42 + randomInRange(rng, -10, 10);
+	const bottomOrder: Array<{ side: 1 | -1 | 0 }> = [{ side: 0 }, { side: -1 }, { side: 1 }];
+	const bottomNeeded = Math.min(3, Math.max(0, blobCount - 1));
+	for (let i = 0; i < bottomNeeded; i++) {
+		const entry = bottomOrder[i]!;
+		let cx = centerX;
+		if (entry.side === 0) {
+			cx = centerX + randomInRange(rng, -3, 3);
+		} else {
+			const dist = randomInRange(rng, W * 0.25, W * 0.4);
+			cx = centerX + entry.side * dist;
+		}
+		const cy = bottomBaseCy + randomInRange(rng, -10, 10);
+		const rx = randomInRange(rng, W * 0.22, W * 0.32);
+		const ry = randomInRange(rng, H * 0.14, H * 0.2);
+		blobs.push({
+			cx,
+			cy,
+			rx,
+			ry,
+			boundary: BOUNDARY_KINDS.circle,
+		});
+	}
+
+	// Extras (blobCount > 4): radial scatter around the center-bottom blob.
+	if (blobCount > 4 && blobs.length >= 2) {
+		const centerBottom = blobs[1]!;
+		const spreadRadius = W * 0.22;
+		for (let i = 4; i < blobCount; i++) {
+			const angle = rng() * Math.PI * 2;
+			const dist = randomInRange(rng, spreadRadius * 0.3, spreadRadius * 0.9);
+			const cx = centerBottom.cx + Math.cos(angle) * dist;
+			const cy = centerBottom.cy + Math.sin(angle) * dist;
+			const rx = randomInRange(rng, W * 0.2, W * 0.3);
+			const ry = randomInRange(rng, H * 0.12, H * 0.18);
+			blobs.push({
+				cx,
+				cy,
+				rx,
+				ry,
+				boundary: BOUNDARY_KINDS.circle,
+			});
+		}
+	}
+
+	// Fir intentionally skips ensureLargestBlobInBottomHalf: the top-is-teardrop
+	// invariant is structural (fir's silhouette depends on the teardrop blob at
+	// index 0), and a bottom circle blob can out-area the teardrop in rx*ry
+	// terms under certain seeds, which would cause the helper to swap the
+	// teardrop down and break the cone. Fir's layout is deterministic-by-
+	// position, so the helper is solving a problem fir doesn't have.
+	return blobs;
+}
+
+/**
+ * Maple canopy (issue #8): blobs distributed along a 180° arc above the
+ * trunk. Each blob is a small circle; the wide horizontal spread is what
+ * gives maple its characteristic crown silhouette. Per-blob branches are
+ * generated separately in generate.ts so every blob can be reached.
+ */
+function generateMapleBlobs(rng: () => number, blobCount: number): Blob[] {
+	const blobs: Blob[] = [];
+	const centerX = W / 2;
+	const arcCenterY = H * 0.42;
+	const arcRadius = W * 0.28;
+
+	for (let i = 0; i < blobCount; i++) {
+		// Distribute angle along the arc from π (left) to 2π (right), walking
+		// the upper semicircle above (arcCenterX, arcCenterY). blobCount===1 is
+		// a single overhead blob.
+		const angle = blobCount === 1 ? 1.5 * Math.PI : Math.PI + (i / (blobCount - 1)) * Math.PI;
+		const cx = centerX + Math.cos(angle) * arcRadius + randomInRange(rng, -3, 3);
+		const cy = arcCenterY + Math.sin(angle) * arcRadius + randomInRange(rng, -3, 3);
+		const rx = randomInRange(rng, W * 0.1, W * 0.15);
+		const ry = randomInRange(rng, H * 0.08, H * 0.12);
+		blobs.push({
+			cx,
+			cy,
+			rx,
+			ry,
+			boundary: BOUNDARY_KINDS.circle,
+		});
+	}
+
+	ensureLargestBlobInBottomHalf(blobs);
+	return blobs;
+}
+
+/**
+ * Willow canopy (issue #8): thin wrapper around oak's radial distribution
+ * that scales non-primary blobs down slightly. The willow character comes
+ * from the multi-segment crooked trunk + 4 thick branches (SHAPE_DEFAULTS
+ * already wires those params), not from the blob shape.
+ */
+function generateWillowBlobs(rng: () => number, blobCount: number): Blob[] {
+	const blobs = generateOakBlobs(rng, blobCount);
+	for (let i = 1; i < blobs.length; i++) {
+		blobs[i]!.rx *= WILLOW_NON_PRIMARY_SCALE_FACTOR;
+		blobs[i]!.ry *= WILLOW_NON_PRIMARY_SCALE_FACTOR;
+	}
 	return blobs;
 }
 
@@ -139,51 +323,63 @@ const shapeDefinitions: Record<TreeShape, ShapeDefinition> = {
 			const centerX = W / 2;
 			const canopyCenterY = H * 0.25;
 
-			// D9: blob 0 on trunk axis
+			// D9: blob 0 on trunk axis.
+			// REQ-C-19: birch canopy is visibly ~2× wider than before; rx range
+			// doubled from (0.105..0.21)·W to (0.12..0.24)·W. ry untouched.
 			if (blobCount >= 1) {
-				const rx = randomInRange(rng, W * 0.105, W * 0.21);
+				const rx = randomInRange(rng, W * 0.12, W * 0.24);
 				const ry = randomInRange(rng, H * 0.21, H * 0.385);
-				blobs.push({ cx: centerX, cy: canopyCenterY, rx, ry });
+				blobs.push({
+					cx: centerX,
+					cy: canopyCenterY,
+					rx,
+					ry,
+					boundary: BOUNDARY_KINDS.circle,
+				});
 			}
 
-			// Birch blobs are tall and narrow, stacked more vertically
+			// Birch blobs are tall and narrow, stacked more vertically.
 			for (let i = 1; i < blobCount; i++) {
 				const side = i % 2 === 0 ? 1 : -1;
 				const verticalOffset = randomInRange(rng, -H * 0.08, H * 0.08);
 				const horizontalOffset = randomInRange(rng, W * 0.02, W * 0.08) * side;
 				const cx = centerX + horizontalOffset;
 				const cy = canopyCenterY + verticalOffset;
-				const rx = randomInRange(rng, W * 0.105, W * 0.21);
+				const rx = randomInRange(rng, W * 0.12, W * 0.24);
 				const ry = randomInRange(rng, H * 0.21, H * 0.385);
-				blobs.push({ cx, cy, rx, ry });
+				blobs.push({
+					cx,
+					cy,
+					rx,
+					ry,
+					boundary: BOUNDARY_KINDS.circle,
+				});
 			}
 			ensureLargestBlobInBottomHalf(blobs);
 			return blobs;
 		},
 	},
-	// Placeholder definitions for shapes whose real generators arrive in issue #8.
-	// Trunk widths rescaled by 1.75 per issue #4. Blob generators reuse oak's
-	// radial distribution until dedicated generators land.
+	// Issue #8 shape generators. Trunk widths rescaled by 1.75 per issue #4.
 	fir: {
 		trunkBaseWidth: 21,
 		trunkTopWidth: 12.25,
 		trunkBottom: H * 0.95,
 		defaultTrunkTop: H * 0.55,
-		generateBlobs: generateOakBlobs,
+		generateBlobs: generateFirBlobs,
 	},
 	maple: {
 		trunkBaseWidth: 28,
 		trunkTopWidth: 17.5,
 		trunkBottom: H * 0.95,
 		defaultTrunkTop: H * 0.45,
-		generateBlobs: generateOakBlobs,
+		generateBlobs: generateMapleBlobs,
 	},
 	willow: {
 		trunkBaseWidth: 28,
 		trunkTopWidth: 17.5,
 		trunkBottom: H * 0.95,
 		defaultTrunkTop: H * 0.45,
-		generateBlobs: generateOakBlobs,
+		generateBlobs: generateWillowBlobs,
 	},
 	custom: {
 		trunkBaseWidth: 28,
@@ -314,17 +510,13 @@ export function isPointInTrunkPath(
 // ---------------------------------------------------------------------------
 
 function isPointInBlobs(x: number, y: number, blobs: readonly Blob[]): boolean {
-	return blobs.some((b) => {
-		const dx = (x - b.cx) / b.rx;
-		const dy = (y - b.cy) / b.ry;
-		return dx * dx + dy * dy <= 1;
-	});
+	return blobs.some((b) =>
+		BOUNDARIES[b.boundary].contains(x, y, b.cx, b.cy, b.rx, b.ry, b.rotationDeg ?? 0),
+	);
 }
 
 function isPointInSingleBlob(x: number, y: number, b: Blob): boolean {
-	const dx = (x - b.cx) / b.rx;
-	const dy = (y - b.cy) / b.ry;
-	return dx * dx + dy * dy <= 1;
+	return BOUNDARIES[b.boundary].contains(x, y, b.cx, b.cy, b.rx, b.ry, b.rotationDeg ?? 0);
 }
 
 // ---------------------------------------------------------------------------
@@ -538,88 +730,6 @@ export function applyCanopySize(blobs: Blob[], canopySize: number): void {
 		blob.rx *= scale;
 		blob.ry *= scale;
 	}
-}
-
-// ---------------------------------------------------------------------------
-// Per-blob boundary sampling
-// ---------------------------------------------------------------------------
-
-function angleBetween(
-	ax: number,
-	ay: number,
-	bx: number,
-	by: number,
-	cx: number,
-	cy: number,
-): number {
-	const bax = ax - bx;
-	const bay = ay - by;
-	const bcx = cx - bx;
-	const bcy = cy - by;
-	const dot = bax * bcx + bay * bcy;
-	const magBA = Math.sqrt(bax * bax + bay * bay);
-	const magBC = Math.sqrt(bcx * bcx + bcy * bcy);
-	if (magBA === 0 || magBC === 0) {
-		return Math.PI;
-	}
-	return Math.acos(Math.max(-1, Math.min(1, dot / (magBA * magBC))));
-}
-
-export function sampleBlobBoundary(
-	blob: Blob,
-	sampleCount: number,
-	rng: () => number,
-	smoothAcuteAngles: boolean,
-): { x: number; y: number }[] {
-	const points: { x: number; y: number }[] = [];
-
-	for (let i = 0; i < sampleCount; i++) {
-		const baseAngle = (i / sampleCount) * Math.PI * 2;
-		const jitter = (rng() - 0.5) * ((40 * Math.PI) / 180);
-		const angle = baseAngle + jitter;
-
-		const radialJitter = 1.0 + (rng() - 0.5) * 2 * RADIAL_JITTER_FACTOR;
-		const px = blob.cx + Math.cos(angle) * blob.rx * radialJitter;
-		const py = blob.cy + Math.sin(angle) * blob.ry * radialJitter;
-		points.push({ x: px, y: py });
-	}
-
-	if (smoothAcuteAngles && points.length >= 3) {
-		let changed = true;
-		let passes = 0;
-		const maxPasses = 3;
-
-		while (changed && passes < maxPasses) {
-			changed = false;
-			passes++;
-
-			for (let i = points.length - 1; i >= 0; i--) {
-				if (points.length < 3) {
-					break;
-				}
-				const prev = points[(i - 1 + points.length) % points.length]!;
-				const curr = points[i]!;
-				const next = points[(i + 1) % points.length]!;
-
-				const ang = angleBetween(prev.x, prev.y, curr.x, curr.y, next.x, next.y);
-				if (ang < ACUTE_ANGLE_THRESHOLD_RAD) {
-					const mx = (prev.x + next.x) / 2;
-					const my = (prev.y + next.y) / 2;
-					const ddx = mx - blob.cx;
-					const ddy = my - blob.cy;
-					const dist = Math.sqrt(ddx * ddx + ddy * ddy);
-					if (dist > 0) {
-						const avgR = (blob.rx + blob.ry) / 2;
-						curr.x = blob.cx + (ddx / dist) * avgR;
-						curr.y = blob.cy + (ddy / dist) * avgR;
-						changed = true;
-					}
-				}
-			}
-		}
-	}
-
-	return points;
 }
 
 // ---------------------------------------------------------------------------
@@ -1175,8 +1285,12 @@ function rollTrunkBranchCandidate(
 		canopyBottom,
 		40,
 	);
-	const widthStart = randomInRange(rng, 7, 12.25) * branchThicknessScale;
-	const widthEnd = randomInRange(rng, 1.75, 5.25) * branchThicknessScale;
+	const widthStart =
+		randomInRange(rng, TRUNK_BRANCH_WIDTH_START_MIN, TRUNK_BRANCH_WIDTH_START_MAX) *
+		branchThicknessScale;
+	const widthEnd =
+		randomInRange(rng, TRUNK_BRANCH_WIDTH_END_MIN, TRUNK_BRANCH_WIDTH_END_MAX) *
+		branchThicknessScale;
 
 	return {
 		x1: startX,

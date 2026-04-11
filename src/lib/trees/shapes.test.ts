@@ -14,6 +14,7 @@ import {
 	type Blob,
 	type BranchSegment,
 } from './shapes.js';
+import { BOUNDARY_KINDS } from './boundaries.js';
 import { createPrng } from './prng.js';
 import { DEFAULT_TREE_CONFIG, VIEWBOX_WIDTH } from './types.js';
 import type { Tier, TreeConfig } from './types.js';
@@ -276,14 +277,18 @@ describe('computeVisibleBranchLength', () => {
 
 	it('returns full length when branch is fully outside any blob', () => {
 		const branch = makeBranch(0, 0, 100, 0);
-		const blobs: Blob[] = [{ cx: 500, cy: 500, rx: 10, ry: 10 }];
+		const blobs: Blob[] = [
+			{ cx: 500, cy: 500, rx: 10, ry: 10, boundary: BOUNDARY_KINDS.circle },
+		];
 		const visible = computeVisibleBranchLength(branch, blobs, []);
 		expect(visible).toBeCloseTo(100, 10);
 	});
 
 	it('returns 0 when branch is fully inside a blob', () => {
 		const branch = makeBranch(95, 100, 105, 100);
-		const blobs: Blob[] = [{ cx: 100, cy: 100, rx: 50, ry: 50 }];
+		const blobs: Blob[] = [
+			{ cx: 100, cy: 100, rx: 50, ry: 50, boundary: BOUNDARY_KINDS.circle },
+		];
 		const visible = computeVisibleBranchLength(branch, blobs, []);
 		expect(visible).toBeCloseTo(0, 6);
 	});
@@ -291,7 +296,7 @@ describe('computeVisibleBranchLength', () => {
 	it('returns half length when branch is half-covered by one blob', () => {
 		// Segment from (0,0) to (20,0); blob center (15,0), rx=5, ry=5 covers x in [10, 20]
 		const branch = makeBranch(0, 0, 20, 0);
-		const blobs: Blob[] = [{ cx: 15, cy: 0, rx: 5, ry: 5 }];
+		const blobs: Blob[] = [{ cx: 15, cy: 0, rx: 5, ry: 5, boundary: BOUNDARY_KINDS.circle }];
 		const visible = computeVisibleBranchLength(branch, blobs, []);
 		expect(visible).toBeCloseTo(10, 6);
 	});
@@ -300,8 +305,8 @@ describe('computeVisibleBranchLength', () => {
 		// Two blobs covering same region at x in [10,20]
 		const branch = makeBranch(0, 0, 20, 0);
 		const blobs: Blob[] = [
-			{ cx: 15, cy: 0, rx: 5, ry: 5 },
-			{ cx: 15, cy: 0, rx: 5, ry: 5 },
+			{ cx: 15, cy: 0, rx: 5, ry: 5, boundary: BOUNDARY_KINDS.circle },
+			{ cx: 15, cy: 0, rx: 5, ry: 5, boundary: BOUNDARY_KINDS.circle },
 		];
 		const visible = computeVisibleBranchLength(branch, blobs, []);
 		expect(visible).toBeCloseTo(10, 6);
@@ -511,7 +516,9 @@ describe('generateBranches — visibility & crossing invariants', () => {
 		const config = makeConfig({ shape: 'oak', branchCount: 8, seed: 9 });
 		const setup = setupOakBranchInputs(config);
 		// Replace blobs with a single huge blob covering the whole viewbox.
-		const giantBlob: Blob[] = [{ cx: 100, cy: 150, rx: 500, ry: 500 }];
+		const giantBlob: Blob[] = [
+			{ cx: 100, cy: 150, rx: 500, ry: 500, boundary: BOUNDARY_KINDS.circle },
+		];
 		const start = Date.now();
 		const branches = generateBranches(
 			setup.rng,
@@ -579,5 +586,246 @@ describe('generateBranches — visibility & crossing invariants', () => {
 			b.blobs,
 		);
 		expect(bA).toEqual(bB);
+	});
+});
+
+// ============================================================================
+// REQ-C-18: oak non-primary blobs distributed radially (full 360°)
+// ============================================================================
+
+describe('REQ-C-18: oak radial blob distribution', () => {
+	const shapeDef = getShapeDefinition('oak');
+	const W = VIEWBOX_WIDTH;
+	const minAxisDistance = W * 0.15;
+
+	it('at most one blob sits on the trunk axis (the primary anchor)', () => {
+		// REQ-C-18: non-primary blobs are pushed at least 0.15·W off-axis.
+		// The primary blob is kept anchored on the axis. Because
+		// ensureLargestBlobInBottomHalf may swap array positions, we check the
+		// overall count of axis-hugging blobs rather than index 1..N.
+		for (let seed = 1; seed <= 40; seed++) {
+			const rng = createPrng(seed);
+			const blobs = shapeDef.generateBlobs(rng, 6);
+			expect(blobs.length).toBe(6);
+			const onAxisCount = blobs.filter(
+				(b) => Math.abs(b.cx - W / 2) < minAxisDistance - 1e-9,
+			).length;
+			expect(onAxisCount).toBeLessThanOrEqual(1);
+		}
+	});
+
+	it('across multiple seeds, at least one non-primary blob lies above the primary (cy<primary.cy)', () => {
+		// Full 360° sampling must allow blobs above the primary; the old
+		// half-axis distribution only placed them in a 180° arc below.
+		let sawAbove = false;
+		for (let seed = 1; seed <= 60 && !sawAbove; seed++) {
+			const rng = createPrng(seed);
+			const blobs = shapeDef.generateBlobs(rng, 6);
+			const primary = blobs[0]!;
+			for (let i = 1; i < blobs.length; i++) {
+				if (blobs[i]!.cy < primary.cy) {
+					sawAbove = true;
+					break;
+				}
+			}
+		}
+		expect(sawAbove).toBe(true);
+	});
+
+	it('primary blob stays anchored on the trunk axis', () => {
+		const rng = createPrng(42);
+		const blobs = shapeDef.generateBlobs(rng, 5);
+		expect(blobs[0]!.cx).toBe(W / 2);
+	});
+
+	it('non-primary blobs land on both sides of the trunk across seeds', () => {
+		let sawLeft = false;
+		let sawRight = false;
+		for (let seed = 1; seed <= 40 && !(sawLeft && sawRight); seed++) {
+			const rng = createPrng(seed);
+			const blobs = shapeDef.generateBlobs(rng, 6);
+			for (let i = 1; i < blobs.length; i++) {
+				if (blobs[i]!.cx < W / 2) {
+					sawLeft = true;
+				}
+				if (blobs[i]!.cx > W / 2) {
+					sawRight = true;
+				}
+			}
+		}
+		expect(sawLeft && sawRight).toBe(true);
+	});
+
+	it('every blob carries boundary=circle', () => {
+		const blobs = shapeDef.generateBlobs(createPrng(42), 5);
+		for (const b of blobs) {
+			expect(b.boundary).toBe(BOUNDARY_KINDS.circle);
+		}
+	});
+});
+
+// ============================================================================
+// REQ-C-19: birch canopy rx doubled (W*0.12 .. W*0.24)
+// ============================================================================
+
+describe('REQ-C-19: birch canopy rx range', () => {
+	const shapeDef = getShapeDefinition('birch');
+	const W = VIEWBOX_WIDTH;
+
+	it('birch blobs at seed 42 include at least one rx ≥ W*0.12', () => {
+		const blobs = shapeDef.generateBlobs(createPrng(42), 5);
+		const hasMinRx = blobs.some((b) => b.rx >= W * 0.12 - 1e-9);
+		expect(hasMinRx).toBe(true);
+	});
+
+	it('all birch blobs have rx within [W*0.12, W*0.24]', () => {
+		const blobs = shapeDef.generateBlobs(createPrng(42), 5);
+		for (const b of blobs) {
+			expect(b.rx).toBeGreaterThanOrEqual(W * 0.12 - 1e-9);
+			expect(b.rx).toBeLessThanOrEqual(W * 0.24 + 1e-9);
+		}
+	});
+
+	it('across many seeds, max rx approaches W*0.24', () => {
+		let maxRx = -Infinity;
+		for (let seed = 1; seed <= 100; seed++) {
+			const blobs = shapeDef.generateBlobs(createPrng(seed), 5);
+			for (const b of blobs) {
+				if (b.rx > maxRx) {
+					maxRx = b.rx;
+				}
+			}
+		}
+		expect(maxRx).toBeGreaterThan(W * 0.22);
+	});
+});
+
+// ============================================================================
+// REQ-C-20: fir canopy — teardrop top + circle bottom blobs
+// ============================================================================
+
+describe('REQ-C-20: fir canopy blobs', () => {
+	const shapeDef = getShapeDefinition('fir');
+	const W = VIEWBOX_WIDTH;
+
+	it('fir generates exactly 4 blobs at seed 42 / blobCount 4', () => {
+		const blobs = shapeDef.generateBlobs(createPrng(42), 4);
+		expect(blobs.length).toBe(4);
+	});
+
+	it('fir canopy includes at least one teardrop boundary blob', () => {
+		const blobs = shapeDef.generateBlobs(createPrng(42), 4);
+		const teardrops = blobs.filter((b) => b.boundary === BOUNDARY_KINDS.teardrop);
+		expect(teardrops.length).toBeGreaterThanOrEqual(1);
+	});
+
+	// REQ-C-20: the teardrop must live at index 0 AND be the topmost (smallest cy)
+	// blob across every seed. Earlier code ran ensureLargestBlobInBottomHalf on
+	// fir, which could swap a bottom circle to index 0 when its rx*ry exceeded
+	// the teardrop's, pushing the teardrop down and breaking the cone
+	// silhouette. Skipping the helper for fir is the structural fix; these
+	// assertions protect against the regression on multiple seeds.
+	it.each([1, 42, 100, 999])(
+		'fir seed %i: blobs[0] is the teardrop and sits at the topmost cy',
+		(seed) => {
+			const blobs = shapeDef.generateBlobs(createPrng(seed), 4);
+			expect(blobs[0]!.boundary).toBe(BOUNDARY_KINDS.teardrop);
+			const minCy = Math.min(...blobs.map((b) => b.cy));
+			expect(blobs[0]!.cy).toBe(minCy);
+		},
+	);
+
+	it('fir bottom 3 circles share similar cy (within ±25 px)', () => {
+		const blobs = shapeDef.generateBlobs(createPrng(42), 4);
+		const circles = blobs.filter((b) => b.boundary === BOUNDARY_KINDS.circle);
+		expect(circles.length).toBe(3);
+		const meanCy = circles.reduce((sum, b) => sum + b.cy, 0) / circles.length;
+		for (const c of circles) {
+			expect(Math.abs(c.cy - meanCy)).toBeLessThanOrEqual(25);
+		}
+	});
+
+	it('fir bottom circles straddle the trunk axis (one left, one right)', () => {
+		const blobs = shapeDef.generateBlobs(createPrng(42), 4);
+		const circles = blobs.filter((b) => b.boundary === BOUNDARY_KINDS.circle);
+		const leftExists = circles.some((b) => b.cx < W / 2);
+		const rightExists = circles.some((b) => b.cx > W / 2);
+		expect(leftExists && rightExists).toBe(true);
+	});
+
+	it('fir is deterministic across runs', () => {
+		const a = shapeDef.generateBlobs(createPrng(42), 4);
+		const b = shapeDef.generateBlobs(createPrng(42), 4);
+		expect(a).toEqual(b);
+	});
+});
+
+// ============================================================================
+// REQ-C-21: maple canopy — 5 blobs in a 180° arc above the trunk
+// ============================================================================
+
+describe('REQ-C-21: maple canopy arc layout', () => {
+	const shapeDef = getShapeDefinition('maple');
+	const W = VIEWBOX_WIDTH;
+
+	it('maple at seed 42 with blobCount=5 produces exactly 5 blobs', () => {
+		const blobs = shapeDef.generateBlobs(createPrng(42), 5);
+		expect(blobs.length).toBe(5);
+	});
+
+	it('maple blobs span at least 0.30·W horizontally (full arc)', () => {
+		const blobs = shapeDef.generateBlobs(createPrng(42), 5);
+		const minCx = Math.min(...blobs.map((b) => b.cx));
+		const maxCx = Math.max(...blobs.map((b) => b.cx));
+		expect(minCx).toBeLessThan(W / 2 - 0.15 * W);
+		expect(maxCx).toBeGreaterThan(W / 2 + 0.15 * W);
+	});
+
+	it('every maple blob uses circle boundary', () => {
+		const blobs = shapeDef.generateBlobs(createPrng(42), 5);
+		for (const b of blobs) {
+			expect(b.boundary).toBe(BOUNDARY_KINDS.circle);
+		}
+	});
+
+	it('maple is deterministic', () => {
+		const a = shapeDef.generateBlobs(createPrng(42), 5);
+		const b = shapeDef.generateBlobs(createPrng(42), 5);
+		expect(a).toEqual(b);
+	});
+});
+
+// ============================================================================
+// REQ-C-22: willow canopy — reuses oak radial with scaled secondary blobs
+// ============================================================================
+
+describe('REQ-C-22: willow canopy', () => {
+	const shapeDef = getShapeDefinition('willow');
+
+	it('willow default (blobCount 4) produces 4 blobs', () => {
+		const blobs = shapeDef.generateBlobs(createPrng(42), 4);
+		expect(blobs.length).toBe(4);
+	});
+
+	it('willow primary blob is larger than every secondary blob', () => {
+		const blobs = shapeDef.generateBlobs(createPrng(42), 4);
+		const primaryArea = blobs[0]!.rx * blobs[0]!.ry;
+		for (let i = 1; i < blobs.length; i++) {
+			const secondaryArea = blobs[i]!.rx * blobs[i]!.ry;
+			expect(primaryArea).toBeGreaterThan(secondaryArea);
+		}
+	});
+
+	it('every willow blob uses circle boundary', () => {
+		const blobs = shapeDef.generateBlobs(createPrng(42), 4);
+		for (const b of blobs) {
+			expect(b.boundary).toBe(BOUNDARY_KINDS.circle);
+		}
+	});
+
+	it('willow is deterministic', () => {
+		const a = shapeDef.generateBlobs(createPrng(42), 4);
+		const b = shapeDef.generateBlobs(createPrng(42), 4);
+		expect(a).toEqual(b);
 	});
 });

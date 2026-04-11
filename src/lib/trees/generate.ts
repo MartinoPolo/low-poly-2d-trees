@@ -7,6 +7,7 @@ import type {
 	TreeAnchors,
 	BlobGeometry,
 	Tier,
+	TreeShape,
 } from './types.js';
 import { GEOMETRY_GROUPS, VIEWBOX_WIDTH, VIEWBOX_HEIGHT, TREE_SHAPES } from './types.js';
 import { createPrng, poissonSample, randomInRange } from './prng.js';
@@ -17,7 +18,6 @@ import {
 	isPointInBranch,
 	generateBranches,
 	getBlobsBounds,
-	sampleBlobBoundary,
 	sampleTierBoundary,
 	assignBlobDepths,
 	applyBlobSizeVariance,
@@ -30,10 +30,26 @@ import {
 	buildTrunkPath,
 	sampleTrunkCenterX,
 	TRUNK_ENTRY_MIN_PX,
+	TRUNK_BRANCH_WIDTH_START_MIN,
+	TRUNK_BRANCH_WIDTH_START_MAX,
+	TRUNK_BRANCH_WIDTH_END_MIN,
+	TRUNK_BRANCH_WIDTH_END_MAX,
 	type Blob,
 	type BranchSegment,
 } from './shapes.js';
+import { BOUNDARIES, BOUNDARY_KINDS, smoothAcuteBoundaryAngles } from './boundaries.js';
 import { computeCanopyColor, computeTrunkColor } from './lighting.js';
+
+// REQ-C-12: shapes whose circle-boundary blobs should have acute concavities
+// pulled back to the ellipse ring for a rounder silhouette. Teardrop blobs are
+// gated out per-blob below so fir can be listed here safely if ever needed;
+// currently fir relies on its teardrop tip and has no circle smoothing.
+const SHAPES_WITH_ACUTE_SMOOTHING = new Set<TreeShape>([
+	TREE_SHAPES.oak,
+	TREE_SHAPES.birch,
+	TREE_SHAPES.maple,
+	TREE_SHAPES.willow,
+]);
 
 function triangulatePoints(
 	points: readonly { x: number; y: number }[],
@@ -266,7 +282,7 @@ function generateBlobCanopy(
 	colorRng: () => number,
 	blobs: readonly Blob[],
 	canopyBudget: number,
-	smoothAcuteAngles: boolean,
+	smoothAcuteAnglesForCircles: boolean,
 	config: TreeConfig,
 ): BlobGeometry[] {
 	const totalArea = blobs.reduce((sum, b) => sum + b.rx * b.ry, 0);
@@ -281,7 +297,24 @@ function generateBlobCanopy(
 		const blobBudget = Math.max(4, Math.round(canopyBudget * polygonShare));
 
 		const boundaryCount = Math.max(6, Math.floor(blobBudget * 0.15));
-		const boundaryPoints = sampleBlobBoundary(blob, boundaryCount, rng, smoothAcuteAngles);
+		const rawBoundaryPoints = BOUNDARIES[blob.boundary].sample(
+			blob.cx,
+			blob.cy,
+			blob.rx,
+			blob.ry,
+			boundaryCount,
+			rng,
+			blob.rotationDeg ?? 0,
+		);
+		// Teardrop blobs must never be acute-angle smoothed: the smoother would
+		// round off the pointy top, destroying the teardrop silhouette. Gate the
+		// smoothing per-blob on the boundary kind so shapes containing a mix of
+		// boundary types (fir: teardrop + circles) can opt in at shape level
+		// without affecting the teardrop.
+		const shouldSmooth = smoothAcuteAnglesForCircles && blob.boundary === BOUNDARY_KINDS.circle;
+		const boundaryPoints = shouldSmooth
+			? smoothAcuteBoundaryAngles(rawBoundaryPoints, blob.cx, blob.cy, blob.rx, blob.ry)
+			: rawBoundaryPoints;
 
 		const interiorCount = Math.max(3, blobBudget - boundaryCount);
 		const blobBounds = {
@@ -294,26 +327,38 @@ function generateBlobCanopy(
 			(blobBounds.maxX - blobBounds.minX) * (blobBounds.maxY - blobBounds.minY);
 		const minDist = Math.max(2, Math.sqrt(blobBoxArea / interiorCount) * 0.5);
 
+		const boundaryShape = BOUNDARIES[blob.boundary];
 		const interiorPoints = poissonSample(
 			rng,
 			interiorCount,
 			blobBounds,
-			(x, y) => {
-				const dx = (x - blob.cx) / blob.rx;
-				const dy = (y - blob.cy) / blob.ry;
-				return dx * dx + dy * dy <= 1;
-			},
+			(x, y) =>
+				boundaryShape.contains(
+					x,
+					y,
+					blob.cx,
+					blob.cy,
+					blob.rx,
+					blob.ry,
+					blob.rotationDeg ?? 0,
+				),
 			minDist,
 		);
 
 		const allPoints = [...boundaryPoints, ...interiorPoints];
 		const rawTris = triangulatePoints(allPoints);
 		const filtered = rawTris.filter((tri) =>
-			isTriangleInsideRegion(tri, (x, y) => {
-				const dx = (x - blob.cx) / blob.rx;
-				const dy = (y - blob.cy) / blob.ry;
-				return dx * dx + dy * dy <= 1;
-			}),
+			isTriangleInsideRegion(tri, (x, y) =>
+				boundaryShape.contains(
+					x,
+					y,
+					blob.cx,
+					blob.cy,
+					blob.rx,
+					blob.ry,
+					blob.rotationDeg ?? 0,
+				),
+			),
 		);
 
 		const coloredTris: Triangle[] = filtered.map((tri) => ({
@@ -407,6 +452,47 @@ function generateTierCanopy(
 }
 
 // ---------------------------------------------------------------------------
+// Maple per-blob branches (issue #8)
+// ---------------------------------------------------------------------------
+//
+// Maple emits exactly one branch per canopy blob, originating from the trunk
+// just below the canopy bottom and terminating at the blob center. This
+// replaces the generic trunk/sub-branch algorithm for maple because the
+// blob-per-branch correspondence is intrinsic to the shape. The user-visible
+// branchCount slider stays on the UI but is ignored for maple — one branch
+// per blob is the intentional spec.
+
+function generateMapleBranches(
+	rng: () => number,
+	trunkJunctions: readonly Point2D[],
+	blobs: readonly Blob[],
+	config: TreeConfig,
+	canopyBottom: number,
+): BranchSegment[] {
+	const branchThicknessScale = config.branchThickness / 100;
+	const segments: BranchSegment[] = [];
+	for (const blob of blobs) {
+		const originY = canopyBottom - randomInRange(rng, 5, 15);
+		const originX = sampleTrunkCenterX(trunkJunctions, originY);
+		const widthStart =
+			randomInRange(rng, TRUNK_BRANCH_WIDTH_START_MIN, TRUNK_BRANCH_WIDTH_START_MAX) *
+			branchThicknessScale;
+		const widthEnd =
+			randomInRange(rng, TRUNK_BRANCH_WIDTH_END_MIN, TRUNK_BRANCH_WIDTH_END_MAX) *
+			branchThicknessScale;
+		segments.push({
+			x1: originX,
+			y1: originY,
+			x2: blob.cx,
+			y2: blob.cy,
+			widthStart,
+			widthEnd,
+		});
+	}
+	return segments;
+}
+
+// ---------------------------------------------------------------------------
 // Main entry point
 // ---------------------------------------------------------------------------
 
@@ -486,17 +572,36 @@ export function generateTree(config: TreeConfig): TreeGeometry {
 	}
 	const trunkTop = trunkJunctions[trunkJunctions.length - 1]!.y;
 
-	const branches = isPine
-		? []
-		: generateBranches(
-				createPrng(config.seed + 7777),
-				trunkTop,
-				trunkBottom,
-				shapeDef.trunkTopWidth * (config.trunkThickness / 100),
-				config,
-				trunkJunctions,
-				blobs,
-			);
+	// Branch generation dispatch:
+	//   - pine has no branches
+	//   - maple emits one branch per canopy blob (issue #8) using
+	//     generateMapleBranches — this replaces the generic algorithm because
+	//     every blob needs a dedicated branch from the trunk. The user-visible
+	//     branchCount slider is intentionally ignored for maple (spec).
+	//   - all other shapes use the generic generateBranches entry point.
+	// The maple branch rng uses the same seed offset (+7777) as the generic
+	// branch path so determinism holds across shape switches.
+	let branches: BranchSegment[];
+	if (isPine) {
+		branches = [];
+	} else if (config.shape === TREE_SHAPES.maple) {
+		const mapleRng = createPrng(config.seed + 7777);
+		// Reuse the already-computed canopyBounds (getBlobsBounds result from
+		// above) rather than recomputing. For maple this is always the blob
+		// bounds path (pine is excluded by the outer branch).
+		const canopyBottomY = blobs.length > 0 ? canopyBounds.maxY : trunkTop;
+		branches = generateMapleBranches(mapleRng, trunkJunctions, blobs, config, canopyBottomY);
+	} else {
+		branches = generateBranches(
+			createPrng(config.seed + 7777),
+			trunkTop,
+			trunkBottom,
+			shapeDef.trunkTopWidth * (config.trunkThickness / 100),
+			config,
+			trunkJunctions,
+			blobs,
+		);
+	}
 
 	const extraBranches = isPine ? [] : validateNoFloatingBlobs(blobs, branches);
 	const allBranches = [...branches, ...extraBranches];
@@ -519,8 +624,7 @@ export function generateTree(config: TreeConfig): TreeGeometry {
 		config,
 	);
 
-	const smoothAcuteAngles =
-		config.shape === TREE_SHAPES.oak || config.shape === TREE_SHAPES.birch;
+	const smoothAcuteAngles = SHAPES_WITH_ACUTE_SMOOTHING.has(config.shape);
 	const canopyBlobs = isPine
 		? generateTierCanopy(
 				rng,
