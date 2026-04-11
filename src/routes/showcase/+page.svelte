@@ -40,6 +40,9 @@
 	let canopySize = $state(DEFAULT_TREE_CONFIG.canopySize);
 	let trunkHeight = $state(DEFAULT_TREE_CONFIG.trunkHeight);
 	let trunkBranchRatio = $state(DEFAULT_TREE_CONFIG.trunkBranchRatio);
+	let trunkLean = $state(DEFAULT_TREE_CONFIG.trunkLean);
+	let trunkSegments = $state(DEFAULT_TREE_CONFIG.trunkSegments);
+	let trunkCrookedness = $state(DEFAULT_TREE_CONFIG.trunkCrookedness);
 	let depthVariance = $state(DEFAULT_TREE_CONFIG.depthVariance);
 	let showAnchors = $state(false);
 	let showCanopy = $state(true);
@@ -48,6 +51,9 @@
 
 	const branchCountDisabled = $derived(isParamDisabled(shape, 'branchCount', {}));
 	const trunkBranchRatioDisabled = $derived(isParamDisabled(shape, 'trunkBranchRatio', {}));
+	const trunkCrookednessDisabled = $derived(
+		isParamDisabled(shape, 'trunkCrookedness', { trunkSegments }),
+	);
 
 	function isTreeShape(value: string): value is TreeShape {
 		return (Object.values(TREE_SHAPES) as readonly string[]).includes(value);
@@ -67,6 +73,8 @@
 		blobSizeVariance = defaults.blobSizeVariance;
 		blobCloseness = defaults.blobCloseness;
 		branchThickness = defaults.branchThickness;
+		trunkSegments = defaults.trunkSegments;
+		trunkCrookedness = defaults.trunkCrookedness;
 	}
 
 	function randomizeSeed() {
@@ -326,6 +334,30 @@
 							bind:value={trunkBranchRatio}
 							disabled={trunkBranchRatioDisabled}
 						/>
+						<LabeledRangeSlider
+							label="Trunk Lean"
+							min={-45}
+							max={45}
+							step={1}
+							unit="°"
+							bind:value={trunkLean}
+						/>
+						<LabeledRangeSlider
+							label="Trunk Segments"
+							min={1}
+							max={5}
+							step={1}
+							bind:value={trunkSegments}
+						/>
+						<LabeledRangeSlider
+							label="Trunk Crookedness"
+							min={0}
+							max={100}
+							step={5}
+							unit="%"
+							bind:value={trunkCrookedness}
+							disabled={trunkCrookednessDisabled}
+						/>
 					</Card.Content>
 				</Card.Root>
 
@@ -423,6 +455,9 @@
 					{canopySize}
 					{trunkHeight}
 					{trunkBranchRatio}
+					{trunkLean}
+					{trunkSegments}
+					{trunkCrookedness}
 					{depthVariance}
 					{showCanopy}
 					{showBranches}

@@ -13,7 +13,7 @@ import { createPrng, poissonSample, randomInRange } from './prng.js';
 import {
 	getShapeDefinition,
 	computeEffectiveTrunkTop,
-	isPointInTrunk,
+	isPointInTrunkPath,
 	isPointInBranch,
 	generateBranches,
 	getBlobsBounds,
@@ -27,6 +27,8 @@ import {
 	generateTiers,
 	isPointInTier,
 	getTiersBounds,
+	buildTrunkPath,
+	sampleTrunkCenterX,
 	TRUNK_ENTRY_MIN_PX,
 	type Blob,
 	type BranchSegment,
@@ -72,28 +74,48 @@ function isTriangleInsideRegion(
 	return test(cx, cy);
 }
 
+/**
+ * Horizontal bounds of the trunk mesh cover the full polyline plus the base
+ * width on each side, so cylinder color mapping keys off the entire visible
+ * trunk x-range. Reused by trunk and branch mesh generation.
+ */
+function computeTrunkXBounds(
+	trunkJunctions: readonly Point2D[],
+	effectiveBaseWidth: number,
+): { minX: number; maxX: number } {
+	let minJunctionX = Infinity;
+	let maxJunctionX = -Infinity;
+	for (const j of trunkJunctions) {
+		if (j.x < minJunctionX) {
+			minJunctionX = j.x;
+		}
+		if (j.x > maxJunctionX) {
+			maxJunctionX = j.x;
+		}
+	}
+	return {
+		minX: minJunctionX - effectiveBaseWidth / 2,
+		maxX: maxJunctionX + effectiveBaseWidth / 2,
+	};
+}
+
 function computeAnchors(
-	trunkTop: number,
-	trunkBottom: number,
-	trunkLean: number,
+	trunkJunctions: readonly Point2D[],
 	canopyBounds: { minX: number; minY: number; maxX: number; maxY: number },
 ): TreeAnchors {
-	const trunkCenterX = VIEWBOX_WIDTH / 2;
-	const trunkHeight = trunkBottom - trunkTop;
+	const baseJunction = trunkJunctions[0]!;
+	const topJunction = trunkJunctions[trunkJunctions.length - 1]!;
+	// trunkMiddle lies on the trunk polyline (not on a straight base→top line)
+	// so it remains visually meaningful for multi-segment crooked trunks.
+	const midY = (baseJunction.y + topJunction.y) / 2;
 
 	return {
-		trunkTop: {
-			x: trunkCenterX + trunkLean,
-			y: trunkTop,
-		},
+		trunkTop: topJunction,
 		trunkMiddle: {
-			x: trunkCenterX + trunkLean * 0.5,
-			y: trunkTop + trunkHeight * 0.5,
+			x: sampleTrunkCenterX(trunkJunctions, midY),
+			y: midY,
 		},
-		trunkBottom: {
-			x: trunkCenterX,
-			y: trunkBottom,
-		},
+		trunkBottom: baseJunction,
 		canopyCenter: {
 			x: (canopyBounds.minX + canopyBounds.maxX) / 2,
 			y: (canopyBounds.minY + canopyBounds.maxY) / 2,
@@ -109,9 +131,7 @@ function generateTrunkMesh(
 	rng: () => number,
 	colorRng: () => number,
 	shapeDef: { readonly trunkBaseWidth: number; readonly trunkTopWidth: number },
-	trunkTop: number,
-	trunkBottom: number,
-	trunkLean: number,
+	trunkJunctions: readonly Point2D[],
 	trunkBudget: number,
 	config: TreeConfig,
 ): Triangle[] {
@@ -119,14 +139,18 @@ function generateTrunkMesh(
 	const effectiveBaseWidth = shapeDef.trunkBaseWidth * thicknessScale;
 	const effectiveTopWidth = shapeDef.trunkTopWidth * thicknessScale;
 
+	const trunkTop = trunkJunctions[trunkJunctions.length - 1]!.y;
+	const trunkBottom = trunkJunctions[0]!.y;
+	const trunkHeight = trunkBottom - trunkTop;
+
 	const trunkPoints: { x: number; y: number }[] = [];
 	const trunkSteps = Math.max(3, Math.floor(trunkBudget / 4));
 
 	for (let i = 0; i <= trunkSteps; i++) {
 		const t = i / trunkSteps;
-		const y = trunkTop + t * (trunkBottom - trunkTop);
+		const y = trunkTop + t * trunkHeight;
 		const width = effectiveTopWidth + t * (effectiveBaseWidth - effectiveTopWidth);
-		const centerX = VIEWBOX_WIDTH / 2 + trunkLean * (1 - t);
+		const centerX = sampleTrunkCenterX(trunkJunctions, y);
 		trunkPoints.push({ x: centerX - width / 2, y });
 		trunkPoints.push({ x: centerX + width / 2, y });
 		if (i > 0 && i < trunkSteps) {
@@ -137,25 +161,24 @@ function generateTrunkMesh(
 		}
 	}
 
+	// Seed explicit left/right points at each interior junction so kinks in a
+	// crooked trunk are accurately triangulated (REQ-T-12).
+	for (let i = 1; i < trunkJunctions.length - 1; i++) {
+		const junc = trunkJunctions[i]!;
+		const tj = (junc.y - trunkTop) / trunkHeight;
+		const widthJ = effectiveTopWidth + tj * (effectiveBaseWidth - effectiveTopWidth);
+		trunkPoints.push({ x: junc.x - widthJ / 2, y: junc.y });
+		trunkPoints.push({ x: junc.x + widthJ / 2, y: junc.y });
+	}
+
 	const rawTris = triangulatePoints(trunkPoints);
 	const filtered = rawTris.filter((tri) =>
 		isTriangleInsideRegion(tri, (x, y) =>
-			isPointInTrunk(
-				x,
-				y,
-				trunkTop,
-				trunkBottom,
-				effectiveTopWidth,
-				effectiveBaseWidth,
-				trunkLean,
-			),
+			isPointInTrunkPath(x, y, trunkJunctions, effectiveTopWidth, effectiveBaseWidth),
 		),
 	);
 
-	const trunkXBounds = {
-		minX: VIEWBOX_WIDTH / 2 - effectiveBaseWidth / 2 + Math.min(0, trunkLean),
-		maxX: VIEWBOX_WIDTH / 2 + effectiveBaseWidth / 2 + Math.max(0, trunkLean),
-	};
+	const trunkXBounds = computeTrunkXBounds(trunkJunctions, effectiveBaseWidth);
 
 	return filtered.map((tri) => ({
 		points: tri,
@@ -172,8 +195,7 @@ function generateSingleBranchMesh(
 	rng: () => number,
 	colorRng: () => number,
 	branch: BranchSegment,
-	trunkLean: number,
-	trunkBaseWidth: number,
+	trunkXBounds: { minX: number; maxX: number },
 	config: TreeConfig,
 ): Triangle[] {
 	const branchPoints: { x: number; y: number }[] = [];
@@ -203,14 +225,9 @@ function generateSingleBranchMesh(
 		isTriangleInsideRegion(tri, (x, y) => isPointInBranch(x, y, [branch])),
 	);
 
-	const branchXBounds = {
-		minX: VIEWBOX_WIDTH / 2 - trunkBaseWidth / 2 + Math.min(0, trunkLean),
-		maxX: VIEWBOX_WIDTH / 2 + trunkBaseWidth / 2 + Math.max(0, trunkLean),
-	};
-
 	return filtered.map((tri) => ({
 		points: tri,
-		color: computeTrunkColor(tri, branchXBounds, config, colorRng),
+		color: computeTrunkColor(tri, trunkXBounds, config, colorRng),
 		group: GEOMETRY_GROUPS.branch,
 	}));
 }
@@ -219,7 +236,7 @@ function generateBranchMesh(
 	rng: () => number,
 	colorRng: () => number,
 	branches: readonly BranchSegment[],
-	trunkLean: number,
+	trunkJunctions: readonly Point2D[],
 	shapeDef: { readonly trunkBaseWidth: number },
 	config: TreeConfig,
 ): Triangle[] {
@@ -227,17 +244,13 @@ function generateBranchMesh(
 		return [];
 	}
 
+	const effectiveBaseWidth = shapeDef.trunkBaseWidth * (config.trunkThickness / 100);
+	const trunkXBounds = computeTrunkXBounds(trunkJunctions, effectiveBaseWidth);
+
 	const allTriangles: Triangle[] = [];
 
 	for (const branch of branches) {
-		const branchTris = generateSingleBranchMesh(
-			rng,
-			colorRng,
-			branch,
-			trunkLean,
-			shapeDef.trunkBaseWidth * (config.trunkThickness / 100),
-			config,
-		);
+		const branchTris = generateSingleBranchMesh(rng, colorRng, branch, trunkXBounds, config);
 		allTriangles.push(...branchTris);
 	}
 
@@ -407,8 +420,22 @@ export function generateTree(config: TreeConfig): TreeGeometry {
 	// whole canopy in lock-step. Delta is the per-axis offset applied to every
 	// blob cy (and tier y) after shape-specific positioning runs at defaults.
 	const canopyDelta = effectiveTrunkTop - shapeDef.defaultTrunkTop;
+	const trunkBottom = shapeDef.trunkBottom;
 
-	const trunkLean = randomInRange(rng, -8, 8);
+	// Build the trunk path first (driven by the trunkLean/trunkSegments/
+	// trunkCrookedness params — REQ-T-11, REQ-T-12). This replaces the old
+	// random jitter. trunkTop here is the pre-clamp effective top; we may
+	// tighten it after canopy bounds are known.
+	let trunkJunctions = buildTrunkPath(
+		rng,
+		config.trunkLean,
+		config.trunkSegments,
+		config.trunkCrookedness,
+		effectiveTrunkTop,
+		trunkBottom,
+	);
+	const topJunctionInitial = trunkJunctions[trunkJunctions.length - 1]!;
+	const horizontalCanopyShift = topJunctionInitial.x - VIEWBOX_WIDTH / 2;
 
 	const blobs = isPine ? [] : shapeDef.generateBlobs(rng, config.blobCount);
 
@@ -425,6 +452,8 @@ export function generateTree(config: TreeConfig): TreeGeometry {
 		applyCanopySize(blobs, config.canopySize);
 		for (const blob of blobs) {
 			blob.cy += canopyDelta;
+			// REQ-T-12d: canopy follows the topmost trunk segment horizontally.
+			blob.cx += horizontalCanopyShift;
 		}
 	}
 
@@ -432,9 +461,7 @@ export function generateTree(config: TreeConfig): TreeGeometry {
 		? generateTiers(
 				rng,
 				config.blobCount,
-				trunkLean,
-				effectiveTrunkTop,
-				shapeDef.trunkBottom,
+				trunkJunctions,
 				config.blobCloseness,
 				config.blobSizeVariance,
 				config.canopySize,
@@ -447,8 +474,17 @@ export function generateTree(config: TreeConfig): TreeGeometry {
 	// Enforce the trunk-penetration invariant: trunk top must enter the lowest
 	// canopy edge by at least TRUNK_ENTRY_MIN_PX. If the user's chosen trunk
 	// height would leave the trunk dangling below the canopy, clamp upward.
-	const trunkTop = Math.min(effectiveTrunkTop, canopyBounds.maxY - TRUNK_ENTRY_MIN_PX);
-	const trunkBottom = shapeDef.trunkBottom;
+	// When clamping is needed we substitute the topmost junction with the
+	// clamped y while preserving its x (so the lean/crookedness choices remain
+	// visible).
+	const clampedTrunkTop = Math.min(effectiveTrunkTop, canopyBounds.maxY - TRUNK_ENTRY_MIN_PX);
+	if (clampedTrunkTop !== effectiveTrunkTop) {
+		const clamped = [...trunkJunctions];
+		const top = clamped[clamped.length - 1]!;
+		clamped[clamped.length - 1] = { x: top.x, y: clampedTrunkTop };
+		trunkJunctions = clamped;
+	}
+	const trunkTop = trunkJunctions[trunkJunctions.length - 1]!.y;
 
 	const branches = isPine
 		? []
@@ -458,7 +494,7 @@ export function generateTree(config: TreeConfig): TreeGeometry {
 				trunkBottom,
 				shapeDef.trunkTopWidth * (config.trunkThickness / 100),
 				config,
-				trunkLean,
+				trunkJunctions,
 				blobs,
 			);
 
@@ -469,9 +505,7 @@ export function generateTree(config: TreeConfig): TreeGeometry {
 		rng,
 		createPrng(config.seed + 9999),
 		shapeDef,
-		trunkTop,
-		trunkBottom,
-		trunkLean,
+		trunkJunctions,
 		config.trunkPolygons,
 		config,
 	);
@@ -480,7 +514,7 @@ export function generateTree(config: TreeConfig): TreeGeometry {
 		rng,
 		createPrng(config.seed + 9999),
 		allBranches,
-		trunkLean,
+		trunkJunctions,
 		shapeDef,
 		config,
 	);
@@ -504,7 +538,7 @@ export function generateTree(config: TreeConfig): TreeGeometry {
 				config,
 			);
 
-	const anchors = computeAnchors(trunkTop, trunkBottom, trunkLean, canopyBounds);
+	const anchors = computeAnchors(trunkJunctions, canopyBounds);
 
 	return {
 		trunkTriangles,

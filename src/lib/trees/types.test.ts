@@ -49,6 +49,8 @@ describe('SHAPE_DEFAULTS §2.5', () => {
 			blobSizeVariance: 3.0,
 			blobCloseness: 50,
 			branchThickness: 100,
+			trunkSegments: 1,
+			trunkCrookedness: 0,
 		});
 	});
 
@@ -59,6 +61,8 @@ describe('SHAPE_DEFAULTS §2.5', () => {
 			blobSizeVariance: 3.0,
 			blobCloseness: 50,
 			branchThickness: 100,
+			trunkSegments: 1,
+			trunkCrookedness: 0,
 		});
 	});
 
@@ -69,6 +73,8 @@ describe('SHAPE_DEFAULTS §2.5', () => {
 			blobSizeVariance: 3.0,
 			blobCloseness: 50,
 			branchThickness: 100,
+			trunkSegments: 1,
+			trunkCrookedness: 0,
 		});
 	});
 
@@ -79,6 +85,8 @@ describe('SHAPE_DEFAULTS §2.5', () => {
 			blobSizeVariance: 3.0,
 			blobCloseness: 50,
 			branchThickness: 100,
+			trunkSegments: 1,
+			trunkCrookedness: 0,
 		});
 	});
 
@@ -89,16 +97,20 @@ describe('SHAPE_DEFAULTS §2.5', () => {
 			blobSizeVariance: 2.0,
 			blobCloseness: 30,
 			branchThickness: 100,
+			trunkSegments: 1,
+			trunkCrookedness: 0,
 		});
 	});
 
-	it('has willow defaults (thick branches 150)', () => {
+	it('has willow defaults (thick branches 150, 3 segments, 40% crookedness)', () => {
 		expect(SHAPE_DEFAULTS.willow).toEqual({
 			blobCount: 4,
 			branchCount: 4,
 			blobSizeVariance: 3.0,
 			blobCloseness: 50,
 			branchThickness: 150,
+			trunkSegments: 3,
+			trunkCrookedness: 40,
 		});
 	});
 });

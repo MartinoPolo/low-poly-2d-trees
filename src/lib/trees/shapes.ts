@@ -1,4 +1,4 @@
-import type { TreeShape, Tier, TreeConfig } from './types.js';
+import type { TreeShape, Tier, TreeConfig, Point2D } from './types.js';
 import { VIEWBOX_WIDTH, VIEWBOX_HEIGHT } from './types.js';
 import { randomInRange } from './prng.js';
 
@@ -212,21 +212,100 @@ export function computeEffectiveTrunkTop(shapeDef: ShapeDefinition, trunkHeight:
 	return trunkBottom - (trunkBottom - defaultTop) * (trunkHeight / 100);
 }
 
-export function isPointInTrunk(
-	x: number,
-	y: number,
+/**
+ * Build the trunk centerline as a polyline of junctions from base to top.
+ *
+ * Conventions:
+ *   - `junctions[0]` is always the base at `{ x: VIEWBOX_WIDTH/2, y: trunkBottom }`.
+ *   - `junctions[trunkSegments]` is the topmost junction (canopy attachment).
+ *   - Junctions are in descending-y order (base has highest y, top has lowest).
+ *   - Y-coordinates are uniformly spaced so `segmentLenY = trunkHeight / N`.
+ *
+ * Angle model (REQ-T-11, REQ-T-12):
+ *   - `trunkLean` is measured in degrees from vertical, positive = leans right.
+ *   - First segment angle = trunkLean (pure lean, no jitter — REQ-T-12c).
+ *   - Subsequent junctions add a random delta drawn from
+ *     `[-maxJitter, +maxJitter]` where
+ *     `maxJitter = lerp(5°, 20°, trunkCrookedness/100)`.
+ *   - With `trunkCrookedness === 0` OR `trunkSegments === 1`, no jitter.
+ */
+export function buildTrunkPath(
+	rng: () => number,
+	trunkLean: number,
+	trunkSegments: number,
+	trunkCrookedness: number,
 	trunkTop: number,
 	trunkBottom: number,
+): Point2D[] {
+	const segments = Math.max(1, Math.min(5, Math.round(trunkSegments)));
+	const clampedCrookedness = Math.max(0, Math.min(100, trunkCrookedness));
+	const baseX = VIEWBOX_WIDTH / 2;
+	const totalHeight = trunkBottom - trunkTop;
+	const segmentLenY = totalHeight / segments;
+
+	const junctions: Point2D[] = [{ x: baseX, y: trunkBottom }];
+
+	const leanRad = (trunkLean * Math.PI) / 180;
+	const maxJitterDeg = lerp(5, 20, clampedCrookedness / 100);
+
+	let currentAngleRad = leanRad;
+	let currentX = baseX;
+
+	for (let i = 1; i <= segments; i++) {
+		if (i > 1 && clampedCrookedness > 0) {
+			const jitterDeg = randomInRange(rng, -maxJitterDeg, maxJitterDeg);
+			currentAngleRad += (jitterDeg * Math.PI) / 180;
+		}
+		currentX += segmentLenY * Math.tan(currentAngleRad);
+		// Pin final y to trunkTop to avoid FP accumulation drift.
+		const newY = i === segments ? trunkTop : trunkBottom - i * segmentLenY;
+		junctions.push({ x: currentX, y: newY });
+	}
+
+	return junctions;
+}
+
+/**
+ * Sample the trunk centerline x-coordinate at a given y by finding the
+ * segment containing y and linearly interpolating. Clamps to the base/top
+ * junction x when y falls outside the trunk range.
+ */
+export function sampleTrunkCenterX(junctions: readonly Point2D[], y: number): number {
+	const base = junctions[0]!;
+	const top = junctions[junctions.length - 1]!;
+	if (y >= base.y) {
+		return base.x;
+	}
+	if (y <= top.y) {
+		return top.x;
+	}
+	for (let i = 0; i < junctions.length - 1; i++) {
+		const a = junctions[i]!;
+		const b = junctions[i + 1]!;
+		// a.y > b.y (descending y)
+		if (y <= a.y && y >= b.y) {
+			const t = (a.y - y) / (a.y - b.y);
+			return a.x + t * (b.x - a.x);
+		}
+	}
+	return base.x;
+}
+
+export function isPointInTrunkPath(
+	x: number,
+	y: number,
+	junctions: readonly Point2D[],
 	trunkTopWidth: number,
 	trunkBaseWidth: number,
-	trunkLean: number,
 ): boolean {
+	const trunkBottom = junctions[0]!.y;
+	const trunkTop = junctions[junctions.length - 1]!.y;
 	const t = (y - trunkTop) / (trunkBottom - trunkTop);
 	if (t < 0 || t > 1) {
 		return false;
 	}
 	const width = trunkTopWidth + t * (trunkBaseWidth - trunkTopWidth);
-	const centerX = VIEWBOX_WIDTH / 2 + trunkLean * (1 - t);
+	const centerX = sampleTrunkCenterX(junctions, y);
 	return Math.abs(x - centerX) <= width / 2;
 }
 
@@ -255,9 +334,7 @@ function isPointInSingleBlob(x: number, y: number, b: Blob): boolean {
 export function generateTiers(
 	rng: () => number,
 	blobCount: number,
-	trunkLean: number,
-	trunkTop: number,
-	trunkBottom: number,
+	trunkJunctions: readonly Point2D[],
 	blobCloseness: number,
 	blobSizeVariance: number,
 	canopySize: number,
@@ -287,11 +364,11 @@ export function generateTiers(
 
 		const baseHalfWidth = (W * 0.105 + t1 * W * 0.385) * widthScale * canopyScale;
 
-		// D10: tiers follow trunk lean
-		const leanOffset =
-			trunkLean * (1 - (tierTipY - trunkTop) / Math.max(1, trunkBottom - trunkTop));
-		const baseLeanOffset =
-			trunkLean * (1 - (tierBaseY - trunkTop) / Math.max(1, trunkBottom - trunkTop));
+		// D10: tiers follow trunk path (sampled from junctions). For y values
+		// above the topmost junction, sampling clamps to topJunction.x so tiers
+		// stop leaning once they rise above the trunk.
+		const leanOffset = sampleTrunkCenterX(trunkJunctions, tierTipY) - centerX;
+		const baseLeanOffset = sampleTrunkCenterX(trunkJunctions, tierBaseY) - centerX;
 
 		const jitterX = randomInRange(rng, -2, 2);
 
@@ -640,7 +717,7 @@ export function generateBranches(
 	trunkBottom: number,
 	trunkTopWidth: number,
 	config: TreeConfig,
-	trunkLean: number,
+	trunkJunctions: readonly Point2D[],
 	blobs: readonly Blob[],
 ): BranchSegment[] {
 	const branchCount = config.branchCount;
@@ -652,15 +729,18 @@ export function generateBranches(
 	const trunkBranchRatio = config.trunkBranchRatio / 100;
 
 	const branches: BranchSegment[] = [];
-	const trunkCenterX = VIEWBOX_WIDTH / 2;
 	const trunkHeight = trunkBottom - trunkTop;
 	const canopyBottom = getBlobsBounds(blobs).maxY;
 
+	// Overall trunk axis from base junction to top junction for branch divergence
+	// checks. Branch origins still sample the local center from the polyline.
+	const baseJunction = trunkJunctions[0]!;
+	const topJunction = trunkJunctions[trunkJunctions.length - 1]!;
 	const trunkAxisAngle = computeAxisAngle(
-		trunkCenterX,
-		trunkBottom,
-		trunkCenterX + trunkLean,
-		trunkTop,
+		baseJunction.x,
+		baseJunction.y,
+		topJunction.x,
+		topJunction.y,
 	);
 
 	const trunkBranchCount = Math.max(1, Math.round(branchCount * trunkBranchRatio));
@@ -670,8 +750,7 @@ export function generateBranches(
 		const side = i % 2 === 0 ? 1 : -1;
 		const branchT = randomInRange(rng, 0.05, 0.35);
 		const startY = trunkTop + trunkHeight * branchT;
-		const t = branchT;
-		const startX = trunkCenterX + trunkLean * (1 - t);
+		const startX = sampleTrunkCenterX(trunkJunctions, startY);
 		const length = randomInRange(rng, 25, 50);
 
 		// D2: branch angle constraint ≥ 30°
@@ -788,7 +867,7 @@ export function generateBranches(
 		const blob = blobs[idx]!;
 		const branchT = randomInRange(rng, 0.1, 0.3);
 		const originY = trunkTop + trunkHeight * branchT;
-		const originX = trunkCenterX + trunkLean * (1 - branchT);
+		const originX = sampleTrunkCenterX(trunkJunctions, originY);
 
 		branches.push({
 			x1: originX,

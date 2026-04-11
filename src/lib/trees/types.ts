@@ -91,6 +91,9 @@ export interface TreeConfig {
 	readonly canopySize: number;
 	readonly trunkHeight: number;
 	readonly trunkBranchRatio: number;
+	readonly trunkLean: number;
+	readonly trunkSegments: number;
+	readonly trunkCrookedness: number;
 }
 
 export const DEFAULT_TREE_CONFIG: TreeConfig = {
@@ -116,14 +119,14 @@ export const DEFAULT_TREE_CONFIG: TreeConfig = {
 	canopySize: 100,
 	trunkHeight: 100,
 	trunkBranchRatio: 70,
+	trunkLean: 0,
+	trunkSegments: 1,
+	trunkCrookedness: 0,
 } as const;
 
 /**
  * Per-shape defaults from REQUIREMENTS.md §2.5. `custom` is intentionally
  * excluded — the custom editor retains whatever the user has configured.
- *
- * Fields `trunkSegments` and `trunkCrookedness` from §2.5 are omitted until
- * their own issues add them to `TreeConfig`.
  */
 export const SHAPE_DEFAULTS = {
 	[TREE_SHAPES.oak]: {
@@ -132,6 +135,8 @@ export const SHAPE_DEFAULTS = {
 		blobSizeVariance: 3.0,
 		blobCloseness: 50,
 		branchThickness: 100,
+		trunkSegments: 1,
+		trunkCrookedness: 0,
 	},
 	[TREE_SHAPES.pine]: {
 		blobCount: 3,
@@ -139,6 +144,8 @@ export const SHAPE_DEFAULTS = {
 		blobSizeVariance: 3.0,
 		blobCloseness: 50,
 		branchThickness: 100,
+		trunkSegments: 1,
+		trunkCrookedness: 0,
 	},
 	[TREE_SHAPES.birch]: {
 		blobCount: 3,
@@ -146,6 +153,8 @@ export const SHAPE_DEFAULTS = {
 		blobSizeVariance: 3.0,
 		blobCloseness: 50,
 		branchThickness: 100,
+		trunkSegments: 1,
+		trunkCrookedness: 0,
 	},
 	[TREE_SHAPES.fir]: {
 		blobCount: 4,
@@ -153,6 +162,8 @@ export const SHAPE_DEFAULTS = {
 		blobSizeVariance: 3.0,
 		blobCloseness: 50,
 		branchThickness: 100,
+		trunkSegments: 1,
+		trunkCrookedness: 0,
 	},
 	[TREE_SHAPES.maple]: {
 		blobCount: 5,
@@ -160,6 +171,8 @@ export const SHAPE_DEFAULTS = {
 		blobSizeVariance: 2.0,
 		blobCloseness: 30,
 		branchThickness: 100,
+		trunkSegments: 1,
+		trunkCrookedness: 0,
 	},
 	[TREE_SHAPES.willow]: {
 		blobCount: 4,
@@ -167,12 +180,20 @@ export const SHAPE_DEFAULTS = {
 		blobSizeVariance: 3.0,
 		blobCloseness: 50,
 		branchThickness: 150,
+		trunkSegments: 3,
+		trunkCrookedness: 40,
 	},
 } as const satisfies Record<
 	Exclude<TreeShape, 'custom'>,
 	Pick<
 		TreeConfig,
-		'blobCount' | 'branchCount' | 'blobSizeVariance' | 'blobCloseness' | 'branchThickness'
+		| 'blobCount'
+		| 'branchCount'
+		| 'blobSizeVariance'
+		| 'blobCloseness'
+		| 'branchThickness'
+		| 'trunkSegments'
+		| 'trunkCrookedness'
 	>
 >;
 
