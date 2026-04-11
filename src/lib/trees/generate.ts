@@ -13,6 +13,7 @@ import { createPrng, poissonSample, randomInRange } from './prng.js';
 import {
 	getShapeDefinition,
 	computeTrunkTop,
+	computeEffectiveTrunkTop,
 	isPointInTrunk,
 	isPointInBranch,
 	generateBranches,
@@ -21,11 +22,14 @@ import {
 	sampleTierBoundary,
 	assignBlobDepths,
 	applyBlobSizeVariance,
+	applyBlobCloseness,
+	applyCanopySize,
 	validateNoFloatingBlobs,
 	generateTiers,
 	isPointInTier,
 	getTiersBounds,
 	type Blob,
+	type BranchSegment,
 } from './shapes.js';
 import { computeCanopyColor, computeTrunkColor } from './lighting.js';
 
@@ -111,14 +115,17 @@ function generateTrunkMesh(
 	trunkBudget: number,
 	config: TreeConfig,
 ): Triangle[] {
+	const thicknessScale = config.trunkThickness / 100;
+	const effectiveBaseWidth = shapeDef.trunkBaseWidth * thicknessScale;
+	const effectiveTopWidth = shapeDef.trunkTopWidth * thicknessScale;
+
 	const trunkPoints: { x: number; y: number }[] = [];
 	const trunkSteps = Math.max(3, Math.floor(trunkBudget / 4));
 
 	for (let i = 0; i <= trunkSteps; i++) {
 		const t = i / trunkSteps;
 		const y = trunkTop + t * (trunkBottom - trunkTop);
-		const width =
-			shapeDef.trunkTopWidth + t * (shapeDef.trunkBaseWidth - shapeDef.trunkTopWidth);
+		const width = effectiveTopWidth + t * (effectiveBaseWidth - effectiveTopWidth);
 		const centerX = VIEWBOX_WIDTH / 2 + trunkLean * (1 - t);
 		trunkPoints.push({ x: centerX - width / 2, y });
 		trunkPoints.push({ x: centerX + width / 2, y });
@@ -138,16 +145,16 @@ function generateTrunkMesh(
 				y,
 				trunkTop,
 				trunkBottom,
-				shapeDef.trunkTopWidth,
-				shapeDef.trunkBaseWidth,
+				effectiveTopWidth,
+				effectiveBaseWidth,
 				trunkLean,
 			),
 		),
 	);
 
 	const trunkXBounds = {
-		minX: VIEWBOX_WIDTH / 2 - shapeDef.trunkBaseWidth / 2 + Math.min(0, trunkLean),
-		maxX: VIEWBOX_WIDTH / 2 + shapeDef.trunkBaseWidth / 2 + Math.max(0, trunkLean),
+		minX: VIEWBOX_WIDTH / 2 - effectiveBaseWidth / 2 + Math.min(0, trunkLean),
+		maxX: VIEWBOX_WIDTH / 2 + effectiveBaseWidth / 2 + Math.max(0, trunkLean),
 	};
 
 	return filtered.map((tri) => ({
@@ -158,45 +165,32 @@ function generateTrunkMesh(
 }
 
 // ---------------------------------------------------------------------------
-// Branch mesh generation
+// Per-branch mesh generation (D1: each branch triangulated independently)
 // ---------------------------------------------------------------------------
 
-function generateBranchMesh(
+function generateSingleBranchMesh(
 	rng: () => number,
 	colorRng: () => number,
-	branches: readonly {
-		readonly x1: number;
-		readonly y1: number;
-		readonly x2: number;
-		readonly y2: number;
-		readonly widthStart: number;
-		readonly widthEnd: number;
-	}[],
+	branch: BranchSegment,
 	trunkLean: number,
-	shapeDef: { readonly trunkBaseWidth: number },
+	trunkBaseWidth: number,
 	config: TreeConfig,
 ): Triangle[] {
-	if (branches.length === 0) {
-		return [];
-	}
-
 	const branchPoints: { x: number; y: number }[] = [];
+	const segSteps = 3;
 
-	for (const b of branches) {
-		const segSteps = 3;
-		for (let i = 0; i <= segSteps; i++) {
-			const t = i / segSteps;
-			const px = b.x1 + t * (b.x2 - b.x1);
-			const py = b.y1 + t * (b.y2 - b.y1);
-			const localWidth = b.widthStart + t * (b.widthEnd - b.widthStart);
-			const halfW = localWidth / 2;
-			const nx = -(b.y2 - b.y1);
-			const ny = b.x2 - b.x1;
-			const len = Math.sqrt(nx * nx + ny * ny);
-			if (len > 0) {
-				branchPoints.push({ x: px + (nx / len) * halfW, y: py + (ny / len) * halfW });
-				branchPoints.push({ x: px - (nx / len) * halfW, y: py - (ny / len) * halfW });
-			}
+	for (let i = 0; i <= segSteps; i++) {
+		const t = i / segSteps;
+		const px = branch.x1 + t * (branch.x2 - branch.x1);
+		const py = branch.y1 + t * (branch.y2 - branch.y1);
+		const localWidth = branch.widthStart + t * (branch.widthEnd - branch.widthStart);
+		const halfW = localWidth / 2;
+		const nx = -(branch.y2 - branch.y1);
+		const ny = branch.x2 - branch.x1;
+		const len = Math.sqrt(nx * nx + ny * ny);
+		if (len > 0) {
+			branchPoints.push({ x: px + (nx / len) * halfW, y: py + (ny / len) * halfW });
+			branchPoints.push({ x: px - (nx / len) * halfW, y: py - (ny / len) * halfW });
 		}
 	}
 
@@ -206,12 +200,12 @@ function generateBranchMesh(
 
 	const rawTris = triangulatePoints(branchPoints);
 	const filtered = rawTris.filter((tri) =>
-		isTriangleInsideRegion(tri, (x, y) => isPointInBranch(x, y, branches)),
+		isTriangleInsideRegion(tri, (x, y) => isPointInBranch(x, y, [branch])),
 	);
 
 	const branchXBounds = {
-		minX: VIEWBOX_WIDTH / 2 - shapeDef.trunkBaseWidth / 2 + Math.min(0, trunkLean),
-		maxX: VIEWBOX_WIDTH / 2 + shapeDef.trunkBaseWidth / 2 + Math.max(0, trunkLean),
+		minX: VIEWBOX_WIDTH / 2 - trunkBaseWidth / 2 + Math.min(0, trunkLean),
+		maxX: VIEWBOX_WIDTH / 2 + trunkBaseWidth / 2 + Math.max(0, trunkLean),
 	};
 
 	return filtered.map((tri) => ({
@@ -219,6 +213,35 @@ function generateBranchMesh(
 		color: computeTrunkColor(tri, branchXBounds, config, colorRng),
 		group: GEOMETRY_GROUPS.branch,
 	}));
+}
+
+function generateBranchMesh(
+	rng: () => number,
+	colorRng: () => number,
+	branches: readonly BranchSegment[],
+	trunkLean: number,
+	shapeDef: { readonly trunkBaseWidth: number },
+	config: TreeConfig,
+): Triangle[] {
+	if (branches.length === 0) {
+		return [];
+	}
+
+	const allTriangles: Triangle[] = [];
+
+	for (const branch of branches) {
+		const branchTris = generateSingleBranchMesh(
+			rng,
+			colorRng,
+			branch,
+			trunkLean,
+			shapeDef.trunkBaseWidth * (config.trunkThickness / 100),
+			config,
+		);
+		allTriangles.push(...branchTris);
+	}
+
+	return allTriangles;
 }
 
 // ---------------------------------------------------------------------------
@@ -244,7 +267,7 @@ function generateBlobCanopy(
 		const polygonShare = totalArea > 0 ? blobArea / totalArea : 1 / blobs.length;
 		const blobBudget = Math.max(4, Math.round(canopyBudget * polygonShare));
 
-		const boundaryCount = Math.max(6, Math.floor(blobBudget * 0.4));
+		const boundaryCount = Math.max(6, Math.floor(blobBudget * 0.15));
 		const boundaryPoints = sampleBlobBoundary(blob, boundaryCount, rng, smoothAcuteAngles);
 
 		const interiorCount = Math.max(3, blobBudget - boundaryCount);
@@ -328,7 +351,7 @@ function generateTierCanopy(
 		const areaShare = totalArea > 0 ? tierAreas[i]! / totalArea : 1 / count;
 		const tierBudget = Math.max(4, Math.round(canopyBudget * areaShare));
 
-		const boundaryCount = Math.max(6, Math.floor(tierBudget * 0.4));
+		const boundaryCount = Math.max(6, Math.floor(tierBudget * 0.15));
 		const boundaryPoints = sampleTierBoundary(tier, boundaryCount, rng);
 
 		const interiorCount = Math.max(3, tierBudget - boundaryCount);
@@ -362,12 +385,10 @@ function generateTierCanopy(
 			group: GEOMETRY_GROUPS.canopy,
 		}));
 
-		// depth: bottom tier (index count-1) = 0 (back), top tier (index 0) = count-1 (front)
 		const depth = count - 1 - i;
 		blobGeos.push({ triangles: coloredTris, depth });
 	}
 
-	// Sort by depth ascending (back-to-front)
 	blobGeos.sort((a, b) => a.depth - b.depth);
 	return blobGeos;
 }
@@ -381,43 +402,60 @@ export function generateTree(config: TreeConfig): TreeGeometry {
 	const shapeDef = getShapeDefinition(config.shape);
 	const isPine = config.shape === TREE_SHAPES.pine;
 
-	// Generate canopy shapes
-	const blobs = isPine ? [] : shapeDef.generateBlobs(rng, config.blobCount);
-	const tiers = isPine ? generateTiers(rng, config.blobCount) : [];
+	const effectiveTrunkTop = computeEffectiveTrunkTop(shapeDef, config.trunkHeight);
 
-	// Apply blob size variance (non-pine only)
+	const trunkLean = randomInRange(rng, -8, 8);
+
+	const blobs = isPine ? [] : shapeDef.generateBlobs(rng, config.blobCount);
+
 	if (!isPine) {
 		applyBlobSizeVariance(blobs, config.blobSizeVariance);
 	}
 
-	// Compute canopy bounds
+	if (!isPine && blobs.length > 1) {
+		const spreadRadius = VIEWBOX_WIDTH * 0.22;
+		applyBlobCloseness(blobs, config.blobCloseness, spreadRadius);
+	}
+
+	if (!isPine) {
+		applyCanopySize(blobs, config.canopySize);
+	}
+
+	const tiers = isPine
+		? generateTiers(
+				rng,
+				config.blobCount,
+				trunkLean,
+				effectiveTrunkTop,
+				shapeDef.trunkBottom,
+				config.blobCloseness,
+				config.blobSizeVariance,
+				config.canopySize,
+			)
+		: [];
+
 	const canopyBounds = isPine ? getTiersBounds(tiers) : getBlobsBounds(blobs);
 
-	// Compute trunk geometry
 	const trunkTop = isPine
-		? Math.min(shapeDef.defaultTrunkTop, canopyBounds.maxY - 15)
-		: computeTrunkTop(shapeDef, blobs);
+		? Math.min(effectiveTrunkTop, canopyBounds.maxY - 15)
+		: Math.min(effectiveTrunkTop, computeTrunkTop(shapeDef, blobs));
 	const trunkBottom = shapeDef.trunkBottom;
-	const trunkLean = randomInRange(rng, -8, 8);
 
-	// Generate branches (not for pine)
 	const branches = isPine
 		? []
 		: generateBranches(
 				rng,
 				trunkTop,
 				trunkBottom,
-				shapeDef.trunkTopWidth,
-				config.branchCount,
+				shapeDef.trunkTopWidth * (config.trunkThickness / 100),
+				config,
 				trunkLean,
 				blobs,
 			);
 
-	// Validate no-floating-blobs invariant (non-pine)
 	const extraBranches = isPine ? [] : validateNoFloatingBlobs(blobs, branches);
 	const allBranches = [...branches, ...extraBranches];
 
-	// Generate trunk mesh (separate)
 	const trunkTriangles = generateTrunkMesh(
 		rng,
 		createPrng(config.seed + 9999),
@@ -429,7 +467,6 @@ export function generateTree(config: TreeConfig): TreeGeometry {
 		config,
 	);
 
-	// Generate branch mesh (separate)
 	const branchTriangles = generateBranchMesh(
 		rng,
 		createPrng(config.seed + 9999),
@@ -439,9 +476,8 @@ export function generateTree(config: TreeConfig): TreeGeometry {
 		config,
 	);
 
-	// Generate canopy blobs (per-blob or per-tier triangulation)
 	const smoothAcuteAngles =
-		config.shape === TREE_SHAPES.oak || config.shape === TREE_SHAPES.bushy;
+		config.shape === TREE_SHAPES.oak || config.shape === TREE_SHAPES.birch;
 	const canopyBlobs = isPine
 		? generateTierCanopy(
 				rng,
@@ -459,7 +495,6 @@ export function generateTree(config: TreeConfig): TreeGeometry {
 				config,
 			);
 
-	// Compute anchor points
 	const anchors = computeAnchors(trunkTop, trunkBottom, trunkLean, canopyBounds);
 
 	return {

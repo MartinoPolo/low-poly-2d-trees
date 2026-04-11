@@ -19,6 +19,15 @@
 		branchCount?: number;
 		depthVariance?: number;
 		blobSizeVariance?: number;
+		blobCloseness?: number;
+		trunkThickness?: number;
+		branchThickness?: number;
+		canopySize?: number;
+		trunkHeight?: number;
+		trunkBranchRatio?: number;
+		showCanopy?: boolean;
+		showBranches?: boolean;
+		showTrunk?: boolean;
 		showAnchors?: boolean;
 		class?: string;
 		onanchors?: (anchors: TreeAnchors) => void;
@@ -41,6 +50,15 @@
 		branchCount = DEFAULT_TREE_CONFIG.branchCount,
 		depthVariance = DEFAULT_TREE_CONFIG.depthVariance,
 		blobSizeVariance = DEFAULT_TREE_CONFIG.blobSizeVariance,
+		blobCloseness = DEFAULT_TREE_CONFIG.blobCloseness,
+		trunkThickness = DEFAULT_TREE_CONFIG.trunkThickness,
+		branchThickness = DEFAULT_TREE_CONFIG.branchThickness,
+		canopySize = DEFAULT_TREE_CONFIG.canopySize,
+		trunkHeight = DEFAULT_TREE_CONFIG.trunkHeight,
+		trunkBranchRatio = DEFAULT_TREE_CONFIG.trunkBranchRatio,
+		showCanopy = true,
+		showBranches = true,
+		showTrunk = true,
 		showAnchors = false,
 		class: className = '',
 		onanchors,
@@ -63,6 +81,12 @@
 		branchCount,
 		depthVariance,
 		blobSizeVariance,
+		blobCloseness,
+		trunkThickness,
+		branchThickness,
+		canopySize,
+		trunkHeight,
+		trunkBranchRatio,
 	});
 
 	const geometry = $derived(generateTree(config));
@@ -77,45 +101,51 @@
 	xmlns="http://www.w3.org/2000/svg"
 	class={className}
 >
-	<g class="trunk">
-		{#each geometry.trunkTriangles as tri (tri)}
-			<polygon
-				points="{tri.points[0].x},{tri.points[0].y} {tri.points[1].x},{tri.points[1].y} {tri
-					.points[2].x},{tri.points[2].y}"
-				fill={tri.color}
-				stroke={tri.color}
-				stroke-width="0.5"
-			/>
-		{/each}
-	</g>
+	{#if showTrunk}
+		<g class="trunk">
+			{#each geometry.trunkTriangles as tri (tri)}
+				<polygon
+					points="{tri.points[0].x},{tri.points[0].y} {tri.points[1].x},{tri.points[1]
+						.y} {tri.points[2].x},{tri.points[2].y}"
+					fill={tri.color}
+					stroke={tri.color}
+					stroke-width="0.5"
+				/>
+			{/each}
+		</g>
+	{/if}
 
-	<g class="branches">
-		{#each geometry.branchTriangles as tri (tri)}
-			<polygon
-				points="{tri.points[0].x},{tri.points[0].y} {tri.points[1].x},{tri.points[1].y} {tri
-					.points[2].x},{tri.points[2].y}"
-				fill={tri.color}
-				stroke={tri.color}
-				stroke-width="0.5"
-			/>
-		{/each}
-	</g>
+	{#if showBranches}
+		<g class="branches">
+			{#each geometry.branchTriangles as tri (tri)}
+				<polygon
+					points="{tri.points[0].x},{tri.points[0].y} {tri.points[1].x},{tri.points[1]
+						.y} {tri.points[2].x},{tri.points[2].y}"
+					fill={tri.color}
+					stroke={tri.color}
+					stroke-width="0.5"
+				/>
+			{/each}
+		</g>
+	{/if}
 
-	<g class="canopy">
-		{#each geometry.canopyBlobs as blob (blob)}
-			<g>
-				{#each blob.triangles as tri (tri)}
-					<polygon
-						points="{tri.points[0].x},{tri.points[0].y} {tri.points[1].x},{tri.points[1]
-							.y} {tri.points[2].x},{tri.points[2].y}"
-						fill={tri.color}
-						stroke={tri.color}
-						stroke-width="0.5"
-					/>
-				{/each}
-			</g>
-		{/each}
-	</g>
+	{#if showCanopy}
+		<g class="canopy">
+			{#each geometry.canopyBlobs as blob (blob)}
+				<g>
+					{#each blob.triangles as tri (tri)}
+						<polygon
+							points="{tri.points[0].x},{tri.points[0].y} {tri.points[1].x},{tri
+								.points[1].y} {tri.points[2].x},{tri.points[2].y}"
+							fill={tri.color}
+							stroke={tri.color}
+							stroke-width="0.5"
+						/>
+					{/each}
+				</g>
+			{/each}
+		</g>
+	{/if}
 
 	{#if showAnchors}
 		<g class="anchors-group">

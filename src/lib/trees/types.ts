@@ -1,7 +1,7 @@
 export const TREE_SHAPES = {
 	oak: 'oak',
 	pine: 'pine',
-	bushy: 'bushy',
+	birch: 'birch',
 } as const;
 
 export type TreeShape = (typeof TREE_SHAPES)[keyof typeof TREE_SHAPES];
@@ -9,7 +9,7 @@ export type TreeShape = (typeof TREE_SHAPES)[keyof typeof TREE_SHAPES];
 export const TREE_SHAPE_OPTIONS: readonly { value: TreeShape; label: string }[] = [
 	{ value: TREE_SHAPES.oak, label: 'Oak' },
 	{ value: TREE_SHAPES.pine, label: 'Pine' },
-	{ value: TREE_SHAPES.bushy, label: 'Bushy' },
+	{ value: TREE_SHAPES.birch, label: 'Birch' },
 ] as const;
 
 export const GEOMETRY_GROUPS = {
@@ -77,6 +77,12 @@ export interface TreeConfig {
 	readonly branchCount: number;
 	readonly depthVariance: number;
 	readonly blobSizeVariance: number;
+	readonly blobCloseness: number;
+	readonly trunkThickness: number;
+	readonly branchThickness: number;
+	readonly canopySize: number;
+	readonly trunkHeight: number;
+	readonly trunkBranchRatio: number;
 }
 
 export const DEFAULT_TREE_CONFIG: TreeConfig = {
@@ -95,16 +101,22 @@ export const DEFAULT_TREE_CONFIG: TreeConfig = {
 	blobCount: 5,
 	branchCount: 2,
 	depthVariance: 1.0,
-	blobSizeVariance: 0.5,
+	blobSizeVariance: 3.0,
+	blobCloseness: 50,
+	trunkThickness: 100,
+	branchThickness: 100,
+	canopySize: 100,
+	trunkHeight: 100,
+	trunkBranchRatio: 70,
 } as const;
 
 export const SHAPE_DEFAULTS: Record<
 	TreeShape,
-	Pick<TreeConfig, 'blobCount' | 'branchCount' | 'blobSizeVariance'>
+	Pick<TreeConfig, 'blobCount' | 'branchCount' | 'blobSizeVariance' | 'blobCloseness'>
 > = {
-	[TREE_SHAPES.oak]: { blobCount: 5, branchCount: 2, blobSizeVariance: 0.5 },
-	[TREE_SHAPES.pine]: { blobCount: 3, branchCount: 0, blobSizeVariance: 0.5 },
-	[TREE_SHAPES.bushy]: { blobCount: 4, branchCount: 1, blobSizeVariance: 0.5 },
+	[TREE_SHAPES.oak]: { blobCount: 5, branchCount: 2, blobSizeVariance: 3.0, blobCloseness: 50 },
+	[TREE_SHAPES.pine]: { blobCount: 3, branchCount: 0, blobSizeVariance: 3.0, blobCloseness: 50 },
+	[TREE_SHAPES.birch]: { blobCount: 3, branchCount: 1, blobSizeVariance: 3.0, blobCloseness: 50 },
 };
 
 export const VIEWBOX_WIDTH = 200;

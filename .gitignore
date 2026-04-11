@@ -69,3 +69,6 @@ worker-configuration.d.ts
 
 # Local convention
 *.local.*
+
+# Copilot session backups
+.copilot-session-backup.jsonl

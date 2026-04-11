@@ -23,7 +23,16 @@
 	let lightAngle = $state(DEFAULT_TREE_CONFIG.lightAngle);
 	let depthVariance = $state(DEFAULT_TREE_CONFIG.depthVariance);
 	let blobSizeVariance = $state(DEFAULT_TREE_CONFIG.blobSizeVariance);
+	let blobCloseness = $state(DEFAULT_TREE_CONFIG.blobCloseness);
+	let trunkThickness = $state(DEFAULT_TREE_CONFIG.trunkThickness);
+	let branchThickness = $state(DEFAULT_TREE_CONFIG.branchThickness);
+	let canopySize = $state(DEFAULT_TREE_CONFIG.canopySize);
+	let trunkHeight = $state(DEFAULT_TREE_CONFIG.trunkHeight);
+	let trunkBranchRatio = $state(DEFAULT_TREE_CONFIG.trunkBranchRatio);
 	let showAnchors = $state(false);
+	let showCanopy = $state(true);
+	let showBranches = $state(true);
+	let showTrunk = $state(true);
 
 	function randomizeSeed() {
 		seed = Math.floor(Math.random() * 100000);
@@ -32,7 +41,7 @@
 	const trees = [
 		{ shape: 'oak' as const, ...SHAPE_DEFAULTS.oak, seedOffset: 0 },
 		{ shape: 'pine' as const, ...SHAPE_DEFAULTS.pine, seedOffset: 1000 },
-		{ shape: 'bushy' as const, ...SHAPE_DEFAULTS.bushy, seedOffset: 2000 },
+		{ shape: 'birch' as const, ...SHAPE_DEFAULTS.birch, seedOffset: 2000 },
 	] as const;
 </script>
 
@@ -206,15 +215,96 @@
 							/>
 						</div>
 						<div class="space-y-2">
-							<Label>Blob Size Variance: {blobSizeVariance.toFixed(1)}</Label>
+							<Label>Blob Size Variance: {blobSizeVariance.toFixed(1)}x</Label>
 							<input
 								type="range"
-								min="0"
-								max="1"
+								min="1"
+								max="10"
 								step="0.1"
 								bind:value={blobSizeVariance}
 								class="w-full accent-primary"
 							/>
+						</div>
+						<div class="space-y-2">
+							<Label>Blob Closeness: {blobCloseness}%</Label>
+							<input
+								type="range"
+								min="0"
+								max="100"
+								bind:value={blobCloseness}
+								class="w-full accent-primary"
+							/>
+						</div>
+						<div class="space-y-2">
+							<Label>Canopy Size: {canopySize}%</Label>
+							<input
+								type="range"
+								min="50"
+								max="200"
+								bind:value={canopySize}
+								class="w-full accent-primary"
+							/>
+						</div>
+						<div class="space-y-2">
+							<Label>Trunk Height: {trunkHeight}%</Label>
+							<input
+								type="range"
+								min="50"
+								max="150"
+								bind:value={trunkHeight}
+								class="w-full accent-primary"
+							/>
+						</div>
+						<div class="space-y-2">
+							<Label>Trunk Thickness: {trunkThickness}%</Label>
+							<input
+								type="range"
+								min="50"
+								max="200"
+								bind:value={trunkThickness}
+								class="w-full accent-primary"
+							/>
+						</div>
+						<div class="space-y-2">
+							<Label>Branch Thickness: {branchThickness}%</Label>
+							<input
+								type="range"
+								min="50"
+								max="200"
+								bind:value={branchThickness}
+								class="w-full accent-primary"
+							/>
+						</div>
+						<div class="space-y-2">
+							<Label>Trunk/Branch Ratio: {trunkBranchRatio}%</Label>
+							<input
+								type="range"
+								min="30"
+								max="100"
+								bind:value={trunkBranchRatio}
+								class="w-full accent-primary"
+							/>
+						</div>
+						<div class="flex items-center gap-2">
+							<Checkbox
+								checked={showCanopy}
+								onCheckedChange={(v) => (showCanopy = v === true)}
+							/>
+							<Label>Show Canopy</Label>
+						</div>
+						<div class="flex items-center gap-2">
+							<Checkbox
+								checked={showBranches}
+								onCheckedChange={(v) => (showBranches = v === true)}
+							/>
+							<Label>Show Branches</Label>
+						</div>
+						<div class="flex items-center gap-2">
+							<Checkbox
+								checked={showTrunk}
+								onCheckedChange={(v) => (showTrunk = v === true)}
+							/>
+							<Label>Show Trunk</Label>
 						</div>
 						<div class="flex items-center gap-2">
 							<Checkbox
@@ -249,8 +339,17 @@
 						{lightAngle}
 						{depthVariance}
 						{blobSizeVariance}
+						{blobCloseness}
+						{trunkThickness}
+						{branchThickness}
+						{canopySize}
+						{trunkHeight}
+						{trunkBranchRatio}
 						blobCount={tree.blobCount}
 						branchCount={tree.branchCount}
+						{showCanopy}
+						{showBranches}
+						{showTrunk}
 						{showAnchors}
 						class="h-auto w-full"
 					/>

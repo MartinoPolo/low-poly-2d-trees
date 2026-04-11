@@ -31,8 +31,17 @@
 	let blobCount = $state(DEFAULT_TREE_CONFIG.blobCount);
 	let branchCount = $state(DEFAULT_TREE_CONFIG.branchCount);
 	let blobSizeVariance = $state(DEFAULT_TREE_CONFIG.blobSizeVariance);
+	let blobCloseness = $state(DEFAULT_TREE_CONFIG.blobCloseness);
+	let trunkThickness = $state(DEFAULT_TREE_CONFIG.trunkThickness);
+	let branchThickness = $state(DEFAULT_TREE_CONFIG.branchThickness);
+	let canopySize = $state(DEFAULT_TREE_CONFIG.canopySize);
+	let trunkHeight = $state(DEFAULT_TREE_CONFIG.trunkHeight);
+	let trunkBranchRatio = $state(DEFAULT_TREE_CONFIG.trunkBranchRatio);
 	let depthVariance = $state(DEFAULT_TREE_CONFIG.depthVariance);
 	let showAnchors = $state(false);
+	let showCanopy = $state(true);
+	let showBranches = $state(true);
+	let showTrunk = $state(true);
 
 	function onShapeChange(value: string) {
 		shape = value as TreeShape;
@@ -40,6 +49,7 @@
 		blobCount = defaults.blobCount;
 		branchCount = defaults.branchCount;
 		blobSizeVariance = defaults.blobSizeVariance;
+		blobCloseness = defaults.blobCloseness;
 	}
 
 	function randomizeSeed() {
@@ -137,13 +147,33 @@
 							/>
 						</div>
 						<div class="space-y-2">
-							<Label>Blob Size Variance: {blobSizeVariance.toFixed(1)}</Label>
+							<Label>Blob Size Variance: {blobSizeVariance.toFixed(1)}x</Label>
+							<input
+								type="range"
+								min="1"
+								max="10"
+								step="0.1"
+								bind:value={blobSizeVariance}
+								class="w-full accent-primary"
+							/>
+						</div>
+						<div class="space-y-2">
+							<Label>Blob Closeness: {blobCloseness}%</Label>
 							<input
 								type="range"
 								min="0"
-								max="1"
-								step="0.1"
-								bind:value={blobSizeVariance}
+								max="100"
+								bind:value={blobCloseness}
+								class="w-full accent-primary"
+							/>
+						</div>
+						<div class="space-y-2">
+							<Label>Canopy Size: {canopySize}%</Label>
+							<input
+								type="range"
+								min="50"
+								max="200"
+								bind:value={canopySize}
 								class="w-full accent-primary"
 							/>
 						</div>
@@ -238,6 +268,54 @@
 
 				<Card.Root>
 					<Card.Header>
+						<Card.Title>Trunk & Branches</Card.Title>
+					</Card.Header>
+					<Card.Content class="space-y-4">
+						<div class="space-y-2">
+							<Label>Trunk Height: {trunkHeight}%</Label>
+							<input
+								type="range"
+								min="50"
+								max="150"
+								bind:value={trunkHeight}
+								class="w-full accent-primary"
+							/>
+						</div>
+						<div class="space-y-2">
+							<Label>Trunk Thickness: {trunkThickness}%</Label>
+							<input
+								type="range"
+								min="50"
+								max="200"
+								bind:value={trunkThickness}
+								class="w-full accent-primary"
+							/>
+						</div>
+						<div class="space-y-2">
+							<Label>Branch Thickness: {branchThickness}%</Label>
+							<input
+								type="range"
+								min="50"
+								max="200"
+								bind:value={branchThickness}
+								class="w-full accent-primary"
+							/>
+						</div>
+						<div class="space-y-2">
+							<Label>Trunk/Branch Ratio: {trunkBranchRatio}%</Label>
+							<input
+								type="range"
+								min="30"
+								max="100"
+								bind:value={trunkBranchRatio}
+								class="w-full accent-primary"
+							/>
+						</div>
+					</Card.Content>
+				</Card.Root>
+
+				<Card.Root>
+					<Card.Header>
 						<Card.Title>Lighting</Card.Title>
 					</Card.Header>
 					<Card.Content class="space-y-4">
@@ -261,6 +339,35 @@
 								bind:value={depthVariance}
 								class="w-full accent-primary"
 							/>
+						</div>
+					</Card.Content>
+				</Card.Root>
+
+				<Card.Root>
+					<Card.Header>
+						<Card.Title>Debug</Card.Title>
+					</Card.Header>
+					<Card.Content class="space-y-4">
+						<div class="flex items-center gap-2">
+							<Checkbox
+								checked={showCanopy}
+								onCheckedChange={(v) => (showCanopy = v === true)}
+							/>
+							<Label>Show Canopy</Label>
+						</div>
+						<div class="flex items-center gap-2">
+							<Checkbox
+								checked={showBranches}
+								onCheckedChange={(v) => (showBranches = v === true)}
+							/>
+							<Label>Show Branches</Label>
+						</div>
+						<div class="flex items-center gap-2">
+							<Checkbox
+								checked={showTrunk}
+								onCheckedChange={(v) => (showTrunk = v === true)}
+							/>
+							<Label>Show Trunk</Label>
 						</div>
 						<div class="flex items-center gap-2">
 							<Checkbox
@@ -295,7 +402,16 @@
 					{blobCount}
 					{branchCount}
 					{blobSizeVariance}
+					{blobCloseness}
+					{trunkThickness}
+					{branchThickness}
+					{canopySize}
+					{trunkHeight}
+					{trunkBranchRatio}
 					{depthVariance}
+					{showCanopy}
+					{showBranches}
+					{showTrunk}
 					{showAnchors}
 					class="h-auto w-full"
 				/>
