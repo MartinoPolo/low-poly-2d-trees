@@ -95,7 +95,7 @@ export default [
 	},
 	{
 		files: ['src/**/*.ts'],
-		ignores: ['src/routes/**/+*'],
+		ignores: ['src/routes/**/+*', 'src/lib/components/ui/**', 'src/lib/hooks/**'],
 		plugins: { 'check-file': checkFile },
 		rules: {
 			'check-file/filename-naming-convention': [
@@ -111,6 +111,15 @@ export default [
 		plugins: { 'check-file': checkFile },
 		rules: {
 			'check-file/filename-naming-convention': ['error', { '**/*.svelte': 'PASCAL_CASE' }],
+		},
+	},
+	{
+		// Gallery thumbnails link to /showcase with a dynamic ?saved=<id> query string.
+		// `svelte/no-navigation-without-resolve` does not accept query strings appended to
+		// a resolve() call, so we turn it off for this file.
+		files: ['src/routes/gallery/**/*.svelte'],
+		rules: {
+			'svelte/no-navigation-without-resolve': 'off',
 		},
 	},
 ];

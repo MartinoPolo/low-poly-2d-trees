@@ -25,13 +25,18 @@
 		CUSTOM_BLOB_SIZE_STEP,
 		type CustomBlob,
 		type CustomBlobBoundaryKind,
+		type TreeConfig,
 		type TreeShape,
 	} from '$lib/trees/types.js';
 	import { growCustomBlobs } from '$lib/trees/shapes.js';
 	import { isParamDisabled } from '$lib/trees/disabled_params.js';
-	import DarkModeToggle from '$lib/components/DarkModeToggle.svelte';
-	import { resolve } from '$app/paths';
+	import { getSavedTree, saveTree } from '$lib/trees/saved_trees.remote.js';
+	import { page } from '$app/state';
 	import Shuffle from '@lucide/svelte/icons/shuffle';
+	import Save from '@lucide/svelte/icons/save';
+
+	const user = $derived(page.data.user);
+	const signedIn = $derived(user !== null);
 
 	let shape = $state<TreeShape>(DEFAULT_TREE_CONFIG.shape);
 	let seed = $state(DEFAULT_TREE_CONFIG.seed);
@@ -66,11 +71,77 @@
 	let showBranches = $state(true);
 	let showTrunk = $state(true);
 
+	const currentConfig = $derived<TreeConfig>({
+		shape,
+		seed,
+		canopyPolygons,
+		trunkPolygons,
+		canopyLightColor,
+		canopyDarkColor,
+		trunkHue,
+		trunkSaturation,
+		trunkLightness,
+		lightAngle,
+		blobCount,
+		branchCount,
+		depthVariance,
+		blobSizeVariance,
+		blobCloseness,
+		trunkThickness,
+		branchThickness,
+		canopySize,
+		trunkHeight,
+		trunkBranchRatio,
+		trunkLean,
+		trunkSegments,
+		trunkCrookedness,
+		branchLength,
+		branchLengthVariance,
+		// Persist per-blob overrides only for the custom shape so saved trees
+		// round-trip through `applyConfig` without losing tuning.
+		customBlobs: shape === TREE_SHAPES.custom ? customBlobs : undefined,
+	});
+
 	const branchCountDisabled = $derived(isParamDisabled(shape, 'branchCount', {}));
 	const trunkBranchRatioDisabled = $derived(isParamDisabled(shape, 'trunkBranchRatio', {}));
 	const trunkCrookednessDisabled = $derived(
 		isParamDisabled(shape, 'trunkCrookedness', { trunkSegments }),
 	);
+
+	const savedId = $derived(page.url.searchParams.get('saved'));
+	const savedTreeQuery = $derived(savedId === null ? null : getSavedTree(savedId));
+	let hydratedId = $state<string | null>(null);
+
+	function applyConfig(config: TreeConfig) {
+		shape = config.shape;
+		seed = config.seed;
+		canopyPolygons = config.canopyPolygons;
+		trunkPolygons = config.trunkPolygons;
+		canopyLightColor = config.canopyLightColor;
+		canopyDarkColor = config.canopyDarkColor;
+		trunkHue = config.trunkHue;
+		trunkSaturation = config.trunkSaturation;
+		trunkLightness = config.trunkLightness;
+		lightAngle = config.lightAngle;
+		blobCount = config.blobCount;
+		branchCount = config.branchCount;
+		depthVariance = config.depthVariance;
+		blobSizeVariance = config.blobSizeVariance;
+		blobCloseness = config.blobCloseness;
+		trunkThickness = config.trunkThickness;
+		branchThickness = config.branchThickness;
+		canopySize = config.canopySize;
+		trunkHeight = config.trunkHeight;
+		trunkBranchRatio = config.trunkBranchRatio;
+		trunkLean = config.trunkLean;
+		trunkSegments = config.trunkSegments;
+		trunkCrookedness = config.trunkCrookedness;
+		branchLength = config.branchLength;
+		branchLengthVariance = config.branchLengthVariance;
+		// Restore custom blob overrides from the saved config. Empty array if
+		// the saved tree was a non-custom shape (customBlobs is optional).
+		customBlobs = config.customBlobs ?? [];
+	}
 
 	function isTreeShape(value: string): value is TreeShape {
 		return (Object.values(TREE_SHAPES) as readonly string[]).includes(value);
@@ -143,24 +214,29 @@
 	function randomizeSeed() {
 		seed = Math.floor(Math.random() * 100000);
 	}
+
+	// Hydrate state from saved tree when ?saved=id is present. Guarded by hydratedId
+	// to seed state exactly once per id — local edits are not overwritten by re-renders.
+	$effect(() => {
+		if (!savedTreeQuery) {
+			return;
+		}
+		const currentSavedId = savedId;
+		if (currentSavedId === null || hydratedId === currentSavedId) {
+			return;
+		}
+		void (async () => {
+			const data = await savedTreeQuery;
+			if (currentSavedId !== savedId) {
+				return;
+			}
+			applyConfig(data.config);
+			hydratedId = currentSavedId;
+		})();
+	});
 </script>
 
-<main class="grid h-dvh grid-rows-[auto_1fr] bg-background text-foreground">
-	<header class="border-b border-border">
-		<div class="flex items-center justify-between px-6 py-4">
-			<div class="flex items-center gap-4">
-				<h1 class="text-xl font-bold tracking-tight">Low-Poly Tree Generator</h1>
-				<a
-					href={resolve('/showcase/scene')}
-					class="text-sm text-muted-foreground underline-offset-4 hover:underline"
-				>
-					Scene View
-				</a>
-			</div>
-			<DarkModeToggle />
-		</div>
-	</header>
-
+<main class="grid h-dvh grid-rows-[1fr] bg-background text-foreground">
 	<div class="grid grid-cols-[320px_1fr] overflow-hidden xl:grid-cols-[640px_1fr]">
 		<!-- Controls -->
 		<aside class="select-none overflow-y-auto p-6">
@@ -170,6 +246,28 @@
 						<Card.Title>Shape</Card.Title>
 					</Card.Header>
 					<Card.Content class="space-y-4">
+						<form {...saveTree} class="flex flex-col gap-2">
+							<input
+								type="hidden"
+								name="config"
+								value={JSON.stringify(currentConfig)}
+							/>
+							<Button
+								type="submit"
+								disabled={!signedIn}
+								data-testid="save-tree-button"
+								class="w-full"
+							>
+								<Save class="mr-2 size-4" />
+								{signedIn ? 'Save' : 'Sign in to save'}
+							</Button>
+							{#if saveTree.result?.success}
+								<p class="text-xs text-muted-foreground" role="status">
+									Saved as {saveTree.result.name}
+								</p>
+							{/if}
+						</form>
+
 						<LabeledSelect
 							label="Tree Type"
 							options={TREE_SHAPE_OPTIONS}
