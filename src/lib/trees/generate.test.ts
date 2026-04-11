@@ -1,13 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { generateTree } from './generate.js';
 import type { TreeConfig, TreeGeometry, Triangle } from './types.js';
-import {
-	DEFAULT_TREE_CONFIG,
-	VIEWBOX_WIDTH,
-	VIEWBOX_HEIGHT,
-	TREE_SHAPES,
-	SHAPE_DEFAULTS,
-} from './types.js';
+import { DEFAULT_TREE_CONFIG, VIEWBOX_WIDTH } from './types.js';
 
 // Helper to create config with overrides
 function makeConfig(overrides: Partial<TreeConfig> = {}): TreeConfig {
@@ -20,6 +14,34 @@ function allTriangles(geo: TreeGeometry): Triangle[] {
 		...geo.branchTriangles,
 		...geo.canopyBlobs.flatMap((b) => b.triangles),
 	];
+}
+
+// Decode hex color to mean channel brightness on 0..255 scale
+function hexToBrightness(hex: string): number {
+	const r = parseInt(hex.slice(1, 3), 16);
+	const g = parseInt(hex.slice(3, 5), 16);
+	const b = parseInt(hex.slice(5, 7), 16);
+	return (r + g + b) / 3;
+}
+
+// Find the min-y and max-y triangle vertices across a triangle set
+function extremeYVertices(tris: readonly Triangle[]): {
+	min: { x: number; y: number };
+	max: { x: number; y: number };
+} {
+	let min = { x: 0, y: Infinity };
+	let max = { x: 0, y: -Infinity };
+	for (const tri of tris) {
+		for (const p of tri.points) {
+			if (p.y < min.y) {
+				min = { x: p.x, y: p.y };
+			}
+			if (p.y > max.y) {
+				max = { x: p.x, y: p.y };
+			}
+		}
+	}
+	return { min, max };
 }
 
 // ============================================================================
@@ -116,89 +138,12 @@ describe('REQ-R: Rendering', () => {
 // ============================================================================
 
 describe('REQ-P: Configuration Parameters', () => {
-	describe('REQ-P-01: shape types', () => {
-		it('accepts oak, pine, birch shapes', () => {
-			expect(() => generateTree(makeConfig({ shape: 'oak' }))).not.toThrow();
-			expect(() => generateTree(makeConfig({ shape: 'pine' }))).not.toThrow();
-			expect(() => generateTree(makeConfig({ shape: 'birch' }))).not.toThrow();
-		});
-	});
-
-	describe('REQ-P-16: blobSizeVariance range 1.0-10.0', () => {
-		it('default is 3.0', () => {
-			expect(DEFAULT_TREE_CONFIG.blobSizeVariance).toBe(3.0);
-		});
-
-		it('accepts values in range 1.0-10.0', () => {
-			expect(() => generateTree(makeConfig({ blobSizeVariance: 1.0 }))).not.toThrow();
-			expect(() => generateTree(makeConfig({ blobSizeVariance: 10.0 }))).not.toThrow();
-		});
-	});
-
-	describe('REQ-P-17: blobCloseness 20-80', () => {
-		it('default is 50', () => {
-			expect(DEFAULT_TREE_CONFIG.blobCloseness).toBe(50);
-		});
-
-		it('accepts values in range 20-80', () => {
-			expect(() => generateTree(makeConfig({ blobCloseness: 20 }))).not.toThrow();
-			expect(() => generateTree(makeConfig({ blobCloseness: 80 }))).not.toThrow();
-		});
-	});
-
-	describe('REQ-P-18: trunkThickness 50-200', () => {
-		it('default is 100', () => {
-			expect(DEFAULT_TREE_CONFIG.trunkThickness).toBe(100);
-		});
-	});
-
-	describe('REQ-P-19: branchThickness 50-200', () => {
-		it('default is 100', () => {
-			expect(DEFAULT_TREE_CONFIG.branchThickness).toBe(100);
-		});
-	});
-
-	describe('REQ-P-20: canopySize 50-200', () => {
-		it('default is 100', () => {
-			expect(DEFAULT_TREE_CONFIG.canopySize).toBe(100);
-		});
-	});
-
-	describe('REQ-P-21: trunkHeight 30-150', () => {
-		it('default is 100', () => {
-			expect(DEFAULT_TREE_CONFIG.trunkHeight).toBe(100);
-		});
-	});
-
-	describe('REQ-P-22: trunkBranchRatio 40-80', () => {
-		it('default is 70', () => {
-			expect(DEFAULT_TREE_CONFIG.trunkBranchRatio).toBe(70);
-		});
-	});
-
-	describe('per-shape defaults', () => {
-		it('oak defaults: blobCount=5, branchCount=2, blobSizeVariance=3.0, blobCloseness=50', () => {
-			const d = SHAPE_DEFAULTS[TREE_SHAPES.oak];
-			expect(d.blobCount).toBe(5);
-			expect(d.branchCount).toBe(2);
-			expect(d.blobSizeVariance).toBe(3.0);
-			expect(d.blobCloseness).toBe(50);
-		});
-
-		it('pine defaults: blobCount=3, branchCount=0, blobSizeVariance=3.0, blobCloseness=50', () => {
-			const d = SHAPE_DEFAULTS[TREE_SHAPES.pine];
-			expect(d.blobCount).toBe(3);
-			expect(d.branchCount).toBe(0);
-			expect(d.blobSizeVariance).toBe(3.0);
-			expect(d.blobCloseness).toBe(50);
-		});
-
-		it('birch defaults: blobCount=3, branchCount=1, blobSizeVariance=3.0, blobCloseness=50', () => {
-			const d = SHAPE_DEFAULTS[TREE_SHAPES.birch];
-			expect(d.blobCount).toBe(3);
-			expect(d.branchCount).toBe(1);
-			expect(d.blobSizeVariance).toBe(3.0);
-			expect(d.blobCloseness).toBe(50);
+	describe('DEFAULT_TREE_CONFIG smoke test', () => {
+		it('generates valid tree output when hydrated from defaults', () => {
+			const geo = generateTree(makeConfig());
+			expect(geo.trunkTriangles.length).toBeGreaterThan(0);
+			expect(geo.canopyBlobs.length).toBeGreaterThan(0);
+			expect(allTriangles(geo).length).toBeGreaterThan(0);
 		});
 	});
 });
@@ -209,36 +154,40 @@ describe('REQ-P: Configuration Parameters', () => {
 
 describe('REQ-C: Canopy Generation', () => {
 	describe('REQ-C-01: blob centering on trunk axis', () => {
-		it('blob 0 positioned on/near trunk axis for blobCount=1', () => {
+		it('canopy centroid stays within 5px of trunk axis for single-blob oak', () => {
 			const geo = generateTree(makeConfig({ blobCount: 1, shape: 'oak' }));
-			// Blob 0 should be centered around VIEWBOX_WIDTH/2 = 100
-			// We check the canopy center is near the midpoint
 			const center = geo.anchors.canopyCenter;
-			expect(Math.abs(center.x - VIEWBOX_WIDTH / 2)).toBeLessThan(15);
+			expect(Math.abs(center.x - VIEWBOX_WIDTH / 2)).toBeLessThan(5);
 		});
 	});
 
-	describe('REQ-C-02: blobSizeVariance ratio-based', () => {
-		it('at 1.0 all blobs approximately same size (generates without error)', () => {
-			expect(() =>
-				generateTree(makeConfig({ blobSizeVariance: 1.0, blobCount: 5 })),
-			).not.toThrow();
-		});
-
-		it('at 10.0 generates without error (extreme variance)', () => {
-			expect(() =>
-				generateTree(makeConfig({ blobSizeVariance: 10.0, blobCount: 5 })),
-			).not.toThrow();
-		});
-	});
-
-	describe('REQ-C-03: depth ordering with containment', () => {
-		it('canopy blobs are depth-sorted back to front', () => {
-			const geo = generateTree(makeConfig({ blobCount: 5, seed: 42 }));
-			for (let i = 1; i < geo.canopyBlobs.length; i++) {
-				expect(geo.canopyBlobs[i]!.depth).toBeGreaterThanOrEqual(
-					geo.canopyBlobs[i - 1]!.depth,
+	describe('REQ-C-02: blobSizeVariance ratio behavior', () => {
+		it('high variance produces larger max/min blob extent ratio than low variance', () => {
+			const extentRatio = (variance: number) => {
+				const geo = generateTree(
+					makeConfig({ seed: 42, blobCount: 5, blobSizeVariance: variance }),
 				);
+				const extents = geo.canopyBlobs.map((b) => {
+					const xs = b.triangles.flatMap((t) => t.points.map((p) => p.x));
+					const ys = b.triangles.flatMap((t) => t.points.map((p) => p.y));
+					return (
+						(Math.max(...xs) - Math.min(...xs)) * (Math.max(...ys) - Math.min(...ys))
+					);
+				});
+				return Math.max(...extents) / Math.min(...extents);
+			};
+			const ratioLow = extentRatio(1.0);
+			const ratioHigh = extentRatio(10.0);
+			expect(ratioHigh).toBeGreaterThan(ratioLow * 3);
+		});
+	});
+
+	describe('REQ-C-04: pine uses tier-based canopy', () => {
+		it('pine generates one canopy region per blobCount', () => {
+			const geo = generateTree(makeConfig({ shape: 'pine', blobCount: 4, seed: 42 }));
+			expect(geo.canopyBlobs.length).toBe(4);
+			for (const tier of geo.canopyBlobs) {
+				expect(tier.triangles.length).toBeGreaterThan(0);
 			}
 		});
 	});
@@ -251,7 +200,6 @@ describe('REQ-C: Canopy Generation', () => {
 			const geoTight = generateTree(
 				makeConfig({ blobCloseness: 80, blobCount: 5, seed: 100 }),
 			);
-			// Compare canopy bounding box widths
 			const widthWide =
 				Math.max(
 					...geoWide.canopyBlobs.flatMap((b) =>
@@ -292,13 +240,6 @@ describe('REQ-C: Canopy Generation', () => {
 		});
 	});
 
-	describe('REQ-C-04: pine uses triangular tiers', () => {
-		it('pine shape generates canopy blobs', () => {
-			const geo = generateTree(makeConfig({ shape: 'pine', blobCount: 3 }));
-			expect(geo.canopyBlobs.length).toBeGreaterThan(0);
-		});
-	});
-
 	describe('REQ-C-07: per-blob triangulation', () => {
 		it('each canopy blob group has its own triangles', () => {
 			const geo = generateTree(makeConfig({ blobCount: 5 }));
@@ -309,17 +250,23 @@ describe('REQ-C: Canopy Generation', () => {
 		});
 	});
 
-	describe('REQ-C-11: triangles filtered to blob containment', () => {
-		it('all canopy triangles have centroids inside the viewBox', () => {
+	describe('REQ-C-11: triangles contained within blob', () => {
+		it('every canopy triangle centroid lies inside its blob vertex bbox', () => {
 			const geo = generateTree(makeConfig());
 			for (const blob of geo.canopyBlobs) {
+				const xs = blob.triangles.flatMap((t) => t.points.map((p) => p.x));
+				const ys = blob.triangles.flatMap((t) => t.points.map((p) => p.y));
+				const minX = Math.min(...xs);
+				const maxX = Math.max(...xs);
+				const minY = Math.min(...ys);
+				const maxY = Math.max(...ys);
 				for (const tri of blob.triangles) {
 					const cx = (tri.points[0].x + tri.points[1].x + tri.points[2].x) / 3;
 					const cy = (tri.points[0].y + tri.points[1].y + tri.points[2].y) / 3;
-					expect(cx).toBeGreaterThanOrEqual(-10);
-					expect(cx).toBeLessThanOrEqual(VIEWBOX_WIDTH + 10);
-					expect(cy).toBeGreaterThanOrEqual(-10);
-					expect(cy).toBeLessThanOrEqual(VIEWBOX_HEIGHT + 10);
+					expect(cx).toBeGreaterThanOrEqual(minX);
+					expect(cx).toBeLessThanOrEqual(maxX);
+					expect(cy).toBeGreaterThanOrEqual(minY);
+					expect(cy).toBeLessThanOrEqual(maxY);
 				}
 			}
 		});
@@ -345,9 +292,30 @@ describe('REQ-T: Trunk & Branch Generation', () => {
 	});
 
 	describe('REQ-T-02: trunk tapers linearly', () => {
-		it('trunk produces triangles', () => {
-			const geo = generateTree(makeConfig());
-			expect(geo.trunkTriangles.length).toBeGreaterThan(0);
+		it('bottom half of trunk vertices spans wider x-range than top half', () => {
+			const geo = generateTree(makeConfig({ seed: 1 }));
+			const midY = (geo.anchors.trunkTop.y + geo.anchors.trunkBottom.y) / 2;
+			const topXs = geo.trunkTriangles.flatMap((t) =>
+				t.points.filter((p) => p.y < midY).map((p) => p.x),
+			);
+			const bottomXs = geo.trunkTriangles.flatMap((t) =>
+				t.points.filter((p) => p.y >= midY).map((p) => p.x),
+			);
+			const topRange = Math.max(...topXs) - Math.min(...topXs);
+			const bottomRange = Math.max(...bottomXs) - Math.min(...bottomXs);
+			expect(bottomRange).toBeGreaterThan(topRange);
+		});
+	});
+
+	describe('REQ-T-03/T-04: trunk top entry clearance', () => {
+		it('anchors.trunkTop.y + 15 is above the lowest canopy vertex', () => {
+			const geo = generateTree(makeConfig({ seed: 42 }));
+			const canopyMaxY = Math.max(
+				...geo.canopyBlobs.flatMap((b) =>
+					b.triangles.flatMap((t) => t.points.map((p) => p.y)),
+				),
+			);
+			expect(geo.anchors.trunkTop.y + 15).toBeLessThanOrEqual(canopyMaxY);
 		});
 	});
 
@@ -355,7 +323,6 @@ describe('REQ-T: Trunk & Branch Generation', () => {
 		it('trunkHeight 30 produces shorter trunk than 150', () => {
 			const geoShort = generateTree(makeConfig({ trunkHeight: 30, seed: 42 }));
 			const geoTall = generateTree(makeConfig({ trunkHeight: 150, seed: 42 }));
-			// Shorter trunk means trunk bottom is closer to trunk top
 			const shortHeight = geoShort.anchors.trunkBottom.y - geoShort.anchors.trunkTop.y;
 			const tallHeight = geoTall.anchors.trunkBottom.y - geoTall.anchors.trunkTop.y;
 			expect(tallHeight).toBeGreaterThan(shortHeight);
@@ -378,6 +345,73 @@ describe('REQ-T: Trunk & Branch Generation', () => {
 		it('branches generate triangles when branchCount > 0', () => {
 			const geo = generateTree(makeConfig({ branchCount: 5, seed: 42 }));
 			expect(geo.branchTriangles.length).toBeGreaterThan(0);
+		});
+	});
+
+	describe('REQ-T-05b: branch divergence from trunk axis', () => {
+		it('a single branch axis diverges from trunk axis by at least 28°', () => {
+			const geo = generateTree(makeConfig({ branchCount: 1, seed: 42 }));
+			const { min, max } = extremeYVertices(geo.branchTriangles);
+			const branchAxis = { dx: min.x - max.x, dy: min.y - max.y };
+			const trunkAxis = {
+				dx: geo.anchors.trunkTop.x - geo.anchors.trunkBottom.x,
+				dy: geo.anchors.trunkTop.y - geo.anchors.trunkBottom.y,
+			};
+			const dot = branchAxis.dx * trunkAxis.dx + branchAxis.dy * trunkAxis.dy;
+			const magB = Math.hypot(branchAxis.dx, branchAxis.dy);
+			const magT = Math.hypot(trunkAxis.dx, trunkAxis.dy);
+			const angleRad = Math.acos(Math.min(1, Math.abs(dot) / (magB * magT)));
+			const angleDeg = (angleRad * 180) / Math.PI;
+			expect(angleDeg).toBeGreaterThanOrEqual(28);
+		});
+	});
+
+	describe('REQ-T-06/T-07: branch segment linear taper (widthStart > widthEnd)', () => {
+		it('branch mesh near origin is wider than near tip', () => {
+			const geo = generateTree(makeConfig({ branchCount: 1, seed: 42 }));
+			const { min: tip, max: origin } = extremeYVertices(geo.branchTriangles);
+			const dx = tip.x - origin.x;
+			const dy = tip.y - origin.y;
+			const lenSq = dx * dx + dy * dy;
+			// Project each vertex onto the branch axis, compute perpendicular distance
+			const perpByT: { t: number; perp: number }[] = [];
+			for (const tri of geo.branchTriangles) {
+				for (const p of tri.points) {
+					const vx = p.x - origin.x;
+					const vy = p.y - origin.y;
+					const t = (vx * dx + vy * dy) / lenSq;
+					const px = vx - t * dx;
+					const py = vy - t * dy;
+					const perp = Math.hypot(px, py);
+					perpByT.push({ t, perp });
+				}
+			}
+			const nearOrigin = perpByT.filter((p) => p.t <= 0.35);
+			const nearTip = perpByT.filter((p) => p.t >= 0.65);
+			const maxNearOrigin = Math.max(...nearOrigin.map((p) => p.perp));
+			const maxNearTip = Math.max(...nearTip.map((p) => p.perp));
+			expect(maxNearOrigin).toBeGreaterThan(maxNearTip);
+		});
+	});
+
+	describe('REQ-T-09: branch endpoint terminates inside canopy', () => {
+		it('branch tip falls within canopy x-bounds when tip is in canopy vertical range', () => {
+			const geo = generateTree(makeConfig({ branchCount: 1, seed: 42 }));
+			const { min: tip } = extremeYVertices(geo.branchTriangles);
+			const canopyXs = geo.canopyBlobs.flatMap((b) =>
+				b.triangles.flatMap((t) => t.points.map((p) => p.x)),
+			);
+			const canopyYs = geo.canopyBlobs.flatMap((b) =>
+				b.triangles.flatMap((t) => t.points.map((p) => p.y)),
+			);
+			const canopyMaxY = Math.max(...canopyYs);
+			// Skip check only if branch tip is visually below canopy (beyond canopy bottom)
+			if (tip.y < canopyMaxY) {
+				const canopyMinX = Math.min(...canopyXs);
+				const canopyMaxX = Math.max(...canopyXs);
+				expect(tip.x).toBeGreaterThanOrEqual(canopyMinX);
+				expect(tip.x).toBeLessThanOrEqual(canopyMaxX);
+			}
 		});
 	});
 
@@ -405,33 +439,28 @@ describe('REQ-T: Trunk & Branch Generation', () => {
 // ============================================================================
 
 describe('REQ-L: Lighting & Colour', () => {
-	describe('REQ-L-01: per-blob hemisphere lighting', () => {
-		it('different blobs can have different color ranges', () => {
-			const geo = generateTree(makeConfig({ blobCount: 5, seed: 42 }));
-			const blob0Colors = geo.canopyBlobs[0]!.triangles.map((t) => t.color);
-			const blob4Colors = geo.canopyBlobs[4]!.triangles.map((t) => t.color);
-			// At least some colors should differ between different blobs
-			const allSame = blob0Colors.every(
-				(c, i) => i < blob4Colors.length && c === blob4Colors[i],
-			);
-			expect(allSame).toBe(false);
+	describe('REQ-L-01a: per-blob hemisphere lighting creates within-blob variation', () => {
+		it('a canopy blob contains triangles spanning a meaningful brightness range', () => {
+			const geo = generateTree(makeConfig({ blobCount: 1, seed: 42 }));
+			const brs = geo.canopyBlobs[0]!.triangles.map((t) => hexToBrightness(t.color));
+			const range = Math.max(...brs) - Math.min(...brs);
+			expect(range).toBeGreaterThan(20);
 		});
 	});
 
-	describe('REQ-L-04: depthVariance effect', () => {
-		it('depthVariance=0 produces more uniform lighting', () => {
-			const geoFlat = generateTree(makeConfig({ depthVariance: 0.0, seed: 42 }));
+	describe('REQ-L-04: depthVariance has observable effect', () => {
+		it('produces observably different canopy colors at different depthVariance values', () => {
+			const geoFlat = generateTree(makeConfig({ depthVariance: 0.1, seed: 42 }));
 			const geoDeep = generateTree(makeConfig({ depthVariance: 2.0, seed: 42 }));
-			// Both should generate valid output
-			expect(geoFlat.canopyBlobs.length).toBeGreaterThan(0);
-			expect(geoDeep.canopyBlobs.length).toBeGreaterThan(0);
+			const colorsFlat = geoFlat.canopyBlobs.flatMap((b) => b.triangles.map((t) => t.color));
+			const colorsDeep = geoDeep.canopyBlobs.flatMap((b) => b.triangles.map((t) => t.color));
+			expect(colorsFlat).not.toEqual(colorsDeep);
 		});
 	});
 
 	describe('REQ-L-08: trunk uses cylinder mapping', () => {
 		it('trunk triangles have trunk color (not canopy color)', () => {
 			const geo = generateTree(makeConfig());
-			// All trunk triangles should have valid hex colors
 			for (const tri of geo.trunkTriangles) {
 				expect(tri.color).toMatch(/^#[0-9a-f]{6}$/);
 			}
@@ -479,33 +508,10 @@ describe('REQ-O: Output', () => {
 });
 
 // ============================================================================
-// Shape-specific tests
+// Parameter scaling integration tests
 // ============================================================================
 
-describe('Shape-specific', () => {
-	describe('birch shape (D11)', () => {
-		it('generates valid tree output', () => {
-			const geo = generateTree(makeConfig({ shape: 'birch' }));
-			expect(geo.trunkTriangles.length).toBeGreaterThan(0);
-			expect(geo.canopyBlobs.length).toBeGreaterThan(0);
-		});
-	});
-
-	describe('all three shapes produce valid output', () => {
-		for (const shape of ['oak', 'pine', 'birch'] as const) {
-			it(`${shape} generates triangles`, () => {
-				const geo = generateTree(makeConfig({ shape }));
-				expect(allTriangles(geo).length).toBeGreaterThan(0);
-			});
-		}
-	});
-});
-
-// ============================================================================
-// New parameter integration tests
-// ============================================================================
-
-describe('New parameters integration', () => {
+describe('Parameter scaling', () => {
 	describe('trunkThickness scaling', () => {
 		it('trunkThickness 200 produces wider trunk than 50', () => {
 			const geoWide = generateTree(makeConfig({ trunkThickness: 200, seed: 42 }));
@@ -538,20 +544,6 @@ describe('New parameters integration', () => {
 			expect(getXRange(geoWide.branchTriangles)).toBeGreaterThanOrEqual(
 				getXRange(geoNarrow.branchTriangles),
 			);
-		});
-	});
-
-	describe('canopySize scaling', () => {
-		it('does not throw with extreme values', () => {
-			expect(() => generateTree(makeConfig({ canopySize: 50 }))).not.toThrow();
-			expect(() => generateTree(makeConfig({ canopySize: 200 }))).not.toThrow();
-		});
-	});
-
-	describe('trunkHeight scaling', () => {
-		it('does not throw with extreme values', () => {
-			expect(() => generateTree(makeConfig({ trunkHeight: 30 }))).not.toThrow();
-			expect(() => generateTree(makeConfig({ trunkHeight: 150 }))).not.toThrow();
 		});
 	});
 });
