@@ -73,10 +73,10 @@ export interface TreeConfig {
 	readonly seed: number;
 	readonly canopyPolygons: number;
 	readonly trunkPolygons: number;
-	readonly canopyHue: number;
-	readonly canopyHueSpread: number;
-	readonly canopySaturation: number;
-	readonly canopyLightness: number;
+	/** Hex color used for fully-lit canopy faces (REQ-P-30, REQ-L-01). */
+	readonly canopyLightColor: string;
+	/** Hex color used for fully-shadowed canopy faces (REQ-P-31, REQ-L-01). */
+	readonly canopyDarkColor: string;
 	readonly trunkHue: number;
 	readonly trunkSaturation: number;
 	readonly trunkLightness: number;
@@ -103,10 +103,8 @@ export const DEFAULT_TREE_CONFIG: TreeConfig = {
 	seed: 42,
 	canopyPolygons: 50,
 	trunkPolygons: 30,
-	canopyHue: 120,
-	canopyHueSpread: 40,
-	canopySaturation: 60,
-	canopyLightness: 40,
+	canopyLightColor: '#a8d84e',
+	canopyDarkColor: '#1a472a',
 	trunkHue: 25,
 	trunkSaturation: 50,
 	trunkLightness: 25,
@@ -143,6 +141,11 @@ export const SHAPE_DEFAULTS = {
 		trunkCrookedness: 0,
 		branchLength: 100,
 		branchLengthVariance: 50,
+		canopyLightColor: '#a8d84e',
+		canopyDarkColor: '#1a472a',
+		trunkHue: 25,
+		trunkSaturation: 50,
+		trunkLightness: 25,
 	},
 	[TREE_SHAPES.pine]: {
 		blobCount: 3,
@@ -154,6 +157,11 @@ export const SHAPE_DEFAULTS = {
 		trunkCrookedness: 0,
 		branchLength: 100,
 		branchLengthVariance: 50,
+		canopyLightColor: '#4a9e5c',
+		canopyDarkColor: '#0d2b1a',
+		trunkHue: 20,
+		trunkSaturation: 45,
+		trunkLightness: 20,
 	},
 	[TREE_SHAPES.birch]: {
 		blobCount: 3,
@@ -165,6 +173,11 @@ export const SHAPE_DEFAULTS = {
 		trunkCrookedness: 0,
 		branchLength: 100,
 		branchLengthVariance: 50,
+		canopyLightColor: '#b8e065',
+		canopyDarkColor: '#2d5e3a',
+		trunkHue: 40,
+		trunkSaturation: 15,
+		trunkLightness: 80,
 	},
 	[TREE_SHAPES.fir]: {
 		blobCount: 4,
@@ -176,6 +189,11 @@ export const SHAPE_DEFAULTS = {
 		trunkCrookedness: 0,
 		branchLength: 100,
 		branchLengthVariance: 50,
+		canopyLightColor: '#3d8b50',
+		canopyDarkColor: '#0a2418',
+		trunkHue: 22,
+		trunkSaturation: 50,
+		trunkLightness: 28,
 	},
 	[TREE_SHAPES.maple]: {
 		blobCount: 5,
@@ -187,6 +205,11 @@ export const SHAPE_DEFAULTS = {
 		trunkCrookedness: 0,
 		branchLength: 100,
 		branchLengthVariance: 50,
+		canopyLightColor: '#e8a028',
+		canopyDarkColor: '#8b2010',
+		trunkHue: 30,
+		trunkSaturation: 20,
+		trunkLightness: 35,
 	},
 	[TREE_SHAPES.willow]: {
 		blobCount: 4,
@@ -198,6 +221,11 @@ export const SHAPE_DEFAULTS = {
 		trunkCrookedness: 40,
 		branchLength: 100,
 		branchLengthVariance: 50,
+		canopyLightColor: '#7cc45a',
+		canopyDarkColor: '#1a4020',
+		trunkHue: 25,
+		trunkSaturation: 40,
+		trunkLightness: 22,
 	},
 } as const satisfies Record<
 	Exclude<TreeShape, 'custom'>,
@@ -212,6 +240,11 @@ export const SHAPE_DEFAULTS = {
 		| 'trunkCrookedness'
 		| 'branchLength'
 		| 'branchLengthVariance'
+		| 'canopyLightColor'
+		| 'canopyDarkColor'
+		| 'trunkHue'
+		| 'trunkSaturation'
+		| 'trunkLightness'
 	>
 >;
 

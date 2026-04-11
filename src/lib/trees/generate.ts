@@ -279,7 +279,6 @@ function generateBranchMesh(
 
 function generateBlobCanopy(
 	rng: () => number,
-	colorRng: () => number,
 	blobs: readonly Blob[],
 	canopyBudget: number,
 	smoothAcuteAnglesForCircles: boolean,
@@ -363,7 +362,7 @@ function generateBlobCanopy(
 
 		const coloredTris: Triangle[] = filtered.map((tri) => ({
 			points: tri,
-			color: computeCanopyColor(tri, blobBounds, config, colorRng),
+			color: computeCanopyColor(tri, blobBounds, config),
 			group: GEOMETRY_GROUPS.canopy,
 		}));
 
@@ -384,7 +383,6 @@ function generateBlobCanopy(
 
 function generateTierCanopy(
 	rng: () => number,
-	colorRng: () => number,
 	tiers: readonly Tier[],
 	canopyBudget: number,
 	config: TreeConfig,
@@ -439,7 +437,7 @@ function generateTierCanopy(
 
 		const coloredTris: Triangle[] = filtered.map((tri) => ({
 			points: tri,
-			color: computeCanopyColor(tri, tierBounds, config, colorRng),
+			color: computeCanopyColor(tri, tierBounds, config),
 			group: GEOMETRY_GROUPS.canopy,
 		}));
 
@@ -626,21 +624,8 @@ export function generateTree(config: TreeConfig): TreeGeometry {
 
 	const smoothAcuteAngles = SHAPES_WITH_ACUTE_SMOOTHING.has(config.shape);
 	const canopyBlobs = isPine
-		? generateTierCanopy(
-				rng,
-				createPrng(config.seed + 9999),
-				tiers,
-				config.canopyPolygons,
-				config,
-			)
-		: generateBlobCanopy(
-				rng,
-				createPrng(config.seed + 9999),
-				blobs,
-				config.canopyPolygons,
-				smoothAcuteAngles,
-				config,
-			);
+		? generateTierCanopy(rng, tiers, config.canopyPolygons, config)
+		: generateBlobCanopy(rng, blobs, config.canopyPolygons, smoothAcuteAngles, config);
 
 	const anchors = computeAnchors(trunkJunctions, canopyBounds);
 

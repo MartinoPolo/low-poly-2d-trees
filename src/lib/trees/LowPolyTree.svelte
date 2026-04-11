@@ -7,10 +7,8 @@
 		seed?: number;
 		canopyPolygons?: number;
 		trunkPolygons?: number;
-		canopyHue?: number;
-		canopyHueSpread?: number;
-		canopySaturation?: number;
-		canopyLightness?: number;
+		canopyLightColor?: string;
+		canopyDarkColor?: string;
 		trunkHue?: number;
 		trunkSaturation?: number;
 		trunkLightness?: number;
@@ -43,10 +41,8 @@
 		seed = DEFAULT_TREE_CONFIG.seed,
 		canopyPolygons = DEFAULT_TREE_CONFIG.canopyPolygons,
 		trunkPolygons = DEFAULT_TREE_CONFIG.trunkPolygons,
-		canopyHue = DEFAULT_TREE_CONFIG.canopyHue,
-		canopyHueSpread = DEFAULT_TREE_CONFIG.canopyHueSpread,
-		canopySaturation = DEFAULT_TREE_CONFIG.canopySaturation,
-		canopyLightness = DEFAULT_TREE_CONFIG.canopyLightness,
+		canopyLightColor = DEFAULT_TREE_CONFIG.canopyLightColor,
+		canopyDarkColor = DEFAULT_TREE_CONFIG.canopyDarkColor,
 		trunkHue = DEFAULT_TREE_CONFIG.trunkHue,
 		trunkSaturation = DEFAULT_TREE_CONFIG.trunkSaturation,
 		trunkLightness = DEFAULT_TREE_CONFIG.trunkLightness,
@@ -79,10 +75,8 @@
 		seed,
 		canopyPolygons,
 		trunkPolygons,
-		canopyHue,
-		canopyHueSpread,
-		canopySaturation,
-		canopyLightness,
+		canopyLightColor,
+		canopyDarkColor,
 		trunkHue,
 		trunkSaturation,
 		trunkLightness,

@@ -670,6 +670,67 @@ describe('REQ-L: Lighting & Colour', () => {
 		});
 	});
 
+	describe('REQ-L-01/L-07: two-color canopy interpolation', () => {
+		it('canopy triangles are hex strings inside the dark/light HSL gradient', () => {
+			const geo = generateTree(
+				makeConfig({
+					seed: 42,
+					canopyLightColor: '#a8d84e',
+					canopyDarkColor: '#1a472a',
+				}),
+			);
+			const canopyColors = geo.canopyBlobs.flatMap((b) => b.triangles.map((t) => t.color));
+			for (const color of canopyColors) {
+				expect(color).toMatch(/^#[0-9a-f]{6}$/);
+			}
+			// Green-only gradient: blue channel must stay clearly below red and
+			// green across every face. A shortest-arc H-S-L interpolation between
+			// two green hexes can only produce green hues, never blue-dominant.
+			for (const color of canopyColors) {
+				const r = parseInt(color.slice(1, 3), 16);
+				const g = parseInt(color.slice(3, 5), 16);
+				const b = parseInt(color.slice(5, 7), 16);
+				expect(b).toBeLessThan(Math.max(r, g) + 1);
+			}
+		});
+
+		it('generates the same canopy colors for identical configs', () => {
+			const cfg = makeConfig({ seed: 42 });
+			const a = generateTree(cfg);
+			const b = generateTree(cfg);
+			const aColors = a.canopyBlobs.flatMap((bl) => bl.triangles.map((t) => t.color));
+			const bColors = b.canopyBlobs.flatMap((bl) => bl.triangles.map((t) => t.color));
+			expect(aColors).toEqual(bColors);
+		});
+
+		it('swapping canopyLightColor shifts canopy palette', () => {
+			const green = generateTree(
+				makeConfig({
+					seed: 42,
+					canopyLightColor: '#a8d84e',
+					canopyDarkColor: '#1a472a',
+				}),
+			);
+			const orange = generateTree(
+				makeConfig({
+					seed: 42,
+					canopyLightColor: '#e8a028',
+					canopyDarkColor: '#8b2010',
+				}),
+			);
+			const greenColors = green.canopyBlobs.flatMap((b) => b.triangles.map((t) => t.color));
+			const orangeColors = orange.canopyBlobs.flatMap((b) => b.triangles.map((t) => t.color));
+			expect(greenColors).not.toEqual(orangeColors);
+			// Orange palette should have red-dominant triangles that the green one lacks
+			const orangeHasRedDominant = orangeColors.some((c) => {
+				const r = parseInt(c.slice(1, 3), 16);
+				const g = parseInt(c.slice(3, 5), 16);
+				return r > g;
+			});
+			expect(orangeHasRedDominant).toBe(true);
+		});
+	});
+
 	describe('REQ-L-08: trunk uses cylinder mapping', () => {
 		it('trunk triangles have trunk color (not canopy color)', () => {
 			const geo = generateTree(makeConfig());

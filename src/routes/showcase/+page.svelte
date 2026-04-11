@@ -2,6 +2,8 @@
 	import LowPolyTree from '$lib/trees/LowPolyTree.svelte';
 	import LabeledSelect from '$lib/components/composed/LabeledSelect.svelte';
 	import LabeledRangeSlider from '$lib/components/composed/LabeledRangeSlider.svelte';
+	import CanopyColorCard from '$lib/components/composed/CanopyColorCard.svelte';
+	import TrunkColorCard from '$lib/components/composed/TrunkColorCard.svelte';
 	import { Label } from '$lib/components/ui/label/index.js';
 	import { Input } from '$lib/components/ui/input/index.js';
 	import { Button } from '$lib/components/ui/button/index.js';
@@ -23,10 +25,8 @@
 	let seed = $state(DEFAULT_TREE_CONFIG.seed);
 	let canopyPolygons = $state(DEFAULT_TREE_CONFIG.canopyPolygons);
 	let trunkPolygons = $state(DEFAULT_TREE_CONFIG.trunkPolygons);
-	let canopyHue = $state(DEFAULT_TREE_CONFIG.canopyHue);
-	let canopyHueSpread = $state(DEFAULT_TREE_CONFIG.canopyHueSpread);
-	let canopySaturation = $state(DEFAULT_TREE_CONFIG.canopySaturation);
-	let canopyLightness = $state(DEFAULT_TREE_CONFIG.canopyLightness);
+	let canopyLightColor = $state(DEFAULT_TREE_CONFIG.canopyLightColor);
+	let canopyDarkColor = $state(DEFAULT_TREE_CONFIG.canopyDarkColor);
 	let trunkHue = $state(DEFAULT_TREE_CONFIG.trunkHue);
 	let trunkSaturation = $state(DEFAULT_TREE_CONFIG.trunkSaturation);
 	let trunkLightness = $state(DEFAULT_TREE_CONFIG.trunkLightness);
@@ -79,6 +79,11 @@
 		trunkCrookedness = defaults.trunkCrookedness;
 		branchLength = defaults.branchLength;
 		branchLengthVariance = defaults.branchLengthVariance;
+		canopyLightColor = defaults.canopyLightColor;
+		canopyDarkColor = defaults.canopyDarkColor;
+		trunkHue = defaults.trunkHue;
+		trunkSaturation = defaults.trunkSaturation;
+		trunkLightness = defaults.trunkLightness;
 	}
 
 	function randomizeSeed() {
@@ -207,91 +212,16 @@
 					</Card.Content>
 				</Card.Root>
 
-				<Card.Root>
-					<Card.Header>
-						<Card.Title>Canopy Color</Card.Title>
-					</Card.Header>
-					<Card.Content class="space-y-4">
-						<div class="space-y-2">
-							<Label>Hue: {canopyHue}°</Label>
-							<input
-								type="range"
-								min="0"
-								max="360"
-								bind:value={canopyHue}
-								class="w-full accent-primary"
-							/>
-						</div>
-						<div class="space-y-2">
-							<Label>Hue Spread: {canopyHueSpread}</Label>
-							<input
-								type="range"
-								min="0"
-								max="80"
-								bind:value={canopyHueSpread}
-								class="w-full accent-primary"
-							/>
-						</div>
-						<div class="space-y-2">
-							<Label>Saturation: {canopySaturation}%</Label>
-							<input
-								type="range"
-								min="0"
-								max="100"
-								bind:value={canopySaturation}
-								class="w-full accent-primary"
-							/>
-						</div>
-						<div class="space-y-2">
-							<Label>Lightness: {canopyLightness}%</Label>
-							<input
-								type="range"
-								min="10"
-								max="80"
-								bind:value={canopyLightness}
-								class="w-full accent-primary"
-							/>
-						</div>
-					</Card.Content>
-				</Card.Root>
+				<CanopyColorCard
+					bind:lightColor={canopyLightColor}
+					bind:darkColor={canopyDarkColor}
+				/>
 
-				<Card.Root>
-					<Card.Header>
-						<Card.Title>Trunk Color</Card.Title>
-					</Card.Header>
-					<Card.Content class="space-y-4">
-						<div class="space-y-2">
-							<Label>Hue: {trunkHue}°</Label>
-							<input
-								type="range"
-								min="0"
-								max="360"
-								bind:value={trunkHue}
-								class="w-full accent-primary"
-							/>
-						</div>
-						<div class="space-y-2">
-							<Label>Saturation: {trunkSaturation}%</Label>
-							<input
-								type="range"
-								min="0"
-								max="100"
-								bind:value={trunkSaturation}
-								class="w-full accent-primary"
-							/>
-						</div>
-						<div class="space-y-2">
-							<Label>Lightness: {trunkLightness}%</Label>
-							<input
-								type="range"
-								min="5"
-								max="60"
-								bind:value={trunkLightness}
-								class="w-full accent-primary"
-							/>
-						</div>
-					</Card.Content>
-				</Card.Root>
+				<TrunkColorCard
+					bind:hue={trunkHue}
+					bind:saturation={trunkSaturation}
+					bind:lightness={trunkLightness}
+				/>
 
 				<Card.Root>
 					<Card.Header>
@@ -458,10 +388,8 @@
 					{seed}
 					{canopyPolygons}
 					{trunkPolygons}
-					{canopyHue}
-					{canopyHueSpread}
-					{canopySaturation}
-					{canopyLightness}
+					{canopyLightColor}
+					{canopyDarkColor}
 					{trunkHue}
 					{trunkSaturation}
 					{trunkLightness}
