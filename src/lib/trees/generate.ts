@@ -12,7 +12,6 @@ import { GEOMETRY_GROUPS, VIEWBOX_WIDTH, VIEWBOX_HEIGHT, TREE_SHAPES } from './t
 import { createPrng, poissonSample, randomInRange } from './prng.js';
 import {
 	getShapeDefinition,
-	computeTrunkTop,
 	computeEffectiveTrunkTop,
 	isPointInTrunk,
 	isPointInBranch,
@@ -28,6 +27,7 @@ import {
 	generateTiers,
 	isPointInTier,
 	getTiersBounds,
+	TRUNK_ENTRY_MIN_PX,
 	type Blob,
 	type BranchSegment,
 } from './shapes.js';
@@ -403,6 +403,10 @@ export function generateTree(config: TreeConfig): TreeGeometry {
 	const isPine = config.shape === TREE_SHAPES.pine;
 
 	const effectiveTrunkTop = computeEffectiveTrunkTop(shapeDef, config.trunkHeight);
+	// Canopy must follow trunk top so that raising/lowering the trunk shifts the
+	// whole canopy in lock-step. Delta is the per-axis offset applied to every
+	// blob cy (and tier y) after shape-specific positioning runs at defaults.
+	const canopyDelta = effectiveTrunkTop - shapeDef.defaultTrunkTop;
 
 	const trunkLean = randomInRange(rng, -8, 8);
 
@@ -419,6 +423,9 @@ export function generateTree(config: TreeConfig): TreeGeometry {
 
 	if (!isPine) {
 		applyCanopySize(blobs, config.canopySize);
+		for (const blob of blobs) {
+			blob.cy += canopyDelta;
+		}
 	}
 
 	const tiers = isPine
@@ -431,14 +438,16 @@ export function generateTree(config: TreeConfig): TreeGeometry {
 				config.blobCloseness,
 				config.blobSizeVariance,
 				config.canopySize,
+				canopyDelta,
 			)
 		: [];
 
 	const canopyBounds = isPine ? getTiersBounds(tiers) : getBlobsBounds(blobs);
 
-	const trunkTop = isPine
-		? Math.min(effectiveTrunkTop, canopyBounds.maxY - 15)
-		: Math.min(effectiveTrunkTop, computeTrunkTop(shapeDef, blobs));
+	// Enforce the trunk-penetration invariant: trunk top must enter the lowest
+	// canopy edge by at least TRUNK_ENTRY_MIN_PX. If the user's chosen trunk
+	// height would leave the trunk dangling below the canopy, clamp upward.
+	const trunkTop = Math.min(effectiveTrunkTop, canopyBounds.maxY - TRUNK_ENTRY_MIN_PX);
 	const trunkBottom = shapeDef.trunkBottom;
 
 	const branches = isPine
