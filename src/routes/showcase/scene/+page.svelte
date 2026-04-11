@@ -6,6 +6,8 @@
 	import { Checkbox } from '$lib/components/ui/checkbox/index.js';
 	import SectionCard from '$lib/components/composed/SectionCard.svelte';
 	import LabeledRangeSlider from '$lib/components/composed/LabeledRangeSlider.svelte';
+	import CanopyColorCard from '$lib/components/composed/CanopyColorCard.svelte';
+	import TrunkColorCard from '$lib/components/composed/TrunkColorCard.svelte';
 	import { DEFAULT_TREE_CONFIG, SHAPE_DEFAULTS } from '$lib/trees/types.js';
 	import { isParamDisabled } from '$lib/trees/disabled_params.js';
 	import DarkModeToggle from '$lib/components/DarkModeToggle.svelte';
@@ -15,13 +17,12 @@
 	let seed = $state(DEFAULT_TREE_CONFIG.seed);
 	let canopyPolygons = $state(DEFAULT_TREE_CONFIG.canopyPolygons);
 	let trunkPolygons = $state(DEFAULT_TREE_CONFIG.trunkPolygons);
-	let canopyHue = $state(DEFAULT_TREE_CONFIG.canopyHue);
-	let canopyHueSpread = $state(DEFAULT_TREE_CONFIG.canopyHueSpread);
-	let canopySaturation = $state(DEFAULT_TREE_CONFIG.canopySaturation);
-	let canopyLightness = $state(DEFAULT_TREE_CONFIG.canopyLightness);
+	let canopyLightColor = $state(DEFAULT_TREE_CONFIG.canopyLightColor);
+	let canopyDarkColor = $state(DEFAULT_TREE_CONFIG.canopyDarkColor);
 	let trunkHue = $state(DEFAULT_TREE_CONFIG.trunkHue);
 	let trunkSaturation = $state(DEFAULT_TREE_CONFIG.trunkSaturation);
 	let trunkLightness = $state(DEFAULT_TREE_CONFIG.trunkLightness);
+	let usePerShapeDefaults = $state(false);
 	let lightAngle = $state(DEFAULT_TREE_CONFIG.lightAngle);
 	let depthVariance = $state(DEFAULT_TREE_CONFIG.depthVariance);
 	let blobSizeVariance = $state(DEFAULT_TREE_CONFIG.blobSizeVariance);
@@ -52,10 +53,8 @@
 		seed = Math.floor(Math.random() * 100000);
 	}
 
-	// Scene currently previews oak/pine/birch only. REQ-S-06 (all 6 non-custom
-	// shapes side by side) lands with issue #8, when fir/maple/willow get real
-	// generators. The placeholder generators for those shapes would render as
-	// oak clones, which would be misleading in the scene preview.
+	// Scene previews oak/pine/birch. Expanding to all 6 non-custom shapes
+	// (REQ-S-06) is tracked separately — issue #9 scope is color overhaul only.
 	const trees = [
 		{ shape: 'oak' as const, ...SHAPE_DEFAULTS.oak, seedOffset: 0 },
 		{ shape: 'pine' as const, ...SHAPE_DEFAULTS.pine, seedOffset: 1000 },
@@ -235,81 +234,33 @@
 					/>
 				</SectionCard>
 
-				<SectionCard title="Canopy Color" contentClass="space-y-4">
-					<div class="space-y-2">
-						<Label>Hue: {canopyHue}°</Label>
-						<input
-							type="range"
-							min="0"
-							max="360"
-							bind:value={canopyHue}
-							class="w-full accent-primary"
+				<SectionCard title="Color Mode" contentClass="space-y-4">
+					<div class="flex items-center gap-2">
+						<Checkbox
+							id="use-per-shape-defaults"
+							checked={usePerShapeDefaults}
+							onCheckedChange={(v) => (usePerShapeDefaults = v === true)}
 						/>
+						<Label for="use-per-shape-defaults">Use per-shape default colors</Label>
 					</div>
-					<div class="space-y-2">
-						<Label>Hue Spread: {canopyHueSpread}</Label>
-						<input
-							type="range"
-							min="0"
-							max="80"
-							bind:value={canopyHueSpread}
-							class="w-full accent-primary"
-						/>
-					</div>
-					<div class="space-y-2">
-						<Label>Saturation: {canopySaturation}%</Label>
-						<input
-							type="range"
-							min="0"
-							max="100"
-							bind:value={canopySaturation}
-							class="w-full accent-primary"
-						/>
-					</div>
-					<div class="space-y-2">
-						<Label>Lightness: {canopyLightness}%</Label>
-						<input
-							type="range"
-							min="10"
-							max="80"
-							bind:value={canopyLightness}
-							class="w-full accent-primary"
-						/>
-					</div>
+					<p class="text-xs text-muted-foreground">
+						When enabled, each tree uses its shape's default palette and the shared
+						color controls below are disabled.
+					</p>
 				</SectionCard>
 
-				<SectionCard title="Trunk Color" contentClass="space-y-4">
-					<div class="space-y-2">
-						<Label>Hue: {trunkHue}°</Label>
-						<input
-							type="range"
-							min="0"
-							max="360"
-							bind:value={trunkHue}
-							class="w-full accent-primary"
-						/>
-					</div>
-					<div class="space-y-2">
-						<Label>Saturation: {trunkSaturation}%</Label>
-						<input
-							type="range"
-							min="0"
-							max="100"
-							bind:value={trunkSaturation}
-							class="w-full accent-primary"
-						/>
-					</div>
-					<div class="space-y-2">
-						<Label>Lightness: {trunkLightness}%</Label>
-						<input
-							type="range"
-							min="5"
-							max="60"
-							bind:value={trunkLightness}
-							class="w-full accent-primary"
-						/>
-					</div>
-				</SectionCard>
+				<CanopyColorCard
+					bind:lightColor={canopyLightColor}
+					bind:darkColor={canopyDarkColor}
+					disabled={usePerShapeDefaults}
+				/>
+
+				<TrunkColorCard
+					bind:hue={trunkHue}
+					bind:saturation={trunkSaturation}
+					bind:lightness={trunkLightness}
+					disabled={usePerShapeDefaults}
+				/>
 
 				<SectionCard title="Lighting" contentClass="space-y-4">
 					<div class="space-y-2">
@@ -379,13 +330,17 @@
 						seed={seed + tree.seedOffset}
 						{canopyPolygons}
 						{trunkPolygons}
-						{canopyHue}
-						{canopyHueSpread}
-						{canopySaturation}
-						{canopyLightness}
-						{trunkHue}
-						{trunkSaturation}
-						{trunkLightness}
+						canopyLightColor={usePerShapeDefaults
+							? tree.canopyLightColor
+							: canopyLightColor}
+						canopyDarkColor={usePerShapeDefaults
+							? tree.canopyDarkColor
+							: canopyDarkColor}
+						trunkHue={usePerShapeDefaults ? tree.trunkHue : trunkHue}
+						trunkSaturation={usePerShapeDefaults
+							? tree.trunkSaturation
+							: trunkSaturation}
+						trunkLightness={usePerShapeDefaults ? tree.trunkLightness : trunkLightness}
 						{lightAngle}
 						{depthVariance}
 						{blobSizeVariance}

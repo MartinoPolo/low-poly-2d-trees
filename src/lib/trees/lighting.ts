@@ -1,11 +1,10 @@
+import { clamp, hslToHex, interpolateHslInHexSpace } from './color.js';
 import type { Point2D } from './types.js';
 
 interface LightConfig {
 	readonly lightAngle: number;
-	readonly canopyHue: number;
-	readonly canopyHueSpread: number;
-	readonly canopySaturation: number;
-	readonly canopyLightness: number;
+	readonly canopyLightColor: string;
+	readonly canopyDarkColor: string;
 	readonly trunkHue: number;
 	readonly trunkSaturation: number;
 	readonly trunkLightness: number;
@@ -51,49 +50,17 @@ function triangleCentroid(points: readonly [Point2D, Point2D, Point2D]): Point2D
 	};
 }
 
-function clamp(val: number, min: number, max: number): number {
-	return Math.max(min, Math.min(max, val));
-}
-
-function hslToHex(h: number, s: number, l: number): string {
-	h = ((h % 360) + 360) % 360;
-	s = clamp(s, 0, 100) / 100;
-	l = clamp(l, 0, 100) / 100;
-
-	const c = (1 - Math.abs(2 * l - 1)) * s;
-	const x = c * (1 - Math.abs(((h / 60) % 2) - 1));
-	const m = l - c / 2;
-
-	let r: number, g: number, b: number;
-	if (h < 60) {
-		[r, g, b] = [c, x, 0];
-	} else if (h < 120) {
-		[r, g, b] = [x, c, 0];
-	} else if (h < 180) {
-		[r, g, b] = [0, c, x];
-	} else if (h < 240) {
-		[r, g, b] = [0, x, c];
-	} else if (h < 300) {
-		[r, g, b] = [x, 0, c];
-	} else {
-		[r, g, b] = [c, 0, x];
-	}
-
-	const toHex = (v: number) =>
-		Math.round((v + m) * 255)
-			.toString(16)
-			.padStart(2, '0');
-	return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
-}
-
 /**
  * Compute canopy triangle color using hemisphere-based pseudo-3D lighting.
+ * The output color is produced by interpolating between `canopyDarkColor`
+ * and `canopyLightColor` in HSL space using the computed lighting factor
+ * (REQ-L-01, REQ-L-02, REQ-L-07). Fully-lit faces map exactly to
+ * `canopyLightColor`; fully-shadowed faces map exactly to `canopyDarkColor`.
  */
 export function computeCanopyColor(
 	points: readonly [Point2D, Point2D, Point2D],
 	canopyBounds: { minX: number; minY: number; maxX: number; maxY: number },
 	config: LightConfig,
-	rng: () => number,
 ): string {
 	const centroid = triangleCentroid(points);
 	const light = normalize3(lightDirection(config.lightAngle));
@@ -104,33 +71,24 @@ export function computeCanopyColor(
 	const nx = bw > 0 ? ((centroid.x - canopyBounds.minX) / bw) * 2 - 1 : 0;
 	const ny = bh > 0 ? ((centroid.y - canopyBounds.minY) / bh) * 2 - 1 : 0;
 
-	// Hemisphere: compute z from position on dome
+	// Hemisphere: compute z from position on dome. REQ-L-04 scales z by
+	// depthVariance (0 → uniform lighting, 1 → standard, 2 → exaggerated).
 	const r2 = nx * nx + ny * ny;
 	const z = (r2 < 1 ? Math.sqrt(1 - r2) : 0.05) * config.depthVariance;
 	const normal = normalize3({ x: nx * 0.7, y: ny * 0.7, z });
 
-	// Diffuse lighting
+	// Diffuse lighting clamped to [0, 1]
 	const diffuse = clamp(dot3(normal, light), 0, 1);
 
-	// Rim darkening — triangles at the edge of the canopy
+	// Rim darkening — triangles outside the hemisphere disk
 	const rimFactor = r2 < 1 ? 1 : 0.7;
 
-	// Combined lighting factor — wider range for more dramatic faceting
-	const lighting = (0.15 + 0.85 * diffuse) * rimFactor;
+	// REQ-L-02: ambient 0.15 + diffuse 0.85 × diffuse. Rim factor applies
+	// last and only reduces edge brightness, so fully-lit non-rim faces
+	// still reach lighting = 1 and land on canopyLightColor exactly.
+	const lighting = clamp((0.15 + 0.85 * diffuse) * rimFactor, 0, 1);
 
-	// Hue variation: shift hue based on lighting + random jitter
-	// Lit faces shift toward yellow-green, shadowed toward blue-green
-	const hueShift = (lighting - 0.5) * config.canopyHueSpread * 1.2 + (rng() - 0.5) * 20;
-	const hue = config.canopyHue + hueShift;
-
-	// Saturation: shadowed faces more saturated, lit faces slightly desaturated
-	const sat = config.canopySaturation + (0.5 - lighting) * 20 + (rng() - 0.5) * 12;
-
-	// Lightness driven by lighting model — wider spread for dramatic look
-	const baseLightness = config.canopyLightness;
-	const lightness = baseLightness + (lighting - 0.5) * 60 + (rng() - 0.5) * 8;
-
-	return hslToHex(hue, sat, lightness);
+	return interpolateHslInHexSpace(config.canopyDarkColor, config.canopyLightColor, lighting);
 }
 
 /**
@@ -145,7 +103,7 @@ export function computeTrunkColor(
 	const centroid = triangleCentroid(points);
 	const light = normalize3(lightDirection(config.lightAngle));
 
-	// Cylinder mapping — only horizontal position matters
+	// Cylinder mapping — only horizontal position matters (REQ-L-08)
 	const bw = trunkBounds.maxX - trunkBounds.minX;
 	const nx = bw > 0 ? ((centroid.x - trunkBounds.minX) / bw) * 2 - 1 : 0;
 	const z = Math.sqrt(Math.max(0, 1 - nx * nx));
