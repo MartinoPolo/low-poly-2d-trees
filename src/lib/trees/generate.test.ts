@@ -764,3 +764,147 @@ describe('Parameter scaling', () => {
 		});
 	});
 });
+
+// ============================================================================
+// Issue #8: new tree shapes smoke tests
+// ============================================================================
+
+describe('Issue #8: new tree shapes (fir/maple/willow)', () => {
+	const newShapes = ['fir', 'maple', 'willow'] as const;
+
+	it.each(newShapes)('%s generates trunk and canopy triangles at seed 42', (shape) => {
+		const geo = generateTree(makeConfig({ shape, seed: 42 }));
+		expect(geo.trunkTriangles.length).toBeGreaterThan(0);
+		expect(geo.canopyBlobs.length).toBeGreaterThan(0);
+		const canopyTriTotal = geo.canopyBlobs.reduce((n, b) => n + b.triangles.length, 0);
+		expect(canopyTriTotal).toBeGreaterThan(0);
+	});
+
+	it.each(newShapes)('%s emits only valid hex colors', (shape) => {
+		const geo = generateTree(makeConfig({ shape, seed: 42 }));
+		for (const tri of allTriangles(geo)) {
+			expect(tri.color).toMatch(/^#[0-9a-f]{6}$/);
+		}
+	});
+
+	it.each(newShapes)('%s is deterministic across runs', (shape) => {
+		const cfg = makeConfig({ shape, seed: 42 });
+		const a = generateTree(cfg);
+		const b = generateTree(cfg);
+		expect(a).toEqual(b);
+	});
+
+	it('fir renders without NaN triangle vertices', () => {
+		const geo = generateTree(makeConfig({ shape: 'fir', seed: 42 }));
+		for (const blob of geo.canopyBlobs) {
+			for (const tri of blob.triangles) {
+				for (const p of tri.points) {
+					expect(Number.isNaN(p.x)).toBe(false);
+					expect(Number.isNaN(p.y)).toBe(false);
+				}
+			}
+		}
+	});
+
+	it.each(newShapes)(
+		'%s: trunk top enters the sampled canopy (sampled penetration ≥ 5 px)',
+		(shape) => {
+			// The analytical clamp enforces 15 px penetration against
+			// getBlobsBounds (cy+ry). Sampled canopy vertices can drift up to
+			// ~10 px inward from the analytical edge due to circle blob radial
+			// jitter (RADIAL_JITTER_FACTOR=0.15 × ry). A 5 px sampled
+			// penetration threshold captures the visible trunk-into-canopy
+			// invariant without being so tight it fails on large-ry blobs.
+			for (const trunkHeight of [50, 100, 150]) {
+				const geo = generateTree(makeConfig({ shape, trunkHeight, seed: 42 }));
+				const canopyMaxY = Math.max(
+					...geo.canopyBlobs.flatMap((b) =>
+						b.triangles.flatMap((t) => t.points.map((p) => p.y)),
+					),
+				);
+				expect(geo.anchors.trunkTop.y + 5).toBeLessThanOrEqual(canopyMaxY);
+			}
+		},
+	);
+
+	// Maple emits exactly one branch per canopy blob (issue #8 spec). We can't
+	// read structured branch segments back from the triangle mesh, so we
+	// validate reach via bounding-box containment: for each canopy blob, assert
+	// that at least one branch triangle vertex lies inside its axis-aligned
+	// bounding box. Branches terminate at the blob center, so the tip vertex of
+	// the outgoing branch quad mesh must live inside each blob's bbox.
+	it.each([3, 5, 7])(
+		'maple with blobCount=%i emits a branch reaching every canopy blob',
+		(blobCount) => {
+			const geo = generateTree(
+				makeConfig({ shape: 'maple', seed: 42, blobCount, branchThickness: 100 }),
+			);
+			expect(geo.canopyBlobs.length).toBe(blobCount);
+			expect(geo.branchTriangles.length).toBeGreaterThan(0);
+
+			for (const blob of geo.canopyBlobs) {
+				let minX = Infinity;
+				let minY = Infinity;
+				let maxX = -Infinity;
+				let maxY = -Infinity;
+				for (const tri of blob.triangles) {
+					for (const p of tri.points) {
+						if (p.x < minX) {
+							minX = p.x;
+						}
+						if (p.y < minY) {
+							minY = p.y;
+						}
+						if (p.x > maxX) {
+							maxX = p.x;
+						}
+						if (p.y > maxY) {
+							maxY = p.y;
+						}
+					}
+				}
+				const reached = geo.branchTriangles.some((tri) =>
+					tri.points.some(
+						(p) => p.x >= minX && p.x <= maxX && p.y >= minY && p.y <= maxY,
+					),
+				);
+				expect(reached).toBe(true);
+			}
+		},
+	);
+
+	it('fir (branchCount=0) produces zero branch triangles', () => {
+		const geo = generateTree(
+			makeConfig({ shape: 'fir', seed: 42, branchCount: 0, blobCount: 4 }),
+		);
+		expect(geo.branchTriangles.length).toBe(0);
+	});
+
+	// REQ-C-12: acute-angle smoothing applies to oak, birch, maple AND willow.
+	// The visual effect isn't quantitatively asserted here (it mutates boundary
+	// vertices by a few pixels at most), so this is a smoke test that maple
+	// still emits canopy triangles with the smoothing flag enabled. Failures
+	// here would indicate the post-pass crashes or drops all boundary points.
+	it('maple with acute-angle smoothing enabled still produces canopy triangles', () => {
+		const geo = generateTree(makeConfig({ shape: 'maple', seed: 42, blobCount: 5 }));
+		const canopyTriTotal = geo.canopyBlobs.reduce((n, b) => n + b.triangles.length, 0);
+		expect(canopyTriTotal).toBeGreaterThan(0);
+		for (const blob of geo.canopyBlobs) {
+			expect(blob.triangles.length).toBeGreaterThan(0);
+		}
+	});
+
+	it('willow multi-segment trunk renders without crashing at defaults', () => {
+		const geo = generateTree(
+			makeConfig({
+				shape: 'willow',
+				seed: 42,
+				trunkSegments: 3,
+				trunkCrookedness: 40,
+				branchCount: 4,
+			}),
+		);
+		expect(geo.trunkTriangles.length).toBeGreaterThan(0);
+		expect(geo.branchTriangles.length).toBeGreaterThan(0);
+	});
+});
