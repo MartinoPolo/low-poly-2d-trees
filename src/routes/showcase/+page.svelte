@@ -8,6 +8,7 @@
 	import * as Card from '$lib/components/ui/card/index.js';
 	import { Checkbox } from '$lib/components/ui/checkbox/index.js';
 	import {
+		TREE_SHAPES,
 		TREE_SHAPE_OPTIONS,
 		SHAPE_DEFAULTS,
 		DEFAULT_TREE_CONFIG,
@@ -48,13 +49,24 @@
 	const branchCountDisabled = $derived(isParamDisabled(shape, 'branchCount', {}));
 	const trunkBranchRatioDisabled = $derived(isParamDisabled(shape, 'trunkBranchRatio', {}));
 
+	function isTreeShape(value: string): value is TreeShape {
+		return (Object.values(TREE_SHAPES) as readonly string[]).includes(value);
+	}
+
 	function onShapeChange(value: string) {
-		shape = value as TreeShape;
-		const defaults = SHAPE_DEFAULTS[shape];
+		if (!isTreeShape(value)) {
+			return;
+		}
+		shape = value;
+		if (value === TREE_SHAPES.custom) {
+			return;
+		}
+		const defaults = SHAPE_DEFAULTS[value];
 		blobCount = defaults.blobCount;
 		branchCount = defaults.branchCount;
 		blobSizeVariance = defaults.blobSizeVariance;
 		blobCloseness = defaults.blobCloseness;
+		branchThickness = defaults.branchThickness;
 	}
 
 	function randomizeSeed() {
@@ -173,8 +185,9 @@
 							<Label>Canopy Size: {canopySize}%</Label>
 							<input
 								type="range"
-								min="50"
-								max="200"
+								min="25"
+								max="400"
+								step="5"
 								bind:value={canopySize}
 								class="w-full accent-primary"
 							/>
@@ -287,8 +300,9 @@
 							<Label>Trunk Thickness: {trunkThickness}%</Label>
 							<input
 								type="range"
-								min="50"
-								max="200"
+								min="25"
+								max="400"
+								step="5"
 								bind:value={trunkThickness}
 								class="w-full accent-primary"
 							/>
@@ -297,8 +311,9 @@
 							<Label>Branch Thickness: {branchThickness}%</Label>
 							<input
 								type="range"
-								min="50"
-								max="200"
+								min="25"
+								max="400"
+								step="5"
 								bind:value={branchThickness}
 								class="w-full accent-primary"
 							/>

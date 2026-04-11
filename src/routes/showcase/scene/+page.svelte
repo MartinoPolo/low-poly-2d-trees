@@ -38,6 +38,10 @@
 		seed = Math.floor(Math.random() * 100000);
 	}
 
+	// Scene currently previews oak/pine/birch only. REQ-S-06 (all 6 non-custom
+	// shapes side by side) lands with issue #8, when fir/maple/willow get real
+	// generators. The placeholder generators for those shapes would render as
+	// oak clones, which would be misleading in the scene preview.
 	const trees = [
 		{ shape: 'oak' as const, ...SHAPE_DEFAULTS.oak, seedOffset: 0 },
 		{ shape: 'pine' as const, ...SHAPE_DEFAULTS.pine, seedOffset: 1000 },
@@ -123,8 +127,9 @@
 						<Label>Canopy Size: {canopySize}%</Label>
 						<input
 							type="range"
-							min="50"
-							max="200"
+							min="25"
+							max="400"
+							step="5"
 							bind:value={canopySize}
 							class="w-full accent-primary"
 						/>
@@ -146,8 +151,9 @@
 						<Label>Trunk Thickness: {trunkThickness}%</Label>
 						<input
 							type="range"
-							min="50"
-							max="200"
+							min="25"
+							max="400"
+							step="5"
 							bind:value={trunkThickness}
 							class="w-full accent-primary"
 						/>
@@ -156,8 +162,9 @@
 						<Label>Branch Thickness: {branchThickness}%</Label>
 						<input
 							type="range"
-							min="50"
-							max="200"
+							min="25"
+							max="400"
+							step="5"
 							bind:value={branchThickness}
 							class="w-full accent-primary"
 						/>

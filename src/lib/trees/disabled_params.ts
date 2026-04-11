@@ -3,12 +3,17 @@ import { TREE_SHAPES, type TreeShape } from './types.js';
 /**
  * Per-shape list of TreeConfig parameters that should be disabled in the UI.
  *
- * Note: `fir` will be added when issue #8 lands (same disabled set as `pine`).
+ * `fir` shares pine's disabled set per REQ-S-12 (branchCount always 0,
+ * trunkBranchRatio not applicable to tiered canopies).
  */
 export const DISABLED_PARAMS_BY_SHAPE = {
 	[TREE_SHAPES.oak]: [],
 	[TREE_SHAPES.pine]: ['branchCount', 'trunkBranchRatio'],
 	[TREE_SHAPES.birch]: [],
+	[TREE_SHAPES.fir]: ['branchCount', 'trunkBranchRatio'],
+	[TREE_SHAPES.maple]: [],
+	[TREE_SHAPES.willow]: [],
+	[TREE_SHAPES.custom]: [],
 } as const satisfies Record<TreeShape, readonly string[]>;
 
 /**

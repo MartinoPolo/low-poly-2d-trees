@@ -6,9 +6,16 @@ describe('DISABLED_PARAMS_BY_SHAPE', () => {
 		expect(DISABLED_PARAMS_BY_SHAPE.pine).toEqual(['branchCount', 'trunkBranchRatio']);
 	});
 
-	it('exposes empty disabled lists for oak and birch', () => {
+	it('exposes the fir disabled list (same as pine per REQ-S-12)', () => {
+		expect(DISABLED_PARAMS_BY_SHAPE.fir).toEqual(['branchCount', 'trunkBranchRatio']);
+	});
+
+	it('exposes empty disabled lists for oak, birch, maple, willow, custom', () => {
 		expect(DISABLED_PARAMS_BY_SHAPE.oak).toEqual([]);
 		expect(DISABLED_PARAMS_BY_SHAPE.birch).toEqual([]);
+		expect(DISABLED_PARAMS_BY_SHAPE.maple).toEqual([]);
+		expect(DISABLED_PARAMS_BY_SHAPE.willow).toEqual([]);
+		expect(DISABLED_PARAMS_BY_SHAPE.custom).toEqual([]);
 	});
 });
 
