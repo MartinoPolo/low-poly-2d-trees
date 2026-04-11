@@ -25,6 +25,9 @@
 		canopySize?: number;
 		trunkHeight?: number;
 		trunkBranchRatio?: number;
+		trunkLean?: number;
+		trunkSegments?: number;
+		trunkCrookedness?: number;
 		showCanopy?: boolean;
 		showBranches?: boolean;
 		showTrunk?: boolean;
@@ -56,6 +59,9 @@
 		canopySize = DEFAULT_TREE_CONFIG.canopySize,
 		trunkHeight = DEFAULT_TREE_CONFIG.trunkHeight,
 		trunkBranchRatio = DEFAULT_TREE_CONFIG.trunkBranchRatio,
+		trunkLean = DEFAULT_TREE_CONFIG.trunkLean,
+		trunkSegments = DEFAULT_TREE_CONFIG.trunkSegments,
+		trunkCrookedness = DEFAULT_TREE_CONFIG.trunkCrookedness,
 		showCanopy = true,
 		showBranches = true,
 		showTrunk = true,
@@ -87,6 +93,9 @@
 		canopySize,
 		trunkHeight,
 		trunkBranchRatio,
+		trunkLean,
+		trunkSegments,
+		trunkCrookedness,
 	});
 
 	const geometry = $derived(generateTree(config));

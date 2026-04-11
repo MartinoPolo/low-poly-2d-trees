@@ -5,7 +5,9 @@
 	import { Button } from '$lib/components/ui/button/index.js';
 	import { Checkbox } from '$lib/components/ui/checkbox/index.js';
 	import SectionCard from '$lib/components/composed/SectionCard.svelte';
+	import LabeledRangeSlider from '$lib/components/composed/LabeledRangeSlider.svelte';
 	import { DEFAULT_TREE_CONFIG, SHAPE_DEFAULTS } from '$lib/trees/types.js';
+	import { isParamDisabled } from '$lib/trees/disabled_params.js';
 	import DarkModeToggle from '$lib/components/DarkModeToggle.svelte';
 	import { resolve } from '$app/paths';
 	import Shuffle from '@lucide/svelte/icons/shuffle';
@@ -29,10 +31,20 @@
 	let canopySize = $state(DEFAULT_TREE_CONFIG.canopySize);
 	let trunkHeight = $state(DEFAULT_TREE_CONFIG.trunkHeight);
 	let trunkBranchRatio = $state(DEFAULT_TREE_CONFIG.trunkBranchRatio);
+	let trunkLean = $state(DEFAULT_TREE_CONFIG.trunkLean);
+	let trunkSegments = $state(DEFAULT_TREE_CONFIG.trunkSegments);
+	let trunkCrookedness = $state(DEFAULT_TREE_CONFIG.trunkCrookedness);
 	let showAnchors = $state(false);
 	let showCanopy = $state(true);
 	let showBranches = $state(true);
 	let showTrunk = $state(true);
+
+	// Scene sliders apply uniformly to all trees, so no single shape drives the
+	// disable rule — pass 'custom' (empty per-shape disable list) to evaluate
+	// only the cross-param rule (trunkCrookedness disabled when segments=1).
+	const trunkCrookednessDisabled = $derived(
+		isParamDisabled('custom', 'trunkCrookedness', { trunkSegments }),
+	);
 
 	function randomizeSeed() {
 		seed = Math.floor(Math.random() * 100000);
@@ -179,6 +191,30 @@
 							class="w-full accent-primary"
 						/>
 					</div>
+					<LabeledRangeSlider
+						label="Trunk Lean"
+						min={-45}
+						max={45}
+						step={1}
+						unit="°"
+						bind:value={trunkLean}
+					/>
+					<LabeledRangeSlider
+						label="Trunk Segments"
+						min={1}
+						max={5}
+						step={1}
+						bind:value={trunkSegments}
+					/>
+					<LabeledRangeSlider
+						label="Trunk Crookedness"
+						min={0}
+						max={100}
+						step={5}
+						unit="%"
+						bind:value={trunkCrookedness}
+						disabled={trunkCrookednessDisabled}
+					/>
 				</SectionCard>
 
 				<SectionCard title="Canopy Color" contentClass="space-y-4">
@@ -341,6 +377,9 @@
 						{canopySize}
 						{trunkHeight}
 						{trunkBranchRatio}
+						{trunkLean}
+						{trunkSegments}
+						{trunkCrookedness}
 						blobCount={tree.blobCount}
 						branchCount={tree.branchCount}
 						{showCanopy}
