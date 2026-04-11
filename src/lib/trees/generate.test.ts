@@ -1,7 +1,12 @@
 import { describe, it, expect } from 'vitest';
 import { generateTree } from './generate.js';
-import type { TreeConfig, TreeGeometry, Triangle } from './types.js';
-import { DEFAULT_TREE_CONFIG, VIEWBOX_WIDTH } from './types.js';
+import type { CustomBlob, TreeConfig, TreeGeometry, Triangle } from './types.js';
+import {
+	CUSTOM_BLOB_BOUNDARY_KINDS,
+	CUSTOM_BLOB_DEFAULT,
+	DEFAULT_TREE_CONFIG,
+	VIEWBOX_WIDTH,
+} from './types.js';
 
 // Helper to create config with overrides
 function makeConfig(overrides: Partial<TreeConfig> = {}): TreeConfig {
@@ -967,5 +972,237 @@ describe('Issue #8: new tree shapes (fir/maple/willow)', () => {
 		);
 		expect(geo.trunkTriangles.length).toBeGreaterThan(0);
 		expect(geo.branchTriangles.length).toBeGreaterThan(0);
+	});
+});
+
+// ============================================================================
+// Issue #10: custom tree shape
+// ============================================================================
+
+function makeCustomBlob(overrides: Partial<CustomBlob> = {}): CustomBlob {
+	return {
+		...CUSTOM_BLOB_DEFAULT,
+		...overrides,
+		position: {
+			...CUSTOM_BLOB_DEFAULT.position,
+			...overrides.position,
+		},
+	};
+}
+
+function computeCanopyBboxArea(geo: TreeGeometry): number {
+	const canopyTris = geo.canopyBlobs.flatMap((b) => b.triangles);
+	if (canopyTris.length === 0) {
+		return 0;
+	}
+	let minX = Infinity;
+	let minY = Infinity;
+	let maxX = -Infinity;
+	let maxY = -Infinity;
+	for (const tri of canopyTris) {
+		for (const p of tri.points) {
+			if (p.x < minX) {
+				minX = p.x;
+			}
+			if (p.x > maxX) {
+				maxX = p.x;
+			}
+			if (p.y < minY) {
+				minY = p.y;
+			}
+			if (p.y > maxY) {
+				maxY = p.y;
+			}
+		}
+	}
+	return (maxX - minX) * (maxY - minY);
+}
+
+describe('Issue #10: custom tree shape', () => {
+	it('shape=custom with no customBlobs produces zero canopy blobs', () => {
+		const geo = generateTree(makeConfig({ shape: 'custom', blobCount: 0, customBlobs: [] }));
+		expect(geo.canopyBlobs.length).toBe(0);
+	});
+
+	it('shape=custom with one circle blob produces one canopy blob with triangles', () => {
+		const geo = generateTree(
+			makeConfig({
+				shape: 'custom',
+				blobCount: 1,
+				customBlobs: [makeCustomBlob()],
+			}),
+		);
+		expect(geo.canopyBlobs.length).toBe(1);
+		expect(geo.canopyBlobs[0]!.triangles.length).toBeGreaterThan(0);
+	});
+
+	it.each([
+		CUSTOM_BLOB_BOUNDARY_KINDS.circle,
+		CUSTOM_BLOB_BOUNDARY_KINDS.egg,
+		CUSTOM_BLOB_BOUNDARY_KINDS.teardrop,
+		CUSTOM_BLOB_BOUNDARY_KINDS.isoscelesTriangle,
+		CUSTOM_BLOB_BOUNDARY_KINDS.equilateralTriangle,
+	])('custom tree with a %s boundary blob generates canopy triangles', (boundaryKind) => {
+		const geo = generateTree(
+			makeConfig({
+				shape: 'custom',
+				blobCount: 1,
+				customBlobs: [makeCustomBlob({ boundaryKind })],
+			}),
+		);
+		const canopyTris = geo.canopyBlobs.flatMap((b) => b.triangles);
+		expect(canopyTris.length).toBeGreaterThan(0);
+	});
+
+	it('custom tree is deterministic across runs (same config → same geometry)', () => {
+		const cfg = makeConfig({
+			shape: 'custom',
+			seed: 42,
+			blobCount: 3,
+			customBlobs: [
+				makeCustomBlob({
+					boundaryKind: CUSTOM_BLOB_BOUNDARY_KINDS.egg,
+					rotationDeg: 30,
+					sizeScale: 1.2,
+					position: { x: 0.2, y: -0.1 },
+				}),
+				makeCustomBlob({
+					boundaryKind: CUSTOM_BLOB_BOUNDARY_KINDS.equilateralTriangle,
+					rotationDeg: 90,
+					sizeScale: 0.8,
+					position: { x: -0.3, y: 0.2 },
+				}),
+				makeCustomBlob({
+					boundaryKind: CUSTOM_BLOB_BOUNDARY_KINDS.teardrop,
+					rotationDeg: 180,
+					sizeScale: 1.0,
+					position: { x: 0, y: 0.3 },
+				}),
+			],
+		});
+		const a = generateTree(cfg);
+		const b = generateTree(cfg);
+		expect(a).toEqual(b);
+	});
+
+	it('custom tree emits only valid hex colors across all triangles', () => {
+		const geo = generateTree(
+			makeConfig({
+				shape: 'custom',
+				blobCount: 2,
+				customBlobs: [
+					makeCustomBlob({ position: { x: 0.2, y: 0 } }),
+					makeCustomBlob({ position: { x: -0.2, y: 0 } }),
+				],
+			}),
+		);
+		for (const tri of allTriangles(geo)) {
+			expect(tri.color).toMatch(/^#[0-9a-f]{6}$/);
+		}
+	});
+
+	it('custom blob at position {x: 0.5, y: 0} shifts canopy vertices right of center', () => {
+		const centered = generateTree(
+			makeConfig({
+				shape: 'custom',
+				blobCount: 1,
+				customBlobs: [makeCustomBlob({ position: { x: 0, y: 0 } })],
+			}),
+		);
+		const shifted = generateTree(
+			makeConfig({
+				shape: 'custom',
+				blobCount: 1,
+				customBlobs: [makeCustomBlob({ position: { x: 0.5, y: 0 } })],
+			}),
+		);
+		const meanX = (geo: TreeGeometry): number => {
+			const tris = geo.canopyBlobs.flatMap((b) => b.triangles);
+			return (
+				tris.reduce(
+					(sum, tri) => sum + (tri.points[0].x + tri.points[1].x + tri.points[2].x) / 3,
+					0,
+				) / tris.length
+			);
+		};
+		// Position delta is 0.5·spreadRadius (0.5 · 200·0.22 = 22).
+		const delta = meanX(shifted) - meanX(centered);
+		expect(delta).toBeGreaterThan(15);
+		expect(delta).toBeLessThan(30);
+	});
+
+	it('custom blob with sizeScale=2.0 roughly doubles the bbox vs sizeScale=1.0', () => {
+		const smallGeo = generateTree(
+			makeConfig({
+				shape: 'custom',
+				blobCount: 1,
+				customBlobs: [makeCustomBlob({ sizeScale: 1.0 })],
+			}),
+		);
+		const largeGeo = generateTree(
+			makeConfig({
+				shape: 'custom',
+				blobCount: 1,
+				customBlobs: [makeCustomBlob({ sizeScale: 2.0 })],
+			}),
+		);
+		const ratio = computeCanopyBboxArea(largeGeo) / computeCanopyBboxArea(smallGeo);
+		expect(ratio).toBeGreaterThan(2.5);
+	});
+
+	it('custom egg blob rotation changes triangle vertices', () => {
+		const base = generateTree(
+			makeConfig({
+				shape: 'custom',
+				blobCount: 1,
+				customBlobs: [
+					makeCustomBlob({
+						boundaryKind: CUSTOM_BLOB_BOUNDARY_KINDS.egg,
+						rotationDeg: 0,
+					}),
+				],
+			}),
+		);
+		const rotated = generateTree(
+			makeConfig({
+				shape: 'custom',
+				blobCount: 1,
+				customBlobs: [
+					makeCustomBlob({
+						boundaryKind: CUSTOM_BLOB_BOUNDARY_KINDS.egg,
+						rotationDeg: 90,
+					}),
+				],
+			}),
+		);
+		expect(base.canopyBlobs[0]!.triangles).not.toEqual(rotated.canopyBlobs[0]!.triangles);
+	});
+
+	it('custom tree respects generic branch algorithm with branchCount=3', () => {
+		const geo = generateTree(
+			makeConfig({
+				shape: 'custom',
+				blobCount: 2,
+				branchCount: 3,
+				customBlobs: [
+					makeCustomBlob({ position: { x: 0.2, y: -0.2 } }),
+					makeCustomBlob({ position: { x: -0.2, y: 0.2 } }),
+				],
+			}),
+		);
+		expect(geo.branchTriangles.length).toBeGreaterThan(0);
+	});
+
+	it('custom tree trunk top penetrates canopy (trunk clamp still applies)', () => {
+		const geo = generateTree(
+			makeConfig({
+				shape: 'custom',
+				blobCount: 1,
+				customBlobs: [makeCustomBlob({ position: { x: 0, y: 0 } })],
+			}),
+		);
+		const canopyTris = geo.canopyBlobs.flatMap((b) => b.triangles);
+		const canopyMaxY = Math.max(...canopyTris.flatMap((t) => t.points.map((p) => p.y)));
+		expect(geo.anchors.trunkTop.y + 5).toBeLessThan(canopyMaxY);
 	});
 });

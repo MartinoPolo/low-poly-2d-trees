@@ -1,6 +1,11 @@
 <script lang="ts">
 	import { generateTree } from '$lib/trees/generate.js';
-	import { DEFAULT_TREE_CONFIG, type TreeConfig, type TreeAnchors } from '$lib/trees/types.js';
+	import {
+		DEFAULT_TREE_CONFIG,
+		type CustomBlob,
+		type TreeConfig,
+		type TreeAnchors,
+	} from '$lib/trees/types.js';
 
 	interface Props {
 		shape?: TreeConfig['shape'];
@@ -28,6 +33,7 @@
 		trunkCrookedness?: number;
 		branchLength?: number;
 		branchLengthVariance?: number;
+		customBlobs?: readonly CustomBlob[];
 		showCanopy?: boolean;
 		showBranches?: boolean;
 		showTrunk?: boolean;
@@ -62,6 +68,7 @@
 		trunkCrookedness = DEFAULT_TREE_CONFIG.trunkCrookedness,
 		branchLength = DEFAULT_TREE_CONFIG.branchLength,
 		branchLengthVariance = DEFAULT_TREE_CONFIG.branchLengthVariance,
+		customBlobs,
 		showCanopy = true,
 		showBranches = true,
 		showTrunk = true,
@@ -96,6 +103,7 @@
 		trunkCrookedness,
 		branchLength,
 		branchLengthVariance,
+		customBlobs,
 	});
 
 	const geometry = $derived(generateTree(config));

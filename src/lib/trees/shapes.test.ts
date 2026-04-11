@@ -11,12 +11,23 @@ import {
 	generateBranches,
 	getShapeDefinition,
 	computeEffectiveTrunkTop,
+	generateCustomBlobs,
+	growCustomBlobs,
+	CUSTOM_BLOB_CANOPY_CENTER_X,
+	CUSTOM_BLOB_CANOPY_CENTER_Y,
+	CUSTOM_BLOB_SPREAD_RADIUS,
 	type Blob,
 	type BranchSegment,
 } from './shapes.js';
 import { BOUNDARY_KINDS } from './boundaries.js';
 import { createPrng } from './prng.js';
-import { DEFAULT_TREE_CONFIG, VIEWBOX_WIDTH } from './types.js';
+import {
+	CUSTOM_BLOB_BOUNDARY_KINDS,
+	CUSTOM_BLOB_DEFAULT,
+	DEFAULT_TREE_CONFIG,
+	VIEWBOX_WIDTH,
+	type CustomBlob,
+} from './types.js';
 import type { Tier, TreeConfig } from './types.js';
 
 // ============================================================================
@@ -826,6 +837,227 @@ describe('REQ-C-22: willow canopy', () => {
 	it('willow is deterministic', () => {
 		const a = shapeDef.generateBlobs(createPrng(42), 4);
 		const b = shapeDef.generateBlobs(createPrng(42), 4);
+		expect(a).toEqual(b);
+	});
+});
+
+// ============================================================================
+// Issue #10: custom shape — generateCustomBlobs + growCustomBlobs
+// ============================================================================
+
+function makeCustomBlob(overrides: Partial<CustomBlob> = {}): CustomBlob {
+	return {
+		...CUSTOM_BLOB_DEFAULT,
+		...overrides,
+		position: {
+			...CUSTOM_BLOB_DEFAULT.position,
+			...overrides.position,
+		},
+	};
+}
+
+describe('Issue #10: generateCustomBlobs', () => {
+	const canopyCenterX = CUSTOM_BLOB_CANOPY_CENTER_X;
+	const canopyCenterY = CUSTOM_BLOB_CANOPY_CENTER_Y;
+	const spreadRadius = CUSTOM_BLOB_SPREAD_RADIUS;
+
+	it('returns an empty array when customBlobs is empty', () => {
+		const blobs = generateCustomBlobs([], 3, canopyCenterX, canopyCenterY, spreadRadius);
+		expect(blobs).toEqual([]);
+	});
+
+	it('returns an empty array when blobCount is 0', () => {
+		const customBlobs = [makeCustomBlob()];
+		const blobs = generateCustomBlobs(
+			customBlobs,
+			0,
+			canopyCenterX,
+			canopyCenterY,
+			spreadRadius,
+		);
+		expect(blobs).toEqual([]);
+	});
+
+	it('copies boundaryKind and rotationDeg from the custom blob entry', () => {
+		const customBlobs: CustomBlob[] = [
+			makeCustomBlob({
+				boundaryKind: CUSTOM_BLOB_BOUNDARY_KINDS.egg,
+				rotationDeg: 45,
+			}),
+		];
+		const blobs = generateCustomBlobs(
+			customBlobs,
+			1,
+			canopyCenterX,
+			canopyCenterY,
+			spreadRadius,
+		);
+		expect(blobs[0]!.boundary).toBe(BOUNDARY_KINDS.egg);
+		expect(blobs[0]!.rotationDeg).toBe(45);
+	});
+
+	it('maps position {x:0, y:0} to (canopyCenterX, canopyCenterY)', () => {
+		const blobs = generateCustomBlobs(
+			[makeCustomBlob()],
+			1,
+			canopyCenterX,
+			canopyCenterY,
+			spreadRadius,
+		);
+		expect(blobs[0]!.cx).toBe(canopyCenterX);
+		expect(blobs[0]!.cy).toBe(canopyCenterY);
+	});
+
+	it('maps position {x:1, y:0} to (canopyCenterX + spreadRadius, canopyCenterY)', () => {
+		const blobs = generateCustomBlobs(
+			[makeCustomBlob({ position: { x: 1, y: 0 } })],
+			1,
+			canopyCenterX,
+			canopyCenterY,
+			spreadRadius,
+		);
+		expect(blobs[0]!.cx).toBe(canopyCenterX + spreadRadius);
+		expect(blobs[0]!.cy).toBe(canopyCenterY);
+	});
+
+	it('maps position {x:-1, y:0} to (canopyCenterX - spreadRadius, canopyCenterY)', () => {
+		const blobs = generateCustomBlobs(
+			[makeCustomBlob({ position: { x: -1, y: 0 } })],
+			1,
+			canopyCenterX,
+			canopyCenterY,
+			spreadRadius,
+		);
+		expect(blobs[0]!.cx).toBe(canopyCenterX - spreadRadius);
+	});
+
+	it('maps position {x:0, y:1} to (canopyCenterX, canopyCenterY + spreadRadius)', () => {
+		const blobs = generateCustomBlobs(
+			[makeCustomBlob({ position: { x: 0, y: 1 } })],
+			1,
+			canopyCenterX,
+			canopyCenterY,
+			spreadRadius,
+		);
+		expect(blobs[0]!.cy).toBe(canopyCenterY + spreadRadius);
+	});
+
+	it('sizeScale = 2.0 doubles rx and ry vs sizeScale = 1.0', () => {
+		const a = generateCustomBlobs(
+			[makeCustomBlob({ sizeScale: 1.0 })],
+			1,
+			canopyCenterX,
+			canopyCenterY,
+			spreadRadius,
+		);
+		const b = generateCustomBlobs(
+			[makeCustomBlob({ sizeScale: 2.0 })],
+			1,
+			canopyCenterX,
+			canopyCenterY,
+			spreadRadius,
+		);
+		expect(b[0]!.rx).toBeCloseTo(a[0]!.rx * 2, 10);
+		expect(b[0]!.ry).toBeCloseTo(a[0]!.ry * 2, 10);
+	});
+
+	it('when blobCount < customBlobs.length, only uses the first blobCount entries', () => {
+		const customBlobs: CustomBlob[] = [
+			makeCustomBlob({ position: { x: 0, y: 0 } }),
+			makeCustomBlob({ position: { x: 0.5, y: 0 } }),
+			makeCustomBlob({ position: { x: -0.5, y: 0 } }),
+		];
+		const blobs = generateCustomBlobs(
+			customBlobs,
+			2,
+			canopyCenterX,
+			canopyCenterY,
+			spreadRadius,
+		);
+		expect(blobs.length).toBe(2);
+		expect(blobs[0]!.cx).toBe(canopyCenterX);
+		expect(blobs[1]!.cx).toBe(canopyCenterX + 0.5 * spreadRadius);
+	});
+
+	it('when blobCount > customBlobs.length, clamps to customBlobs.length', () => {
+		const customBlobs: CustomBlob[] = [makeCustomBlob()];
+		const blobs = generateCustomBlobs(
+			customBlobs,
+			5,
+			canopyCenterX,
+			canopyCenterY,
+			spreadRadius,
+		);
+		expect(blobs.length).toBe(1);
+	});
+});
+
+describe('Issue #10: growCustomBlobs', () => {
+	const seed = 42;
+	const closeness = 50;
+
+	it('growing an empty array to 3 returns 3 deterministic entries', () => {
+		const result = growCustomBlobs([], 3, seed, closeness);
+		expect(result.length).toBe(3);
+		const again = growCustomBlobs([], 3, seed, closeness);
+		expect(result).toEqual(again);
+	});
+
+	it('newly-seeded entries carry the default boundary/rotation/size', () => {
+		const result = growCustomBlobs([], 3, seed, closeness);
+		for (const entry of result) {
+			expect(entry.boundaryKind).toBe(CUSTOM_BLOB_BOUNDARY_KINDS.circle);
+			expect(entry.rotationDeg).toBe(0);
+			expect(entry.sizeScale).toBe(1.0);
+		}
+	});
+
+	it('newly-seeded positions stay within [-1, +1]', () => {
+		const result = growCustomBlobs([], 8, seed, closeness);
+		for (const entry of result) {
+			expect(entry.position.x).toBeGreaterThanOrEqual(-1);
+			expect(entry.position.x).toBeLessThanOrEqual(1);
+			expect(entry.position.y).toBeGreaterThanOrEqual(-1);
+			expect(entry.position.y).toBeLessThanOrEqual(1);
+		}
+	});
+
+	it('growing past existing length preserves existing entries', () => {
+		const existing: CustomBlob[] = [
+			makeCustomBlob({
+				boundaryKind: CUSTOM_BLOB_BOUNDARY_KINDS.egg,
+				rotationDeg: 90,
+				sizeScale: 1.5,
+				position: { x: 0.3, y: -0.2 },
+			}),
+			makeCustomBlob({
+				boundaryKind: CUSTOM_BLOB_BOUNDARY_KINDS.teardrop,
+				rotationDeg: 180,
+				sizeScale: 0.8,
+				position: { x: -0.5, y: 0.4 },
+			}),
+		];
+		const result = growCustomBlobs(existing, 5, seed, closeness);
+		expect(result.length).toBe(5);
+		expect(result[0]).toEqual(existing[0]);
+		expect(result[1]).toEqual(existing[1]);
+	});
+
+	it('never truncates: target < existing.length returns existing unchanged', () => {
+		const existing: CustomBlob[] = [
+			makeCustomBlob({ position: { x: 0.1, y: 0.1 } }),
+			makeCustomBlob({ position: { x: 0.2, y: 0.2 } }),
+			makeCustomBlob({ position: { x: 0.3, y: 0.3 } }),
+			makeCustomBlob({ position: { x: 0.4, y: 0.4 } }),
+			makeCustomBlob({ position: { x: 0.5, y: 0.5 } }),
+		];
+		const result = growCustomBlobs(existing, 2, seed, closeness);
+		expect(result).toBe(existing);
+	});
+
+	it('is deterministic: same arguments produce .toEqual results', () => {
+		const a = growCustomBlobs([], 4, seed, closeness);
+		const b = growCustomBlobs([], 4, seed, closeness);
 		expect(a).toEqual(b);
 	});
 });

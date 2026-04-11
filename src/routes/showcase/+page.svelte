@@ -8,15 +8,27 @@
 	import { Input } from '$lib/components/ui/input/index.js';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import * as Card from '$lib/components/ui/card/index.js';
+	import * as Accordion from '$lib/components/ui/accordion/index.js';
 	import { Checkbox } from '$lib/components/ui/checkbox/index.js';
 	import {
 		TREE_SHAPES,
 		TREE_SHAPE_OPTIONS,
 		SHAPE_DEFAULTS,
 		DEFAULT_TREE_CONFIG,
+		CUSTOM_BLOB_BOUNDARY_OPTIONS,
+		CUSTOM_BLOB_POSITION_MAX,
+		CUSTOM_BLOB_POSITION_MIN,
+		CUSTOM_BLOB_POSITION_STEP,
+		CUSTOM_BLOB_ROTATION_STEP,
+		CUSTOM_BLOB_SIZE_MAX,
+		CUSTOM_BLOB_SIZE_MIN,
+		CUSTOM_BLOB_SIZE_STEP,
+		type CustomBlob,
+		type CustomBlobBoundaryKind,
 		type TreeConfig,
 		type TreeShape,
 	} from '$lib/trees/types.js';
+	import { growCustomBlobs } from '$lib/trees/shapes.js';
 	import { isParamDisabled } from '$lib/trees/disabled_params.js';
 	import { getSavedTree, saveTree } from '$lib/trees/saved_trees.remote.js';
 	import { page } from '$app/state';
@@ -51,6 +63,9 @@
 	let branchLength = $state(DEFAULT_TREE_CONFIG.branchLength);
 	let branchLengthVariance = $state(DEFAULT_TREE_CONFIG.branchLengthVariance);
 	let depthVariance = $state(DEFAULT_TREE_CONFIG.depthVariance);
+	// Use `$state.raw` because the array is replaced wholesale (never mutated
+	// in place) and is read-heavy — per-entry proxy wrapping adds no value.
+	let customBlobs = $state.raw<readonly CustomBlob[]>([]);
 	let showAnchors = $state(false);
 	let showCanopy = $state(true);
 	let showBranches = $state(true);
@@ -82,6 +97,9 @@
 		trunkCrookedness,
 		branchLength,
 		branchLengthVariance,
+		// Persist per-blob overrides only for the custom shape so saved trees
+		// round-trip through `applyConfig` without losing tuning.
+		customBlobs: shape === TREE_SHAPES.custom ? customBlobs : undefined,
 	});
 
 	const branchCountDisabled = $derived(isParamDisabled(shape, 'branchCount', {}));
@@ -120,6 +138,9 @@
 		trunkCrookedness = config.trunkCrookedness;
 		branchLength = config.branchLength;
 		branchLengthVariance = config.branchLengthVariance;
+		// Restore custom blob overrides from the saved config. Empty array if
+		// the saved tree was a non-custom shape (customBlobs is optional).
+		customBlobs = config.customBlobs ?? [];
 	}
 
 	function isTreeShape(value: string): value is TreeShape {
@@ -132,6 +153,10 @@
 		}
 		shape = value;
 		if (value === TREE_SHAPES.custom) {
+			// Lazily seed enough blobs for the current blobCount so switching
+			// into the custom editor never shows an empty canopy. Existing
+			// entries are preserved (growCustomBlobs never truncates).
+			customBlobs = growCustomBlobs(customBlobs, blobCount, seed, blobCloseness);
 			return;
 		}
 		const defaults = SHAPE_DEFAULTS[value];
@@ -149,6 +174,41 @@
 		trunkHue = defaults.trunkHue;
 		trunkSaturation = defaults.trunkSaturation;
 		trunkLightness = defaults.trunkLightness;
+	}
+
+	function onBlobCountInput(event: Event) {
+		const target = event.currentTarget as HTMLInputElement;
+		const next = Number(target.value);
+		blobCount = next;
+		if (shape === TREE_SHAPES.custom) {
+			customBlobs = growCustomBlobs(customBlobs, next, seed, blobCloseness);
+		}
+	}
+
+	interface CustomBlobPatch {
+		readonly boundaryKind?: CustomBlobBoundaryKind;
+		readonly rotationDeg?: number;
+		readonly sizeScale?: number;
+		readonly position?: { readonly x?: number; readonly y?: number };
+	}
+
+	function updateCustomBlob(index: number, patch: CustomBlobPatch): void {
+		if (index < 0 || index >= customBlobs.length) {
+			return;
+		}
+		const current = customBlobs[index]!;
+		const next: CustomBlob = {
+			boundaryKind: patch.boundaryKind ?? current.boundaryKind,
+			rotationDeg: patch.rotationDeg ?? current.rotationDeg,
+			sizeScale: patch.sizeScale ?? current.sizeScale,
+			position: {
+				x: patch.position?.x ?? current.position.x,
+				y: patch.position?.y ?? current.position.y,
+			},
+		};
+		const updated = [...customBlobs];
+		updated[index] = next;
+		customBlobs = updated;
 	}
 
 	function randomizeSeed() {
@@ -258,7 +318,8 @@
 								type="range"
 								min="1"
 								max="8"
-								bind:value={blobCount}
+								value={blobCount}
+								oninput={onBlobCountInput}
 								class="w-full accent-primary"
 							/>
 						</div>
@@ -303,6 +364,132 @@
 						</div>
 					</Card.Content>
 				</Card.Root>
+
+				{#if shape === TREE_SHAPES.custom}
+					<Card.Root class="xl:col-span-2">
+						<Card.Header>
+							<Card.Title>Custom Blobs</Card.Title>
+						</Card.Header>
+						<Card.Content>
+							<Accordion.Root type="multiple" class="w-full">
+								{#each customBlobs.slice(0, blobCount) as blob, i (i)}
+									<Accordion.Item value={`blob-${i}`}>
+										<Accordion.Trigger>
+											<span
+												class="flex flex-1 items-center justify-between pr-2"
+											>
+												<span class="font-medium">Blob {i + 1}</span>
+												<span class="text-xs text-muted-foreground">
+													{CUSTOM_BLOB_BOUNDARY_OPTIONS.find(
+														(o) => o.value === blob.boundaryKind,
+													)?.label ?? blob.boundaryKind}
+												</span>
+											</span>
+										</Accordion.Trigger>
+										<Accordion.Content>
+											<div class="space-y-4 pt-2">
+												<LabeledSelect
+													label="Boundary"
+													options={CUSTOM_BLOB_BOUNDARY_OPTIONS}
+													value={blob.boundaryKind}
+													onValueChange={(value) =>
+														updateCustomBlob(i, {
+															boundaryKind:
+																value as CustomBlobBoundaryKind,
+														})}
+												/>
+												<div class="space-y-2">
+													<Label>Rotation: {blob.rotationDeg}°</Label>
+													<input
+														type="range"
+														min="0"
+														max="360"
+														step={CUSTOM_BLOB_ROTATION_STEP}
+														value={blob.rotationDeg}
+														oninput={(e) =>
+															updateCustomBlob(i, {
+																rotationDeg: Number(
+																	(
+																		e.currentTarget as HTMLInputElement
+																	).value,
+																),
+															})}
+														class="w-full accent-primary"
+													/>
+												</div>
+												<div class="space-y-2">
+													<Label
+														>Size: {Math.round(
+															blob.sizeScale * 100,
+														)}%</Label
+													>
+													<input
+														type="range"
+														min={CUSTOM_BLOB_SIZE_MIN}
+														max={CUSTOM_BLOB_SIZE_MAX}
+														step={CUSTOM_BLOB_SIZE_STEP}
+														value={blob.sizeScale}
+														oninput={(e) =>
+															updateCustomBlob(i, {
+																sizeScale: Number(
+																	(
+																		e.currentTarget as HTMLInputElement
+																	).value,
+																),
+															})}
+														class="w-full accent-primary"
+													/>
+												</div>
+												<div class="space-y-2">
+													<Label>X: {blob.position.x.toFixed(2)}</Label>
+													<input
+														type="range"
+														min={CUSTOM_BLOB_POSITION_MIN}
+														max={CUSTOM_BLOB_POSITION_MAX}
+														step={CUSTOM_BLOB_POSITION_STEP}
+														value={blob.position.x}
+														oninput={(e) =>
+															updateCustomBlob(i, {
+																position: {
+																	x: Number(
+																		(
+																			e.currentTarget as HTMLInputElement
+																		).value,
+																	),
+																},
+															})}
+														class="w-full accent-primary"
+													/>
+												</div>
+												<div class="space-y-2">
+													<Label>Y: {blob.position.y.toFixed(2)}</Label>
+													<input
+														type="range"
+														min={CUSTOM_BLOB_POSITION_MIN}
+														max={CUSTOM_BLOB_POSITION_MAX}
+														step={CUSTOM_BLOB_POSITION_STEP}
+														value={blob.position.y}
+														oninput={(e) =>
+															updateCustomBlob(i, {
+																position: {
+																	y: Number(
+																		(
+																			e.currentTarget as HTMLInputElement
+																		).value,
+																	),
+																},
+															})}
+														class="w-full accent-primary"
+													/>
+												</div>
+											</div>
+										</Accordion.Content>
+									</Accordion.Item>
+								{/each}
+							</Accordion.Root>
+						</Card.Content>
+					</Card.Root>
+				{/if}
 
 				<CanopyColorCard
 					bind:lightColor={canopyLightColor}
@@ -501,6 +688,7 @@
 					{branchLength}
 					{branchLengthVariance}
 					{depthVariance}
+					{customBlobs}
 					{showCanopy}
 					{showBranches}
 					{showTrunk}
