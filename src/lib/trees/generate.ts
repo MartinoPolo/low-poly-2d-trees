@@ -11,6 +11,7 @@ import type {
 	TreeShape,
 } from './types.js';
 import { GEOMETRY_GROUPS, VIEWBOX_WIDTH, VIEWBOX_HEIGHT, TREE_SHAPES } from './types.js';
+import { applyStageModifiers, generateStakeTriangles } from './stages/index.js';
 import { createPrng, poissonSample, randomInRange } from './prng.js';
 import {
 	getShapeDefinition,
@@ -572,6 +573,19 @@ function generateMapleBranches(
 // ---------------------------------------------------------------------------
 
 export function generateTree(config: TreeConfig): TreeGeometry {
+	// Stage dispatch: custom shape ignores stage entirely.
+	if (config.shape !== TREE_SHAPES.custom) {
+		const stageResult = applyStageModifiers(config);
+		if (stageResult.kind === 'directGeometry') {
+			return stageResult.geometry;
+		}
+		// Use modified config for the rest of the pipeline
+		return generateTreeCore(stageResult.config, stageResult.addStakes, stageResult.addFruit);
+	}
+	return generateTreeCore(config, false, false);
+}
+
+function generateTreeCore(config: TreeConfig, addStakes: boolean, addFruit: boolean): TreeGeometry {
 	const rng = createPrng(config.seed);
 	const shapeDef = getShapeDefinition(config.shape);
 	const isPine = config.shape === TREE_SHAPES.pine;
@@ -744,11 +758,16 @@ export function generateTree(config: TreeConfig): TreeGeometry {
 		config.seed,
 	);
 
+	const stakeTriangles = addStakes ? generateStakeTriangles(anchors) : [];
+	const fruitSlots = addFruit ? anchors.fruitSlots : [];
+
 	return {
 		trunkTriangles,
 		branchTriangles,
 		branchGroups,
 		canopyBlobs,
+		stakeTriangles,
+		fruitSlots,
 		anchors,
 		viewBox: { width: VIEWBOX_WIDTH, height: VIEWBOX_HEIGHT },
 	};

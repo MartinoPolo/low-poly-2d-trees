@@ -11,6 +11,9 @@ export {
 } from './types/core.js';
 
 export {
+	TREE_STAGES,
+	type TreeStage,
+	TREE_STAGE_OPTIONS,
 	TREE_SHAPES,
 	type TreeShape,
 	TREE_SHAPE_OPTIONS,
@@ -19,6 +22,7 @@ export {
 	SHAPE_DEFAULTS,
 	VIEWBOX_WIDTH,
 	VIEWBOX_HEIGHT,
+	isTreeStage,
 } from './types/config.js';
 
 export {

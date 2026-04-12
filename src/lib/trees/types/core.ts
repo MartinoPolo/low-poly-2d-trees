@@ -2,6 +2,7 @@ export const GEOMETRY_GROUPS = {
 	canopy: 'canopy',
 	trunk: 'trunk',
 	branch: 'branch',
+	stake: 'stake',
 } as const;
 
 export type GeometryGroup = (typeof GEOMETRY_GROUPS)[keyof typeof GEOMETRY_GROUPS];
@@ -53,6 +54,8 @@ export interface TreeGeometry {
 	readonly branchTriangles: readonly Triangle[];
 	readonly branchGroups: readonly BranchGeometry[];
 	readonly canopyBlobs: readonly BlobGeometry[];
+	readonly stakeTriangles: readonly Triangle[];
+	readonly fruitSlots: readonly Point2D[];
 	readonly anchors: TreeAnchors;
 	readonly viewBox: { readonly width: number; readonly height: number };
 }

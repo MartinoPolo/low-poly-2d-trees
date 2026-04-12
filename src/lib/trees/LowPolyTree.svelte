@@ -1,6 +1,11 @@
 <script lang="ts">
 	import { generateTree } from '$lib/trees/generate.js';
-	import { DEFAULT_TREE_CONFIG, type TreeConfig, type TreeAnchors } from '$lib/trees/types.js';
+	import {
+		DEFAULT_TREE_CONFIG,
+		TREE_STAGES,
+		type TreeConfig,
+		type TreeAnchors,
+	} from '$lib/trees/types.js';
 	import {
 		computeAnimationDelay,
 		computeBranchDuration,
@@ -34,6 +39,7 @@
 	}: Props = $props();
 
 	const geometry = $derived(generateTree(config));
+	const hasGlow = $derived(config.stage === TREE_STAGES.ready);
 
 	const canopySwayDelay = $derived(computeAnimationDelay(config.seed));
 
@@ -54,14 +60,13 @@
 	viewBox="0 0 {geometry.viewBox.width} {geometry.viewBox.height}"
 	xmlns="http://www.w3.org/2000/svg"
 	class={className}
+	style={hasGlow ? 'filter: drop-shadow(0 0 8px gold)' : undefined}
 >
 	<g
 		class="tree-root"
 		class:animate-growth={animateGrowth}
-		style="
-
---growth-origin-x: {geometry.anchors.trunkBase.x}px; --growth-origin-y: {geometry.anchors.trunkBase
-			.y}px;"
+		style="--growth-origin-x: {geometry.anchors.trunkBase.x}px; --growth-origin-y: {geometry
+			.anchors.trunkBase.y}px;"
 	>
 		{#if showTrunk}
 			<g class="trunk">
@@ -83,12 +88,10 @@
 					<g
 						class="branch-group"
 						class:animate-branch-sway={animateBranches}
-						style="
-
---branch-duration: {branchDurations[groupIndex]}s; --branch-delay: {branchDelays[
+						style="--branch-duration: {branchDurations[
 							groupIndex
-						]}s; --branch-origin-x: {group.origin.x}px; --branch-origin-y: {group.origin
-							.y}px;"
+						]}s; --branch-delay: {branchDelays[groupIndex]}s; --branch-origin-x: {group
+							.origin.x}px; --branch-origin-y: {group.origin.y}px;"
 					>
 						{#each group.triangles as tri (tri)}
 							<polygon
@@ -110,9 +113,8 @@
 					<g
 						class="canopy-blob"
 						class:animate-canopy-sway={animateCanopySway}
-						style="
-
---sway-delay: {canopySwayDelay + blobIndex * 0.15}s; --sway-origin-x: {blob.center
+						style="--sway-delay: {canopySwayDelay +
+							blobIndex * 0.15}s; --sway-origin-x: {blob.center
 							.x}px; --sway-origin-y: {blob.center.y}px;"
 					>
 						{#each blob.triangles as tri (tri)}
@@ -125,6 +127,35 @@
 							/>
 						{/each}
 					</g>
+				{/each}
+			</g>
+		{/if}
+
+		{#if geometry.stakeTriangles.length > 0}
+			<g class="stakes">
+				{#each geometry.stakeTriangles as tri (tri)}
+					<polygon
+						points="{tri.points[0].x},{tri.points[0].y} {tri.points[1].x},{tri.points[1]
+							.y} {tri.points[2].x},{tri.points[2].y}"
+						fill={tri.color}
+						stroke={tri.color}
+						stroke-width="0.5"
+					/>
+				{/each}
+			</g>
+		{/if}
+
+		{#if geometry.fruitSlots.length > 0}
+			<g class="fruit">
+				{#each geometry.fruitSlots as slot (slot)}
+					<circle
+						cx={slot.x}
+						cy={slot.y}
+						r="4"
+						fill="#E74C3C"
+						stroke="#C0392B"
+						stroke-width="0.5"
+					/>
 				{/each}
 			</g>
 		{/if}
