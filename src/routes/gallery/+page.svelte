@@ -54,7 +54,7 @@
 			'status' in error &&
 			(error as { status: unknown }).status === 401
 		) {
-			void goto(resolve('/auth'));
+			void goto(resolve('/auth/sign-in'));
 		}
 	}
 </script>

@@ -3,6 +3,13 @@
 	import { Input } from '$lib/components/ui/input/index.js';
 	import { Label } from '$lib/components/ui/label/index.js';
 	import { Separator } from '$lib/components/ui/separator/index.js';
+	import {
+		Card,
+		CardContent,
+		CardDescription,
+		CardHeader,
+	} from '$lib/components/ui/card/index.js';
+	import { Alert, AlertDescription } from '$lib/components/ui/alert/index.js';
 	import { authClient } from '$lib/auth/client.js';
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
@@ -17,14 +24,11 @@
 		email: 'Email',
 	} as const satisfies Record<PendingAction, string>;
 
-	let mode = $state<'sign-in' | 'sign-up'>('sign-in');
 	let errorMessage = $state<string | null>(null);
 	let pendingAction = $state<PendingAction | null>(null);
 
-	let name = $state('');
 	let email = $state('');
 	let password = $state('');
-	let confirmPassword = $state('');
 
 	async function signInWithSocial(provider: SocialProvider) {
 		errorMessage = null;
@@ -50,88 +54,52 @@
 
 	async function handleEmailSubmit() {
 		errorMessage = null;
-
-		if (mode === 'sign-up' && password !== confirmPassword) {
-			errorMessage = 'Passwords do not match.';
+		pendingAction = 'email';
+		const result = await authClient.signIn.email({ email, password });
+		if (result.error) {
+			errorMessage = result.error.message ?? 'Sign-in failed.';
+			pendingAction = null;
 			return;
 		}
-
-		pendingAction = 'email';
-
-		if (mode === 'sign-up') {
-			const result = await authClient.signUp.email({
-				email,
-				password,
-				name,
-			});
-			if (result.error) {
-				errorMessage = result.error.message ?? 'Sign-up failed.';
-				pendingAction = null;
-				return;
-			}
-		} else {
-			const result = await authClient.signIn.email({
-				email,
-				password,
-			});
-			if (result.error) {
-				errorMessage = result.error.message ?? 'Sign-in failed.';
-				pendingAction = null;
-				return;
-			}
-		}
-
 		await goto(resolve('/'));
-	}
-
-	function toggleMode() {
-		mode = mode === 'sign-in' ? 'sign-up' : 'sign-in';
-		errorMessage = null;
 	}
 </script>
 
 <svelte:head>
-	<title>{mode === 'sign-in' ? 'Sign in' : 'Sign up'}</title>
+	<title>Sign In</title>
 </svelte:head>
 
-<main
-	class="bg-background text-foreground flex min-h-screen items-center justify-center px-6 py-12"
->
-	<section class="w-full max-w-sm space-y-6">
-		<header class="space-y-2 text-center">
-			<h1 class="text-3xl font-bold tracking-tight">
-				{mode === 'sign-in' ? 'Sign in' : 'Sign up'}
-			</h1>
-			<p class="text-muted-foreground text-sm">
-				{mode === 'sign-in'
-					? 'Continue with a social account, passkey, or email.'
-					: 'Create your account to get started.'}
-			</p>
-		</header>
-
-		<!-- OAuth buttons -->
-		<div class="flex flex-col gap-3">
+<Card>
+	<CardHeader class="text-center">
+		<h1 class="text-2xl font-medium leading-normal">Sign In</h1>
+		<CardDescription>Continue with a social account, passkey, or email.</CardDescription>
+	</CardHeader>
+	<CardContent class="space-y-4">
+		<div class="flex gap-3">
 			<Button
+				class="flex-1"
 				data-testid="sign-in-google"
 				disabled={pendingAction !== null}
 				onclick={() => signInWithSocial('google')}
 			>
-				Continue with Google
+				Google
 			</Button>
 			<Button
+				class="flex-1"
 				data-testid="sign-in-github"
 				disabled={pendingAction !== null}
 				onclick={() => signInWithSocial('github')}
 			>
-				Continue with GitHub
+				GitHub
 			</Button>
 			<Button
-				data-testid="sign-in-passkey"
+				class="flex-1"
 				variant="outline"
+				data-testid="sign-in-passkey"
 				disabled={pendingAction !== null}
 				onclick={signInWithPasskey}
 			>
-				Continue with Passkey
+				Passkey
 			</Button>
 		</div>
 
@@ -141,7 +109,6 @@
 			<Separator class="flex-1" />
 		</div>
 
-		<!-- Email/password form -->
 		<form
 			class="flex flex-col gap-4"
 			onsubmit={(event) => {
@@ -149,20 +116,6 @@
 				void handleEmailSubmit();
 			}}
 		>
-			{#if mode === 'sign-up'}
-				<div class="space-y-2">
-					<Label for="name">Name</Label>
-					<Input
-						id="name"
-						data-testid="auth-name"
-						type="text"
-						placeholder="Your name"
-						required
-						bind:value={name}
-					/>
-				</div>
-			{/if}
-
 			<div class="space-y-2">
 				<Label for="email">Email</Label>
 				<Input
@@ -188,52 +141,26 @@
 				/>
 			</div>
 
-			{#if mode === 'sign-up'}
-				<div class="space-y-2">
-					<Label for="confirm-password">Confirm Password</Label>
-					<Input
-						id="confirm-password"
-						data-testid="auth-confirm-password"
-						type="password"
-						placeholder="••••••••"
-						required
-						minlength={8}
-						bind:value={confirmPassword}
-					/>
-				</div>
-			{/if}
-
 			<Button type="submit" data-testid="auth-email-submit" disabled={pendingAction !== null}>
-				{mode === 'sign-in' ? 'Sign in' : 'Sign up'}
+				Sign in
 			</Button>
 		</form>
 
 		{#if errorMessage}
-			<p role="alert" class="text-destructive text-center text-sm">{errorMessage}</p>
+			<Alert variant="destructive">
+				<AlertDescription>{errorMessage}</AlertDescription>
+			</Alert>
 		{/if}
 
 		<p class="text-muted-foreground text-center text-sm">
-			{#if mode === 'sign-in'}
-				Don't have an account?
-				<button
-					type="button"
-					class="text-foreground underline underline-offset-4 hover:text-primary"
-					data-testid="auth-toggle-mode"
-					onclick={toggleMode}
-				>
-					Sign up
-				</button>
-			{:else}
-				Already have an account?
-				<button
-					type="button"
-					class="text-foreground underline underline-offset-4 hover:text-primary"
-					data-testid="auth-toggle-mode"
-					onclick={toggleMode}
-				>
-					Sign in
-				</button>
-			{/if}
+			Don't have an account?
+			<a
+				href={resolve('/auth/sign-up')}
+				class="text-foreground underline underline-offset-4 hover:text-primary"
+				data-testid="auth-cross-link"
+			>
+				Sign up
+			</a>
 		</p>
-	</section>
-</main>
+	</CardContent>
+</Card>
