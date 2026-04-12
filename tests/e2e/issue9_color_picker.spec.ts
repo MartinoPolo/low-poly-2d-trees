@@ -14,9 +14,9 @@ test.describe('Issue #9 — Color system overhaul', () => {
 		await expect(lightPicker).toHaveValue('#a8d84e');
 		await expect(darkPicker).toHaveValue('#1a472a');
 
-		// Hex text labels are visible next to each picker
-		await expect(page.getByText('#a8d84e').first()).toBeVisible();
-		await expect(page.getByText('#1a472a').first()).toBeVisible();
+		// Hex values are visible in editable inputs next to each picker
+		await expect(page.locator('[data-hex="canopy-light"]').first()).toHaveValue('#a8d84e');
+		await expect(page.locator('[data-hex="canopy-dark"]').first()).toHaveValue('#1a472a');
 	});
 
 	test('single editor: per-shape defaults toggle is NOT present (REQ-L-09b)', async ({
