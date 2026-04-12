@@ -14,10 +14,10 @@ function hasValidAnchors(geo: TreeGeometry): boolean {
 		typeof anchors.trunkTop.y === 'number' &&
 		typeof anchors.trunkMiddle.x === 'number' &&
 		typeof anchors.trunkMiddle.y === 'number' &&
-		typeof anchors.trunkBottom.x === 'number' &&
-		typeof anchors.trunkBottom.y === 'number' &&
-		typeof anchors.canopyCenter.x === 'number' &&
-		typeof anchors.canopyCenter.y === 'number'
+		typeof anchors.trunkBase.x === 'number' &&
+		typeof anchors.trunkBase.y === 'number' &&
+		typeof anchors.crownCenter.x === 'number' &&
+		typeof anchors.crownCenter.y === 'number'
 	);
 }
 

@@ -54,8 +54,12 @@ export function generateStumpGeometry(): TreeGeometry {
 	const anchors = {
 		trunkTop: { x: cx, y: stumpTop - 3 },
 		trunkMiddle: { x: cx, y: (groundY + stumpTop) / 2 },
-		trunkBottom: { x: cx, y: groundY },
-		canopyCenter: { x: cx, y: stumpTop - 3 },
+		trunkBase: { x: cx, y: groundY },
+		crownCenter: { x: cx, y: stumpTop - 3 },
+		crownTop: { x: cx, y: stumpTop - 3 },
+		roots: { x: cx, y: groundY + 15 },
+		branchTips: [],
+		fruitSlots: [],
 	};
 
 	return {

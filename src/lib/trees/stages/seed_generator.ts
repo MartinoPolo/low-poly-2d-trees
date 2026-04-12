@@ -43,8 +43,12 @@ export function generateSeedGeometry(): TreeGeometry {
 	const anchors = {
 		trunkTop: { x: cx, y: groundY - 14 },
 		trunkMiddle: { x: cx, y: groundY - 6 },
-		trunkBottom: { x: cx, y: groundY + 2 },
-		canopyCenter: { x: cx, y: groundY - 8 },
+		trunkBase: { x: cx, y: groundY + 2 },
+		crownCenter: { x: cx, y: groundY - 8 },
+		crownTop: { x: cx, y: groundY - 14 },
+		roots: { x: cx, y: groundY + 15 },
+		branchTips: [],
+		fruitSlots: [],
 	};
 
 	return {

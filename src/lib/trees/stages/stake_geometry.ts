@@ -7,9 +7,9 @@ const STAKE_HALF_WIDTH = 2;
 const STAKE_OFFSET_X = 18;
 
 export function generateStakeTriangles(anchors: TreeAnchors): Triangle[] {
-	const baseY = anchors.trunkBottom.y;
+	const baseY = anchors.trunkBase.y;
 	const topY = anchors.trunkMiddle.y;
-	const cx = anchors.trunkBottom.x;
+	const cx = anchors.trunkBase.x;
 
 	const leftX = cx - STAKE_OFFSET_X;
 	const rightX = cx + STAKE_OFFSET_X;

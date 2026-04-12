@@ -47,8 +47,12 @@ export function generateSproutingGeometry(): TreeGeometry {
 	const anchors = {
 		trunkTop: { x: cx, y: stemTop },
 		trunkMiddle: { x: cx, y: (groundY + stemTop) / 2 },
-		trunkBottom: { x: cx, y: groundY },
-		canopyCenter: { x: cx, y: stemTop - 3 },
+		trunkBase: { x: cx, y: groundY },
+		crownCenter: { x: cx, y: stemTop - 3 },
+		crownTop: { x: cx, y: stemTop - 10 },
+		roots: { x: cx, y: groundY + 15 },
+		branchTips: [],
+		fruitSlots: [],
 	};
 
 	return {

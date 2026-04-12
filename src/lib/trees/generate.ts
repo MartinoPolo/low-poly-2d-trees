@@ -10,7 +10,7 @@ import type {
 	TreeShape,
 } from './types.js';
 import { GEOMETRY_GROUPS, VIEWBOX_WIDTH, VIEWBOX_HEIGHT, TREE_SHAPES } from './types.js';
-import { applyStageModifiers, computeFruitSlots, generateStakeTriangles } from './stages/index.js';
+import { applyStageModifiers, generateStakeTriangles } from './stages/index.js';
 import { createPrng, poissonSample, randomInRange } from './prng.js';
 import {
 	getShapeDefinition,
@@ -746,7 +746,7 @@ function generateTreeCore(config: TreeConfig, addStakes: boolean, addFruit: bool
 	);
 
 	const stakeTriangles = addStakes ? generateStakeTriangles(anchors) : [];
-	const fruitSlots = addFruit ? computeFruitSlots(canopyBlobs) : [];
+	const fruitSlots = addFruit ? anchors.fruitSlots : [];
 
 	return {
 		trunkTriangles,
