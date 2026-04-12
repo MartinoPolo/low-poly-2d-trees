@@ -1,4 +1,4 @@
-import type { Handle } from '@sveltejs/kit';
+import type { Handle, HandleServerError } from '@sveltejs/kit';
 import { sequence } from '@sveltejs/kit/hooks';
 import { auth } from '$lib/server/auth.js';
 import { paraglideMiddleware } from '$lib/paraglide/server';
@@ -28,3 +28,11 @@ const authHandle: Handle = async ({ event, resolve }) => {
 };
 
 export const handle = sequence(paraglideHandle, authHandle);
+
+export const handleError: HandleServerError = ({ error, status }) => {
+	if (status === 404) {
+		return { message: 'Not found' };
+	}
+	console.error(error);
+	return { message: 'An unexpected error occurred' };
+};

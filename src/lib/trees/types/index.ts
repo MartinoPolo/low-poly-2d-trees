@@ -1,4 +1,3 @@
-// Barrel re-export — the actual definitions live in types/*.ts modules.
 export {
 	GEOMETRY_GROUPS,
 	type GeometryGroup,
@@ -8,7 +7,7 @@ export {
 	type Tier,
 	type BlobGeometry,
 	type TreeGeometry,
-} from './types/core.js';
+} from './core.js';
 
 export {
 	TREE_SHAPES,
@@ -19,7 +18,7 @@ export {
 	SHAPE_DEFAULTS,
 	VIEWBOX_WIDTH,
 	VIEWBOX_HEIGHT,
-} from './types/config.js';
+} from './config.js';
 
 export {
 	CUSTOM_BLOB_BOUNDARY_KINDS,
@@ -34,4 +33,4 @@ export {
 	CUSTOM_BLOB_POSITION_MAX,
 	CUSTOM_BLOB_POSITION_STEP,
 	CUSTOM_BLOB_DEFAULT,
-} from './types/custom.js';
+} from './custom.js';

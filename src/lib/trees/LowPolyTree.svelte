@@ -1,39 +1,9 @@
 <script lang="ts">
 	import { generateTree } from '$lib/trees/generate.js';
-	import {
-		DEFAULT_TREE_CONFIG,
-		type CustomBlob,
-		type TreeConfig,
-		type TreeAnchors,
-	} from '$lib/trees/types.js';
+	import { DEFAULT_TREE_CONFIG, type TreeConfig, type TreeAnchors } from '$lib/trees/types.js';
 
 	interface Props {
-		shape?: TreeConfig['shape'];
-		seed?: number;
-		canopyPolygons?: number;
-		trunkPolygons?: number;
-		canopyLightColor?: string;
-		canopyDarkColor?: string;
-		trunkHue?: number;
-		trunkSaturation?: number;
-		trunkLightness?: number;
-		lightAngle?: number;
-		blobCount?: number;
-		branchCount?: number;
-		depthVariance?: number;
-		blobSizeVariance?: number;
-		blobCloseness?: number;
-		trunkThickness?: number;
-		branchThickness?: number;
-		canopySize?: number;
-		trunkHeight?: number;
-		trunkBranchRatio?: number;
-		trunkLean?: number;
-		trunkSegments?: number;
-		trunkCrookedness?: number;
-		branchLength?: number;
-		branchLengthVariance?: number;
-		customBlobs?: readonly CustomBlob[];
+		config?: TreeConfig;
 		showCanopy?: boolean;
 		showBranches?: boolean;
 		showTrunk?: boolean;
@@ -43,32 +13,7 @@
 	}
 
 	let {
-		shape = DEFAULT_TREE_CONFIG.shape,
-		seed = DEFAULT_TREE_CONFIG.seed,
-		canopyPolygons = DEFAULT_TREE_CONFIG.canopyPolygons,
-		trunkPolygons = DEFAULT_TREE_CONFIG.trunkPolygons,
-		canopyLightColor = DEFAULT_TREE_CONFIG.canopyLightColor,
-		canopyDarkColor = DEFAULT_TREE_CONFIG.canopyDarkColor,
-		trunkHue = DEFAULT_TREE_CONFIG.trunkHue,
-		trunkSaturation = DEFAULT_TREE_CONFIG.trunkSaturation,
-		trunkLightness = DEFAULT_TREE_CONFIG.trunkLightness,
-		lightAngle = DEFAULT_TREE_CONFIG.lightAngle,
-		blobCount = DEFAULT_TREE_CONFIG.blobCount,
-		branchCount = DEFAULT_TREE_CONFIG.branchCount,
-		depthVariance = DEFAULT_TREE_CONFIG.depthVariance,
-		blobSizeVariance = DEFAULT_TREE_CONFIG.blobSizeVariance,
-		blobCloseness = DEFAULT_TREE_CONFIG.blobCloseness,
-		trunkThickness = DEFAULT_TREE_CONFIG.trunkThickness,
-		branchThickness = DEFAULT_TREE_CONFIG.branchThickness,
-		canopySize = DEFAULT_TREE_CONFIG.canopySize,
-		trunkHeight = DEFAULT_TREE_CONFIG.trunkHeight,
-		trunkBranchRatio = DEFAULT_TREE_CONFIG.trunkBranchRatio,
-		trunkLean = DEFAULT_TREE_CONFIG.trunkLean,
-		trunkSegments = DEFAULT_TREE_CONFIG.trunkSegments,
-		trunkCrookedness = DEFAULT_TREE_CONFIG.trunkCrookedness,
-		branchLength = DEFAULT_TREE_CONFIG.branchLength,
-		branchLengthVariance = DEFAULT_TREE_CONFIG.branchLengthVariance,
-		customBlobs,
+		config = DEFAULT_TREE_CONFIG,
 		showCanopy = true,
 		showBranches = true,
 		showTrunk = true,
@@ -76,35 +21,6 @@
 		class: className = '',
 		onanchors,
 	}: Props = $props();
-
-	const config = $derived<TreeConfig>({
-		shape,
-		seed,
-		canopyPolygons,
-		trunkPolygons,
-		canopyLightColor,
-		canopyDarkColor,
-		trunkHue,
-		trunkSaturation,
-		trunkLightness,
-		lightAngle,
-		blobCount,
-		branchCount,
-		depthVariance,
-		blobSizeVariance,
-		blobCloseness,
-		trunkThickness,
-		branchThickness,
-		canopySize,
-		trunkHeight,
-		trunkBranchRatio,
-		trunkLean,
-		trunkSegments,
-		trunkCrookedness,
-		branchLength,
-		branchLengthVariance,
-		customBlobs,
-	});
 
 	const geometry = $derived(generateTree(config));
 

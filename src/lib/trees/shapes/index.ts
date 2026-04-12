@@ -1,21 +1,20 @@
-// Barrel re-export — the actual definitions live in shapes/*.ts modules.
-export type { Blob, BranchSegment, ShapeDefinition } from './shapes/shape-types.js';
+export type { Blob, BranchSegment, ShapeDefinition } from './shape-types.js';
 
 export {
 	computeEffectiveTrunkTop,
 	buildTrunkPath,
 	sampleTrunkCenterX,
 	isPointInTrunkPath,
-} from './shapes/trunk.js';
+} from './trunk.js';
 
-export { generateTiers, isPointInTier, getTiersBounds } from './shapes/tiers.js';
+export { generateTiers, isPointInTier, getTiersBounds } from './tiers.js';
 
 export {
 	assignBlobDepths,
 	applyBlobSizeVariance,
 	applyBlobCloseness,
 	applyCanopySize,
-} from './shapes/blob-modifiers.js';
+} from './blob-modifiers.js';
 
 export {
 	isPointInBlobs,
@@ -24,7 +23,7 @@ export {
 	isPointInBranch,
 	sampleTierBoundary,
 	validateNoFloatingBlobs,
-} from './shapes/shape-bounds.js';
+} from './shape-bounds.js';
 
 export {
 	raySegmentEllipseIntersection,
@@ -32,7 +31,7 @@ export {
 	computeVisibleBranchLength,
 	branchesOverlap,
 	resolveBranchLengthRange,
-} from './shapes/geometry.js';
+} from './geometry.js';
 
 export {
 	generateBranches,
@@ -40,7 +39,7 @@ export {
 	TRUNK_BRANCH_WIDTH_START_MAX,
 	TRUNK_BRANCH_WIDTH_END_MIN,
 	TRUNK_BRANCH_WIDTH_END_MAX,
-} from './shapes/branch-generation.js';
+} from './branch-generation.js';
 
 export {
 	getShapeDefinition,
@@ -51,4 +50,4 @@ export {
 	CUSTOM_BLOB_CANOPY_CENTER_X,
 	CUSTOM_BLOB_CANOPY_CENTER_Y,
 	TRUNK_ENTRY_MIN_PX,
-} from './shapes/blob-generators.js';
+} from './blob-generators.js';
