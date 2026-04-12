@@ -77,7 +77,7 @@
 		{#if trees.length === 0}
 			<p class="text-muted-foreground" data-testid="gallery-empty">
 				No saved trees yet. Head to the
-				<a href={resolve('/showcase')} class="underline">Single Editor</a>
+				<a href={resolve('/editor')} class="underline">Single Editor</a>
 				to create one.
 			</p>
 		{:else}
@@ -92,7 +92,7 @@
 						data-tree-id={tree.id}
 					>
 						<a
-							href={`${resolve('/showcase')}?saved=${encodeURIComponent(tree.id)}`}
+							href={`${resolve('/editor')}?saved=${encodeURIComponent(tree.id)}`}
 							class="block aspect-square overflow-hidden rounded-md bg-muted/30"
 							aria-label={`Open ${tree.name} in editor`}
 						>

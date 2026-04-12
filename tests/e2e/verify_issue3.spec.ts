@@ -1,8 +1,8 @@
 import { test, expect } from '@playwright/test';
 
 test.describe('Issue #3 — Slider UX + UI control reorganization', () => {
-	test('1. /showcase aside has select-none class', async ({ page }) => {
-		await page.goto('http://localhost:4173/showcase');
+	test('1. /editor aside has select-none class', async ({ page }) => {
+		await page.goto('/editor');
 		await page.waitForLoadState('networkidle');
 		const aside = page.locator('aside');
 		const classes = await aside.getAttribute('class');
@@ -10,8 +10,8 @@ test.describe('Issue #3 — Slider UX + UI control reorganization', () => {
 		expect(classes).toContain('select-none');
 	});
 
-	test('2. /showcase slider drag produces no text selection', async ({ page }) => {
-		await page.goto('http://localhost:4173/showcase');
+	test('2. /editor slider drag produces no text selection', async ({ page }) => {
+		await page.goto('/editor');
 		await page.waitForLoadState('networkidle');
 
 		// Find the first range input (Canopy Polygons)
@@ -43,10 +43,10 @@ test.describe('Issue #3 — Slider UX + UI control reorganization', () => {
 		expect(Number(finalValue)).not.toBe(Number(initialValue));
 	});
 
-	test('3a. /showcase pine shape disables branchCount and trunkBranchRatio sliders', async ({
+	test('3a. /editor pine shape disables branchCount and trunkBranchRatio sliders', async ({
 		page,
 	}) => {
-		await page.goto('http://localhost:4173/showcase');
+		await page.goto('/editor');
 		await page.waitForLoadState('networkidle');
 
 		// Select pine shape via shadcn select trigger (bits-ui uses data-slot, not role=combobox)
@@ -74,10 +74,10 @@ test.describe('Issue #3 — Slider UX + UI control reorganization', () => {
 		await page.screenshot({ path: '/tmp/pine_disabled.png', fullPage: false });
 	});
 
-	test('3b. /showcase oak shape does NOT disable branchCount and trunkBranchRatio', async ({
+	test('3b. /editor oak shape does NOT disable branchCount and trunkBranchRatio', async ({
 		page,
 	}) => {
-		await page.goto('http://localhost:4173/showcase');
+		await page.goto('/editor');
 		await page.waitForLoadState('networkidle');
 
 		// Should be oak by default, but let's confirm
@@ -93,8 +93,8 @@ test.describe('Issue #3 — Slider UX + UI control reorganization', () => {
 		expect(trunkBranchDisabled).toBeNull();
 	});
 
-	test('4. /showcase/scene aside has select-none class', async ({ page }) => {
-		await page.goto('http://localhost:4173/showcase/scene');
+	test('4. / scene editor aside has select-none class', async ({ page }) => {
+		await page.goto('/');
 		await page.waitForLoadState('networkidle');
 		const aside = page.locator('aside');
 		const classes = await aside.getAttribute('class');
@@ -102,8 +102,8 @@ test.describe('Issue #3 — Slider UX + UI control reorganization', () => {
 		expect(classes).toContain('select-none');
 	});
 
-	test('5. /showcase/scene has all 7 card titles', async ({ page }) => {
-		await page.goto('http://localhost:4173/showcase/scene');
+	test('5. / scene editor has all 7 card titles', async ({ page }) => {
+		await page.goto('/');
 		await page.waitForLoadState('networkidle');
 
 		const expectedTitles = [
@@ -130,8 +130,8 @@ test.describe('Issue #3 — Slider UX + UI control reorganization', () => {
 		expect(await depthSection.isVisible()).toBe(true);
 	});
 
-	test('6. /showcase/scene slider drag produces no text selection', async ({ page }) => {
-		await page.goto('http://localhost:4173/showcase/scene');
+	test('6. / scene editor slider drag produces no text selection', async ({ page }) => {
+		await page.goto('/');
 		await page.waitForLoadState('networkidle');
 
 		const slider = page.locator('input[type="range"]').first();

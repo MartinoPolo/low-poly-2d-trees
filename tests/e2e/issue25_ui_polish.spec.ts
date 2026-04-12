@@ -4,7 +4,7 @@ test.describe('Issue #25 — UI polish: color picker styling + layout swap', () 
 	test('canopy color swatches are styled square buttons with rounded corners', async ({
 		page,
 	}) => {
-		await page.goto('/showcase/scene');
+		await page.goto('/');
 		await page.waitForLoadState('networkidle');
 
 		for (const variant of ['canopy-light', 'canopy-dark'] as const) {
@@ -27,7 +27,7 @@ test.describe('Issue #25 — UI polish: color picker styling + layout swap', () 
 	});
 
 	test('hex value is displayed in an editable Input next to each swatch', async ({ page }) => {
-		await page.goto('/showcase/scene');
+		await page.goto('/');
 		await page.waitForLoadState('networkidle');
 
 		const lightHex = page.locator('[data-hex="canopy-light"]');
@@ -46,7 +46,7 @@ test.describe('Issue #25 — UI polish: color picker styling + layout swap', () 
 	});
 
 	test('clicking swatch dispatches click to hidden color input', async ({ page }) => {
-		await page.goto('/showcase/scene');
+		await page.goto('/');
 		await page.waitForLoadState('networkidle');
 
 		// Verify the hidden input receives a click when the swatch button is clicked
@@ -68,7 +68,7 @@ test.describe('Issue #25 — UI polish: color picker styling + layout swap', () 
 	});
 
 	test('disabled state applies to swatch and hex input', async ({ page }) => {
-		await page.goto('/showcase/scene');
+		await page.goto('/');
 		await page.waitForLoadState('networkidle');
 
 		// Toggle per-shape defaults ON
@@ -82,7 +82,7 @@ test.describe('Issue #25 — UI polish: color picker styling + layout swap', () 
 	});
 
 	test('scene layout — canvas is on the left, controls on the right', async ({ page }) => {
-		await page.goto('/showcase/scene');
+		await page.goto('/');
 		await page.waitForLoadState('networkidle');
 
 		const canvas = page.locator('[data-testid="scene-canvas"]');
@@ -101,7 +101,7 @@ test.describe('Issue #25 — UI polish: color picker styling + layout swap', () 
 
 	test('control panel width is 320px at default viewport', async ({ page }) => {
 		await page.setViewportSize({ width: 1024, height: 768 });
-		await page.goto('/showcase/scene');
+		await page.goto('/');
 		await page.waitForLoadState('networkidle');
 
 		const controls = page.locator('[data-testid="scene-controls"]');
@@ -113,7 +113,7 @@ test.describe('Issue #25 — UI polish: color picker styling + layout swap', () 
 
 	test('control panel width is 640px at XL viewport', async ({ page }) => {
 		await page.setViewportSize({ width: 1440, height: 900 });
-		await page.goto('/showcase/scene');
+		await page.goto('/');
 		await page.waitForLoadState('networkidle');
 
 		const controls = page.locator('[data-testid="scene-controls"]');
