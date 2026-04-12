@@ -3,15 +3,17 @@
 	import TreePine from '@lucide/svelte/icons/tree-pine';
 	import Trees from '@lucide/svelte/icons/trees';
 	import Images from '@lucide/svelte/icons/images';
+	import Settings from '@lucide/svelte/icons/settings';
 	import LogIn from '@lucide/svelte/icons/log-in';
 	import LogOut from '@lucide/svelte/icons/log-out';
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
 	import DarkModeToggle from '$lib/components/DarkModeToggle.svelte';
 
-	const showcasePath = resolve('/showcase');
-	const scenePath = resolve('/showcase/scene');
+	const rootPath = resolve('/');
+	const editorPath = resolve('/editor');
 	const galleryPath = resolve('/gallery');
+	const settingsPath = resolve('/settings');
 	const authPath = resolve('/auth');
 	const signOutPath = resolve('/auth/sign-out');
 
@@ -32,26 +34,26 @@
 				<Sidebar.Menu>
 					<Sidebar.MenuItem>
 						<Sidebar.MenuButton
-							isActive={page.url.pathname === showcasePath}
-							tooltipContent="Single Editor"
+							isActive={page.url.pathname === rootPath}
+							tooltipContent="Scene Editor"
 						>
 							{#snippet child({ props })}
-								<a href={resolve('/showcase')} {...props}>
-									<TreePine />
-									<span>Single Editor</span>
+								<a href={rootPath} {...props}>
+									<Trees />
+									<span>Scene Editor</span>
 								</a>
 							{/snippet}
 						</Sidebar.MenuButton>
 					</Sidebar.MenuItem>
 					<Sidebar.MenuItem>
 						<Sidebar.MenuButton
-							isActive={page.url.pathname === scenePath}
-							tooltipContent="Scene Editor"
+							isActive={page.url.pathname === editorPath}
+							tooltipContent="Single Editor"
 						>
 							{#snippet child({ props })}
-								<a href={resolve('/showcase/scene')} {...props}>
-									<Trees />
-									<span>Scene Editor</span>
+								<a href={resolve('/editor')} {...props}>
+									<TreePine />
+									<span>Single Editor</span>
 								</a>
 							{/snippet}
 						</Sidebar.MenuButton>
@@ -79,6 +81,19 @@
 		</div>
 		{#if user}
 			<Sidebar.Menu>
+				<Sidebar.MenuItem>
+					<Sidebar.MenuButton
+						isActive={page.url.pathname === settingsPath}
+						tooltipContent="Settings"
+					>
+						{#snippet child({ props })}
+							<a href={settingsPath} {...props}>
+								<Settings />
+								<span>Settings</span>
+							</a>
+						{/snippet}
+					</Sidebar.MenuButton>
+				</Sidebar.MenuItem>
 				<Sidebar.MenuItem>
 					<div
 						class="flex items-center gap-2 px-2 py-1.5 group-data-[collapsible=icon]:hidden"

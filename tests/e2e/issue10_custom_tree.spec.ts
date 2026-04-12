@@ -14,7 +14,7 @@ import { test, expect } from '@playwright/test';
 
 test.describe('Issue #10 — Custom tree mode', () => {
 	test('single editor: custom shape exists in the dropdown', async ({ page }) => {
-		await page.goto('/showcase');
+		await page.goto('/editor');
 		await page.waitForLoadState('networkidle');
 
 		const trigger = page.locator('[data-slot="select-trigger"]').first();
@@ -28,7 +28,7 @@ test.describe('Issue #10 — Custom tree mode', () => {
 	});
 
 	test('single editor: selecting custom reveals the Custom Blobs card', async ({ page }) => {
-		await page.goto('/showcase');
+		await page.goto('/editor');
 		await page.waitForLoadState('networkidle');
 
 		await expect(page.getByText('Custom Blobs')).toHaveCount(0);
@@ -45,7 +45,7 @@ test.describe('Issue #10 — Custom tree mode', () => {
 	});
 
 	test('single editor: custom blobs card has one accordion item per blob', async ({ page }) => {
-		await page.goto('/showcase');
+		await page.goto('/editor');
 		await page.waitForLoadState('networkidle');
 
 		const trigger = page.locator('[data-slot="select-trigger"]').first();
@@ -64,7 +64,7 @@ test.describe('Issue #10 — Custom tree mode', () => {
 	test('single editor: expanding a blob reveals 5 controls (boundary + 4 sliders)', async ({
 		page,
 	}) => {
-		await page.goto('/showcase');
+		await page.goto('/editor');
 		await page.waitForLoadState('networkidle');
 
 		const shapeTrigger = page.locator('[data-slot="select-trigger"]').first();
@@ -90,7 +90,7 @@ test.describe('Issue #10 — Custom tree mode', () => {
 	test('single editor: changing a blob X position updates the canopy in the preview', async ({
 		page,
 	}) => {
-		await page.goto('/showcase');
+		await page.goto('/editor');
 		await page.waitForLoadState('networkidle');
 
 		const shapeTrigger = page.locator('[data-slot="select-trigger"]').first();
@@ -129,7 +129,7 @@ test.describe('Issue #10 — Custom tree mode', () => {
 	});
 
 	test('scene editor does NOT show the custom shape', async ({ page }) => {
-		await page.goto('/showcase/scene');
+		await page.goto('/');
 		await page.waitForLoadState('networkidle');
 
 		// Scene editor has no shape dropdown. It renders exactly three hardcoded

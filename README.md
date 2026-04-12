@@ -239,7 +239,7 @@ Reusable reactive primitives in `src/lib/reactivity/`:
 
 Type-safe Svelte context using `setContext` / `getContext`. Context keys are centralized in `src/lib/context/context_key.ts`.
 
-Each context module exports a `set` function (called in the parent layout) and a `get` function (called in child components). See `src/lib/context/showcase_form.context.svelte.ts` for a working example that combines `Persisted`, `StateRaw`, and `Derived`.
+Each context module exports a `set` function (called in the parent layout) and a `get` function (called in child components). See `src/lib/reactivity/` for the available reactivity classes (`Persisted`, `StateRaw`, `Derived`).
 
 For SSR of persisted values, use Skeleton placeholders to avoid hydration mismatches.
 
