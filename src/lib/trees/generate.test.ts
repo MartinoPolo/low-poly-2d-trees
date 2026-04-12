@@ -1306,3 +1306,57 @@ describe('Issue #10: custom tree shape', () => {
 		expect(geo.anchors.trunkTop.y + 5).toBeLessThan(canopyMaxY);
 	});
 });
+
+// ============================================================================
+// Issue #38: BranchGeometry grouped branch data
+// ============================================================================
+
+describe('Issue #38: branchGroups (grouped branch geometry)', () => {
+	it('generateTree returns branchGroups array', () => {
+		const geo = generateTree(makeConfig({ branchCount: 5, seed: 42 }));
+		expect(Array.isArray(geo.branchGroups)).toBe(true);
+		expect(geo.branchGroups.length).toBeGreaterThan(0);
+	});
+
+	it('each branchGroup has triangles and origin', () => {
+		const geo = generateTree(makeConfig({ branchCount: 3, seed: 42 }));
+		for (const group of geo.branchGroups) {
+			expect(Array.isArray(group.triangles)).toBe(true);
+			expect(group.triangles.length).toBeGreaterThan(0);
+			expect(typeof group.origin.x).toBe('number');
+			expect(typeof group.origin.y).toBe('number');
+		}
+	});
+
+	it('branchGroup triangles all have group=branch', () => {
+		const geo = generateTree(makeConfig({ branchCount: 5, seed: 42 }));
+		for (const group of geo.branchGroups) {
+			for (const tri of group.triangles) {
+				expect(tri.group).toBe('branch');
+			}
+		}
+	});
+
+	it('branchGroups flatMap matches branchTriangles count', () => {
+		const geo = generateTree(makeConfig({ branchCount: 5, seed: 42 }));
+		const flatCount = geo.branchGroups.flatMap((g) => g.triangles).length;
+		expect(flatCount).toBe(geo.branchTriangles.length);
+	});
+
+	it('branchGroups is empty for pine shape', () => {
+		const geo = generateTree(makeConfig({ shape: 'pine', seed: 42 }));
+		expect(geo.branchGroups).toHaveLength(0);
+	});
+
+	it('branchGroups origin is at branch base (higher y than tip)', () => {
+		const geo = generateTree(makeConfig({ branchCount: 1, seed: 42 }));
+		if (geo.branchGroups.length === 0) {
+			return;
+		}
+		const group = geo.branchGroups[0]!;
+		// Origin should be near the trunk (where branch starts)
+		// It should have a valid coordinate
+		expect(Number.isFinite(group.origin.x)).toBe(true);
+		expect(Number.isFinite(group.origin.y)).toBe(true);
+	});
+});

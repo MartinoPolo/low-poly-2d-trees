@@ -6,6 +6,7 @@ import type {
 	Point2D,
 	TreeAnchors,
 	BlobGeometry,
+	BranchGeometry,
 	Tier,
 	TreeShape,
 } from './types.js';
@@ -320,7 +321,7 @@ function generateBranchMesh(
 	trunkJunctions: readonly Point2D[],
 	shapeDef: { readonly trunkBaseWidth: number },
 	config: TreeConfig,
-): Triangle[] {
+): BranchGeometry[] {
 	if (branches.length === 0) {
 		return [];
 	}
@@ -328,14 +329,19 @@ function generateBranchMesh(
 	const effectiveBaseWidth = shapeDef.trunkBaseWidth * (config.trunkThickness / 100);
 	const trunkXBounds = computeTrunkXBounds(trunkJunctions, effectiveBaseWidth);
 
-	const allTriangles: Triangle[] = [];
+	const groups: BranchGeometry[] = [];
 
 	for (const branch of branches) {
 		const branchTris = generateSingleBranchMesh(rng, colorRng, branch, trunkXBounds, config);
-		allTriangles.push(...branchTris);
+		if (branchTris.length > 0) {
+			groups.push({
+				triangles: branchTris,
+				origin: { x: branch.x1, y: branch.y1 },
+			});
+		}
 	}
 
-	return allTriangles;
+	return groups;
 }
 
 // ---------------------------------------------------------------------------
@@ -433,7 +439,7 @@ function generateBlobCanopy(
 
 		const depth = depths[i]!;
 		blobGeos.push({
-			geo: { triangles: coloredTris, depth },
+			geo: { triangles: coloredTris, center: { x: blob.cx, y: blob.cy }, depth },
 			depth,
 		});
 	}
@@ -507,7 +513,13 @@ function generateTierCanopy(
 		}));
 
 		const depth = count - 1 - i;
-		blobGeos.push({ triangles: coloredTris, depth });
+		const tierCenterX = (tier.tipX + tier.baseLeftX + tier.baseRightX) / 3;
+		const tierCenterY = (tier.tipY + tier.baseLeftY + tier.baseRightY) / 3;
+		blobGeos.push({
+			triangles: coloredTris,
+			center: { x: tierCenterX, y: tierCenterY },
+			depth,
+		});
 	}
 
 	blobGeos.sort((a, b) => a.depth - b.depth);
@@ -707,7 +719,7 @@ export function generateTree(config: TreeConfig): TreeGeometry {
 		config,
 	);
 
-	const branchTriangles = generateBranchMesh(
+	const branchGroups = generateBranchMesh(
 		rng,
 		createPrng(config.seed + 9999),
 		allBranches,
@@ -715,6 +727,7 @@ export function generateTree(config: TreeConfig): TreeGeometry {
 		shapeDef,
 		config,
 	);
+	const branchTriangles = branchGroups.flatMap((g) => g.triangles);
 
 	const smoothAcuteAngles = SHAPES_WITH_ACUTE_SMOOTHING.has(config.shape);
 	const canopyBlobs = isPine
@@ -734,6 +747,7 @@ export function generateTree(config: TreeConfig): TreeGeometry {
 	return {
 		trunkTriangles,
 		branchTriangles,
+		branchGroups,
 		canopyBlobs,
 		anchors,
 		viewBox: { width: VIEWBOX_WIDTH, height: VIEWBOX_HEIGHT },

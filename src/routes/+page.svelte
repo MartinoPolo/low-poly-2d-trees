@@ -24,6 +24,9 @@
 	let showCanopy = $state(true);
 	let showBranches = $state(true);
 	let showTrunk = $state(true);
+	let animateCanopySway = $state(false);
+	let animateBranches = $state(false);
+	let animateGrowth = $state(false);
 
 	const trunkCrookednessDisabled = $derived(
 		isParamDisabled('custom', 'trunkCrookedness', {
@@ -102,6 +105,9 @@
 						{showBranches}
 						{showTrunk}
 						{showAnchors}
+						{animateCanopySway}
+						{animateBranches}
+						{animateGrowth}
 						class="h-auto w-full"
 					/>
 				</div>
@@ -367,6 +373,35 @@
 							onCheckedChange={(v) => (showAnchors = v === true)}
 						/>
 						<Label>Show Anchor Points</Label>
+					</div>
+				</SectionCard>
+
+				<SectionCard title="Animations" contentClass="space-y-4">
+					<div data-testid="animation-controls">
+						<div class="flex items-center gap-2">
+							<Checkbox
+								data-testid="animate-canopy-sway"
+								checked={animateCanopySway}
+								onCheckedChange={(v) => (animateCanopySway = v === true)}
+							/>
+							<Label>Canopy Sway</Label>
+						</div>
+						<div class="mt-4 flex items-center gap-2">
+							<Checkbox
+								data-testid="animate-branches"
+								checked={animateBranches}
+								onCheckedChange={(v) => (animateBranches = v === true)}
+							/>
+							<Label>Branch Movement</Label>
+						</div>
+						<div class="mt-4 flex items-center gap-2">
+							<Checkbox
+								data-testid="animate-growth"
+								checked={animateGrowth}
+								onCheckedChange={(v) => (animateGrowth = v === true)}
+							/>
+							<Label>Growth</Label>
+						</div>
 					</div>
 				</SectionCard>
 			</div>

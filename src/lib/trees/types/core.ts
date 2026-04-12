@@ -39,12 +39,19 @@ export interface Tier {
 
 export interface BlobGeometry {
 	readonly triangles: readonly Triangle[];
+	readonly center: Point2D;
 	readonly depth: number;
+}
+
+export interface BranchGeometry {
+	readonly triangles: readonly Triangle[];
+	readonly origin: Point2D;
 }
 
 export interface TreeGeometry {
 	readonly trunkTriangles: readonly Triangle[];
 	readonly branchTriangles: readonly Triangle[];
+	readonly branchGroups: readonly BranchGeometry[];
 	readonly canopyBlobs: readonly BlobGeometry[];
 	readonly anchors: TreeAnchors;
 	readonly viewBox: { readonly width: number; readonly height: number };
