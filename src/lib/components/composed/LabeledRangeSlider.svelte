@@ -10,6 +10,7 @@
 		unit?: string;
 		format?: (value: number) => string;
 		disabled?: boolean;
+		oninput?: (event: Event) => void;
 		id?: string;
 		class?: string;
 	}
@@ -23,6 +24,7 @@
 		unit,
 		format,
 		disabled = false,
+		oninput,
 		id,
 		class: className,
 	}: Props = $props();
@@ -47,6 +49,7 @@
 		{max}
 		{step}
 		bind:value
+		{oninput}
 		{disabled}
 		class="w-full accent-primary disabled:cursor-not-allowed disabled:opacity-50"
 	/>

@@ -292,37 +292,25 @@
 						<Card.Title>Geometry</Card.Title>
 					</Card.Header>
 					<Card.Content class="space-y-4">
-						<div class="space-y-2">
-							<Label>Canopy Polygons: {canopyPolygons}</Label>
-							<input
-								type="range"
-								min="10"
-								max="150"
-								bind:value={canopyPolygons}
-								class="w-full accent-primary"
-							/>
-						</div>
-						<div class="space-y-2">
-							<Label>Trunk Polygons: {trunkPolygons}</Label>
-							<input
-								type="range"
-								min="10"
-								max="100"
-								bind:value={trunkPolygons}
-								class="w-full accent-primary"
-							/>
-						</div>
-						<div class="space-y-2">
-							<Label>Blob Count: {blobCount}</Label>
-							<input
-								type="range"
-								min="1"
-								max="8"
-								value={blobCount}
-								oninput={onBlobCountInput}
-								class="w-full accent-primary"
-							/>
-						</div>
+						<LabeledRangeSlider
+							label="Canopy Polygons"
+							min={10}
+							max={150}
+							bind:value={canopyPolygons}
+						/>
+						<LabeledRangeSlider
+							label="Trunk Polygons"
+							min={10}
+							max={100}
+							bind:value={trunkPolygons}
+						/>
+						<LabeledRangeSlider
+							label="Blob Count"
+							min={1}
+							max={8}
+							value={blobCount}
+							oninput={onBlobCountInput}
+						/>
 						<LabeledRangeSlider
 							label="Branches"
 							min={0}
@@ -330,38 +318,30 @@
 							bind:value={branchCount}
 							disabled={branchCountDisabled}
 						/>
-						<div class="space-y-2">
-							<Label>Blob Size Variance: {blobSizeVariance.toFixed(1)}x</Label>
-							<input
-								type="range"
-								min="1"
-								max="10"
-								step="0.1"
-								bind:value={blobSizeVariance}
-								class="w-full accent-primary"
-							/>
-						</div>
-						<div class="space-y-2">
-							<Label>Blob Closeness: {blobCloseness}%</Label>
-							<input
-								type="range"
-								min="0"
-								max="100"
-								bind:value={blobCloseness}
-								class="w-full accent-primary"
-							/>
-						</div>
-						<div class="space-y-2">
-							<Label>Canopy Size: {canopySize}%</Label>
-							<input
-								type="range"
-								min="25"
-								max="400"
-								step="5"
-								bind:value={canopySize}
-								class="w-full accent-primary"
-							/>
-						</div>
+						<LabeledRangeSlider
+							label="Blob Size Variance"
+							min={1}
+							max={10}
+							step={0.1}
+							format={(v) => v.toFixed(1)}
+							unit="x"
+							bind:value={blobSizeVariance}
+						/>
+						<LabeledRangeSlider
+							label="Blob Closeness"
+							min={0}
+							max={100}
+							unit="%"
+							bind:value={blobCloseness}
+						/>
+						<LabeledRangeSlider
+							label="Canopy Size"
+							min={25}
+							max={400}
+							step={5}
+							unit="%"
+							bind:value={canopySize}
+						/>
 					</Card.Content>
 				</Card.Root>
 
@@ -372,40 +352,40 @@
 						</Card.Header>
 						<Card.Content>
 							<Accordion.Root type="multiple" class="w-full">
-								{#each customBlobs.slice(0, blobCount) as blob, i (i)}
-									<Accordion.Item value={`blob-${i}`}>
-										<Accordion.Trigger>
-											<span
-												class="flex flex-1 items-center justify-between pr-2"
-											>
-												<span class="font-medium">Blob {i + 1}</span>
-												<span class="text-xs text-muted-foreground">
-													{CUSTOM_BLOB_BOUNDARY_OPTIONS.find(
-														(o) => o.value === blob.boundaryKind,
-													)?.label ?? blob.boundaryKind}
+								{#each customBlobs as blob, i (i)}
+									{#if i < blobCount}
+										<Accordion.Item value={`blob-${i}`}>
+											<Accordion.Trigger>
+												<span
+													class="flex flex-1 items-center justify-between pr-2"
+												>
+													<span class="font-medium">Blob {i + 1}</span>
+													<span class="text-xs text-muted-foreground">
+														{CUSTOM_BLOB_BOUNDARY_OPTIONS.find(
+															(o) => o.value === blob.boundaryKind,
+														)?.label ?? blob.boundaryKind}
+													</span>
 												</span>
-											</span>
-										</Accordion.Trigger>
-										<Accordion.Content>
-											<div class="space-y-4 pt-2">
-												<LabeledSelect
-													label="Boundary"
-													options={CUSTOM_BLOB_BOUNDARY_OPTIONS}
-													value={blob.boundaryKind}
-													onValueChange={(value) =>
-														updateCustomBlob(i, {
-															boundaryKind:
-																value as CustomBlobBoundaryKind,
-														})}
-												/>
-												<div class="space-y-2">
-													<Label>Rotation: {blob.rotationDeg}°</Label>
-													<input
-														type="range"
-														min="0"
-														max="360"
+											</Accordion.Trigger>
+											<Accordion.Content>
+												<div class="space-y-4 pt-2">
+													<LabeledSelect
+														label="Boundary"
+														options={CUSTOM_BLOB_BOUNDARY_OPTIONS}
+														value={blob.boundaryKind}
+														onValueChange={(value) =>
+															updateCustomBlob(i, {
+																boundaryKind:
+																	value as CustomBlobBoundaryKind,
+															})}
+													/>
+													<LabeledRangeSlider
+														label="Rotation"
+														min={0}
+														max={360}
 														step={CUSTOM_BLOB_ROTATION_STEP}
 														value={blob.rotationDeg}
+														unit="°"
 														oninput={(e) =>
 															updateCustomBlob(i, {
 																rotationDeg: Number(
@@ -414,21 +394,15 @@
 																	).value,
 																),
 															})}
-														class="w-full accent-primary"
 													/>
-												</div>
-												<div class="space-y-2">
-													<Label
-														>Size: {Math.round(
-															blob.sizeScale * 100,
-														)}%</Label
-													>
-													<input
-														type="range"
+													<LabeledRangeSlider
+														label="Size"
 														min={CUSTOM_BLOB_SIZE_MIN}
 														max={CUSTOM_BLOB_SIZE_MAX}
 														step={CUSTOM_BLOB_SIZE_STEP}
 														value={blob.sizeScale}
+														format={(v) => String(Math.round(v * 100))}
+														unit="%"
 														oninput={(e) =>
 															updateCustomBlob(i, {
 																sizeScale: Number(
@@ -437,17 +411,14 @@
 																	).value,
 																),
 															})}
-														class="w-full accent-primary"
 													/>
-												</div>
-												<div class="space-y-2">
-													<Label>X: {blob.position.x.toFixed(2)}</Label>
-													<input
-														type="range"
+													<LabeledRangeSlider
+														label="X"
 														min={CUSTOM_BLOB_POSITION_MIN}
 														max={CUSTOM_BLOB_POSITION_MAX}
 														step={CUSTOM_BLOB_POSITION_STEP}
 														value={blob.position.x}
+														format={(v) => v.toFixed(2)}
 														oninput={(e) =>
 															updateCustomBlob(i, {
 																position: {
@@ -458,17 +429,14 @@
 																	),
 																},
 															})}
-														class="w-full accent-primary"
 													/>
-												</div>
-												<div class="space-y-2">
-													<Label>Y: {blob.position.y.toFixed(2)}</Label>
-													<input
-														type="range"
+													<LabeledRangeSlider
+														label="Y"
 														min={CUSTOM_BLOB_POSITION_MIN}
 														max={CUSTOM_BLOB_POSITION_MAX}
 														step={CUSTOM_BLOB_POSITION_STEP}
 														value={blob.position.y}
+														format={(v) => v.toFixed(2)}
 														oninput={(e) =>
 															updateCustomBlob(i, {
 																position: {
@@ -479,12 +447,11 @@
 																	),
 																},
 															})}
-														class="w-full accent-primary"
 													/>
 												</div>
-											</div>
-										</Accordion.Content>
-									</Accordion.Item>
+											</Accordion.Content>
+										</Accordion.Item>
+									{/if}
 								{/each}
 							</Accordion.Root>
 						</Card.Content>
@@ -507,38 +474,29 @@
 						<Card.Title>Trunk & Branches</Card.Title>
 					</Card.Header>
 					<Card.Content class="space-y-4">
-						<div class="space-y-2">
-							<Label>Trunk Height: {trunkHeight}%</Label>
-							<input
-								type="range"
-								min="50"
-								max="150"
-								bind:value={trunkHeight}
-								class="w-full accent-primary"
-							/>
-						</div>
-						<div class="space-y-2">
-							<Label>Trunk Thickness: {trunkThickness}%</Label>
-							<input
-								type="range"
-								min="25"
-								max="400"
-								step="5"
-								bind:value={trunkThickness}
-								class="w-full accent-primary"
-							/>
-						</div>
-						<div class="space-y-2">
-							<Label>Branch Thickness: {branchThickness}%</Label>
-							<input
-								type="range"
-								min="25"
-								max="400"
-								step="5"
-								bind:value={branchThickness}
-								class="w-full accent-primary"
-							/>
-						</div>
+						<LabeledRangeSlider
+							label="Trunk Height"
+							min={50}
+							max={150}
+							unit="%"
+							bind:value={trunkHeight}
+						/>
+						<LabeledRangeSlider
+							label="Trunk Thickness"
+							min={25}
+							max={400}
+							step={5}
+							unit="%"
+							bind:value={trunkThickness}
+						/>
+						<LabeledRangeSlider
+							label="Branch Thickness"
+							min={25}
+							max={400}
+							step={5}
+							unit="%"
+							bind:value={branchThickness}
+						/>
 						<LabeledRangeSlider
 							label="Trunk/Branch Ratio"
 							min={30}
@@ -595,27 +553,21 @@
 						<Card.Title>Lighting</Card.Title>
 					</Card.Header>
 					<Card.Content class="space-y-4">
-						<div class="space-y-2">
-							<Label>Light Angle: {lightAngle}°</Label>
-							<input
-								type="range"
-								min="0"
-								max="360"
-								bind:value={lightAngle}
-								class="w-full accent-primary"
-							/>
-						</div>
-						<div class="space-y-2">
-							<Label>Depth Variance: {depthVariance.toFixed(1)}</Label>
-							<input
-								type="range"
-								min="0"
-								max="2"
-								step="0.1"
-								bind:value={depthVariance}
-								class="w-full accent-primary"
-							/>
-						</div>
+						<LabeledRangeSlider
+							label="Light Angle"
+							min={0}
+							max={360}
+							unit="°"
+							bind:value={lightAngle}
+						/>
+						<LabeledRangeSlider
+							label="Depth Variance"
+							min={0}
+							max={2}
+							step={0.1}
+							format={(v) => v.toFixed(1)}
+							bind:value={depthVariance}
+						/>
 					</Card.Content>
 				</Card.Root>
 

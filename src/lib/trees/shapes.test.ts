@@ -16,6 +16,7 @@ import {
 	CUSTOM_BLOB_CANOPY_CENTER_X,
 	CUSTOM_BLOB_CANOPY_CENTER_Y,
 	CUSTOM_BLOB_SPREAD_RADIUS,
+	DRAWS_PER_BLOB,
 	type Blob,
 	type BranchSegment,
 } from './shapes.js';
@@ -1059,5 +1060,24 @@ describe('Issue #10: growCustomBlobs', () => {
 		const a = growCustomBlobs([], 4, seed, closeness);
 		const b = growCustomBlobs([], 4, seed, closeness);
 		expect(a).toEqual(b);
+	});
+});
+
+describe('DRAWS_PER_BLOB accuracy', () => {
+	it('DRAWS_PER_BLOB matches actual rng consumption: stepwise grow equals one-shot grow', () => {
+		const seed = 42;
+		const closeness = 50;
+
+		// growCustomBlobs uses DRAWS_PER_BLOB to skip past existing entries.
+		// If the constant is wrong, growing [0→1] then [1→3] will produce
+		// different blobs at indices 1-2 than growing [0→3] in one call.
+		const oneShot = growCustomBlobs([], 3, seed, closeness);
+		const stepwise1 = growCustomBlobs([], 1, seed, closeness);
+		const stepwise3 = growCustomBlobs(stepwise1, 3, seed, closeness);
+		expect(stepwise3).toEqual(oneShot);
+	});
+
+	it('DRAWS_PER_BLOB constant equals 2', () => {
+		expect(DRAWS_PER_BLOB).toBe(2);
 	});
 });

@@ -366,9 +366,20 @@ export function generateCustomBlobs(
 }
 
 /**
+ * Number of PRNG draws consumed by a single `seedCustomBlob` call.
+ * Used by `growCustomBlobs` to advance the RNG past existing entries
+ * without calling the function — so changing `seedCustomBlob`'s internals
+ * forces a deliberate constant update rather than a silent drift.
+ */
+export const DRAWS_PER_BLOB = 2;
+
+/**
  * Seed a brand-new custom blob entry. Position is a seeded-random offset
  * within the canopy extent, scaled by the `blobCloseness` slider so a tight
  * canopy produces clustered blobs and a loose canopy spreads them out.
+ *
+ * IMPORTANT: consumes exactly `DRAWS_PER_BLOB` rng() calls. If you add or
+ * remove rng() usage here, update DRAWS_PER_BLOB to match.
  */
 function seedCustomBlob(rng: () => number, blobCloseness: number): CustomBlob {
 	const spreadFactor = Math.max(0.1, Math.min(1, 1 - blobCloseness / 100)) * 0.9 + 0.1;
@@ -399,11 +410,11 @@ export function growCustomBlobs(
 		return existing;
 	}
 	const rng = createPrng(seed + CUSTOM_BLOB_SEED_OFFSET);
-	// Advance the rng past the slots we are keeping, so newly appended slot
-	// `i` receives the same seeded draws whether or not the user shrank and
-	// regrew the array in between.
-	for (let i = 0; i < existing.length; i++) {
-		seedCustomBlob(rng, blobCloseness);
+	// Advance the rng past the slots we are keeping by exactly
+	// DRAWS_PER_BLOB draws per existing entry. This decouples the skip-loop
+	// from seedCustomBlob's implementation, making the contract lint-checkable.
+	for (let i = 0; i < existing.length * DRAWS_PER_BLOB; i++) {
+		rng();
 	}
 	const result: CustomBlob[] = [...existing];
 	for (let i = existing.length; i < safeTarget; i++) {

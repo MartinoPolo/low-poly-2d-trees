@@ -92,106 +92,78 @@
 							</Button>
 						</div>
 					</div>
-					<div class="space-y-2">
-						<Label>Canopy Polygons: {canopyPolygons}</Label>
-						<input
-							type="range"
-							min="10"
-							max="150"
-							bind:value={canopyPolygons}
-							class="w-full accent-primary"
-						/>
-					</div>
-					<div class="space-y-2">
-						<Label>Trunk Polygons: {trunkPolygons}</Label>
-						<input
-							type="range"
-							min="10"
-							max="100"
-							bind:value={trunkPolygons}
-							class="w-full accent-primary"
-						/>
-					</div>
+					<LabeledRangeSlider
+						label="Canopy Polygons"
+						min={10}
+						max={150}
+						bind:value={canopyPolygons}
+					/>
+					<LabeledRangeSlider
+						label="Trunk Polygons"
+						min={10}
+						max={100}
+						bind:value={trunkPolygons}
+					/>
 				</SectionCard>
 
 				<SectionCard title="Canopy" contentClass="space-y-4">
-					<div class="space-y-2">
-						<Label>Blob Size Variance: {blobSizeVariance.toFixed(1)}x</Label>
-						<input
-							type="range"
-							min="1"
-							max="10"
-							step="0.1"
-							bind:value={blobSizeVariance}
-							class="w-full accent-primary"
-						/>
-					</div>
-					<div class="space-y-2">
-						<Label>Blob Closeness: {blobCloseness}%</Label>
-						<input
-							type="range"
-							min="0"
-							max="100"
-							bind:value={blobCloseness}
-							class="w-full accent-primary"
-						/>
-					</div>
-					<div class="space-y-2">
-						<Label>Canopy Size: {canopySize}%</Label>
-						<input
-							type="range"
-							min="25"
-							max="400"
-							step="5"
-							bind:value={canopySize}
-							class="w-full accent-primary"
-						/>
-					</div>
+					<LabeledRangeSlider
+						label="Blob Size Variance"
+						min={1}
+						max={10}
+						step={0.1}
+						format={(v) => v.toFixed(1)}
+						unit="x"
+						bind:value={blobSizeVariance}
+					/>
+					<LabeledRangeSlider
+						label="Blob Closeness"
+						min={0}
+						max={100}
+						unit="%"
+						bind:value={blobCloseness}
+					/>
+					<LabeledRangeSlider
+						label="Canopy Size"
+						min={25}
+						max={400}
+						step={5}
+						unit="%"
+						bind:value={canopySize}
+					/>
 				</SectionCard>
 
 				<SectionCard title="Trunk & Branches" contentClass="space-y-4">
-					<div class="space-y-2">
-						<Label>Trunk Height: {trunkHeight}%</Label>
-						<input
-							type="range"
-							min="50"
-							max="150"
-							bind:value={trunkHeight}
-							class="w-full accent-primary"
-						/>
-					</div>
-					<div class="space-y-2">
-						<Label>Trunk Thickness: {trunkThickness}%</Label>
-						<input
-							type="range"
-							min="25"
-							max="400"
-							step="5"
-							bind:value={trunkThickness}
-							class="w-full accent-primary"
-						/>
-					</div>
-					<div class="space-y-2">
-						<Label>Branch Thickness: {branchThickness}%</Label>
-						<input
-							type="range"
-							min="25"
-							max="400"
-							step="5"
-							bind:value={branchThickness}
-							class="w-full accent-primary"
-						/>
-					</div>
-					<div class="space-y-2">
-						<Label>Trunk/Branch Ratio: {trunkBranchRatio}%</Label>
-						<input
-							type="range"
-							min="30"
-							max="100"
-							bind:value={trunkBranchRatio}
-							class="w-full accent-primary"
-						/>
-					</div>
+					<LabeledRangeSlider
+						label="Trunk Height"
+						min={50}
+						max={150}
+						unit="%"
+						bind:value={trunkHeight}
+					/>
+					<LabeledRangeSlider
+						label="Trunk Thickness"
+						min={25}
+						max={400}
+						step={5}
+						unit="%"
+						bind:value={trunkThickness}
+					/>
+					<LabeledRangeSlider
+						label="Branch Thickness"
+						min={25}
+						max={400}
+						step={5}
+						unit="%"
+						bind:value={branchThickness}
+					/>
+					<LabeledRangeSlider
+						label="Trunk/Branch Ratio"
+						min={30}
+						max={100}
+						unit="%"
+						bind:value={trunkBranchRatio}
+					/>
 					<LabeledRangeSlider
 						label="Trunk Lean"
 						min={-45}
@@ -263,27 +235,21 @@
 				/>
 
 				<SectionCard title="Lighting" contentClass="space-y-4">
-					<div class="space-y-2">
-						<Label>Light Angle: {lightAngle}°</Label>
-						<input
-							type="range"
-							min="0"
-							max="360"
-							bind:value={lightAngle}
-							class="w-full accent-primary"
-						/>
-					</div>
-					<div class="space-y-2">
-						<Label>Depth Variance: {depthVariance.toFixed(1)}</Label>
-						<input
-							type="range"
-							min="0"
-							max="2"
-							step="0.1"
-							bind:value={depthVariance}
-							class="w-full accent-primary"
-						/>
-					</div>
+					<LabeledRangeSlider
+						label="Light Angle"
+						min={0}
+						max={360}
+						unit="°"
+						bind:value={lightAngle}
+					/>
+					<LabeledRangeSlider
+						label="Depth Variance"
+						min={0}
+						max={2}
+						step={0.1}
+						format={(v) => v.toFixed(1)}
+						bind:value={depthVariance}
+					/>
 				</SectionCard>
 
 				<SectionCard title="Debug" contentClass="space-y-4">
