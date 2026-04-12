@@ -58,6 +58,8 @@ describe('SHAPE_DEFAULTS §2.5', () => {
 			trunkHue: 25,
 			trunkSaturation: 50,
 			trunkLightness: 25,
+			fruitType: 'none',
+			fruitCount: 0,
 		});
 	});
 
@@ -77,6 +79,8 @@ describe('SHAPE_DEFAULTS §2.5', () => {
 			trunkHue: 20,
 			trunkSaturation: 45,
 			trunkLightness: 20,
+			fruitType: 'none',
+			fruitCount: 0,
 		});
 	});
 
@@ -96,6 +100,8 @@ describe('SHAPE_DEFAULTS §2.5', () => {
 			trunkHue: 40,
 			trunkSaturation: 15,
 			trunkLightness: 80,
+			fruitType: 'none',
+			fruitCount: 0,
 		});
 	});
 
@@ -115,6 +121,8 @@ describe('SHAPE_DEFAULTS §2.5', () => {
 			trunkHue: 22,
 			trunkSaturation: 50,
 			trunkLightness: 28,
+			fruitType: 'none',
+			fruitCount: 0,
 		});
 	});
 
@@ -134,6 +142,8 @@ describe('SHAPE_DEFAULTS §2.5', () => {
 			trunkHue: 30,
 			trunkSaturation: 20,
 			trunkLightness: 35,
+			fruitType: 'none',
+			fruitCount: 0,
 		});
 	});
 
@@ -153,6 +163,8 @@ describe('SHAPE_DEFAULTS §2.5', () => {
 			trunkHue: 25,
 			trunkSaturation: 40,
 			trunkLightness: 22,
+			fruitType: 'none',
+			fruitCount: 0,
 		});
 	});
 

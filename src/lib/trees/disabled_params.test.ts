@@ -55,4 +55,18 @@ describe('isParamDisabled', () => {
 			expect(isParamDisabled('oak', 'trunkCrookedness', {})).toBe(false);
 		});
 	});
+
+	describe('fruitCount disabled when fruitType is none', () => {
+		it('disables fruitCount when fruitType is none', () => {
+			expect(isParamDisabled('oak', 'fruitCount', { fruitType: 'none' })).toBe(true);
+		});
+
+		it('does not disable fruitCount when fruitType is apple', () => {
+			expect(isParamDisabled('oak', 'fruitCount', { fruitType: 'apple' })).toBe(false);
+		});
+
+		it('does not disable fruitCount when fruitType is cherry', () => {
+			expect(isParamDisabled('oak', 'fruitCount', { fruitType: 'cherry' })).toBe(false);
+		});
+	});
 });

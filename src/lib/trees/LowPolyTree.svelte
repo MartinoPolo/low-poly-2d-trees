@@ -7,6 +7,7 @@
 		showCanopy?: boolean;
 		showBranches?: boolean;
 		showTrunk?: boolean;
+		showFruit?: boolean;
 		showAnchors?: boolean;
 		class?: string;
 		onanchors?: (anchors: TreeAnchors) => void;
@@ -17,6 +18,7 @@
 		showCanopy = true,
 		showBranches = true,
 		showTrunk = true,
+		showFruit = true,
 		showAnchors = false,
 		class: className = '',
 		onanchors,
@@ -76,6 +78,20 @@
 						/>
 					{/each}
 				</g>
+			{/each}
+		</g>
+	{/if}
+
+	{#if showFruit}
+		<g class="fruit">
+			{#each geometry.fruitTriangles as tri (tri)}
+				<polygon
+					points="{tri.points[0].x},{tri.points[0].y} {tri.points[1].x},{tri.points[1]
+						.y} {tri.points[2].x},{tri.points[2].y}"
+					fill={tri.color}
+					stroke={tri.color}
+					stroke-width="0.5"
+				/>
 			{/each}
 		</g>
 	{/if}

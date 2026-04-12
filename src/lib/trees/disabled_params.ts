@@ -1,4 +1,4 @@
-import { TREE_SHAPES, type TreeShape } from './types.js';
+import { TREE_SHAPES, FRUIT_TYPES, type TreeShape, type FruitType } from './types.js';
 
 /**
  * Per-shape list of TreeConfig parameters that should be disabled in the UI.
@@ -22,6 +22,7 @@ export const DISABLED_PARAMS_BY_SHAPE = {
  */
 interface DisabledParamConfig {
 	readonly trunkSegments?: number;
+	readonly fruitType?: FruitType;
 }
 
 /**
@@ -39,6 +40,10 @@ export function isParamDisabled(
 	}
 
 	if (param === 'trunkCrookedness' && config.trunkSegments === 1) {
+		return true;
+	}
+
+	if (param === 'fruitCount' && config.fruitType === FRUIT_TYPES.none) {
 		return true;
 	}
 

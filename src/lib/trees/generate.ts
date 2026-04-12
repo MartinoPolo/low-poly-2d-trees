@@ -9,7 +9,13 @@ import type {
 	Tier,
 	TreeShape,
 } from './types.js';
-import { GEOMETRY_GROUPS, VIEWBOX_WIDTH, VIEWBOX_HEIGHT, TREE_SHAPES } from './types.js';
+import {
+	GEOMETRY_GROUPS,
+	VIEWBOX_WIDTH,
+	VIEWBOX_HEIGHT,
+	TREE_SHAPES,
+	FRUIT_TYPES,
+} from './types.js';
 import { createPrng, poissonSample, randomInRange } from './prng.js';
 import {
 	getShapeDefinition,
@@ -31,6 +37,7 @@ import {
 	buildTrunkPath,
 	sampleTrunkCenterX,
 	generateCustomBlobs,
+	generateFruitAtSlots,
 	CUSTOM_BLOB_CANOPY_CENTER_X,
 	CUSTOM_BLOB_CANOPY_CENTER_Y,
 	CUSTOM_BLOB_SPREAD_RADIUS,
@@ -123,6 +130,19 @@ function computeTrunkXBounds(
 const ROOTS_DEPTH_PX = 15;
 const FRUIT_SLOTS_SEED_OFFSET = 54321;
 
+function buildCanopyContainmentTest(
+	blobs: readonly Blob[],
+	tiers: readonly Tier[],
+): (x: number, y: number) => boolean {
+	if (blobs.length > 0) {
+		return (x, y) => isPointInBlobs(x, y, blobs);
+	}
+	if (tiers.length > 0) {
+		return (x, y) => tiers.some((t) => isPointInTier(x, y, t));
+	}
+	return () => true;
+}
+
 function computeAnchors(
 	trunkJunctions: readonly Point2D[],
 	canopyBounds: { minX: number; minY: number; maxX: number; maxY: number },
@@ -171,15 +191,7 @@ function computeAnchors(
 		(canopyBounds.maxX - canopyBounds.minX) * (canopyBounds.maxY - canopyBounds.minY);
 	const minDistance = Math.max(3, Math.sqrt(boundsArea / fruitCount) * 0.6);
 
-	let containmentTest: (x: number, y: number) => boolean;
-	if (blobs.length > 0) {
-		containmentTest = (x, y) => isPointInBlobs(x, y, blobs);
-	} else if (tiers.length > 0) {
-		containmentTest = (x, y) => tiers.some((t) => isPointInTier(x, y, t));
-	} else {
-		// Zero-blob custom trees degenerate bounds → poissonSample produces ≤1 point
-		containmentTest = () => true;
-	}
+	const containmentTest = buildCanopyContainmentTest(blobs, tiers);
 
 	const fruitSlots = poissonSample(
 		fruitRng,
@@ -731,10 +743,48 @@ export function generateTree(config: TreeConfig): TreeGeometry {
 		config.seed,
 	);
 
+	// Fruit generation: produce triangulated fruit shapes at anchor slots
+	const effectiveFruitType = config.fruitType;
+	const effectiveFruitCount = config.fruitCount;
+	let fruitTriangles: Triangle[] = [];
+
+	if (effectiveFruitType !== FRUIT_TYPES.none && effectiveFruitCount > 0) {
+		const fruitSlots = [...anchors.fruitSlots];
+
+		// If requested count exceeds pre-sampled slots, generate more within canopy
+		if (effectiveFruitCount > fruitSlots.length) {
+			const extraRng = createPrng(config.seed + FRUIT_SLOTS_SEED_OFFSET + 1000);
+			const needed = effectiveFruitCount - fruitSlots.length;
+			const boundsArea =
+				(canopyBounds.maxX - canopyBounds.minX) * (canopyBounds.maxY - canopyBounds.minY);
+			// Progressively reduce minDistance to fit more slots
+			const minDistance = Math.max(1.5, Math.sqrt(boundsArea / effectiveFruitCount) * 0.4);
+
+			const extraContainmentTest = buildCanopyContainmentTest(blobs, tiers);
+
+			const extraSlots = poissonSample(
+				extraRng,
+				needed,
+				canopyBounds,
+				extraContainmentTest,
+				minDistance,
+			);
+			fruitSlots.push(...extraSlots);
+		}
+
+		const fruitRng = createPrng(config.seed + FRUIT_SLOTS_SEED_OFFSET + 2000);
+		fruitTriangles = generateFruitAtSlots(
+			effectiveFruitType,
+			fruitSlots.slice(0, effectiveFruitCount),
+			fruitRng,
+		);
+	}
+
 	return {
 		trunkTriangles,
 		branchTriangles,
 		canopyBlobs,
+		fruitTriangles,
 		anchors,
 		viewBox: { width: VIEWBOX_WIDTH, height: VIEWBOX_HEIGHT },
 	};

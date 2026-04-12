@@ -20,6 +20,8 @@ export {
 	VIEWBOX_HEIGHT,
 } from './types/config.js';
 
+export { FRUIT_TYPES, type FruitType, FRUIT_TYPE_OPTIONS, FRUIT_SPECS } from './types/fruit.js';
+
 export {
 	CUSTOM_BLOB_BOUNDARY_KINDS,
 	type CustomBlobBoundaryKind,
