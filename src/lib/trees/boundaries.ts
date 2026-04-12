@@ -154,6 +154,52 @@ export const circleBoundary: BoundaryShape = {
 };
 
 // ---------------------------------------------------------------------------
+// Shared bilateral edge sampling (teardrop + egg)
+// ---------------------------------------------------------------------------
+//
+// Both teardrop and egg boundaries use the same two-sided sweep strategy:
+// split `count` into halves, walk t ∈ [-1, +1] with radial jitter on each
+// side, varying only the xHalfWidth function and jitter factor.
+// ---------------------------------------------------------------------------
+
+/**
+ * Sample boundary points along both sides of a bilateral parametric shape.
+ * `xHalfWidthFn(t)` returns the normalized x-extent at parameter `t ∈ [-1, 1]`.
+ */
+export function sampleBilateralEdges(
+	cx: number,
+	cy: number,
+	rx: number,
+	ry: number,
+	count: number,
+	rng: () => number,
+	rotationDeg: number,
+	xHalfWidthFn: (tParam: number) => number,
+	jitterFactor: number,
+): BoundaryPoint[] {
+	const points: BoundaryPoint[] = [];
+	if (count <= 0) {
+		return points;
+	}
+	const halfCount = Math.max(1, Math.floor(count / 2));
+	const otherCount = count - halfCount;
+	const pushEdgeSamples = (edgeCount: number, sideSign: 1 | -1): void => {
+		for (let i = 0; i < edgeCount; i++) {
+			const denom = edgeCount + 1;
+			const tParam = -1 + ((i + 1) / denom) * 2;
+			const jitterScale = 1 - rng() * jitterFactor;
+			const halfWidth = xHalfWidthFn(tParam) * jitterScale;
+			const xLocal = sideSign * rx * halfWidth;
+			const yLocal = ry * tParam;
+			points.push(rotatePointAroundCenter(cx + xLocal, cy + yLocal, cx, cy, rotationDeg));
+		}
+	};
+	pushEdgeSamples(halfCount, 1);
+	pushEdgeSamples(otherCount, -1);
+	return points;
+}
+
+// ---------------------------------------------------------------------------
 // Teardrop boundary
 // ---------------------------------------------------------------------------
 //
@@ -192,40 +238,17 @@ export const teardropBoundary: BoundaryShape = {
 		return nx * nx <= 1;
 	},
 	sample(cx, cy, rx, ry, count, rng, rotationDeg) {
-		const points: BoundaryPoint[] = [];
-		if (count <= 0) {
-			return points;
-		}
-		// Half the samples ride the left edge, half the right edge, sweeping
-		// t from -1 (pointy top) to +1 (round bottom). Jitter is applied radially
-		// on the half-width so samples cannot escape the shape.
-		const halfCount = Math.max(1, Math.floor(count / 2));
-		const otherCount = count - halfCount;
-		const pushEdgeSamples = (edgeCount: number, sideSign: 1 | -1): void => {
-			for (let i = 0; i < edgeCount; i++) {
-				// Distribute t values across [-1, 1]. Avoid the exact endpoints so
-				// the pointy top is not duplicated from both edges.
-				const denom = edgeCount + 1;
-				const tParam = -1 + ((i + 1) / denom) * 2;
-				// Rejection-free radial jitter: scale the offset from the axis by
-				// a factor in [1 - j, 1], where j is the jitter fraction. This keeps
-				// every sample strictly inside the teardrop.
-				const jitterScale = 1 - rng() * TEARDROP_RADIAL_JITTER_FACTOR;
-				const halfWidth = teardropXHalfWidth(tParam) * jitterScale;
-				const xLocal = sideSign * rx * halfWidth;
-				const yLocal = ry * tParam;
-				const rotated = rotatePointAroundCenter(
-					cx + xLocal,
-					cy + yLocal,
-					cx,
-					cy,
-					rotationDeg,
-				);
-				points.push(rotated);
-			}
-		};
-		pushEdgeSamples(halfCount, 1);
-		pushEdgeSamples(otherCount, -1);
+		const points = sampleBilateralEdges(
+			cx,
+			cy,
+			rx,
+			ry,
+			count,
+			rng,
+			rotationDeg,
+			teardropXHalfWidth,
+			TEARDROP_RADIAL_JITTER_FACTOR,
+		);
 		// Final safety pass: rejection-regenerate any point that happens to fall
 		// outside (should not happen with the rejection-free formula, but guards
 		// against floating-point edge cases near the pointy tip).
@@ -236,7 +259,6 @@ export const teardropBoundary: BoundaryShape = {
 				!teardropBoundary.contains(points[i]!.x, points[i]!.y, cx, cy, rx, ry, rotationDeg)
 			) {
 				attempts++;
-				// Pull the point slightly toward the center until it lands inside.
 				const tParam = randomInRange(rng, -0.9, 0.9);
 				const halfWidth = teardropXHalfWidth(tParam) * 0.8;
 				const sideSign = rng() < 0.5 ? -1 : 1;
@@ -287,28 +309,17 @@ export const eggBoundary: BoundaryShape = {
 		return nx * nx <= 1;
 	},
 	sample(cx, cy, rx, ry, count, rng, rotationDeg) {
-		const points: BoundaryPoint[] = [];
-		if (count <= 0) {
-			return points;
-		}
-		const halfCount = Math.max(1, Math.floor(count / 2));
-		const otherCount = count - halfCount;
-		const pushEdgeSamples = (edgeCount: number, sideSign: 1 | -1): void => {
-			for (let i = 0; i < edgeCount; i++) {
-				const denom = edgeCount + 1;
-				const tParam = -1 + ((i + 1) / denom) * 2;
-				// Rejection-free radial jitter: scale the half-width by a factor in
-				// [1 - j, 1] so samples stay strictly inside the egg outline.
-				const jitterScale = 1 - rng() * EGG_RADIAL_JITTER_FACTOR;
-				const halfWidth = eggXHalfWidth(tParam) * jitterScale;
-				const xLocal = sideSign * rx * halfWidth;
-				const yLocal = ry * tParam;
-				points.push(rotatePointAroundCenter(cx + xLocal, cy + yLocal, cx, cy, rotationDeg));
-			}
-		};
-		pushEdgeSamples(halfCount, 1);
-		pushEdgeSamples(otherCount, -1);
-		return points;
+		return sampleBilateralEdges(
+			cx,
+			cy,
+			rx,
+			ry,
+			count,
+			rng,
+			rotationDeg,
+			eggXHalfWidth,
+			EGG_RADIAL_JITTER_FACTOR,
+		);
 	},
 };
 

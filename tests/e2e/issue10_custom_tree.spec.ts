@@ -87,7 +87,7 @@ test.describe('Issue #10 — Custom tree mode', () => {
 		await expect(content.locator('label').filter({ hasText: /^Y:/ })).toBeVisible();
 	});
 
-	test('single editor: changing a blob X position updates the canopy in the preview', async ({
+	test('single editor: changing a blob X position updates the canopy polygon points', async ({
 		page,
 	}) => {
 		await page.goto('/editor');
@@ -108,9 +108,11 @@ test.describe('Issue #10 — Custom tree mode', () => {
 		const initialPolygonCount = await page.locator('svg .canopy polygon').count();
 		expect(initialPolygonCount).toBeGreaterThan(0);
 
-		// Grab the X slider (the label matches "X: ..."), change its value,
-		// dispatch input, and assert the canopy still renders (preview updates
-		// deterministically).
+		// Capture polygon points before the slider change.
+		const pointsBefore = await page
+			.locator('svg .canopy polygon')
+			.evaluateAll((els) => els.map((el) => el.getAttribute('points')));
+
 		const xSlider = content
 			.locator('label')
 			.filter({ hasText: /^X:/ })
@@ -124,8 +126,106 @@ test.describe('Issue #10 — Custom tree mode', () => {
 			input.dispatchEvent(new Event('input', { bubbles: true }));
 		});
 
-		// The preview still renders — canopy polygons remain present.
+		// Wait for the preview to re-render.
 		await expect(page.locator('svg .canopy polygon').first()).toBeVisible();
+
+		// Capture polygon points after and assert they differ (canopy shifted).
+		const pointsAfter = await page
+			.locator('svg .canopy polygon')
+			.evaluateAll((els) => els.map((el) => el.getAttribute('points')));
+
+		expect(pointsAfter).not.toEqual(pointsBefore);
+	});
+
+	test('single editor: changing blob 0 boundary to egg updates the preview', async ({ page }) => {
+		await page.goto('/editor');
+		await page.waitForLoadState('networkidle');
+
+		const shapeTrigger = page.locator('[data-slot="select-trigger"]').first();
+		await shapeTrigger.click();
+		await page
+			.locator('[role="option"]')
+			.filter({ hasText: /custom/i })
+			.first()
+			.click();
+
+		const firstBlob = page.locator('[data-slot="accordion-trigger"]').first();
+		await firstBlob.click();
+
+		// Capture polygon points before boundary change.
+		const pointsBefore = await page
+			.locator('svg .canopy polygon')
+			.evaluateAll((els) => els.map((el) => el.getAttribute('points')));
+
+		// Wait for the accordion content to be fully expanded.
+		const content = page.locator('[data-slot="accordion-content"]').first();
+		await expect(content.locator('label').filter({ hasText: /Boundary/i })).toBeVisible();
+
+		// Open the Boundary dropdown inside the first blob's accordion content.
+		const boundaryTrigger = content.locator('[data-slot="select-trigger"]');
+		await expect(boundaryTrigger).toBeVisible();
+		await boundaryTrigger.click();
+
+		// Select "Egg".
+		await page.locator('[role="option"]').filter({ hasText: /Egg/i }).first().click();
+
+		// Wait for the preview to re-render.
+		await expect(page.locator('svg .canopy polygon').first()).toBeVisible();
+
+		// Polygon points should differ — different boundary produces different triangulation.
+		const pointsAfter = await page
+			.locator('svg .canopy polygon')
+			.evaluateAll((els) => els.map((el) => el.getAttribute('points')));
+
+		expect(pointsAfter).not.toEqual(pointsBefore);
+	});
+
+	test('single editor: adjusting blob 2 position updates the preview', async ({ page }) => {
+		await page.goto('/editor');
+		await page.waitForLoadState('networkidle');
+
+		const shapeTrigger = page.locator('[data-slot="select-trigger"]').first();
+		await shapeTrigger.click();
+		await page
+			.locator('[role="option"]')
+			.filter({ hasText: /custom/i })
+			.first()
+			.click();
+
+		// Default blobCount is 5, so blob 2 (index 2, "Blob 3") exists.
+		const blobTriggers = page.locator('[data-slot="accordion-trigger"]');
+		await expect(blobTriggers).toHaveCount(5);
+
+		// Expand blob 2 (third accordion item).
+		await blobTriggers.nth(2).click();
+
+		// Capture polygon points before.
+		const pointsBefore = await page
+			.locator('svg .canopy polygon')
+			.evaluateAll((els) => els.map((el) => el.getAttribute('points')));
+
+		// Change blob 2's X position.
+		const content = page.locator('[data-slot="accordion-content"]').nth(2);
+		const xSlider = content
+			.locator('label')
+			.filter({ hasText: /^X:/ })
+			.locator('..')
+			.locator('input[type="range"]');
+		await expect(xSlider).toBeVisible();
+
+		await xSlider.evaluate((el) => {
+			const input = el as HTMLInputElement;
+			input.value = '-0.80';
+			input.dispatchEvent(new Event('input', { bubbles: true }));
+		});
+
+		await expect(page.locator('svg .canopy polygon').first()).toBeVisible();
+
+		const pointsAfter = await page
+			.locator('svg .canopy polygon')
+			.evaluateAll((els) => els.map((el) => el.getAttribute('points')));
+
+		expect(pointsAfter).not.toEqual(pointsBefore);
 	});
 
 	test('scene editor does NOT show the custom shape', async ({ page }) => {

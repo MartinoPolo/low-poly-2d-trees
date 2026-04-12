@@ -1,3 +1,5 @@
+import { BOUNDARY_KINDS, type BoundaryKind } from './boundaries.js';
+
 export const TREE_SHAPES = {
 	oak: 'oak',
 	pine: 'pine',
@@ -263,20 +265,13 @@ export const VIEWBOX_HEIGHT = 300;
 // ---------------------------------------------------------------------------
 
 /**
- * Boundary shapes available to a `custom`-tree blob. This is a subset of the
- * internal `BOUNDARY_KINDS` registry: `teardrop`, `circle`, `egg`, plus two
- * triangle variants. The custom editor exposes these as a dropdown per blob.
+ * Boundary shapes available to a `custom`-tree blob. Currently identical to
+ * `BOUNDARY_KINDS` — derived directly to eliminate duplication. If custom
+ * should ever expose only a subset, use `Extract<BoundaryKind, ...>` instead.
  */
-export const CUSTOM_BLOB_BOUNDARY_KINDS = {
-	circle: 'circle',
-	egg: 'egg',
-	teardrop: 'teardrop',
-	isoscelesTriangle: 'isoscelesTriangle',
-	equilateralTriangle: 'equilateralTriangle',
-} as const;
+export const CUSTOM_BLOB_BOUNDARY_KINDS = BOUNDARY_KINDS;
 
-export type CustomBlobBoundaryKind =
-	(typeof CUSTOM_BLOB_BOUNDARY_KINDS)[keyof typeof CUSTOM_BLOB_BOUNDARY_KINDS];
+export type CustomBlobBoundaryKind = BoundaryKind;
 
 export const CUSTOM_BLOB_BOUNDARY_OPTIONS: readonly {
 	value: CustomBlobBoundaryKind;

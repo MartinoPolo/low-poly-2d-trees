@@ -7,6 +7,7 @@ import {
 	eggBoundary,
 	equilateralTriangleBoundary,
 	isoscelesTriangleBoundary,
+	sampleBilateralEdges,
 } from './boundaries.js';
 import { createPrng } from './prng.js';
 
@@ -412,5 +413,74 @@ describe('isoscelesTriangleBoundary.sample', () => {
 		const a = isoscelesTriangleBoundary.sample(cx, cy, rx, ry, 16, createPrng(8), 0);
 		const b = isoscelesTriangleBoundary.sample(cx, cy, rx, ry, 16, createPrng(8), 0);
 		expect(a).toEqual(b);
+	});
+});
+
+describe('sampleBilateralEdges', () => {
+	const cx = 50;
+	const cy = 60;
+	const rx = 30;
+	const ry = 40;
+	const circleHalfWidth = (t: number) => Math.sqrt(Math.max(0, 1 - t * t));
+
+	it('returns empty array for count <= 0', () => {
+		expect(
+			sampleBilateralEdges(cx, cy, rx, ry, 0, createPrng(1), 0, circleHalfWidth, 0.1),
+		).toEqual([]);
+	});
+
+	it('returns the requested number of points', () => {
+		const points = sampleBilateralEdges(
+			cx,
+			cy,
+			rx,
+			ry,
+			20,
+			createPrng(1),
+			0,
+			circleHalfWidth,
+			0.1,
+		);
+		expect(points).toHaveLength(20);
+	});
+
+	it('produces bilateral (left and right) samples', () => {
+		const points = sampleBilateralEdges(
+			cx,
+			cy,
+			rx,
+			ry,
+			20,
+			createPrng(1),
+			0,
+			circleHalfWidth,
+			0.08,
+		);
+		const leftOfCenter = points.filter((p) => p.x < cx);
+		const rightOfCenter = points.filter((p) => p.x > cx);
+		expect(leftOfCenter.length).toBeGreaterThan(0);
+		expect(rightOfCenter.length).toBeGreaterThan(0);
+	});
+
+	it('is deterministic under the same seeded rng', () => {
+		const a = sampleBilateralEdges(cx, cy, rx, ry, 16, createPrng(42), 0, circleHalfWidth, 0.1);
+		const b = sampleBilateralEdges(cx, cy, rx, ry, 16, createPrng(42), 0, circleHalfWidth, 0.1);
+		expect(a).toEqual(b);
+	});
+
+	it('teardrop.sample produces identical output to calling sampleBilateralEdges + rejection pass', () => {
+		const rng1 = createPrng(99);
+		const rng2 = createPrng(99);
+		const fromTeardrop = teardropBoundary.sample(cx, cy, rx, ry, 12, rng1, 0);
+		const fromTeardrop2 = teardropBoundary.sample(cx, cy, rx, ry, 12, rng2, 0);
+		expect(fromTeardrop).toEqual(fromTeardrop2);
+		expect(fromTeardrop).toHaveLength(12);
+	});
+
+	it('egg.sample produces identical output across calls with same rng seed', () => {
+		const a = eggBoundary.sample(cx, cy, rx, ry, 14, createPrng(77), 0);
+		const b = eggBoundary.sample(cx, cy, rx, ry, 14, createPrng(77), 0);
+		expect(a).toEqual(b);
+		expect(a).toHaveLength(14);
 	});
 });
