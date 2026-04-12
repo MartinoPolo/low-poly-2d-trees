@@ -20,7 +20,7 @@
 	const editorPath = resolve('/editor');
 	const galleryPath = resolve('/gallery');
 	const settingsPath = resolve('/settings');
-	const authPath = resolve('/auth');
+	const authPath = resolve('/auth/sign-in');
 	const signOutPath = resolve('/auth/sign-out');
 
 	const THEME_MODES = ['light', 'system', 'dark'] as const;
