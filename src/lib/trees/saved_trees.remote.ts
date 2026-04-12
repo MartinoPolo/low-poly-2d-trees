@@ -35,7 +35,13 @@ export const saveTree = form(
 	v.object({
 		config: v.pipe(
 			v.string(),
-			v.transform((s) => JSON.parse(s) as TreeConfig),
+			v.transform((s) => {
+				try {
+					return JSON.parse(s) as TreeConfig;
+				} catch {
+					throw new Error('Invalid tree configuration');
+				}
+			}),
 		),
 	}),
 	async ({ config }) => {

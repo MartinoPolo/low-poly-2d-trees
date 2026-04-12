@@ -8,44 +8,27 @@
 	import LabeledRangeSlider from '$lib/components/composed/LabeledRangeSlider.svelte';
 	import CanopyColorCard from '$lib/components/composed/CanopyColorCard.svelte';
 	import TrunkColorCard from '$lib/components/composed/TrunkColorCard.svelte';
-	import { DEFAULT_TREE_CONFIG, SHAPE_DEFAULTS } from '$lib/trees/types.js';
+	import { SHAPE_DEFAULTS } from '$lib/trees/types.js';
 	import { isParamDisabled } from '$lib/trees/disabled_params.js';
+	import { createTreeConfigContext } from '$lib/trees/tree_config.context.svelte.js';
 	import Shuffle from '@lucide/svelte/icons/shuffle';
 
-	let seed = $state(DEFAULT_TREE_CONFIG.seed);
-	let canopyPolygons = $state(DEFAULT_TREE_CONFIG.canopyPolygons);
-	let trunkPolygons = $state(DEFAULT_TREE_CONFIG.trunkPolygons);
-	let canopyLightColor = $state(DEFAULT_TREE_CONFIG.canopyLightColor);
-	let canopyDarkColor = $state(DEFAULT_TREE_CONFIG.canopyDarkColor);
-	let trunkHue = $state(DEFAULT_TREE_CONFIG.trunkHue);
-	let trunkSaturation = $state(DEFAULT_TREE_CONFIG.trunkSaturation);
-	let trunkLightness = $state(DEFAULT_TREE_CONFIG.trunkLightness);
+	const treeConfig = createTreeConfigContext();
+
 	let usePerShapeDefaults = $state(false);
-	let lightAngle = $state(DEFAULT_TREE_CONFIG.lightAngle);
-	let depthVariance = $state(DEFAULT_TREE_CONFIG.depthVariance);
-	let blobSizeVariance = $state(DEFAULT_TREE_CONFIG.blobSizeVariance);
-	let blobCloseness = $state(DEFAULT_TREE_CONFIG.blobCloseness);
-	let trunkThickness = $state(DEFAULT_TREE_CONFIG.trunkThickness);
-	let branchThickness = $state(DEFAULT_TREE_CONFIG.branchThickness);
-	let canopySize = $state(DEFAULT_TREE_CONFIG.canopySize);
-	let trunkHeight = $state(DEFAULT_TREE_CONFIG.trunkHeight);
-	let trunkBranchRatio = $state(DEFAULT_TREE_CONFIG.trunkBranchRatio);
-	let trunkLean = $state(DEFAULT_TREE_CONFIG.trunkLean);
-	let trunkSegments = $state(DEFAULT_TREE_CONFIG.trunkSegments);
-	let trunkCrookedness = $state(DEFAULT_TREE_CONFIG.trunkCrookedness);
-	let branchLength = $state(DEFAULT_TREE_CONFIG.branchLength);
-	let branchLengthVariance = $state(DEFAULT_TREE_CONFIG.branchLengthVariance);
 	let showAnchors = $state(false);
 	let showCanopy = $state(true);
 	let showBranches = $state(true);
 	let showTrunk = $state(true);
 
 	const trunkCrookednessDisabled = $derived(
-		isParamDisabled('custom', 'trunkCrookedness', { trunkSegments }),
+		isParamDisabled('custom', 'trunkCrookedness', {
+			trunkSegments: treeConfig.current.trunkSegments,
+		}),
 	);
 
 	function randomizeSeed() {
-		seed = Math.floor(Math.random() * 100000);
+		treeConfig.current.seed = Math.floor(Math.random() * 100000);
 	}
 
 	const trees = [
@@ -69,37 +52,35 @@
 			{#each trees as tree (tree.shape)}
 				<div class="flex w-full max-w-[200px] flex-col items-center gap-2">
 					<LowPolyTree
-						shape={tree.shape}
-						seed={seed + tree.seedOffset}
-						{canopyPolygons}
-						{trunkPolygons}
-						canopyLightColor={usePerShapeDefaults
-							? tree.canopyLightColor
-							: canopyLightColor}
-						canopyDarkColor={usePerShapeDefaults
-							? tree.canopyDarkColor
-							: canopyDarkColor}
-						trunkHue={usePerShapeDefaults ? tree.trunkHue : trunkHue}
-						trunkSaturation={usePerShapeDefaults
-							? tree.trunkSaturation
-							: trunkSaturation}
-						trunkLightness={usePerShapeDefaults ? tree.trunkLightness : trunkLightness}
-						{lightAngle}
-						{depthVariance}
-						{blobSizeVariance}
-						{blobCloseness}
-						{trunkThickness}
-						{branchThickness}
-						{canopySize}
-						{trunkHeight}
-						{trunkBranchRatio}
-						{trunkLean}
-						{trunkSegments}
-						{trunkCrookedness}
-						{branchLength}
-						{branchLengthVariance}
-						blobCount={tree.blobCount}
-						branchCount={tree.branchCount}
+						config={{
+							...treeConfig.current,
+							shape: tree.shape,
+							seed: treeConfig.current.seed + tree.seedOffset,
+							blobCount: tree.blobCount,
+							branchCount: tree.branchCount,
+							blobSizeVariance: tree.blobSizeVariance,
+							blobCloseness: tree.blobCloseness,
+							branchThickness: tree.branchThickness,
+							trunkSegments: tree.trunkSegments,
+							trunkCrookedness: tree.trunkCrookedness,
+							branchLength: tree.branchLength,
+							branchLengthVariance: tree.branchLengthVariance,
+							canopyLightColor: usePerShapeDefaults
+								? tree.canopyLightColor
+								: treeConfig.current.canopyLightColor,
+							canopyDarkColor: usePerShapeDefaults
+								? tree.canopyDarkColor
+								: treeConfig.current.canopyDarkColor,
+							trunkHue: usePerShapeDefaults
+								? tree.trunkHue
+								: treeConfig.current.trunkHue,
+							trunkSaturation: usePerShapeDefaults
+								? tree.trunkSaturation
+								: treeConfig.current.trunkSaturation,
+							trunkLightness: usePerShapeDefaults
+								? tree.trunkLightness
+								: treeConfig.current.trunkLightness,
+						}}
 						{showCanopy}
 						{showBranches}
 						{showTrunk}
@@ -120,29 +101,33 @@
 					<div class="space-y-2">
 						<Label>Base Seed</Label>
 						<div class="flex gap-2">
-							<Input type="number" bind:value={seed} class="flex-1" />
+							<Input
+								type="number"
+								bind:value={treeConfig.current.seed}
+								class="flex-1"
+							/>
 							<Button variant="outline" size="icon" onclick={randomizeSeed}>
 								<Shuffle />
 							</Button>
 						</div>
 					</div>
 					<div class="space-y-2">
-						<Label>Canopy Polygons: {canopyPolygons}</Label>
+						<Label>Canopy Polygons: {treeConfig.current.canopyPolygons}</Label>
 						<input
 							type="range"
 							min="10"
 							max="150"
-							bind:value={canopyPolygons}
+							bind:value={treeConfig.current.canopyPolygons}
 							class="w-full accent-primary"
 						/>
 					</div>
 					<div class="space-y-2">
-						<Label>Trunk Polygons: {trunkPolygons}</Label>
+						<Label>Trunk Polygons: {treeConfig.current.trunkPolygons}</Label>
 						<input
 							type="range"
 							min="10"
 							max="100"
-							bind:value={trunkPolygons}
+							bind:value={treeConfig.current.trunkPolygons}
 							class="w-full accent-primary"
 						/>
 					</div>
@@ -150,34 +135,36 @@
 
 				<SectionCard title="Canopy" contentClass="space-y-4">
 					<div class="space-y-2">
-						<Label>Blob Size Variance: {blobSizeVariance.toFixed(1)}x</Label>
+						<Label>
+							Blob Size Variance: {treeConfig.current.blobSizeVariance.toFixed(1)}x
+						</Label>
 						<input
 							type="range"
 							min="1"
 							max="10"
 							step="0.1"
-							bind:value={blobSizeVariance}
+							bind:value={treeConfig.current.blobSizeVariance}
 							class="w-full accent-primary"
 						/>
 					</div>
 					<div class="space-y-2">
-						<Label>Blob Closeness: {blobCloseness}%</Label>
+						<Label>Blob Closeness: {treeConfig.current.blobCloseness}%</Label>
 						<input
 							type="range"
 							min="0"
 							max="100"
-							bind:value={blobCloseness}
+							bind:value={treeConfig.current.blobCloseness}
 							class="w-full accent-primary"
 						/>
 					</div>
 					<div class="space-y-2">
-						<Label>Canopy Size: {canopySize}%</Label>
+						<Label>Canopy Size: {treeConfig.current.canopySize}%</Label>
 						<input
 							type="range"
 							min="25"
 							max="400"
 							step="5"
-							bind:value={canopySize}
+							bind:value={treeConfig.current.canopySize}
 							class="w-full accent-primary"
 						/>
 					</div>
@@ -185,44 +172,46 @@
 
 				<SectionCard title="Trunk & Branches" contentClass="space-y-4">
 					<div class="space-y-2">
-						<Label>Trunk Height: {trunkHeight}%</Label>
+						<Label>Trunk Height: {treeConfig.current.trunkHeight}%</Label>
 						<input
 							type="range"
 							min="50"
 							max="150"
-							bind:value={trunkHeight}
+							bind:value={treeConfig.current.trunkHeight}
 							class="w-full accent-primary"
 						/>
 					</div>
 					<div class="space-y-2">
-						<Label>Trunk Thickness: {trunkThickness}%</Label>
+						<Label>Trunk Thickness: {treeConfig.current.trunkThickness}%</Label>
 						<input
 							type="range"
 							min="25"
 							max="400"
 							step="5"
-							bind:value={trunkThickness}
+							bind:value={treeConfig.current.trunkThickness}
 							class="w-full accent-primary"
 						/>
 					</div>
 					<div class="space-y-2">
-						<Label>Branch Thickness: {branchThickness}%</Label>
+						<Label>Branch Thickness: {treeConfig.current.branchThickness}%</Label>
 						<input
 							type="range"
 							min="25"
 							max="400"
 							step="5"
-							bind:value={branchThickness}
+							bind:value={treeConfig.current.branchThickness}
 							class="w-full accent-primary"
 						/>
 					</div>
 					<div class="space-y-2">
-						<Label>Trunk/Branch Ratio: {trunkBranchRatio}%</Label>
+						<Label>
+							Trunk/Branch Ratio: {treeConfig.current.trunkBranchRatio}%
+						</Label>
 						<input
 							type="range"
 							min="30"
 							max="100"
-							bind:value={trunkBranchRatio}
+							bind:value={treeConfig.current.trunkBranchRatio}
 							class="w-full accent-primary"
 						/>
 					</div>
@@ -232,14 +221,14 @@
 						max={45}
 						step={1}
 						unit="°"
-						bind:value={trunkLean}
+						bind:value={treeConfig.current.trunkLean}
 					/>
 					<LabeledRangeSlider
 						label="Trunk Segments"
 						min={1}
 						max={5}
 						step={1}
-						bind:value={trunkSegments}
+						bind:value={treeConfig.current.trunkSegments}
 					/>
 					<LabeledRangeSlider
 						label="Trunk Crookedness"
@@ -247,7 +236,7 @@
 						max={100}
 						step={5}
 						unit="%"
-						bind:value={trunkCrookedness}
+						bind:value={treeConfig.current.trunkCrookedness}
 						disabled={trunkCrookednessDisabled}
 					/>
 					<LabeledRangeSlider
@@ -256,7 +245,7 @@
 						max={400}
 						step={5}
 						unit="%"
-						bind:value={branchLength}
+						bind:value={treeConfig.current.branchLength}
 					/>
 					<LabeledRangeSlider
 						label="Branch Length Variance"
@@ -264,7 +253,7 @@
 						max={100}
 						step={5}
 						unit="%"
-						bind:value={branchLengthVariance}
+						bind:value={treeConfig.current.branchLengthVariance}
 					/>
 				</SectionCard>
 
@@ -284,37 +273,39 @@
 				</SectionCard>
 
 				<CanopyColorCard
-					bind:lightColor={canopyLightColor}
-					bind:darkColor={canopyDarkColor}
+					bind:lightColor={treeConfig.current.canopyLightColor}
+					bind:darkColor={treeConfig.current.canopyDarkColor}
 					disabled={usePerShapeDefaults}
 				/>
 
 				<TrunkColorCard
-					bind:hue={trunkHue}
-					bind:saturation={trunkSaturation}
-					bind:lightness={trunkLightness}
+					bind:hue={treeConfig.current.trunkHue}
+					bind:saturation={treeConfig.current.trunkSaturation}
+					bind:lightness={treeConfig.current.trunkLightness}
 					disabled={usePerShapeDefaults}
 				/>
 
 				<SectionCard title="Lighting" contentClass="space-y-4">
 					<div class="space-y-2">
-						<Label>Light Angle: {lightAngle}°</Label>
+						<Label>Light Angle: {treeConfig.current.lightAngle}°</Label>
 						<input
 							type="range"
 							min="0"
 							max="360"
-							bind:value={lightAngle}
+							bind:value={treeConfig.current.lightAngle}
 							class="w-full accent-primary"
 						/>
 					</div>
 					<div class="space-y-2">
-						<Label>Depth Variance: {depthVariance.toFixed(1)}</Label>
+						<Label>
+							Depth Variance: {treeConfig.current.depthVariance.toFixed(1)}
+						</Label>
 						<input
 							type="range"
 							min="0"
 							max="2"
 							step="0.1"
-							bind:value={depthVariance}
+							bind:value={treeConfig.current.depthVariance}
 							class="w-full accent-primary"
 						/>
 					</div>

@@ -14,6 +14,7 @@
 
 	let renamingId = $state<string | null>(null);
 	let renameValue = $state('');
+	let operationError = $state<string | null>(null);
 
 	function startRename(id: string, current: string) {
 		renamingId = id;
@@ -23,7 +24,12 @@
 	async function commitRename(id: string) {
 		const trimmed = renameValue.trim();
 		if (trimmed && trimmed.length <= 80) {
-			await renameSavedTree({ id, name: trimmed });
+			try {
+				await renameSavedTree({ id, name: trimmed });
+				operationError = null;
+			} catch {
+				operationError = 'Failed to rename tree';
+			}
 		}
 		renamingId = null;
 	}
@@ -33,7 +39,12 @@
 		if (!confirmed) {
 			return;
 		}
-		await deleteSavedTree(id);
+		try {
+			await deleteSavedTree(id);
+			operationError = null;
+		} catch {
+			operationError = 'Failed to delete tree';
+		}
 	}
 
 	function handleAuthError(error: unknown) {
@@ -59,6 +70,12 @@
 			Click a thumbnail to open it in the single editor.
 		</p>
 	</header>
+
+	{#if operationError}
+		<div class="mb-4 rounded-md border border-destructive/40 bg-destructive/10 p-3">
+			<p class="text-sm text-destructive">{operationError}</p>
+		</div>
+	{/if}
 
 	<svelte:boundary onerror={handleAuthError}>
 		{#snippet pending()}
@@ -96,7 +113,7 @@
 							class="block aspect-square overflow-hidden rounded-md bg-muted/30"
 							aria-label={`Open ${tree.name} in editor`}
 						>
-							<LowPolyTree {...tree.config} class="h-full w-full" />
+							<LowPolyTree config={tree.config} class="h-full w-full" />
 						</a>
 						<div class="mt-2 min-w-0 flex-1">
 							{#if renamingId === tree.id}
