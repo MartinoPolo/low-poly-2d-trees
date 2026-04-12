@@ -60,9 +60,61 @@
 </svelte:head>
 
 <main class="grid h-dvh grid-rows-[1fr] bg-background text-foreground">
-	<div class="grid grid-cols-[320px_1fr] overflow-hidden xl:grid-cols-[640px_1fr]">
+	<div class="grid grid-cols-[1fr_320px] overflow-hidden xl:grid-cols-[1fr_640px]">
+		<!-- Scene Preview -->
+		<div
+			data-testid="scene-canvas"
+			class="flex items-center justify-center gap-8 rounded-xl border border-border bg-muted/30 p-8"
+		>
+			{#each trees as tree (tree.shape)}
+				<div class="flex w-full max-w-[200px] flex-col items-center gap-2">
+					<LowPolyTree
+						shape={tree.shape}
+						seed={seed + tree.seedOffset}
+						{canopyPolygons}
+						{trunkPolygons}
+						canopyLightColor={usePerShapeDefaults
+							? tree.canopyLightColor
+							: canopyLightColor}
+						canopyDarkColor={usePerShapeDefaults
+							? tree.canopyDarkColor
+							: canopyDarkColor}
+						trunkHue={usePerShapeDefaults ? tree.trunkHue : trunkHue}
+						trunkSaturation={usePerShapeDefaults
+							? tree.trunkSaturation
+							: trunkSaturation}
+						trunkLightness={usePerShapeDefaults ? tree.trunkLightness : trunkLightness}
+						{lightAngle}
+						{depthVariance}
+						{blobSizeVariance}
+						{blobCloseness}
+						{trunkThickness}
+						{branchThickness}
+						{canopySize}
+						{trunkHeight}
+						{trunkBranchRatio}
+						{trunkLean}
+						{trunkSegments}
+						{trunkCrookedness}
+						{branchLength}
+						{branchLengthVariance}
+						blobCount={tree.blobCount}
+						branchCount={tree.branchCount}
+						{showCanopy}
+						{showBranches}
+						{showTrunk}
+						{showAnchors}
+						class="h-auto w-full"
+					/>
+					<span class="text-sm font-medium capitalize text-muted-foreground">
+						{tree.shape}
+					</span>
+				</div>
+			{/each}
+		</div>
+
 		<!-- Shared Controls -->
-		<aside class="select-none overflow-y-auto p-6">
+		<aside data-testid="scene-controls" class="select-none overflow-y-auto p-6">
 			<div class="grid grid-cols-1 gap-6 xl:grid-cols-2">
 				<SectionCard title="Scene Settings" contentClass="space-y-4">
 					<div class="space-y-2">
@@ -300,56 +352,5 @@
 				</SectionCard>
 			</div>
 		</aside>
-
-		<!-- Scene Preview -->
-		<div
-			class="flex items-center justify-center gap-8 rounded-xl border border-border bg-muted/30 p-8"
-		>
-			{#each trees as tree (tree.shape)}
-				<div class="flex w-full max-w-[200px] flex-col items-center gap-2">
-					<LowPolyTree
-						shape={tree.shape}
-						seed={seed + tree.seedOffset}
-						{canopyPolygons}
-						{trunkPolygons}
-						canopyLightColor={usePerShapeDefaults
-							? tree.canopyLightColor
-							: canopyLightColor}
-						canopyDarkColor={usePerShapeDefaults
-							? tree.canopyDarkColor
-							: canopyDarkColor}
-						trunkHue={usePerShapeDefaults ? tree.trunkHue : trunkHue}
-						trunkSaturation={usePerShapeDefaults
-							? tree.trunkSaturation
-							: trunkSaturation}
-						trunkLightness={usePerShapeDefaults ? tree.trunkLightness : trunkLightness}
-						{lightAngle}
-						{depthVariance}
-						{blobSizeVariance}
-						{blobCloseness}
-						{trunkThickness}
-						{branchThickness}
-						{canopySize}
-						{trunkHeight}
-						{trunkBranchRatio}
-						{trunkLean}
-						{trunkSegments}
-						{trunkCrookedness}
-						{branchLength}
-						{branchLengthVariance}
-						blobCount={tree.blobCount}
-						branchCount={tree.branchCount}
-						{showCanopy}
-						{showBranches}
-						{showTrunk}
-						{showAnchors}
-						class="h-auto w-full"
-					/>
-					<span class="text-sm font-medium capitalize text-muted-foreground">
-						{tree.shape}
-					</span>
-				</div>
-			{/each}
-		</div>
 	</div>
 </main>
