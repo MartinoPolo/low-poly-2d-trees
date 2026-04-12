@@ -13,7 +13,9 @@
 	import {
 		TREE_SHAPES,
 		TREE_SHAPE_OPTIONS,
+		TREE_STAGE_OPTIONS,
 		SHAPE_DEFAULTS,
+		isTreeStage,
 		type TreeShape,
 	} from '$lib/trees/types.js';
 	import { growCustomBlobs } from '$lib/trees/shapes.js';
@@ -52,6 +54,13 @@
 
 	function isTreeShape(value: string): value is TreeShape {
 		return (Object.values(TREE_SHAPES) as readonly string[]).includes(value);
+	}
+
+	function onStageChange(value: string) {
+		if (!isTreeStage(value)) {
+			return;
+		}
+		treeConfig.current.stage = value;
 	}
 
 	function onShapeChange(value: string) {
@@ -169,6 +178,13 @@
 							options={TREE_SHAPE_OPTIONS}
 							value={treeConfig.current.shape}
 							onValueChange={onShapeChange}
+						/>
+
+						<LabeledSelect
+							label="Life Stage"
+							options={TREE_STAGE_OPTIONS}
+							value={treeConfig.current.stage}
+							onValueChange={onStageChange}
 						/>
 
 						<div class="space-y-2">
