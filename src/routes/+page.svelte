@@ -1,212 +1,355 @@
 <script lang="ts">
-	import DarkModeToggle from '$lib/components/DarkModeToggle.svelte';
-	import LabeledSelect from '$lib/components/composed/LabeledSelect.svelte';
-	import SwitchField from '$lib/components/composed/field/SwitchField.svelte';
-	import CheckboxField from '$lib/components/composed/field/CheckboxField.svelte';
-	import FormField from '$lib/components/composed/field/FormField.svelte';
-	import SectionCard from '$lib/components/composed/SectionCard.svelte';
-	import InfoAlert from '$lib/components/composed/alert/InfoAlert.svelte';
-	import ErrorAlert from '$lib/components/composed/alert/ErrorAlert.svelte';
-	import SuccessAlert from '$lib/components/composed/alert/SuccessAlert.svelte';
-	import { useShowcaseForm, type Interests } from '$lib/context/showcase_form.context.svelte';
+	import LowPolyTree from '$lib/trees/LowPolyTree.svelte';
+	import { Label } from '$lib/components/ui/label/index.js';
+	import { Input } from '$lib/components/ui/input/index.js';
 	import { Button } from '$lib/components/ui/button/index.js';
-	import { Badge } from '$lib/components/ui/badge/index.js';
-	import { Separator } from '$lib/components/ui/separator/index.js';
-	import { resolve } from '$app/paths';
-	import Mail from '@lucide/svelte/icons/mail';
-	import Loader from '@lucide/svelte/icons/loader';
+	import { Checkbox } from '$lib/components/ui/checkbox/index.js';
+	import SectionCard from '$lib/components/composed/SectionCard.svelte';
+	import LabeledRangeSlider from '$lib/components/composed/LabeledRangeSlider.svelte';
+	import CanopyColorCard from '$lib/components/composed/CanopyColorCard.svelte';
+	import TrunkColorCard from '$lib/components/composed/TrunkColorCard.svelte';
+	import { DEFAULT_TREE_CONFIG, SHAPE_DEFAULTS } from '$lib/trees/types.js';
+	import { isParamDisabled } from '$lib/trees/disabled_params.js';
+	import Shuffle from '@lucide/svelte/icons/shuffle';
 
-	const { framework, role, interests, selectionCount } = useShowcaseForm();
+	let seed = $state(DEFAULT_TREE_CONFIG.seed);
+	let canopyPolygons = $state(DEFAULT_TREE_CONFIG.canopyPolygons);
+	let trunkPolygons = $state(DEFAULT_TREE_CONFIG.trunkPolygons);
+	let canopyLightColor = $state(DEFAULT_TREE_CONFIG.canopyLightColor);
+	let canopyDarkColor = $state(DEFAULT_TREE_CONFIG.canopyDarkColor);
+	let trunkHue = $state(DEFAULT_TREE_CONFIG.trunkHue);
+	let trunkSaturation = $state(DEFAULT_TREE_CONFIG.trunkSaturation);
+	let trunkLightness = $state(DEFAULT_TREE_CONFIG.trunkLightness);
+	let usePerShapeDefaults = $state(false);
+	let lightAngle = $state(DEFAULT_TREE_CONFIG.lightAngle);
+	let depthVariance = $state(DEFAULT_TREE_CONFIG.depthVariance);
+	let blobSizeVariance = $state(DEFAULT_TREE_CONFIG.blobSizeVariance);
+	let blobCloseness = $state(DEFAULT_TREE_CONFIG.blobCloseness);
+	let trunkThickness = $state(DEFAULT_TREE_CONFIG.trunkThickness);
+	let branchThickness = $state(DEFAULT_TREE_CONFIG.branchThickness);
+	let canopySize = $state(DEFAULT_TREE_CONFIG.canopySize);
+	let trunkHeight = $state(DEFAULT_TREE_CONFIG.trunkHeight);
+	let trunkBranchRatio = $state(DEFAULT_TREE_CONFIG.trunkBranchRatio);
+	let trunkLean = $state(DEFAULT_TREE_CONFIG.trunkLean);
+	let trunkSegments = $state(DEFAULT_TREE_CONFIG.trunkSegments);
+	let trunkCrookedness = $state(DEFAULT_TREE_CONFIG.trunkCrookedness);
+	let branchLength = $state(DEFAULT_TREE_CONFIG.branchLength);
+	let branchLengthVariance = $state(DEFAULT_TREE_CONFIG.branchLengthVariance);
+	let showAnchors = $state(false);
+	let showCanopy = $state(true);
+	let showBranches = $state(true);
+	let showTrunk = $state(true);
 
-	const frameworks = [
-		{ value: 'sveltekit', label: 'SvelteKit' },
-		{ value: 'nextjs', label: 'Next.js' },
-		{ value: 'nuxt', label: 'Nuxt' },
-		{ value: 'remix', label: 'Remix' },
-	] as const;
+	const trunkCrookednessDisabled = $derived(
+		isParamDisabled('custom', 'trunkCrookedness', { trunkSegments }),
+	);
 
-	const roles = [
-		{ value: 'admin', label: 'Admin' },
-		{ value: 'editor', label: 'Editor' },
-		{ value: 'viewer', label: 'Viewer' },
-	] as const;
-
-	// Checkbox helpers — update interest immutably
-	function toggleInterest(key: keyof Interests) {
-		const prev = interests.current;
-		interests.current = { ...prev, [key]: !prev[key] };
+	function randomizeSeed() {
+		seed = Math.floor(Math.random() * 100000);
 	}
+
+	const trees = [
+		{ shape: 'oak' as const, ...SHAPE_DEFAULTS.oak, seedOffset: 0 },
+		{ shape: 'pine' as const, ...SHAPE_DEFAULTS.pine, seedOffset: 1000 },
+		{ shape: 'birch' as const, ...SHAPE_DEFAULTS.birch, seedOffset: 2000 },
+	] as const;
 </script>
 
-<main class="min-h-screen bg-background text-foreground">
-	<!-- Header -->
-	<header class="border-b border-border">
-		<div class="mx-auto flex max-w-5xl items-center justify-between px-6 py-4">
-			<h1 class="text-xl font-bold tracking-tight">SvelteKit Template</h1>
-			<DarkModeToggle />
-		</div>
-	</header>
+<svelte:head>
+	<title>Scene Editor</title>
+</svelte:head>
 
-	<div class="mx-auto max-w-5xl space-y-12 px-6 py-12">
-		<!-- Hero -->
-		<section class="space-y-3 text-center">
-			<h2 class="text-4xl font-extrabold tracking-tight">Component Showcase</h2>
-			<p class="text-muted-foreground text-lg">
-				shadcn-svelte components with a green theme, light &amp; dark mode support.
-			</p>
-			<div class="flex items-center justify-center gap-4">
-				<Badge variant="secondary" class={selectionCount.current > 0 ? '' : 'invisible'}>
-					{selectionCount.current} selection{selectionCount.current === 1 ? '' : 's'} made
-				</Badge>
-				<a
-					href={resolve('/showcase')}
-					class="inline-flex items-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow hover:bg-primary/90"
-				>
-					Tree Generator
-				</a>
-			</div>
-		</section>
-
-		<Separator />
-
-		<!-- Buttons -->
-		<section class="space-y-4">
-			<h3 class="text-2xl font-semibold tracking-tight">Buttons</h3>
-			<div class="flex flex-wrap items-center gap-3">
-				<Button>Default</Button>
-				<Button variant="secondary">Secondary</Button>
-				<Button variant="outline">Outline</Button>
-				<Button variant="ghost">Ghost</Button>
-				<Button variant="link">Link</Button>
-				<Button variant="destructive">Destructive</Button>
-			</div>
-			<div class="flex flex-wrap items-center gap-3">
-				<Button size="sm">Small</Button>
-				<Button size="default">Default</Button>
-				<Button size="lg">Large</Button>
-				<Button size="icon" aria-label="Send email"><Mail size={16} /></Button>
-			</div>
-			<div class="flex flex-wrap items-center gap-3">
-				<Button disabled>Disabled</Button>
-				<Button>
-					<Loader class="animate-spin" size={16} />
-					Loading...
-				</Button>
-			</div>
-		</section>
-
-		<Separator />
-
-		<!-- Badges -->
-		<section class="space-y-4">
-			<h3 class="text-2xl font-semibold tracking-tight">Badges</h3>
-			<div class="flex flex-wrap items-center gap-3">
-				<Badge>Default</Badge>
-				<Badge variant="secondary">Secondary</Badge>
-				<Badge variant="outline">Outline</Badge>
-				<Badge variant="destructive">Destructive</Badge>
-			</div>
-		</section>
-
-		<Separator />
-
-		<!-- Cards & Form Elements -->
-		<section class="space-y-4">
-			<h3 class="text-2xl font-semibold tracking-tight">Cards &amp; Form Elements</h3>
-			<div class="grid gap-6 md:grid-cols-2">
-				<!-- Input Card -->
-				<SectionCard
-					title="Text Inputs"
-					description="Standard input fields and textarea."
-					contentClass="space-y-4"
-				>
-					<FormField id="name" label="Name" placeholder="Enter your name" />
-					<FormField
-						id="email"
-						label="Email"
-						type="email"
-						placeholder="you@example.com"
-					/>
-					<FormField
-						id="bio"
-						label="Bio"
-						multiline
-						placeholder="Tell us about yourself…"
-					/>
-					{#snippet footer()}
-						<Button class="w-full">Submit</Button>
-					{/snippet}
-				</SectionCard>
-
-				<!-- Select & Controls Card -->
-				<SectionCard
-					title="Select &amp; Controls"
-					description="Dropdowns, switches, and checkboxes."
-					contentClass="space-y-6"
-				>
-					<LabeledSelect
-						label="Framework"
-						options={frameworks}
-						value={framework.current}
-						onValueChange={(v) => {
-							framework.current = v as typeof framework.current;
-						}}
-						placeholder="Select a framework"
-					/>
-					<LabeledSelect
-						label="Role"
-						options={roles}
-						value={role.current}
-						onValueChange={(v) => {
-							role.current = v as typeof role.current;
-						}}
-						placeholder="Select a role"
-					/>
-					<Separator />
-					<SwitchField id="notifications" label="Enable notifications" />
-					<SwitchField id="marketing" label="Marketing emails" />
-					<Separator />
-					<div class="flex flex-col gap-3">
-						<span class="text-sm font-medium">Interests</span>
-						<CheckboxField
-							id="frontend"
-							label="Frontend"
-							checked={interests.current.frontend}
-							onCheckedChange={() => toggleInterest('frontend')}
+<main class="grid h-dvh grid-rows-[1fr] bg-background text-foreground">
+	<div class="grid grid-cols-[320px_1fr] overflow-hidden xl:grid-cols-[640px_1fr]">
+		<!-- Shared Controls -->
+		<aside class="select-none overflow-y-auto p-6">
+			<div class="grid grid-cols-1 gap-6 xl:grid-cols-2">
+				<SectionCard title="Scene Settings" contentClass="space-y-4">
+					<div class="space-y-2">
+						<Label>Base Seed</Label>
+						<div class="flex gap-2">
+							<Input type="number" bind:value={seed} class="flex-1" />
+							<Button variant="outline" size="icon" onclick={randomizeSeed}>
+								<Shuffle />
+							</Button>
+						</div>
+					</div>
+					<div class="space-y-2">
+						<Label>Canopy Polygons: {canopyPolygons}</Label>
+						<input
+							type="range"
+							min="10"
+							max="150"
+							bind:value={canopyPolygons}
+							class="w-full accent-primary"
 						/>
-						<CheckboxField
-							id="backend"
-							label="Backend"
-							checked={interests.current.backend}
-							onCheckedChange={() => toggleInterest('backend')}
-						/>
-						<CheckboxField
-							id="devops"
-							label="DevOps"
-							checked={interests.current.devops}
-							onCheckedChange={() => toggleInterest('devops')}
+					</div>
+					<div class="space-y-2">
+						<Label>Trunk Polygons: {trunkPolygons}</Label>
+						<input
+							type="range"
+							min="10"
+							max="100"
+							bind:value={trunkPolygons}
+							class="w-full accent-primary"
 						/>
 					</div>
 				</SectionCard>
+
+				<SectionCard title="Canopy" contentClass="space-y-4">
+					<div class="space-y-2">
+						<Label>Blob Size Variance: {blobSizeVariance.toFixed(1)}x</Label>
+						<input
+							type="range"
+							min="1"
+							max="10"
+							step="0.1"
+							bind:value={blobSizeVariance}
+							class="w-full accent-primary"
+						/>
+					</div>
+					<div class="space-y-2">
+						<Label>Blob Closeness: {blobCloseness}%</Label>
+						<input
+							type="range"
+							min="0"
+							max="100"
+							bind:value={blobCloseness}
+							class="w-full accent-primary"
+						/>
+					</div>
+					<div class="space-y-2">
+						<Label>Canopy Size: {canopySize}%</Label>
+						<input
+							type="range"
+							min="25"
+							max="400"
+							step="5"
+							bind:value={canopySize}
+							class="w-full accent-primary"
+						/>
+					</div>
+				</SectionCard>
+
+				<SectionCard title="Trunk & Branches" contentClass="space-y-4">
+					<div class="space-y-2">
+						<Label>Trunk Height: {trunkHeight}%</Label>
+						<input
+							type="range"
+							min="50"
+							max="150"
+							bind:value={trunkHeight}
+							class="w-full accent-primary"
+						/>
+					</div>
+					<div class="space-y-2">
+						<Label>Trunk Thickness: {trunkThickness}%</Label>
+						<input
+							type="range"
+							min="25"
+							max="400"
+							step="5"
+							bind:value={trunkThickness}
+							class="w-full accent-primary"
+						/>
+					</div>
+					<div class="space-y-2">
+						<Label>Branch Thickness: {branchThickness}%</Label>
+						<input
+							type="range"
+							min="25"
+							max="400"
+							step="5"
+							bind:value={branchThickness}
+							class="w-full accent-primary"
+						/>
+					</div>
+					<div class="space-y-2">
+						<Label>Trunk/Branch Ratio: {trunkBranchRatio}%</Label>
+						<input
+							type="range"
+							min="30"
+							max="100"
+							bind:value={trunkBranchRatio}
+							class="w-full accent-primary"
+						/>
+					</div>
+					<LabeledRangeSlider
+						label="Trunk Lean"
+						min={-45}
+						max={45}
+						step={1}
+						unit="°"
+						bind:value={trunkLean}
+					/>
+					<LabeledRangeSlider
+						label="Trunk Segments"
+						min={1}
+						max={5}
+						step={1}
+						bind:value={trunkSegments}
+					/>
+					<LabeledRangeSlider
+						label="Trunk Crookedness"
+						min={0}
+						max={100}
+						step={5}
+						unit="%"
+						bind:value={trunkCrookedness}
+						disabled={trunkCrookednessDisabled}
+					/>
+					<LabeledRangeSlider
+						label="Branch Length"
+						min={25}
+						max={400}
+						step={5}
+						unit="%"
+						bind:value={branchLength}
+					/>
+					<LabeledRangeSlider
+						label="Branch Length Variance"
+						min={0}
+						max={100}
+						step={5}
+						unit="%"
+						bind:value={branchLengthVariance}
+					/>
+				</SectionCard>
+
+				<SectionCard title="Color Mode" contentClass="space-y-4">
+					<div class="flex items-center gap-2">
+						<Checkbox
+							id="use-per-shape-defaults"
+							checked={usePerShapeDefaults}
+							onCheckedChange={(v) => (usePerShapeDefaults = v === true)}
+						/>
+						<Label for="use-per-shape-defaults">Use per-shape default colors</Label>
+					</div>
+					<p class="text-xs text-muted-foreground">
+						When enabled, each tree uses its shape's default palette and the shared
+						color controls below are disabled.
+					</p>
+				</SectionCard>
+
+				<CanopyColorCard
+					bind:lightColor={canopyLightColor}
+					bind:darkColor={canopyDarkColor}
+					disabled={usePerShapeDefaults}
+				/>
+
+				<TrunkColorCard
+					bind:hue={trunkHue}
+					bind:saturation={trunkSaturation}
+					bind:lightness={trunkLightness}
+					disabled={usePerShapeDefaults}
+				/>
+
+				<SectionCard title="Lighting" contentClass="space-y-4">
+					<div class="space-y-2">
+						<Label>Light Angle: {lightAngle}°</Label>
+						<input
+							type="range"
+							min="0"
+							max="360"
+							bind:value={lightAngle}
+							class="w-full accent-primary"
+						/>
+					</div>
+					<div class="space-y-2">
+						<Label>Depth Variance: {depthVariance.toFixed(1)}</Label>
+						<input
+							type="range"
+							min="0"
+							max="2"
+							step="0.1"
+							bind:value={depthVariance}
+							class="w-full accent-primary"
+						/>
+					</div>
+				</SectionCard>
+
+				<SectionCard title="Debug" contentClass="space-y-4">
+					<div class="flex items-center gap-2">
+						<Checkbox
+							checked={showCanopy}
+							onCheckedChange={(v) => (showCanopy = v === true)}
+						/>
+						<Label>Show Canopy</Label>
+					</div>
+					<div class="flex items-center gap-2">
+						<Checkbox
+							checked={showBranches}
+							onCheckedChange={(v) => (showBranches = v === true)}
+						/>
+						<Label>Show Branches</Label>
+					</div>
+					<div class="flex items-center gap-2">
+						<Checkbox
+							checked={showTrunk}
+							onCheckedChange={(v) => (showTrunk = v === true)}
+						/>
+						<Label>Show Trunk</Label>
+					</div>
+					<div class="flex items-center gap-2">
+						<Checkbox
+							checked={showAnchors}
+							onCheckedChange={(v) => (showAnchors = v === true)}
+						/>
+						<Label>Show Anchor Points</Label>
+					</div>
+				</SectionCard>
 			</div>
-		</section>
+		</aside>
 
-		<Separator />
-
-		<!-- Alerts -->
-		<section class="space-y-4">
-			<h3 class="text-2xl font-semibold tracking-tight">Alerts</h3>
-			<div class="space-y-3">
-				<InfoAlert>This is an informational alert using the default variant.</InfoAlert>
-				<ErrorAlert>Something went wrong. Please try again later.</ErrorAlert>
-				<SuccessAlert>Your changes have been saved successfully.</SuccessAlert>
-			</div>
-		</section>
-
-		<!-- Footer -->
-		<Separator />
-		<footer class="text-muted-foreground pb-8 text-center text-sm">
-			Built with SvelteKit, Tailwind CSS &amp; shadcn-svelte
-		</footer>
+		<!-- Scene Preview -->
+		<div
+			class="flex items-center justify-center gap-8 rounded-xl border border-border bg-muted/30 p-8"
+		>
+			{#each trees as tree (tree.shape)}
+				<div class="flex w-full max-w-[200px] flex-col items-center gap-2">
+					<LowPolyTree
+						shape={tree.shape}
+						seed={seed + tree.seedOffset}
+						{canopyPolygons}
+						{trunkPolygons}
+						canopyLightColor={usePerShapeDefaults
+							? tree.canopyLightColor
+							: canopyLightColor}
+						canopyDarkColor={usePerShapeDefaults
+							? tree.canopyDarkColor
+							: canopyDarkColor}
+						trunkHue={usePerShapeDefaults ? tree.trunkHue : trunkHue}
+						trunkSaturation={usePerShapeDefaults
+							? tree.trunkSaturation
+							: trunkSaturation}
+						trunkLightness={usePerShapeDefaults ? tree.trunkLightness : trunkLightness}
+						{lightAngle}
+						{depthVariance}
+						{blobSizeVariance}
+						{blobCloseness}
+						{trunkThickness}
+						{branchThickness}
+						{canopySize}
+						{trunkHeight}
+						{trunkBranchRatio}
+						{trunkLean}
+						{trunkSegments}
+						{trunkCrookedness}
+						{branchLength}
+						{branchLengthVariance}
+						blobCount={tree.blobCount}
+						branchCount={tree.branchCount}
+						{showCanopy}
+						{showBranches}
+						{showTrunk}
+						{showAnchors}
+						class="h-auto w-full"
+					/>
+					<span class="text-sm font-medium capitalize text-muted-foreground">
+						{tree.shape}
+					</span>
+				</div>
+			{/each}
+		</div>
 	</div>
 </main>

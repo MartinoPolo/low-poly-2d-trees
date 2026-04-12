@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 
 test.describe('Issue #9 — Color system overhaul', () => {
 	test('single editor shows two canopy color pickers with hex labels', async ({ page }) => {
-		await page.goto('/showcase');
+		await page.goto('/editor');
 		await page.waitForLoadState('networkidle');
 
 		const lightPicker = page.locator('#canopy-light-color');
@@ -22,13 +22,13 @@ test.describe('Issue #9 — Color system overhaul', () => {
 	test('single editor: per-shape defaults toggle is NOT present (REQ-L-09b)', async ({
 		page,
 	}) => {
-		await page.goto('/showcase');
+		await page.goto('/editor');
 		await page.waitForLoadState('networkidle');
 		await expect(page.getByText(/Use per-shape default colors/i)).toHaveCount(0);
 	});
 
 	test('single editor: switching shape updates color pickers', async ({ page }) => {
-		await page.goto('/showcase');
+		await page.goto('/editor');
 		await page.waitForLoadState('networkidle');
 
 		// Switch to pine (§2.6 canopyLightColor = #4a9e5c)
@@ -43,7 +43,7 @@ test.describe('Issue #9 — Color system overhaul', () => {
 	test('single editor: trunk preset swatch sets all 3 HSL sliders (REQ-S-14)', async ({
 		page,
 	}) => {
-		await page.goto('/showcase');
+		await page.goto('/editor');
 		await page.waitForLoadState('networkidle');
 
 		await page.locator('[data-trunk-preset="Dark brown"]').click();
@@ -55,13 +55,13 @@ test.describe('Issue #9 — Color system overhaul', () => {
 	});
 
 	test('scene editor shows the per-shape defaults toggle', async ({ page }) => {
-		await page.goto('/showcase/scene');
+		await page.goto('/');
 		await page.waitForLoadState('networkidle');
 		await expect(page.getByText(/Use per-shape default colors/i)).toBeVisible();
 	});
 
 	test('scene editor: toggle ON disables shared canopy + trunk controls', async ({ page }) => {
-		await page.goto('/showcase/scene');
+		await page.goto('/');
 		await page.waitForLoadState('networkidle');
 
 		const lightPicker = page.locator('#canopy-light-color');
@@ -87,7 +87,7 @@ test.describe('Issue #9 — Color system overhaul', () => {
 	test('scene editor: toggle ON makes trees render with different canopy colors', async ({
 		page,
 	}) => {
-		await page.goto('/showcase/scene');
+		await page.goto('/');
 		await page.waitForLoadState('networkidle');
 
 		// Read canopy triangle fills for each rendered tree. Each <LowPolyTree>

@@ -236,6 +236,10 @@
 	});
 </script>
 
+<svelte:head>
+	<title>Single Editor</title>
+</svelte:head>
+
 <main class="grid h-dvh grid-rows-[1fr] bg-background text-foreground">
 	<div class="grid grid-cols-[320px_1fr] overflow-hidden xl:grid-cols-[640px_1fr]">
 		<!-- Controls -->
