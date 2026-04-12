@@ -6,6 +6,7 @@ export {
 	type TreeAnchors,
 	type Tier,
 	type BlobGeometry,
+	type BranchGeometry,
 	type TreeGeometry,
 } from './types/core.js';
 

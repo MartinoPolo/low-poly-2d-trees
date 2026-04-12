@@ -58,7 +58,8 @@ export function generateSproutingGeometry(): TreeGeometry {
 	return {
 		trunkTriangles,
 		branchTriangles: [],
-		canopyBlobs: [{ triangles: canopyTriangles, depth: 0 }],
+		branchGroups: [],
+		canopyBlobs: [{ triangles: canopyTriangles, center: { x: cx, y: stemTop - 3 }, depth: 0 }],
 		stakeTriangles: [],
 		fruitSlots: [],
 		anchors,

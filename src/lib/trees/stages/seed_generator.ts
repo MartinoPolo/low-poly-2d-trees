@@ -54,6 +54,7 @@ export function generateSeedGeometry(): TreeGeometry {
 	return {
 		trunkTriangles: seedTriangles,
 		branchTriangles: [],
+		branchGroups: [],
 		canopyBlobs: [],
 		stakeTriangles: [],
 		fruitSlots: [],
