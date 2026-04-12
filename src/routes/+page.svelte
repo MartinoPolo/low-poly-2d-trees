@@ -11,9 +11,13 @@
 	import { SHAPE_DEFAULTS } from '$lib/trees/types.js';
 	import { isParamDisabled } from '$lib/trees/disabled_params.js';
 	import { createTreeConfigContext } from '$lib/trees/tree_config.context.svelte.js';
+	import { createSceneConfigContext } from '$lib/scene/scene_config.context.svelte.js';
+	import { generateSceneLayout } from '$lib/scene/scene_layout.js';
+	import { SCENE_LIMITS } from '$lib/scene/scene_config.js';
 	import Shuffle from '@lucide/svelte/icons/shuffle';
 
 	const treeConfig = createTreeConfigContext();
+	const sceneConfig = createSceneConfigContext();
 
 	let usePerShapeDefaults = $state(false);
 	let showAnchors = $state(false);
@@ -27,15 +31,17 @@
 		}),
 	);
 
+	const scenePlacements = $derived(
+		generateSceneLayout({
+			treeCount: sceneConfig.treeCount,
+			depthSpread: sceneConfig.depthSpread,
+			baseSeed: treeConfig.current.seed,
+		}),
+	);
+
 	function randomizeSeed() {
 		treeConfig.current.seed = Math.floor(Math.random() * 100000);
 	}
-
-	const trees = [
-		{ shape: 'oak' as const, ...SHAPE_DEFAULTS.oak, seedOffset: 0 },
-		{ shape: 'pine' as const, ...SHAPE_DEFAULTS.pine, seedOffset: 1000 },
-		{ shape: 'birch' as const, ...SHAPE_DEFAULTS.birch, seedOffset: 2000 },
-	] as const;
 </script>
 
 <svelte:head>
@@ -47,38 +53,49 @@
 		<!-- Scene Preview -->
 		<div
 			data-testid="scene-canvas"
-			class="flex items-center justify-center gap-8 rounded-xl border border-border bg-muted/30 p-8"
+			class="relative overflow-hidden rounded-xl border border-border bg-muted/30"
 		>
-			{#each trees as tree (tree.shape)}
-				<div class="flex w-full max-w-[200px] flex-col items-center gap-2">
+			{#each scenePlacements as placement, index (index)}
+				{@const shapeDefaults = SHAPE_DEFAULTS[placement.shape]}
+				<div
+					data-testid="scene-tree"
+					class="absolute bottom-0"
+					style="
+						left: {placement.x}%;
+						bottom: {placement.y}%;
+						transform: scale({placement.scale}) translateX(-50%);
+						transform-origin: bottom center;
+						width: {160 * placement.scale}px;
+					"
+				>
 					<LowPolyTree
 						config={{
 							...treeConfig.current,
-							shape: tree.shape,
-							seed: treeConfig.current.seed + tree.seedOffset,
-							blobCount: tree.blobCount,
-							branchCount: tree.branchCount,
-							blobSizeVariance: tree.blobSizeVariance,
-							blobCloseness: tree.blobCloseness,
-							branchThickness: tree.branchThickness,
-							trunkSegments: tree.trunkSegments,
-							trunkCrookedness: tree.trunkCrookedness,
-							branchLength: tree.branchLength,
-							branchLengthVariance: tree.branchLengthVariance,
+							shape: placement.shape,
+							seed: placement.seed,
+							blobCount: shapeDefaults.blobCount,
+							branchCount: shapeDefaults.branchCount,
+							blobSizeVariance: shapeDefaults.blobSizeVariance,
+							blobCloseness: shapeDefaults.blobCloseness,
+							branchThickness: shapeDefaults.branchThickness,
+							trunkSegments: shapeDefaults.trunkSegments,
+							trunkCrookedness: shapeDefaults.trunkCrookedness,
+							branchLength: shapeDefaults.branchLength,
+							branchLengthVariance: shapeDefaults.branchLengthVariance,
 							canopyLightColor: usePerShapeDefaults
-								? tree.canopyLightColor
+								? shapeDefaults.canopyLightColor
 								: treeConfig.current.canopyLightColor,
 							canopyDarkColor: usePerShapeDefaults
-								? tree.canopyDarkColor
+								? shapeDefaults.canopyDarkColor
 								: treeConfig.current.canopyDarkColor,
 							trunkHue: usePerShapeDefaults
-								? tree.trunkHue
+								? shapeDefaults.trunkHue
 								: treeConfig.current.trunkHue,
 							trunkSaturation: usePerShapeDefaults
-								? tree.trunkSaturation
+								? shapeDefaults.trunkSaturation
 								: treeConfig.current.trunkSaturation,
 							trunkLightness: usePerShapeDefaults
-								? tree.trunkLightness
+								? shapeDefaults.trunkLightness
 								: treeConfig.current.trunkLightness,
 						}}
 						{showCanopy}
@@ -87,9 +104,6 @@
 						{showAnchors}
 						class="h-auto w-full"
 					/>
-					<span class="text-sm font-medium capitalize text-muted-foreground">
-						{tree.shape}
-					</span>
 				</div>
 			{/each}
 		</div>
@@ -98,6 +112,20 @@
 		<aside data-testid="scene-controls" class="select-none overflow-y-auto p-6">
 			<div class="grid grid-cols-1 gap-6 xl:grid-cols-2">
 				<SectionCard title="Scene Settings" contentClass="space-y-4">
+					<LabeledRangeSlider
+						label="Tree Count"
+						min={SCENE_LIMITS.treeCountMin}
+						max={SCENE_LIMITS.treeCountMax}
+						bind:value={sceneConfig.treeCount}
+						id="tree-count"
+					/>
+					<LabeledRangeSlider
+						label="Depth Spread"
+						min={SCENE_LIMITS.depthSpreadMin}
+						max={SCENE_LIMITS.depthSpreadMax}
+						bind:value={sceneConfig.depthSpread}
+						id="depth-spread"
+					/>
 					<div class="space-y-2">
 						<Label>Base Seed</Label>
 						<div class="flex gap-2">
