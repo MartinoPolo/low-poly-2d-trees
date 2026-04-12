@@ -83,8 +83,8 @@
 	{#if showAnchors}
 		<g class="anchors-group">
 			<circle
-				cx={geometry.anchors.trunkBottom.x}
-				cy={geometry.anchors.trunkBottom.y}
+				cx={geometry.anchors.trunkBase.x}
+				cy={geometry.anchors.trunkBase.y}
 				r="4"
 				fill="#ef4444"
 				stroke="white"
@@ -107,13 +107,49 @@
 				stroke-width="1"
 			/>
 			<circle
-				cx={geometry.anchors.canopyCenter.x}
-				cy={geometry.anchors.canopyCenter.y}
+				cx={geometry.anchors.crownCenter.x}
+				cy={geometry.anchors.crownCenter.y}
 				r="4"
 				fill="#22c55e"
 				stroke="white"
 				stroke-width="1"
 			/>
+			<circle
+				cx={geometry.anchors.crownTop.x}
+				cy={geometry.anchors.crownTop.y}
+				r="4"
+				fill="#06b6d4"
+				stroke="white"
+				stroke-width="1"
+			/>
+			<circle
+				cx={geometry.anchors.roots.x}
+				cy={geometry.anchors.roots.y}
+				r="4"
+				fill="#a855f7"
+				stroke="white"
+				stroke-width="1"
+			/>
+			{#each geometry.anchors.branchTips as tip (tip)}
+				<circle
+					cx={tip.x}
+					cy={tip.y}
+					r="3"
+					fill="#f43f5e"
+					stroke="white"
+					stroke-width="0.5"
+				/>
+			{/each}
+			{#each geometry.anchors.fruitSlots as slot (slot)}
+				<circle
+					cx={slot.x}
+					cy={slot.y}
+					r="3"
+					fill="#10b981"
+					stroke="white"
+					stroke-width="0.5"
+				/>
+			{/each}
 		</g>
 	{/if}
 </svg>
