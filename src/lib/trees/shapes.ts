@@ -1,5 +1,5 @@
 // Barrel re-export — the actual definitions live in shapes/*.ts modules.
-export type { Blob, BranchSegment, ShapeDefinition } from './shapes/shape-types.js';
+export type { Blob, BranchSegment } from './shapes/shape_types.js';
 
 export {
 	computeEffectiveTrunkTop,
@@ -15,16 +15,14 @@ export {
 	applyBlobSizeVariance,
 	applyBlobCloseness,
 	applyCanopySize,
-} from './shapes/blob-modifiers.js';
+} from './shapes/blob_modifiers.js';
 
 export {
-	isPointInBlobs,
-	isPointInSingleBlob,
 	getBlobsBounds,
 	isPointInBranch,
 	sampleTierBoundary,
 	validateNoFloatingBlobs,
-} from './shapes/shape-bounds.js';
+} from './shapes/shape_bounds.js';
 
 export {
 	raySegmentEllipseIntersection,
@@ -40,7 +38,7 @@ export {
 	TRUNK_BRANCH_WIDTH_START_MAX,
 	TRUNK_BRANCH_WIDTH_END_MIN,
 	TRUNK_BRANCH_WIDTH_END_MAX,
-} from './shapes/branch-generation.js';
+} from './shapes/branch_generation.js';
 
 export {
 	getShapeDefinition,
@@ -51,4 +49,4 @@ export {
 	CUSTOM_BLOB_CANOPY_CENTER_X,
 	CUSTOM_BLOB_CANOPY_CENTER_Y,
 	TRUNK_ENTRY_MIN_PX,
-} from './shapes/blob-generators.js';
+} from './shapes/blob_generators.js';

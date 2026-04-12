@@ -1,13 +1,13 @@
 import type { TreeConfig, Point2D } from '../types.js';
 import { randomInRange } from '../prng.js';
 import { sampleTrunkCenterX } from './trunk.js';
-import { isPointInBlobs, isPointInSingleBlob, getBlobsBounds } from './shape-bounds.js';
+import { isPointInBlobs, isPointInSingleBlob, getBlobsBounds } from './shape_bounds.js';
 import {
 	computeVisibleBranchLength,
 	branchesOverlap,
 	resolveBranchLengthRange,
 } from './geometry.js';
-import type { Blob, BranchSegment } from './shape-types.js';
+import type { Blob, BranchSegment } from './shape_types.js';
 
 // ---------------------------------------------------------------------------
 // Constants

@@ -1,6 +1,6 @@
 import { VIEWBOX_WIDTH } from '../types.js';
 import { BOUNDARIES } from '../boundaries.js';
-import type { Blob } from './shape-types.js';
+import type { Blob } from './shape_types.js';
 
 const W = VIEWBOX_WIDTH;
 

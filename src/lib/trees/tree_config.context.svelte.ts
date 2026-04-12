@@ -1,7 +1,4 @@
-import { getContext, setContext } from 'svelte';
 import { DEFAULT_TREE_CONFIG, TREE_SHAPES, type CustomBlob, type TreeConfig } from './types.js';
-
-const CONTEXT_KEY = Symbol.for('tree-config');
 
 /** Strip readonly from all properties so `bind:value` can write through the deep proxy. */
 type Mutable<T> = { -readonly [K in keyof T]: T[K] };
@@ -36,18 +33,6 @@ class TreeConfigState {
 	}
 }
 
-export function create_tree_config_context() {
+export function createTreeConfigContext() {
 	return new TreeConfigState();
 }
-
-export function set_tree_config_context() {
-	const ctx = create_tree_config_context();
-	setContext(CONTEXT_KEY, ctx);
-	return ctx;
-}
-
-export function use_tree_config(): TreeConfigState {
-	return getContext(CONTEXT_KEY);
-}
-
-export type TreeConfigContext = ReturnType<typeof create_tree_config_context>;

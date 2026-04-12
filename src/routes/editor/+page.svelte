@@ -19,7 +19,7 @@
 	import { growCustomBlobs } from '$lib/trees/shapes.js';
 	import { isParamDisabled } from '$lib/trees/disabled_params.js';
 	import { getSavedTree, saveTree } from '$lib/trees/saved_trees.remote.js';
-	import { create_tree_config_context } from '$lib/trees/tree-config.context.svelte.js';
+	import { createTreeConfigContext } from '$lib/trees/tree_config.context.svelte.js';
 	import { page } from '$app/state';
 	import Shuffle from '@lucide/svelte/icons/shuffle';
 	import Save from '@lucide/svelte/icons/save';
@@ -27,7 +27,7 @@
 	const user = $derived(page.data.user);
 	const signedIn = $derived(user !== null);
 
-	const treeConfig = create_tree_config_context();
+	const treeConfig = createTreeConfigContext();
 
 	let showAnchors = $state(false);
 	let showCanopy = $state(true);

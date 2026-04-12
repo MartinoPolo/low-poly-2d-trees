@@ -1,5 +1,5 @@
 import type { Tier } from '../types.js';
-import type { Blob, BranchSegment } from './shape-types.js';
+import type { Blob, BranchSegment } from './shape_types.js';
 
 // ---------------------------------------------------------------------------
 // Segment/shape intersection helpers (issue #7 — branch visibility)

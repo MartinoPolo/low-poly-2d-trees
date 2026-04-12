@@ -1,7 +1,7 @@
 import type { Point2D } from '../types.js';
 import { VIEWBOX_WIDTH } from '../types.js';
 import { randomInRange } from '../prng.js';
-import type { ShapeDefinition } from './shape-types.js';
+import type { ShapeDefinition } from './shape_types.js';
 
 // ---------------------------------------------------------------------------
 // Utilities

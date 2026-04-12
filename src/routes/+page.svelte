@@ -10,10 +10,10 @@
 	import TrunkColorCard from '$lib/components/composed/TrunkColorCard.svelte';
 	import { SHAPE_DEFAULTS } from '$lib/trees/types.js';
 	import { isParamDisabled } from '$lib/trees/disabled_params.js';
-	import { create_tree_config_context } from '$lib/trees/tree-config.context.svelte.js';
+	import { createTreeConfigContext } from '$lib/trees/tree_config.context.svelte.js';
 	import Shuffle from '@lucide/svelte/icons/shuffle';
 
-	const treeConfig = create_tree_config_context();
+	const treeConfig = createTreeConfigContext();
 
 	let usePerShapeDefaults = $state(false);
 	let showAnchors = $state(false);

@@ -1,7 +1,6 @@
 // Barrel re-export — the actual definitions live in types/*.ts modules.
 export {
 	GEOMETRY_GROUPS,
-	type GeometryGroup,
 	type Point2D,
 	type Triangle,
 	type TreeAnchors,

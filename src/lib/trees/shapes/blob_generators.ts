@@ -2,7 +2,7 @@ import type { TreeShape, CustomBlob } from '../types.js';
 import { VIEWBOX_WIDTH, VIEWBOX_HEIGHT, CUSTOM_BLOB_DEFAULT } from '../types.js';
 import { createPrng, randomInRange } from '../prng.js';
 import { BOUNDARY_KINDS } from '../boundaries.js';
-import type { Blob, ShapeDefinition } from './shape-types.js';
+import type { Blob, ShapeDefinition } from './shape_types.js';
 
 const W = VIEWBOX_WIDTH;
 const H = VIEWBOX_HEIGHT;

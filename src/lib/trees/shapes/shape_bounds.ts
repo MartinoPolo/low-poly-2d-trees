@@ -2,7 +2,7 @@ import { VIEWBOX_WIDTH, VIEWBOX_HEIGHT } from '../types.js';
 import type { Tier } from '../types.js';
 import { BOUNDARIES } from '../boundaries.js';
 import { randomInRange } from '../prng.js';
-import type { Blob, BranchSegment } from './shape-types.js';
+import type { Blob, BranchSegment } from './shape_types.js';
 
 // ---------------------------------------------------------------------------
 // Blob point-testing
