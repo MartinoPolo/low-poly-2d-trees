@@ -19,6 +19,7 @@ export {
 
 export {
 	getBlobsBounds,
+	isPointInBlobs,
 	isPointInBranch,
 	sampleTierBoundary,
 	validateNoFloatingBlobs,

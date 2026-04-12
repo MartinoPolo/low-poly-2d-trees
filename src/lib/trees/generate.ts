@@ -17,6 +17,7 @@ import {
 	computeEffectiveTrunkTop,
 	isPointInTrunkPath,
 	isPointInBranch,
+	isPointInBlobs,
 	generateBranches,
 	getBlobsBounds,
 	sampleTierBoundary,
@@ -120,9 +121,17 @@ function computeTrunkXBounds(
 	};
 }
 
+const ROOTS_DEPTH_PX = 15;
+const FRUIT_SLOTS_SEED_OFFSET = 54321;
+
 function computeAnchors(
 	trunkJunctions: readonly Point2D[],
 	canopyBounds: { minX: number; minY: number; maxX: number; maxY: number },
+	allBranches: readonly BranchSegment[],
+	canopyBlobs: readonly BlobGeometry[],
+	blobs: readonly Blob[],
+	tiers: readonly Tier[],
+	seed: number,
 ): TreeAnchors {
 	const baseJunction = trunkJunctions[0]!;
 	const topJunction = trunkJunctions[trunkJunctions.length - 1]!;
@@ -130,17 +139,69 @@ function computeAnchors(
 	// so it remains visually meaningful for multi-segment crooked trunks.
 	const midY = (baseJunction.y + topJunction.y) / 2;
 
+	const crownCenter: Point2D = {
+		x: (canopyBounds.minX + canopyBounds.maxX) / 2,
+		y: (canopyBounds.minY + canopyBounds.maxY) / 2,
+	};
+
+	// crownTop: vertex with minimum y across all canopy triangles
+	let crownTopY = Infinity;
+	let crownTopX = crownCenter.x;
+	for (const blob of canopyBlobs) {
+		for (const tri of blob.triangles) {
+			for (const p of tri.points) {
+				if (p.y < crownTopY) {
+					crownTopY = p.y;
+					crownTopX = p.x;
+				}
+			}
+		}
+	}
+	const crownTop: Point2D =
+		crownTopY < Infinity
+			? { x: crownTopX, y: crownTopY }
+			: { x: crownCenter.x, y: canopyBounds.minY };
+
+	// branchTips: endpoint of each branch
+	const branchTips: Point2D[] = allBranches.map((b) => ({ x: b.x2, y: b.y2 }));
+
+	// fruitSlots: 5-7 Poisson-sampled points within canopy
+	const fruitRng = createPrng(seed + FRUIT_SLOTS_SEED_OFFSET);
+	const fruitCount = 5 + Math.floor(fruitRng() * 3);
+	const boundsArea =
+		(canopyBounds.maxX - canopyBounds.minX) * (canopyBounds.maxY - canopyBounds.minY);
+	const minDistance = Math.max(3, Math.sqrt(boundsArea / fruitCount) * 0.6);
+
+	let containmentTest: (x: number, y: number) => boolean;
+	if (blobs.length > 0) {
+		containmentTest = (x, y) => isPointInBlobs(x, y, blobs);
+	} else if (tiers.length > 0) {
+		containmentTest = (x, y) => tiers.some((t) => isPointInTier(x, y, t));
+	} else {
+		// Zero-blob custom trees degenerate bounds → poissonSample produces ≤1 point
+		containmentTest = () => true;
+	}
+
+	const fruitSlots = poissonSample(
+		fruitRng,
+		fruitCount,
+		canopyBounds,
+		containmentTest,
+		minDistance,
+	);
+
 	return {
 		trunkTop: topJunction,
 		trunkMiddle: {
 			x: sampleTrunkCenterX(trunkJunctions, midY),
 			y: midY,
 		},
-		trunkBottom: baseJunction,
-		canopyCenter: {
-			x: (canopyBounds.minX + canopyBounds.maxX) / 2,
-			y: (canopyBounds.minY + canopyBounds.maxY) / 2,
-		},
+		trunkBase: baseJunction,
+		crownCenter,
+		crownTop,
+		roots: { x: baseJunction.x, y: baseJunction.y + ROOTS_DEPTH_PX },
+		branchTips,
+		fruitSlots,
 	};
 }
 
@@ -674,7 +735,15 @@ function generateTreeCore(config: TreeConfig, addStakes: boolean, addFruit: bool
 		? generateTierCanopy(rng, tiers, config.canopyPolygons, config)
 		: generateBlobCanopy(rng, blobs, config.canopyPolygons, smoothAcuteAngles, config);
 
-	const anchors = computeAnchors(trunkJunctions, canopyBounds);
+	const anchors = computeAnchors(
+		trunkJunctions,
+		canopyBounds,
+		allBranches,
+		canopyBlobs,
+		blobs,
+		tiers,
+		config.seed,
+	);
 
 	const stakeTriangles = addStakes ? generateStakeTriangles(anchors) : [];
 	const fruitSlots = addFruit ? computeFruitSlots(canopyBlobs) : [];

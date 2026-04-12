@@ -21,8 +21,12 @@ export interface Triangle {
 export interface TreeAnchors {
 	readonly trunkTop: Point2D;
 	readonly trunkMiddle: Point2D;
-	readonly trunkBottom: Point2D;
-	readonly canopyCenter: Point2D;
+	readonly trunkBase: Point2D;
+	readonly crownCenter: Point2D;
+	readonly crownTop: Point2D;
+	readonly roots: Point2D;
+	readonly branchTips: readonly Point2D[];
+	readonly fruitSlots: readonly Point2D[];
 }
 
 export interface Tier {

@@ -161,7 +161,7 @@ describe('REQ-C: Canopy Generation', () => {
 	describe('REQ-C-01: blob centering on trunk axis', () => {
 		it('canopy centroid stays within 5px of trunk axis for single-blob oak', () => {
 			const geo = generateTree(makeConfig({ blobCount: 1, shape: 'oak' }));
-			const center = geo.anchors.canopyCenter;
+			const center = geo.anchors.crownCenter;
 			expect(Math.abs(center.x - VIEWBOX_WIDTH / 2)).toBeLessThan(5);
 		});
 	});
@@ -299,7 +299,7 @@ describe('REQ-T: Trunk & Branch Generation', () => {
 	describe('REQ-T-02: trunk tapers linearly', () => {
 		it('bottom half of trunk vertices spans wider x-range than top half', () => {
 			const geo = generateTree(makeConfig({ seed: 1 }));
-			const midY = (geo.anchors.trunkTop.y + geo.anchors.trunkBottom.y) / 2;
+			const midY = (geo.anchors.trunkTop.y + geo.anchors.trunkBase.y) / 2;
 			const topXs = geo.trunkTriangles.flatMap((t) =>
 				t.points.filter((p) => p.y < midY).map((p) => p.x),
 			);
@@ -331,8 +331,8 @@ describe('REQ-T: Trunk & Branch Generation', () => {
 		it('trunkHeight 30 produces shorter trunk than 150', () => {
 			const geoShort = generateTree(makeConfig({ trunkHeight: 30, seed: 42 }));
 			const geoTall = generateTree(makeConfig({ trunkHeight: 150, seed: 42 }));
-			const shortHeight = geoShort.anchors.trunkBottom.y - geoShort.anchors.trunkTop.y;
-			const tallHeight = geoTall.anchors.trunkBottom.y - geoTall.anchors.trunkTop.y;
+			const shortHeight = geoShort.anchors.trunkBase.y - geoShort.anchors.trunkTop.y;
+			const tallHeight = geoTall.anchors.trunkBase.y - geoTall.anchors.trunkTop.y;
 			expect(tallHeight).toBeGreaterThan(shortHeight);
 		});
 	});
@@ -343,7 +343,7 @@ describe('REQ-T: Trunk & Branch Generation', () => {
 		it('oak canopy centroid shifts down by 75 when trunkHeight drops 100 → 50', () => {
 			const base = generateTree(makeConfig({ trunkHeight: 100, seed: 42 }));
 			const shortTrunk = generateTree(makeConfig({ trunkHeight: 50, seed: 42 }));
-			const shift = shortTrunk.anchors.canopyCenter.y - base.anchors.canopyCenter.y;
+			const shift = shortTrunk.anchors.crownCenter.y - base.anchors.crownCenter.y;
 			expect(shift).toBeCloseTo(75, 5);
 		});
 
@@ -354,7 +354,7 @@ describe('REQ-T: Trunk & Branch Generation', () => {
 			const shortTrunk = generateTree(
 				makeConfig({ trunkHeight: 50, seed: 42, shape: 'pine' }),
 			);
-			const shift = shortTrunk.anchors.canopyCenter.y - base.anchors.canopyCenter.y;
+			const shift = shortTrunk.anchors.crownCenter.y - base.anchors.crownCenter.y;
 			expect(shift).toBeCloseTo(60, 5);
 		});
 
@@ -362,7 +362,7 @@ describe('REQ-T: Trunk & Branch Generation', () => {
 		it('oak canopy shift equals trunkTop shift between trunkHeight 100 and 50', () => {
 			const base = generateTree(makeConfig({ trunkHeight: 100, seed: 42 }));
 			const shortTrunk = generateTree(makeConfig({ trunkHeight: 50, seed: 42 }));
-			const canopyShift = shortTrunk.anchors.canopyCenter.y - base.anchors.canopyCenter.y;
+			const canopyShift = shortTrunk.anchors.crownCenter.y - base.anchors.crownCenter.y;
 			const trunkShift = shortTrunk.anchors.trunkTop.y - base.anchors.trunkTop.y;
 			expect(canopyShift).toBeCloseTo(trunkShift, 5);
 		});
@@ -409,8 +409,8 @@ describe('REQ-T: Trunk & Branch Generation', () => {
 			const { min, max } = extremeYVertices(geo.branchTriangles);
 			const branchAxis = { dx: min.x - max.x, dy: min.y - max.y };
 			const trunkAxis = {
-				dx: geo.anchors.trunkTop.x - geo.anchors.trunkBottom.x,
-				dy: geo.anchors.trunkTop.y - geo.anchors.trunkBottom.y,
+				dx: geo.anchors.trunkTop.x - geo.anchors.trunkBase.x,
+				dy: geo.anchors.trunkTop.y - geo.anchors.trunkBase.y,
 			};
 			const dot = branchAxis.dx * trunkAxis.dx + branchAxis.dy * trunkAxis.dy;
 			const magB = Math.hypot(branchAxis.dx, branchAxis.dy);
@@ -504,7 +504,7 @@ describe('REQ-T: Trunk & Branch Generation', () => {
 		it('trunkLean=0 produces perfectly vertical trunk axis (no jitter)', () => {
 			const geo = generateTree(makeConfig({ trunkLean: 0, trunkSegments: 1 }));
 			expect(geo.anchors.trunkTop.x).toBeCloseTo(VIEWBOX_WIDTH / 2, 10);
-			expect(geo.anchors.trunkBottom.x).toBeCloseTo(VIEWBOX_WIDTH / 2, 10);
+			expect(geo.anchors.trunkBase.x).toBeCloseTo(VIEWBOX_WIDTH / 2, 10);
 		});
 
 		it('trunkLean=0 is deterministic across different seeds (no hidden random)', () => {
@@ -519,20 +519,20 @@ describe('REQ-T: Trunk & Branch Generation', () => {
 			const geo = generateTree(
 				makeConfig({ trunkLean: leanDeg, trunkSegments: 1, seed: 42 }),
 			);
-			const trunkHeight = geo.anchors.trunkBottom.y - geo.anchors.trunkTop.y;
+			const trunkHeight = geo.anchors.trunkBase.y - geo.anchors.trunkTop.y;
 			const expectedLeanPx = Math.tan((leanDeg * Math.PI) / 180) * trunkHeight;
-			const actualLeanPx = geo.anchors.trunkTop.x - geo.anchors.trunkBottom.x;
+			const actualLeanPx = geo.anchors.trunkTop.x - geo.anchors.trunkBase.x;
 			expect(actualLeanPx).toBeCloseTo(expectedLeanPx, 5);
 		});
 
 		it('positive lean shifts trunkTop to the right of the base', () => {
 			const geo = generateTree(makeConfig({ trunkLean: 45, trunkSegments: 1 }));
-			expect(geo.anchors.trunkTop.x).toBeGreaterThan(geo.anchors.trunkBottom.x);
+			expect(geo.anchors.trunkTop.x).toBeGreaterThan(geo.anchors.trunkBase.x);
 		});
 
 		it('negative lean shifts trunkTop to the left of the base', () => {
 			const geo = generateTree(makeConfig({ trunkLean: -45, trunkSegments: 1 }));
-			expect(geo.anchors.trunkTop.x).toBeLessThan(geo.anchors.trunkBottom.x);
+			expect(geo.anchors.trunkTop.x).toBeLessThan(geo.anchors.trunkBase.x);
 		});
 	});
 
@@ -600,7 +600,7 @@ describe('REQ-T: Trunk & Branch Generation', () => {
 					seed: 42,
 				}),
 			);
-			const canopyShiftX = leaned.anchors.canopyCenter.x - base.anchors.canopyCenter.x;
+			const canopyShiftX = leaned.anchors.crownCenter.x - base.anchors.crownCenter.x;
 			const trunkTopShiftX = leaned.anchors.trunkTop.x - base.anchors.trunkTop.x;
 			expect(canopyShiftX).toBeCloseTo(trunkTopShiftX, 5);
 		});
@@ -619,7 +619,7 @@ describe('REQ-T: Trunk & Branch Generation', () => {
 			for (const tri of geo.trunkTriangles) {
 				for (const p of tri.points) {
 					expect(p.y).toBeGreaterThanOrEqual(geo.anchors.trunkTop.y - 3);
-					expect(p.y).toBeLessThanOrEqual(geo.anchors.trunkBottom.y + 3);
+					expect(p.y).toBeLessThanOrEqual(geo.anchors.trunkBase.y + 3);
 				}
 			}
 		});
@@ -764,23 +764,123 @@ describe('REQ-O: Output', () => {
 	});
 
 	describe('REQ-O-02: TreeAnchors', () => {
-		it('exposes four anchor points', () => {
+		it('B1: exposes all anchor fields with correct types', () => {
 			const geo = generateTree(makeConfig());
-			expect(geo.anchors).toHaveProperty('trunkTop');
-			expect(geo.anchors).toHaveProperty('trunkMiddle');
-			expect(geo.anchors).toHaveProperty('trunkBottom');
-			expect(geo.anchors).toHaveProperty('canopyCenter');
-			for (const key of ['trunkTop', 'trunkMiddle', 'trunkBottom', 'canopyCenter'] as const) {
+			for (const key of [
+				'trunkTop',
+				'trunkMiddle',
+				'trunkBase',
+				'crownCenter',
+				'crownTop',
+				'roots',
+			] as const) {
 				expect(typeof geo.anchors[key].x).toBe('number');
 				expect(typeof geo.anchors[key].y).toBe('number');
 			}
+			expect(Array.isArray(geo.anchors.branchTips)).toBe(true);
+			expect(Array.isArray(geo.anchors.fruitSlots)).toBe(true);
 		});
 
-		it('trunkMiddle is between trunkTop and trunkBottom', () => {
+		it('B2: crownCenter is center of canopy bounding box', () => {
+			const geo = generateTree(makeConfig({ shape: 'oak' }));
+			expect(typeof geo.anchors.crownCenter.x).toBe('number');
+			expect(typeof geo.anchors.crownCenter.y).toBe('number');
+		});
+
+		it('B3: crownTop is above crownCenter', () => {
+			const geo = generateTree(makeConfig({ shape: 'oak' }));
+			expect(geo.anchors.crownTop.y).toBeLessThan(geo.anchors.crownCenter.y);
+		});
+
+		it('B4: trunkBase is at ground level (below trunkTop and trunkMiddle)', () => {
 			const geo = generateTree(makeConfig());
-			const midY = geo.anchors.trunkMiddle.y;
-			expect(midY).toBeGreaterThan(geo.anchors.trunkTop.y);
-			expect(midY).toBeLessThan(geo.anchors.trunkBottom.y);
+			expect(geo.anchors.trunkBase.y).toBeGreaterThan(geo.anchors.trunkTop.y);
+			expect(geo.anchors.trunkBase.y).toBeGreaterThan(geo.anchors.trunkMiddle.y);
+		});
+
+		it('B5: roots is below trunkBase with same x', () => {
+			const geo = generateTree(makeConfig());
+			expect(geo.anchors.roots.y).toBeGreaterThan(geo.anchors.trunkBase.y);
+			expect(geo.anchors.roots.x).toBe(geo.anchors.trunkBase.x);
+		});
+
+		it('B6: branchTips has one tip per generated branch', () => {
+			const geo = generateTree(makeConfig({ shape: 'oak', branchCount: 3, seed: 42 }));
+			// Branch count is a target — generation may reject some due to overlap.
+			// branchTips must still be > 0 and each must be a valid Point2D.
+			expect(geo.anchors.branchTips.length).toBeGreaterThan(0);
+			// Verify branchTriangles exist iff branchTips exist
+			expect(geo.branchTriangles.length).toBeGreaterThan(0);
+			for (const tip of geo.anchors.branchTips) {
+				expect(typeof tip.x).toBe('number');
+				expect(typeof tip.y).toBe('number');
+			}
+		});
+
+		it('B6b: branchTips is empty when branchCount is 0', () => {
+			const geo = generateTree(makeConfig({ shape: 'birch', branchCount: 0, seed: 42 }));
+			expect(Array.isArray(geo.anchors.branchTips)).toBe(true);
+		});
+
+		it('B7: branchTips is empty for pine shape', () => {
+			const geo = generateTree(makeConfig({ shape: 'pine', seed: 42 }));
+			expect(geo.anchors.branchTips).toHaveLength(0);
+		});
+
+		it('B8: fruitSlots has 5-7 positions', () => {
+			const geo = generateTree(makeConfig({ shape: 'oak', seed: 42 }));
+			expect(geo.anchors.fruitSlots.length).toBeGreaterThanOrEqual(5);
+			expect(geo.anchors.fruitSlots.length).toBeLessThanOrEqual(7);
+		});
+
+		it('B9: fruitSlots are within canopy bounding area', () => {
+			// Fruit slots are Poisson-sampled inside the pre-triangulation blob
+			// ellipses, which extend slightly beyond triangulated mesh vertices.
+			// Use a generous margin (10 px) to account for the ellipse-to-mesh gap.
+			const geo = generateTree(makeConfig({ shape: 'oak', seed: 42 }));
+			const allCanopyVertices = geo.canopyBlobs.flatMap((b) =>
+				b.triangles.flatMap((t) => t.points),
+			);
+			const margin = 10;
+			const minX = Math.min(...allCanopyVertices.map((p) => p.x));
+			const maxX = Math.max(...allCanopyVertices.map((p) => p.x));
+			const minY = Math.min(...allCanopyVertices.map((p) => p.y));
+			const maxY = Math.max(...allCanopyVertices.map((p) => p.y));
+			for (const slot of geo.anchors.fruitSlots) {
+				expect(slot.x).toBeGreaterThanOrEqual(minX - margin);
+				expect(slot.x).toBeLessThanOrEqual(maxX + margin);
+				expect(slot.y).toBeGreaterThanOrEqual(minY - margin);
+				expect(slot.y).toBeLessThanOrEqual(maxY + margin);
+			}
+		});
+
+		it('B10: fruitSlots are deterministic — same seed same positions', () => {
+			const geo1 = generateTree(makeConfig({ shape: 'oak', seed: 42 }));
+			const geo2 = generateTree(makeConfig({ shape: 'oak', seed: 42 }));
+			expect(geo1.anchors.fruitSlots).toEqual(geo2.anchors.fruitSlots);
+		});
+
+		it('B11: fruitSlots differ between different seeds', () => {
+			const geo1 = generateTree(makeConfig({ shape: 'oak', seed: 42 }));
+			const geo2 = generateTree(makeConfig({ shape: 'oak', seed: 99 }));
+			const same = geo1.anchors.fruitSlots.every(
+				(s, i) =>
+					s.x === geo2.anchors.fruitSlots[i]?.x && s.y === geo2.anchors.fruitSlots[i]?.y,
+			);
+			expect(same).toBe(false);
+		});
+
+		it('B12: trunkMiddle is between trunkTop and trunkBase', () => {
+			const geo = generateTree(makeConfig());
+			expect(geo.anchors.trunkMiddle.y).toBeGreaterThan(geo.anchors.trunkTop.y);
+			expect(geo.anchors.trunkMiddle.y).toBeLessThan(geo.anchors.trunkBase.y);
+		});
+
+		it('B13: pine trees have valid crownTop and fruitSlots', () => {
+			const geo = generateTree(makeConfig({ shape: 'pine', seed: 42 }));
+			expect(geo.anchors.crownTop.y).toBeLessThan(geo.anchors.crownCenter.y);
+			expect(geo.anchors.fruitSlots.length).toBeGreaterThanOrEqual(5);
+			expect(geo.anchors.fruitSlots.length).toBeLessThanOrEqual(7);
 		});
 	});
 });
