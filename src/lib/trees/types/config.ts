@@ -57,7 +57,7 @@ export interface TreeConfig {
 	readonly stage: TreeStage;
 	readonly shape: TreeShape;
 	readonly seed: number;
-	readonly canopyPolygons: number;
+	readonly polygonsPerBlob: number;
 	readonly trunkPolygons: number;
 	/** Hex color used for fully-lit canopy faces (REQ-P-30, REQ-L-01). */
 	readonly canopyLightColor: string;
@@ -83,6 +83,11 @@ export interface TreeConfig {
 	readonly branchLength: number;
 	readonly branchLengthVariance: number;
 	/**
+	 * Recursive branching depth: 0 = no branches, 1 = trunk-origin only,
+	 * 2 = trunk + sub-branches (default), 3 = trunk + sub + sub-sub-branches.
+	 */
+	readonly branchDepth: number;
+	/**
 	 * Per-blob overrides for the `custom` tree shape. Only consulted when
 	 * `shape === 'custom'`. Grown lazily in UI state as the user raises the
 	 * blobCount slider; entries past the current blobCount are preserved but
@@ -97,7 +102,7 @@ export const DEFAULT_TREE_CONFIG: TreeConfig = {
 	stage: TREE_STAGES.leafy,
 	shape: TREE_SHAPES.oak,
 	seed: 42,
-	canopyPolygons: 50,
+	polygonsPerBlob: 12,
 	trunkPolygons: 30,
 	canopyLightColor: '#a8d84e',
 	canopyDarkColor: '#1a472a',
@@ -120,6 +125,7 @@ export const DEFAULT_TREE_CONFIG: TreeConfig = {
 	trunkCrookedness: 0,
 	branchLength: 100,
 	branchLengthVariance: 50,
+	branchDepth: 2,
 	fruitType: FRUIT_TYPES.none,
 	fruitCount: 0,
 } as const;
@@ -132,6 +138,7 @@ export const SHAPE_DEFAULTS = {
 	[TREE_SHAPES.oak]: {
 		blobCount: 5,
 		branchCount: 2,
+		branchDepth: 2,
 		blobSizeVariance: 3.0,
 		blobCloseness: 50,
 		branchThickness: 100,
@@ -150,6 +157,7 @@ export const SHAPE_DEFAULTS = {
 	[TREE_SHAPES.pine]: {
 		blobCount: 3,
 		branchCount: 0,
+		branchDepth: 0,
 		blobSizeVariance: 3.0,
 		blobCloseness: 50,
 		branchThickness: 100,
@@ -168,6 +176,7 @@ export const SHAPE_DEFAULTS = {
 	[TREE_SHAPES.birch]: {
 		blobCount: 3,
 		branchCount: 1,
+		branchDepth: 3,
 		blobSizeVariance: 3.0,
 		blobCloseness: 50,
 		branchThickness: 100,
@@ -186,6 +195,7 @@ export const SHAPE_DEFAULTS = {
 	[TREE_SHAPES.fir]: {
 		blobCount: 4,
 		branchCount: 0,
+		branchDepth: 0,
 		blobSizeVariance: 3.0,
 		blobCloseness: 50,
 		branchThickness: 100,
@@ -204,6 +214,7 @@ export const SHAPE_DEFAULTS = {
 	[TREE_SHAPES.maple]: {
 		blobCount: 5,
 		branchCount: 5,
+		branchDepth: 2,
 		blobSizeVariance: 2.0,
 		blobCloseness: 30,
 		branchThickness: 100,
@@ -222,6 +233,7 @@ export const SHAPE_DEFAULTS = {
 	[TREE_SHAPES.willow]: {
 		blobCount: 4,
 		branchCount: 4,
+		branchDepth: 2,
 		blobSizeVariance: 3.0,
 		blobCloseness: 50,
 		branchThickness: 150,
@@ -243,6 +255,7 @@ export const SHAPE_DEFAULTS = {
 		TreeConfig,
 		| 'blobCount'
 		| 'branchCount'
+		| 'branchDepth'
 		| 'blobSizeVariance'
 		| 'blobCloseness'
 		| 'branchThickness'

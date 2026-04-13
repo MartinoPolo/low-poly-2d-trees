@@ -163,12 +163,12 @@
 						</div>
 					</div>
 					<div class="space-y-2">
-						<Label>Canopy Polygons: {treeConfig.current.canopyPolygons}</Label>
+						<Label>Polygons Per Blob: {treeConfig.current.polygonsPerBlob}</Label>
 						<input
 							type="range"
-							min="10"
-							max="150"
-							bind:value={treeConfig.current.canopyPolygons}
+							min="4"
+							max="30"
+							bind:value={treeConfig.current.polygonsPerBlob}
 							class="w-full accent-primary"
 						/>
 					</div>

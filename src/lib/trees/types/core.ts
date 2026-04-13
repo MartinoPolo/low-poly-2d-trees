@@ -52,6 +52,7 @@ export interface BranchGeometry {
 
 export interface TreeGeometry {
 	readonly trunkTriangles: readonly Triangle[];
+	readonly trunkSilhouettePath: string;
 	readonly branchTriangles: readonly Triangle[];
 	readonly branchGroups: readonly BranchGeometry[];
 	readonly canopyBlobs: readonly BlobGeometry[];
