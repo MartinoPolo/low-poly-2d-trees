@@ -36,10 +36,9 @@ describe('TOOL_ANIMATIONS', () => {
 		}
 	});
 
-	it('each tool has a CSS property string', () => {
+	it('each tool has a positive duration', () => {
 		for (const toolType of Object.values(TOOL_TYPES)) {
-			expect(typeof TOOL_ANIMATIONS[toolType].cssProperty).toBe('string');
-			expect(TOOL_ANIMATIONS[toolType].cssProperty.length).toBeGreaterThan(0);
+			expect(TOOL_ANIMATIONS[toolType].duration).toBeGreaterThan(0);
 		}
 	});
 });

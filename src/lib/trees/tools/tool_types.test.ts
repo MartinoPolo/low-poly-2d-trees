@@ -3,7 +3,7 @@ import {
 	TOOL_TYPES,
 	TOOL_ANCHOR_MAP,
 	TOOL_OPTIONS,
-	DEFAULT_TOOL_VISIBILITY,
+	createDefaultToolVisibility,
 } from './tool_types.js';
 
 describe('TOOL_TYPES', () => {
@@ -66,22 +66,32 @@ describe('TOOL_OPTIONS', () => {
 	});
 });
 
-describe('DEFAULT_TOOL_VISIBILITY', () => {
+describe('createDefaultToolVisibility', () => {
 	it('has entries for all 4 tools', () => {
+		const visibility = createDefaultToolVisibility();
 		for (const toolType of Object.values(TOOL_TYPES)) {
-			expect(DEFAULT_TOOL_VISIBILITY).toHaveProperty(toolType);
+			expect(visibility).toHaveProperty(toolType);
 		}
 	});
 
 	it('all tools start hidden', () => {
+		const visibility = createDefaultToolVisibility();
 		for (const toolType of Object.values(TOOL_TYPES)) {
-			expect(DEFAULT_TOOL_VISIBILITY[toolType].visible).toBe(false);
+			expect(visibility[toolType].visible).toBe(false);
 		}
 	});
 
 	it('all tools start at size 1', () => {
+		const visibility = createDefaultToolVisibility();
 		for (const toolType of Object.values(TOOL_TYPES)) {
-			expect(DEFAULT_TOOL_VISIBILITY[toolType].size).toBe(1);
+			expect(visibility[toolType].size).toBe(1);
 		}
+	});
+
+	it('returns a new object each call', () => {
+		const a = createDefaultToolVisibility();
+		const b = createDefaultToolVisibility();
+		expect(a).not.toBe(b);
+		expect(a.shovel).not.toBe(b.shovel);
 	});
 });

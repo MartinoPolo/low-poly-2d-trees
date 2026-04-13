@@ -2,7 +2,7 @@
 	import LowPolyTree from '$lib/trees/LowPolyTree.svelte';
 	import LabeledSelect from '$lib/components/composed/LabeledSelect.svelte';
 	import LabeledRangeSlider from '$lib/components/composed/LabeledRangeSlider.svelte';
-	import SectionCard from '$lib/components/composed/SectionCard.svelte';
+
 	import CustomBlobsEditor from '$lib/components/composed/CustomBlobsEditor.svelte';
 	import CanopyColorCard from '$lib/components/composed/CanopyColorCard.svelte';
 	import TrunkColorCard from '$lib/components/composed/TrunkColorCard.svelte';
@@ -23,10 +23,10 @@
 		type FruitType,
 	} from '$lib/trees/types.js';
 	import {
-		TOOL_OPTIONS,
-		DEFAULT_TOOL_VISIBILITY,
+		createDefaultToolVisibility,
 		type ToolVisibility,
 	} from '$lib/trees/tools/tool_types.js';
+	import ToolAccessoriesCard from '$lib/components/composed/ToolAccessoriesCard.svelte';
 	import { growCustomBlobs } from '$lib/trees/shapes.js';
 	import { isParamDisabled } from '$lib/trees/disabled_params.js';
 	import { getSavedTree, saveTree } from '$lib/trees/saved_trees.remote.js';
@@ -48,7 +48,7 @@
 	let animateCanopySway = $state(false);
 	let animateBranches = $state(false);
 	let animateGrowth = $state(false);
-	let toolVisibility: ToolVisibility = $state({ ...DEFAULT_TOOL_VISIBILITY });
+	let toolVisibility: ToolVisibility = $state(createDefaultToolVisibility());
 	let animateTools = $state(false);
 
 	const branchCountDisabled = $derived(
@@ -439,40 +439,7 @@
 					</Card.Content>
 				</Card.Root>
 
-				<SectionCard title="Tools & Accessories" contentClass="space-y-4">
-					{#each TOOL_OPTIONS as option (option.value)}
-						<div class="flex items-center gap-2">
-							<Checkbox
-								data-testid="tool-{option.value}-visible"
-								checked={toolVisibility[option.value].visible}
-								onCheckedChange={(v) =>
-									(toolVisibility[option.value] = {
-										...toolVisibility[option.value],
-										visible: v === true,
-									})}
-							/>
-							<Label>{option.label}</Label>
-						</div>
-						{#if toolVisibility[option.value].visible}
-							<LabeledRangeSlider
-								label="{option.label} Size"
-								min={0.5}
-								max={2}
-								step={0.1}
-								bind:value={toolVisibility[option.value].size}
-								id="tool-{option.value}-size"
-							/>
-						{/if}
-					{/each}
-					<div class="flex items-center gap-2">
-						<Checkbox
-							data-testid="animate-tools"
-							checked={animateTools}
-							onCheckedChange={(v) => (animateTools = v === true)}
-						/>
-						<Label>Animate Tools</Label>
-					</div>
-				</SectionCard>
+				<ToolAccessoriesCard bind:toolVisibility bind:animateTools />
 
 				<Card.Root>
 					<Card.Header>

@@ -7,8 +7,6 @@ interface ToolPolygon {
 
 interface ToolSvgConfig {
 	readonly polygons: readonly ToolPolygon[];
-	readonly width: number;
-	readonly height: number;
 }
 
 // All coordinates are in local space centered near (0,0).
@@ -16,8 +14,6 @@ interface ToolSvgConfig {
 
 export const TOOL_SVG_DATA = {
 	shovel: {
-		width: 20,
-		height: 50,
 		polygons: [
 			// Handle (long wooden shaft)
 			{ points: '-1,-24 1,-24 1,12 -1,12', fill: '#8B6914' },
@@ -43,8 +39,6 @@ export const TOOL_SVG_DATA = {
 		],
 	},
 	ladder: {
-		width: 24,
-		height: 55,
 		polygons: [
 			// Left rail
 			{ points: '-10,-27 -8,-27 -8,27 -10,27', fill: '#A0782C' },
@@ -74,8 +68,6 @@ export const TOOL_SVG_DATA = {
 		],
 	},
 	wateringCan: {
-		width: 30,
-		height: 28,
 		polygons: [
 			// Body (main container - metallic)
 			{ points: '-8,-4 8,-4 10,8 -10,8', fill: '#708090' },
@@ -109,8 +101,6 @@ export const TOOL_SVG_DATA = {
 		],
 	},
 	birdNest: {
-		width: 28,
-		height: 20,
 		polygons: [
 			// Nest base (woven twigs - brown)
 			{ points: '-12,2 12,2 14,8 -14,8', fill: '#6B4226' },
