@@ -1,6 +1,36 @@
 import type { CustomBlob } from './custom.js';
 import { FRUIT_TYPES, type FruitType } from './fruit.js';
 
+export const TREE_STAGES = {
+	seed: 'seed',
+	sprouting: 'sprouting',
+	sapling: 'sapling',
+	growing: 'growing',
+	leafy: 'leafy',
+	fruiting: 'fruiting',
+	autumn: 'autumn',
+	ready: 'ready',
+	bare: 'bare',
+	dead: 'dead',
+	stump: 'stump',
+} as const;
+
+export type TreeStage = (typeof TREE_STAGES)[keyof typeof TREE_STAGES];
+
+export const TREE_STAGE_OPTIONS: readonly { value: TreeStage; label: string }[] = [
+	{ value: TREE_STAGES.seed, label: 'Seed' },
+	{ value: TREE_STAGES.sprouting, label: 'Sprouting' },
+	{ value: TREE_STAGES.sapling, label: 'Sapling' },
+	{ value: TREE_STAGES.growing, label: 'Growing' },
+	{ value: TREE_STAGES.leafy, label: 'Leafy' },
+	{ value: TREE_STAGES.fruiting, label: 'Fruiting' },
+	{ value: TREE_STAGES.autumn, label: 'Autumn' },
+	{ value: TREE_STAGES.ready, label: 'Ready' },
+	{ value: TREE_STAGES.bare, label: 'Bare' },
+	{ value: TREE_STAGES.dead, label: 'Dead' },
+	{ value: TREE_STAGES.stump, label: 'Stump' },
+] as const;
+
 export const TREE_SHAPES = {
 	oak: 'oak',
 	pine: 'pine',
@@ -24,6 +54,7 @@ export const TREE_SHAPE_OPTIONS: readonly { value: TreeShape; label: string }[] 
 ] as const;
 
 export interface TreeConfig {
+	readonly stage: TreeStage;
 	readonly shape: TreeShape;
 	readonly seed: number;
 	readonly canopyPolygons: number;
@@ -63,6 +94,7 @@ export interface TreeConfig {
 }
 
 export const DEFAULT_TREE_CONFIG: TreeConfig = {
+	stage: TREE_STAGES.leafy,
 	shape: TREE_SHAPES.oak,
 	seed: 42,
 	canopyPolygons: 50,
@@ -230,3 +262,7 @@ export const SHAPE_DEFAULTS = {
 
 export const VIEWBOX_WIDTH = 200;
 export const VIEWBOX_HEIGHT = 300;
+
+export function isTreeStage(value: string): value is TreeStage {
+	return (Object.values(TREE_STAGES) as readonly string[]).includes(value);
+}

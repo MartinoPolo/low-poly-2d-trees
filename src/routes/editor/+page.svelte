@@ -13,9 +13,11 @@
 	import {
 		TREE_SHAPES,
 		TREE_SHAPE_OPTIONS,
+		TREE_STAGE_OPTIONS,
 		SHAPE_DEFAULTS,
 		FRUIT_TYPES,
 		FRUIT_TYPE_OPTIONS,
+		isTreeStage,
 		type TreeShape,
 		type FruitType,
 	} from '$lib/trees/types.js';
@@ -37,6 +39,9 @@
 	let showBranches = $state(true);
 	let showTrunk = $state(true);
 	let showFruit = $state(true);
+	let animateCanopySway = $state(false);
+	let animateBranches = $state(false);
+	let animateGrowth = $state(false);
 
 	const branchCountDisabled = $derived(
 		isParamDisabled(treeConfig.current.shape, 'branchCount', {}),
@@ -75,6 +80,13 @@
 		if (value === FRUIT_TYPES.none) {
 			treeConfig.current.fruitCount = 0;
 		}
+	}
+
+	function onStageChange(value: string) {
+		if (!isTreeStage(value)) {
+			return;
+		}
+		treeConfig.current.stage = value;
 	}
 
 	function onShapeChange(value: string) {
@@ -194,6 +206,13 @@
 							options={TREE_SHAPE_OPTIONS}
 							value={treeConfig.current.shape}
 							onValueChange={onShapeChange}
+						/>
+
+						<LabeledSelect
+							label="Life Stage"
+							options={TREE_STAGE_OPTIONS}
+							value={treeConfig.current.stage}
+							onValueChange={onStageChange}
 						/>
 
 						<div class="space-y-2">
@@ -454,6 +473,40 @@
 						</div>
 					</Card.Content>
 				</Card.Root>
+
+				<Card.Root>
+					<Card.Header>
+						<Card.Title>Animations</Card.Title>
+					</Card.Header>
+					<Card.Content class="space-y-4">
+						<div data-testid="animation-controls">
+							<div class="flex items-center gap-2">
+								<Checkbox
+									data-testid="animate-canopy-sway"
+									checked={animateCanopySway}
+									onCheckedChange={(v) => (animateCanopySway = v === true)}
+								/>
+								<Label>Canopy Sway</Label>
+							</div>
+							<div class="mt-4 flex items-center gap-2">
+								<Checkbox
+									data-testid="animate-branches"
+									checked={animateBranches}
+									onCheckedChange={(v) => (animateBranches = v === true)}
+								/>
+								<Label>Branch Movement</Label>
+							</div>
+							<div class="mt-4 flex items-center gap-2">
+								<Checkbox
+									data-testid="animate-growth"
+									checked={animateGrowth}
+									onCheckedChange={(v) => (animateGrowth = v === true)}
+								/>
+								<Label>Growth</Label>
+							</div>
+						</div>
+					</Card.Content>
+				</Card.Root>
 			</div>
 		</aside>
 
@@ -469,6 +522,9 @@
 					{showTrunk}
 					{showFruit}
 					{showAnchors}
+					{animateCanopySway}
+					{animateBranches}
+					{animateGrowth}
 					class="h-auto w-full"
 				/>
 			</div>

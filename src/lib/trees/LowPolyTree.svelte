@@ -1,6 +1,16 @@
 <script lang="ts">
 	import { generateTree } from '$lib/trees/generate.js';
-	import { DEFAULT_TREE_CONFIG, type TreeConfig, type TreeAnchors } from '$lib/trees/types.js';
+	import {
+		DEFAULT_TREE_CONFIG,
+		TREE_STAGES,
+		type TreeConfig,
+		type TreeAnchors,
+	} from '$lib/trees/types.js';
+	import {
+		computeAnimationDelay,
+		computeBranchDuration,
+		computeBranchDelay,
+	} from '$lib/trees/animation.js';
 
 	interface Props {
 		config?: TreeConfig;
@@ -9,6 +19,9 @@
 		showTrunk?: boolean;
 		showFruit?: boolean;
 		showAnchors?: boolean;
+		animateCanopySway?: boolean;
+		animateBranches?: boolean;
+		animateGrowth?: boolean;
 		class?: string;
 		onanchors?: (anchors: TreeAnchors) => void;
 	}
@@ -20,11 +33,25 @@
 		showTrunk = true,
 		showFruit = true,
 		showAnchors = false,
+		animateCanopySway = false,
+		animateBranches = false,
+		animateGrowth = false,
 		class: className = '',
 		onanchors,
 	}: Props = $props();
 
 	const geometry = $derived(generateTree(config));
+	const hasGlow = $derived(config.stage === TREE_STAGES.ready);
+
+	const canopySwayDelay = $derived(computeAnimationDelay(config.seed));
+
+	const branchDurations = $derived(
+		geometry.branchGroups.map((_, i) => computeBranchDuration(config.seed, i)),
+	);
+
+	const branchDelays = $derived(
+		geometry.branchGroups.map((_, i) => computeBranchDelay(config.seed, i)),
+	);
 
 	$effect(() => {
 		onanchors?.(geometry.anchors);
@@ -35,137 +62,234 @@
 	viewBox="0 0 {geometry.viewBox.width} {geometry.viewBox.height}"
 	xmlns="http://www.w3.org/2000/svg"
 	class={className}
+	style={hasGlow ? 'filter: drop-shadow(0 0 8px gold)' : undefined}
 >
-	{#if showTrunk}
-		<g class="trunk">
-			{#each geometry.trunkTriangles as tri (tri)}
-				<polygon
-					points="{tri.points[0].x},{tri.points[0].y} {tri.points[1].x},{tri.points[1]
-						.y} {tri.points[2].x},{tri.points[2].y}"
-					fill={tri.color}
-					stroke={tri.color}
-					stroke-width="0.5"
-				/>
-			{/each}
-		</g>
-	{/if}
+	<g
+		class="tree-root"
+		class:animate-growth={animateGrowth}
+		style="--growth-origin-x: {geometry.anchors.trunkBase.x}px; --growth-origin-y: {geometry
+			.anchors.trunkBase.y}px;"
+	>
+		{#if showTrunk}
+			<g class="trunk">
+				{#each geometry.trunkTriangles as tri (tri)}
+					<polygon
+						points="{tri.points[0].x},{tri.points[0].y} {tri.points[1].x},{tri.points[1]
+							.y} {tri.points[2].x},{tri.points[2].y}"
+						fill={tri.color}
+						stroke={tri.color}
+						stroke-width="0.5"
+					/>
+				{/each}
+			</g>
+		{/if}
 
-	{#if showBranches}
-		<g class="branches">
-			{#each geometry.branchTriangles as tri (tri)}
-				<polygon
-					points="{tri.points[0].x},{tri.points[0].y} {tri.points[1].x},{tri.points[1]
-						.y} {tri.points[2].x},{tri.points[2].y}"
-					fill={tri.color}
-					stroke={tri.color}
-					stroke-width="0.5"
-				/>
-			{/each}
-		</g>
-	{/if}
+		{#if showBranches}
+			<g class="branches">
+				{#each geometry.branchGroups as group, groupIndex (group)}
+					<g
+						class="branch-group"
+						class:animate-branch-sway={animateBranches}
+						style="--branch-duration: {branchDurations[
+							groupIndex
+						]}s; --branch-delay: {branchDelays[groupIndex]}s; --branch-origin-x: {group
+							.origin.x}px; --branch-origin-y: {group.origin.y}px;"
+					>
+						{#each group.triangles as tri (tri)}
+							<polygon
+								points="{tri.points[0].x},{tri.points[0].y} {tri.points[1].x},{tri
+									.points[1].y} {tri.points[2].x},{tri.points[2].y}"
+								fill={tri.color}
+								stroke={tri.color}
+								stroke-width="0.5"
+							/>
+						{/each}
+					</g>
+				{/each}
+			</g>
+		{/if}
 
-	{#if showCanopy}
-		<g class="canopy">
-			{#each geometry.canopyBlobs as blob (blob)}
-				<g>
-					{#each blob.triangles as tri (tri)}
-						<polygon
-							points="{tri.points[0].x},{tri.points[0].y} {tri.points[1].x},{tri
-								.points[1].y} {tri.points[2].x},{tri.points[2].y}"
-							fill={tri.color}
-							stroke={tri.color}
-							stroke-width="0.5"
-						/>
-					{/each}
-				</g>
-			{/each}
-		</g>
-	{/if}
+		{#if showCanopy}
+			<g class="canopy">
+				{#each geometry.canopyBlobs as blob, blobIndex (blob)}
+					<g
+						class="canopy-blob"
+						class:animate-canopy-sway={animateCanopySway}
+						style="--sway-delay: {canopySwayDelay +
+							blobIndex * 0.15}s; --sway-origin-x: {blob.center
+							.x}px; --sway-origin-y: {blob.center.y}px;"
+					>
+						{#each blob.triangles as tri (tri)}
+							<polygon
+								points="{tri.points[0].x},{tri.points[0].y} {tri.points[1].x},{tri
+									.points[1].y} {tri.points[2].x},{tri.points[2].y}"
+								fill={tri.color}
+								stroke={tri.color}
+								stroke-width="0.5"
+							/>
+						{/each}
+					</g>
+				{/each}
+			</g>
+		{/if}
 
-	{#if showFruit}
-		<g class="fruit">
-			{#each geometry.fruitTriangles as tri (tri)}
-				<polygon
-					points="{tri.points[0].x},{tri.points[0].y} {tri.points[1].x},{tri.points[1]
-						.y} {tri.points[2].x},{tri.points[2].y}"
-					fill={tri.color}
-					stroke={tri.color}
-					stroke-width="0.5"
-				/>
-			{/each}
-		</g>
-	{/if}
+		{#if geometry.stakeTriangles.length > 0}
+			<g class="stakes">
+				{#each geometry.stakeTriangles as tri (tri)}
+					<polygon
+						points="{tri.points[0].x},{tri.points[0].y} {tri.points[1].x},{tri.points[1]
+							.y} {tri.points[2].x},{tri.points[2].y}"
+						fill={tri.color}
+						stroke={tri.color}
+						stroke-width="0.5"
+					/>
+				{/each}
+			</g>
+		{/if}
 
-	{#if showAnchors}
-		<g class="anchors-group">
-			<circle
-				cx={geometry.anchors.trunkBase.x}
-				cy={geometry.anchors.trunkBase.y}
-				r="4"
-				fill="#ef4444"
-				stroke="white"
-				stroke-width="1"
-			/>
-			<circle
-				cx={geometry.anchors.trunkMiddle.x}
-				cy={geometry.anchors.trunkMiddle.y}
-				r="4"
-				fill="#f97316"
-				stroke="white"
-				stroke-width="1"
-			/>
-			<circle
-				cx={geometry.anchors.trunkTop.x}
-				cy={geometry.anchors.trunkTop.y}
-				r="4"
-				fill="#eab308"
-				stroke="white"
-				stroke-width="1"
-			/>
-			<circle
-				cx={geometry.anchors.crownCenter.x}
-				cy={geometry.anchors.crownCenter.y}
-				r="4"
-				fill="#22c55e"
-				stroke="white"
-				stroke-width="1"
-			/>
-			<circle
-				cx={geometry.anchors.crownTop.x}
-				cy={geometry.anchors.crownTop.y}
-				r="4"
-				fill="#06b6d4"
-				stroke="white"
-				stroke-width="1"
-			/>
-			<circle
-				cx={geometry.anchors.roots.x}
-				cy={geometry.anchors.roots.y}
-				r="4"
-				fill="#a855f7"
-				stroke="white"
-				stroke-width="1"
-			/>
-			{#each geometry.anchors.branchTips as tip (tip)}
+		{#if showFruit}
+			<g class="fruit">
+				{#each geometry.fruitTriangles as tri (tri)}
+					<polygon
+						points="{tri.points[0].x},{tri.points[0].y} {tri.points[1].x},{tri.points[1]
+							.y} {tri.points[2].x},{tri.points[2].y}"
+						fill={tri.color}
+						stroke={tri.color}
+						stroke-width="0.5"
+					/>
+				{/each}
+			</g>
+		{/if}
+
+		{#if showAnchors}
+			<g class="anchors-group">
 				<circle
-					cx={tip.x}
-					cy={tip.y}
-					r="3"
-					fill="#f43f5e"
+					cx={geometry.anchors.trunkBase.x}
+					cy={geometry.anchors.trunkBase.y}
+					r="4"
+					fill="#ef4444"
 					stroke="white"
-					stroke-width="0.5"
+					stroke-width="1"
 				/>
-			{/each}
-			{#each geometry.anchors.fruitSlots as slot (slot)}
 				<circle
-					cx={slot.x}
-					cy={slot.y}
-					r="3"
-					fill="#10b981"
+					cx={geometry.anchors.trunkMiddle.x}
+					cy={geometry.anchors.trunkMiddle.y}
+					r="4"
+					fill="#f97316"
 					stroke="white"
-					stroke-width="0.5"
+					stroke-width="1"
 				/>
-			{/each}
-		</g>
-	{/if}
+				<circle
+					cx={geometry.anchors.trunkTop.x}
+					cy={geometry.anchors.trunkTop.y}
+					r="4"
+					fill="#eab308"
+					stroke="white"
+					stroke-width="1"
+				/>
+				<circle
+					cx={geometry.anchors.crownCenter.x}
+					cy={geometry.anchors.crownCenter.y}
+					r="4"
+					fill="#22c55e"
+					stroke="white"
+					stroke-width="1"
+				/>
+				<circle
+					cx={geometry.anchors.crownTop.x}
+					cy={geometry.anchors.crownTop.y}
+					r="4"
+					fill="#06b6d4"
+					stroke="white"
+					stroke-width="1"
+				/>
+				<circle
+					cx={geometry.anchors.roots.x}
+					cy={geometry.anchors.roots.y}
+					r="4"
+					fill="#a855f7"
+					stroke="white"
+					stroke-width="1"
+				/>
+				{#each geometry.anchors.branchTips as tip (tip)}
+					<circle
+						cx={tip.x}
+						cy={tip.y}
+						r="3"
+						fill="#f43f5e"
+						stroke="white"
+						stroke-width="0.5"
+					/>
+				{/each}
+				{#each geometry.anchors.fruitSlots as slot (slot)}
+					<circle
+						cx={slot.x}
+						cy={slot.y}
+						r="3"
+						fill="#10b981"
+						stroke="white"
+						stroke-width="0.5"
+					/>
+				{/each}
+			</g>
+		{/if}
+	</g>
 </svg>
+
+<style>
+	@keyframes canopy-sway {
+		0%,
+		100% {
+			transform: rotate(0deg);
+		}
+
+		25% {
+			transform: rotate(2.5deg);
+		}
+
+		75% {
+			transform: rotate(-2.5deg);
+		}
+	}
+
+	@keyframes branch-sway {
+		0%,
+		100% {
+			transform: rotate(0deg);
+		}
+
+		50% {
+			transform: rotate(3deg);
+		}
+	}
+
+	@keyframes tree-growth {
+		0% {
+			transform: scale(0.05);
+		}
+
+		100% {
+			transform: scale(1);
+		}
+	}
+
+	.canopy-blob.animate-canopy-sway {
+		animation: canopy-sway 2.5s ease-in-out infinite;
+		animation-delay: var(--sway-delay);
+		transform-origin: var(--sway-origin-x) var(--sway-origin-y);
+		will-change: transform;
+	}
+
+	.branch-group.animate-branch-sway {
+		animation: branch-sway var(--branch-duration) ease-in-out infinite;
+		animation-delay: var(--branch-delay);
+		transform-origin: var(--branch-origin-x) var(--branch-origin-y);
+		will-change: transform;
+	}
+
+	.tree-root.animate-growth {
+		animation: tree-growth 2s ease-in-out infinite alternate;
+		transform-origin: var(--growth-origin-x) var(--growth-origin-y);
+		will-change: transform;
+	}
+</style>
