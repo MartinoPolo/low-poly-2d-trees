@@ -62,28 +62,6 @@ export function getBlobsBounds(blobs: readonly Blob[]): {
 }
 
 // ---------------------------------------------------------------------------
-// Branch point-testing
-// ---------------------------------------------------------------------------
-
-export function isPointInBranch(x: number, y: number, branches: readonly BranchSegment[]): boolean {
-	return branches.some((b) => {
-		const dx = b.x2 - b.x1;
-		const dy = b.y2 - b.y1;
-		const lenSq = dx * dx + dy * dy;
-		if (lenSq === 0) {
-			return false;
-		}
-		const t = Math.max(0, Math.min(1, ((x - b.x1) * dx + (y - b.y1) * dy) / lenSq));
-		const projX = b.x1 + t * dx;
-		const projY = b.y1 + t * dy;
-		const distSq = (x - projX) ** 2 + (y - projY) ** 2;
-		const localWidth = b.widthStart + t * (b.widthEnd - b.widthStart);
-		const halfW = localWidth / 2;
-		return distSq <= halfW * halfW;
-	});
-}
-
-// ---------------------------------------------------------------------------
 // Per-tier boundary sampling
 // ---------------------------------------------------------------------------
 

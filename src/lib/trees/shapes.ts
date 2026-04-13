@@ -20,7 +20,6 @@ export {
 export {
 	getBlobsBounds,
 	isPointInBlobs,
-	isPointInBranch,
 	sampleTierBoundary,
 	validateNoFloatingBlobs,
 } from './shapes/shape_bounds.js';
@@ -33,13 +32,7 @@ export {
 	resolveBranchLengthRange,
 } from './shapes/geometry.js';
 
-export {
-	generateBranches,
-	TRUNK_BRANCH_WIDTH_START_MIN,
-	TRUNK_BRANCH_WIDTH_START_MAX,
-	TRUNK_BRANCH_WIDTH_END_MIN,
-	TRUNK_BRANCH_WIDTH_END_MAX,
-} from './shapes/branch_generation.js';
+export { generateBranches } from './shapes/branch_generation.js';
 
 export { generateFruitAtSlots } from './shapes/fruit_geometry.js';
 

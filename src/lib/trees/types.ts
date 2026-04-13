@@ -3,6 +3,7 @@ export {
 	GEOMETRY_GROUPS,
 	type Point2D,
 	type Triangle,
+	type Quad,
 	type TreeAnchors,
 	type Tier,
 	type BlobGeometry,

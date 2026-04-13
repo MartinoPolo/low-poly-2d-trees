@@ -1,6 +1,6 @@
 <script lang="ts">
 	import LabeledSelect from './LabeledSelect.svelte';
-	import LabeledRangeSlider from './LabeledRangeSlider.svelte';
+	import LabeledSlider from './LabeledSlider.svelte';
 	import * as Card from '$lib/components/ui/card/index.js';
 	import * as Accordion from '$lib/components/ui/accordion/index.js';
 	import {
@@ -80,21 +80,16 @@
 											boundaryKind: value as CustomBlobBoundaryKind,
 										})}
 								/>
-								<LabeledRangeSlider
+								<LabeledSlider
 									label="Rotation"
 									min={0}
 									max={360}
 									step={CUSTOM_BLOB_ROTATION_STEP}
 									value={blob.rotationDeg}
 									unit="°"
-									oninput={(e) =>
-										updateCustomBlob(i, {
-											rotationDeg: Number(
-												(e.currentTarget as HTMLInputElement).value,
-											),
-										})}
+									onValueChange={(v) => updateCustomBlob(i, { rotationDeg: v })}
 								/>
-								<LabeledRangeSlider
+								<LabeledSlider
 									label="Size"
 									min={CUSTOM_BLOB_SIZE_MIN}
 									max={CUSTOM_BLOB_SIZE_MAX}
@@ -102,44 +97,27 @@
 									value={blob.sizeScale}
 									format={(v) => String(Math.round(v * 100))}
 									unit="%"
-									oninput={(e) =>
-										updateCustomBlob(i, {
-											sizeScale: Number(
-												(e.currentTarget as HTMLInputElement).value,
-											),
-										})}
+									onValueChange={(v) => updateCustomBlob(i, { sizeScale: v })}
 								/>
-								<LabeledRangeSlider
+								<LabeledSlider
 									label="X"
 									min={CUSTOM_BLOB_POSITION_MIN}
 									max={CUSTOM_BLOB_POSITION_MAX}
 									step={CUSTOM_BLOB_POSITION_STEP}
 									value={blob.position.x}
 									format={(v) => v.toFixed(2)}
-									oninput={(e) =>
-										updateCustomBlob(i, {
-											position: {
-												x: Number(
-													(e.currentTarget as HTMLInputElement).value,
-												),
-											},
-										})}
+									onValueChange={(v) =>
+										updateCustomBlob(i, { position: { x: v } })}
 								/>
-								<LabeledRangeSlider
+								<LabeledSlider
 									label="Y"
 									min={CUSTOM_BLOB_POSITION_MIN}
 									max={CUSTOM_BLOB_POSITION_MAX}
 									step={CUSTOM_BLOB_POSITION_STEP}
 									value={blob.position.y}
 									format={(v) => v.toFixed(2)}
-									oninput={(e) =>
-										updateCustomBlob(i, {
-											position: {
-												y: Number(
-													(e.currentTarget as HTMLInputElement).value,
-												),
-											},
-										})}
+									onValueChange={(v) =>
+										updateCustomBlob(i, { position: { y: v } })}
 								/>
 							</div>
 						</Accordion.Content>

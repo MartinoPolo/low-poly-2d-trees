@@ -5,7 +5,7 @@
 	import { Button } from '$lib/components/ui/button/index.js';
 	import { Checkbox } from '$lib/components/ui/checkbox/index.js';
 	import SectionCard from '$lib/components/composed/SectionCard.svelte';
-	import LabeledRangeSlider from '$lib/components/composed/LabeledRangeSlider.svelte';
+	import LabeledSlider from '$lib/components/composed/LabeledSlider.svelte';
 	import CanopyColorCard from '$lib/components/composed/CanopyColorCard.svelte';
 	import TrunkColorCard from '$lib/components/composed/TrunkColorCard.svelte';
 	import { SHAPE_DEFAULTS } from '$lib/trees/types.js';
@@ -88,7 +88,11 @@
 							shape: placement.shape,
 							seed: placement.seed,
 							blobCount: shapeDefaults.blobCount,
-							branchCount: shapeDefaults.branchCount,
+							branchDepth: shapeDefaults.branchDepth,
+							branchesLevel1Range: shapeDefaults.branchesLevel1Range,
+							branchesLevel2Range: shapeDefaults.branchesLevel2Range,
+							branchesLevel3Range: shapeDefaults.branchesLevel3Range,
+							branchAngle: shapeDefaults.branchAngle,
 							blobSizeVariance: shapeDefaults.blobSizeVariance,
 							blobCloseness: shapeDefaults.blobCloseness,
 							branchThickness: shapeDefaults.branchThickness,
@@ -135,14 +139,14 @@
 		<aside data-testid="scene-controls" class="select-none overflow-y-auto p-6">
 			<div class="grid grid-cols-1 gap-6 xl:grid-cols-2">
 				<SectionCard title="Scene Settings" contentClass="space-y-4">
-					<LabeledRangeSlider
+					<LabeledSlider
 						label="Tree Count"
 						min={SCENE_LIMITS.treeCountMin}
 						max={SCENE_LIMITS.treeCountMax}
 						bind:value={sceneConfig.treeCount}
 						id="tree-count"
 					/>
-					<LabeledRangeSlider
+					<LabeledSlider
 						label="Depth Spread"
 						min={SCENE_LIMITS.depthSpreadMin}
 						max={SCENE_LIMITS.depthSpreadMax}
@@ -254,19 +258,7 @@
 							class="w-full accent-primary"
 						/>
 					</div>
-					<div class="space-y-2">
-						<Label>
-							Trunk/Branch Ratio: {treeConfig.current.trunkBranchRatio}%
-						</Label>
-						<input
-							type="range"
-							min="30"
-							max="100"
-							bind:value={treeConfig.current.trunkBranchRatio}
-							class="w-full accent-primary"
-						/>
-					</div>
-					<LabeledRangeSlider
+					<LabeledSlider
 						label="Trunk Lean"
 						min={-45}
 						max={45}
@@ -274,14 +266,14 @@
 						unit="°"
 						bind:value={treeConfig.current.trunkLean}
 					/>
-					<LabeledRangeSlider
+					<LabeledSlider
 						label="Trunk Segments"
 						min={1}
 						max={5}
 						step={1}
 						bind:value={treeConfig.current.trunkSegments}
 					/>
-					<LabeledRangeSlider
+					<LabeledSlider
 						label="Trunk Crookedness"
 						min={0}
 						max={100}
@@ -290,7 +282,7 @@
 						bind:value={treeConfig.current.trunkCrookedness}
 						disabled={trunkCrookednessDisabled}
 					/>
-					<LabeledRangeSlider
+					<LabeledSlider
 						label="Branch Length"
 						min={25}
 						max={400}
@@ -298,7 +290,7 @@
 						unit="%"
 						bind:value={treeConfig.current.branchLength}
 					/>
-					<LabeledRangeSlider
+					<LabeledSlider
 						label="Branch Length Variance"
 						min={0}
 						max={100}
@@ -372,7 +364,7 @@
 						<Label>Rain</Label>
 					</div>
 					{#if environmentConfig.rainEnabled}
-						<LabeledRangeSlider
+						<LabeledSlider
 							label="Rain Intensity"
 							min={ENVIRONMENT_LIMITS.rainIntensityMin}
 							max={ENVIRONMENT_LIMITS.rainIntensityMax}

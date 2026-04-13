@@ -2,7 +2,7 @@
 	import { Checkbox } from '$lib/components/ui/checkbox/index.js';
 	import { Label } from '$lib/components/ui/label/index.js';
 	import SectionCard from '$lib/components/composed/SectionCard.svelte';
-	import LabeledRangeSlider from '$lib/components/composed/LabeledRangeSlider.svelte';
+	import LabeledSlider from '$lib/components/composed/LabeledSlider.svelte';
 	import { TOOL_OPTIONS, type ToolVisibility } from '$lib/trees/tools/tool_types.js';
 
 	interface Props {
@@ -28,7 +28,7 @@
 			<Label>{option.label}</Label>
 		</div>
 		{#if toolVisibility[option.value].visible}
-			<LabeledRangeSlider
+			<LabeledSlider
 				label="{option.label} Size"
 				min={0.5}
 				max={2}

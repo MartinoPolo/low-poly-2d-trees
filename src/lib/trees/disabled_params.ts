@@ -3,14 +3,29 @@ import { TREE_SHAPES, FRUIT_TYPES, type TreeShape, type FruitType } from './type
 /**
  * Per-shape list of TreeConfig parameters that should be disabled in the UI.
  *
- * `fir` shares pine's disabled set per REQ-S-12 (branchCount always 0,
- * trunkBranchRatio not applicable to tiered canopies).
+ * `fir` and `pine` have no branches (branchDepth forced to 0).
  */
 export const DISABLED_PARAMS_BY_SHAPE = {
 	[TREE_SHAPES.oak]: [],
-	[TREE_SHAPES.pine]: ['branchCount', 'trunkBranchRatio'],
+	[TREE_SHAPES.pine]: [
+		'branchesLevel1Range',
+		'branchesLevel2Range',
+		'branchesLevel3Range',
+		'branchAngle',
+		'branchSegments',
+		'branchCrookedness',
+		'branchDepthTaper',
+	],
 	[TREE_SHAPES.birch]: [],
-	[TREE_SHAPES.fir]: ['branchCount', 'trunkBranchRatio'],
+	[TREE_SHAPES.fir]: [
+		'branchesLevel1Range',
+		'branchesLevel2Range',
+		'branchesLevel3Range',
+		'branchAngle',
+		'branchSegments',
+		'branchCrookedness',
+		'branchDepthTaper',
+	],
 	[TREE_SHAPES.maple]: [],
 	[TREE_SHAPES.willow]: [],
 	[TREE_SHAPES.custom]: [],
@@ -22,6 +37,8 @@ export const DISABLED_PARAMS_BY_SHAPE = {
  */
 interface DisabledParamConfig {
 	readonly trunkSegments?: number;
+	readonly branchDepth?: number;
+	readonly branchSegments?: number;
 	readonly fruitType?: FruitType;
 }
 
@@ -40,6 +57,22 @@ export function isParamDisabled(
 	}
 
 	if (param === 'trunkCrookedness' && config.trunkSegments === 1) {
+		return true;
+	}
+
+	if (param === 'branchCrookedness' && (config.branchSegments ?? 1) === 1) {
+		return true;
+	}
+
+	// Per-level sliders only visible when branchDepth >= that level
+	const branchDepth = config.branchDepth ?? 0;
+	if (param === 'branchesLevel1Range' && branchDepth < 1) {
+		return true;
+	}
+	if (param === 'branchesLevel2Range' && branchDepth < 2) {
+		return true;
+	}
+	if (param === 'branchesLevel3Range' && branchDepth < 3) {
 		return true;
 	}
 
