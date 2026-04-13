@@ -53,7 +53,7 @@ test.describe('Growables card', () => {
 
 		// Set fruit count via keyboard on the shadcn slider
 		const fruitCountSlider = page.locator('#slider-fruit-count');
-		await fruitCountSlider.click();
+		await fruitCountSlider.locator('[data-slot="slider-thumb"]').click();
 		// Press ArrowRight multiple times to increase value to ~5
 		for (let i = 0; i < 5; i++) {
 			await page.keyboard.press('ArrowRight');
@@ -75,7 +75,7 @@ test.describe('Growables card', () => {
 
 		// Increase fruit count via keyboard
 		const fruitCountSlider = page.locator('#slider-fruit-count');
-		await fruitCountSlider.click();
+		await fruitCountSlider.locator('[data-slot="slider-thumb"]').click();
 		for (let i = 0; i < 5; i++) {
 			await page.keyboard.press('ArrowRight');
 		}
@@ -86,7 +86,7 @@ test.describe('Growables card', () => {
 		expect(await fruitPolygons.count()).toBeGreaterThan(0);
 
 		// Set count to 0 — press Home key to go to min value
-		await fruitCountSlider.click();
+		await fruitCountSlider.locator('[data-slot="slider-thumb"]').click();
 		await page.keyboard.press('Home');
 		await page.waitForTimeout(300);
 

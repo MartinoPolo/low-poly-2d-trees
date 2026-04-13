@@ -10,7 +10,6 @@ test.describe('Scene: tree count slider + depth positioning (#35)', () => {
 		const slider = page.locator('#tree-count');
 		await expect(slider).toBeVisible();
 
-		// shadcn slider: read default value from the thumb's aria-valuenow
 		const thumb = slider.locator('[data-slot="slider-thumb"]');
 		await expect(thumb).toHaveAttribute('aria-valuenow', '3');
 
@@ -19,10 +18,8 @@ test.describe('Scene: tree count slider + depth positioning (#35)', () => {
 	});
 
 	test('changing tree count slider updates rendered tree count', async ({ page }) => {
-		const slider = page.locator('#tree-count');
-		await slider.click();
-		// Press End to go to max, then use ArrowLeft to go back to 10
-		// Max is likely high, so use ArrowRight from default (3) to reach 10
+		const thumb = page.locator('#tree-count [data-slot="slider-thumb"]');
+		await thumb.click();
 		for (let i = 0; i < 7; i++) {
 			await page.keyboard.press('ArrowRight');
 		}
@@ -40,9 +37,8 @@ test.describe('Scene: tree count slider + depth positioning (#35)', () => {
 	});
 
 	test('deterministic — same seed produces same tree positions on reload', async ({ page }) => {
-		const slider = page.locator('#tree-count');
-		await slider.click();
-		// Increase from default 3 to 5
+		const thumb = page.locator('#tree-count [data-slot="slider-thumb"]');
+		await thumb.click();
 		for (let i = 0; i < 2; i++) {
 			await page.keyboard.press('ArrowRight');
 		}
@@ -63,9 +59,8 @@ test.describe('Scene: tree count slider + depth positioning (#35)', () => {
 		await page.reload();
 		await page.waitForLoadState('networkidle');
 
-		// After reload, set tree count to 5 again
-		const sliderReloaded = page.locator('#tree-count');
-		await sliderReloaded.click();
+		const thumbReloaded = page.locator('#tree-count [data-slot="slider-thumb"]');
+		await thumbReloaded.click();
 		for (let i = 0; i < 2; i++) {
 			await page.keyboard.press('ArrowRight');
 		}

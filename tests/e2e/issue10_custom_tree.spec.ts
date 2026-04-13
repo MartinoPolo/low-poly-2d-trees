@@ -119,8 +119,8 @@ test.describe('Issue #10 — Custom tree mode', () => {
 		const xSlider = xSliderContainer.locator('[data-slot="slider"]');
 		await expect(xSlider).toBeVisible();
 
-		// Click the slider and press End to move to max value
-		await xSlider.click();
+		// Click thumb for focus, press End to move to max value
+		await xSlider.locator('[data-slot="slider-thumb"]').click();
 		await page.keyboard.press('End');
 		await page.waitForTimeout(300);
 
@@ -208,8 +208,8 @@ test.describe('Issue #10 — Custom tree mode', () => {
 		const xSlider = xSliderContainer.locator('[data-slot="slider"]');
 		await expect(xSlider).toBeVisible();
 
-		// Click and press Home to go to min value
-		await xSlider.click();
+		// Click thumb for focus, press Home to go to min value
+		await xSlider.locator('[data-slot="slider-thumb"]').click();
 		await page.keyboard.press('Home');
 		await page.waitForTimeout(300);
 

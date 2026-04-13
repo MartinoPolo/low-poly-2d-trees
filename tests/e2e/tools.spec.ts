@@ -83,8 +83,9 @@ test.describe('Scene page tool accessories', () => {
 		const initialTransform = await toolGroup.getAttribute('transform');
 		expect(initialTransform).toContain('scale(1)');
 
-		// Change size to max via keyboard (End key)
-		await sizeSlider.click();
+		// Change size to max via keyboard (End key) — click thumb first for focus
+		const thumb = sizeSlider.locator('[data-slot="slider-thumb"]');
+		await thumb.click();
 		await page.keyboard.press('End');
 		await page.waitForTimeout(300);
 

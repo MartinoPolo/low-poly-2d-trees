@@ -64,8 +64,9 @@ test.describe('Environment effects (#41)', () => {
 		// Default intensity = 50
 		const defaultDropCount = await page.locator('[data-testid="rain-drop"]').count();
 
-		// Increase intensity via keyboard — press End to go to max
-		await slider.click();
+		// Increase intensity via keyboard — click thumb for focus, then End
+		const thumb = slider.locator('[data-slot="slider-thumb"]');
+		await thumb.click();
 		await page.keyboard.press('End');
 		await page.waitForTimeout(300);
 
