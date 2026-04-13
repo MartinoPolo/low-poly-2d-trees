@@ -245,10 +245,10 @@
 					</Card.Header>
 					<Card.Content class="space-y-4">
 						<LabeledRangeSlider
-							label="Canopy Polygons"
-							min={10}
-							max={150}
-							bind:value={treeConfig.current.canopyPolygons}
+							label="Polygons Per Blob"
+							min={4}
+							max={30}
+							bind:value={treeConfig.current.polygonsPerBlob}
 						/>
 						<LabeledRangeSlider
 							label="Trunk Polygons"
@@ -269,6 +269,12 @@
 							max={20}
 							bind:value={treeConfig.current.branchCount}
 							disabled={branchCountDisabled}
+						/>
+						<LabeledRangeSlider
+							label="Branch Depth"
+							min={0}
+							max={3}
+							bind:value={treeConfig.current.branchDepth}
 						/>
 						<LabeledRangeSlider
 							label="Blob Size Variance"
@@ -319,7 +325,7 @@
 						<LabeledRangeSlider
 							label="Fruit Count"
 							min={0}
-							max={20}
+							max={7}
 							bind:value={treeConfig.current.fruitCount}
 							disabled={fruitCountDisabled}
 						/>
@@ -344,7 +350,7 @@
 					<Card.Content class="space-y-4">
 						<LabeledRangeSlider
 							label="Trunk Height"
-							min={50}
+							min={10}
 							max={150}
 							unit="%"
 							bind:value={treeConfig.current.trunkHeight}

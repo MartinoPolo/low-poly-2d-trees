@@ -8,9 +8,22 @@ import type { Blob, BranchSegment } from './shape_types.js';
 // Blob point-testing
 // ---------------------------------------------------------------------------
 
-export function isPointInBlobs(x: number, y: number, blobs: readonly Blob[]): boolean {
+export function isPointInBlobs(
+	x: number,
+	y: number,
+	blobs: readonly Blob[],
+	insetFactor = 1,
+): boolean {
 	return blobs.some((b) =>
-		BOUNDARIES[b.boundary].contains(x, y, b.cx, b.cy, b.rx, b.ry, b.rotationDeg ?? 0),
+		BOUNDARIES[b.boundary].contains(
+			x,
+			y,
+			b.cx,
+			b.cy,
+			b.rx * insetFactor,
+			b.ry * insetFactor,
+			b.rotationDeg ?? 0,
+		),
 	);
 }
 

@@ -24,19 +24,20 @@ export const TRUNK_BRANCH_WIDTH_END_MAX = 5.25;
 
 const BRANCH_ANGLE_MIN_RAD = (30 * Math.PI) / 180;
 const BRANCH_ANGLE_MAX_ATTEMPTS = 20;
-// Sub-branch widths pre-scaled by 1.75 (issue #4 base rescale).
-const SUB_BRANCH_WIDTH_MIN = 3.5;
-const SUB_BRANCH_WIDTH_MAX = 7;
 
 // Base length ranges for branches at branchLength=100.
 const TRUNK_BRANCH_BASE_MIN = 40;
 const TRUNK_BRANCH_BASE_MAX = 80;
-const SUB_BRANCH_BASE_MIN = 25;
-const SUB_BRANCH_BASE_MAX = 55;
 
 const BRANCH_RETRY_ATTEMPTS = 3;
 const TRUNK_BRANCH_MIN_VISIBLE = 15;
-const SUB_BRANCH_MIN_VISIBLE = 10;
+
+// Fork parameters: angle spread and length scaling per depth level.
+const FORK_ANGLE_MIN = 0.25; // ~14° minimum divergence from parent
+const FORK_ANGLE_MAX = 0.75; // ~43° maximum divergence from parent
+const FORK_LENGTH_SCALE_MIN = 0.5;
+const FORK_LENGTH_SCALE_MAX = 0.8;
+const FORK_WIDTH_TAPER = 0.55; // child widthEnd = widthStart * taper
 
 // ---------------------------------------------------------------------------
 // Hierarchical branching (D1, D2, D3)
@@ -223,60 +224,47 @@ function rollTrunkBranchCandidate(
 	};
 }
 
-function rollSubBranchCandidate(
-	ctx: BranchCandidateContext,
+/**
+ * Generate a child branch that forks from the TIP of a parent branch.
+ * The direction is relative to the parent's direction ± a fork angle,
+ * creating natural Y-shaped branching.
+ */
+function rollForkCandidate(
+	rng: () => number,
 	parent: BranchSegment,
-	side: 1 | -1,
-	branchThicknessScale: number,
+	forkAngleSign: 1 | -1,
+	blobs: readonly Blob[],
+	canopyBottom: number,
 ): BranchSegment {
-	const { rng, config, trunkJunctions, blobs, canopyBottom } = ctx;
-	const parentAngle = computeAxisAngle(parent.x1, parent.y1, parent.x2, parent.y2);
-	const startT = randomInRange(rng, 0.3, 0.7);
-	const startX = parent.x1 + startT * (parent.x2 - parent.x1);
-	const startY = parent.y1 + startT * (parent.y2 - parent.y1);
+	const parentDirX = parent.x2 - parent.x1;
+	const parentDirY = parent.y2 - parent.y1;
+	const parentLength = Math.sqrt(parentDirX * parentDirX + parentDirY * parentDirY);
+	const parentAngle = Math.atan2(parentDirY, parentDirX);
 
-	const { min: lenMin, max: lenMax } = resolveBranchLengthRange(
-		SUB_BRANCH_BASE_MIN,
-		SUB_BRANCH_BASE_MAX,
-		config.branchLength,
-		config.branchLengthVariance,
-		false,
-	);
-	const length = randomInRange(rng, lenMin, lenMax);
+	const forkAngle = randomInRange(rng, FORK_ANGLE_MIN, FORK_ANGLE_MAX) * forkAngleSign;
+	const childAngle = parentAngle + forkAngle;
+	const lengthScale = randomInRange(rng, FORK_LENGTH_SCALE_MIN, FORK_LENGTH_SCALE_MAX);
+	const childLength = Math.max(8, parentLength * lengthScale);
 
-	let upAngle = 0;
-	for (let angleAttempt = 0; angleAttempt < BRANCH_ANGLE_MAX_ATTEMPTS; angleAttempt++) {
-		upAngle = randomInRange(rng, 0.2, 1.0);
-		const candidateAngle = Math.atan2(
-			-Math.sin(upAngle) * length,
-			Math.cos(upAngle) * length * side,
-		);
-		if (angleDivergence(candidateAngle, parentAngle) >= BRANCH_ANGLE_MIN_RAD) {
-			break;
-		}
-	}
+	const rawEndX = parent.x2 + Math.cos(childAngle) * childLength;
+	const rawEndY = parent.y2 + Math.sin(childAngle) * childLength;
 
-	const rawEndX = startX + Math.cos(upAngle) * length * side;
-	// Keep sub-branch on the same side of the trunk axis as its origin.
-	const centerX = sampleTrunkCenterX(trunkJunctions, startY);
-	const reflectedEndX = reflectEndpointIfCrossing(startX, rawEndX, centerX);
-	const rawEndY = startY - Math.sin(upAngle) * length;
 	const extended = extendTipIntoCanopy(
-		startX,
-		startY,
-		reflectedEndX,
+		parent.x2,
+		parent.y2,
+		rawEndX,
 		rawEndY,
 		blobs,
 		canopyBottom,
-		30,
+		25,
 	);
-	const widthStart =
-		randomInRange(rng, SUB_BRANCH_WIDTH_MIN, SUB_BRANCH_WIDTH_MAX) * branchThicknessScale;
-	const widthEnd = randomInRange(rng, 1.75, 3.5) * branchThicknessScale;
+
+	const widthStart = parent.widthEnd;
+	const widthEnd = Math.max(0.5, widthStart * FORK_WIDTH_TAPER);
 
 	return {
-		x1: startX,
-		y1: startY,
+		x1: parent.x2,
+		y1: parent.y2,
 		x2: extended.endX,
 		y2: extended.endY,
 		widthStart,
@@ -284,8 +272,15 @@ function rollSubBranchCandidate(
 	};
 }
 
-function overlapsAny(candidate: BranchSegment, existing: readonly BranchSegment[]): boolean {
+function overlapsAny(
+	candidate: BranchSegment,
+	existing: readonly BranchSegment[],
+	excludeParent?: BranchSegment,
+): boolean {
 	for (const other of existing) {
+		if (excludeParent !== undefined && other === excludeParent) {
+			continue;
+		}
 		if (branchesOverlap(candidate, other)) {
 			return true;
 		}
@@ -302,6 +297,11 @@ export function generateBranches(
 	trunkJunctions: readonly Point2D[],
 	blobs: readonly Blob[],
 ): BranchSegment[] {
+	const branchDepth = config.branchDepth;
+	if (branchDepth <= 0) {
+		return [];
+	}
+
 	const branchCount = config.branchCount;
 	if (branchCount <= 0) {
 		return [];
@@ -335,11 +335,11 @@ export function generateBranches(
 	};
 
 	const trunkBranchCount = Math.max(1, Math.round(branchCount * trunkBranchRatio));
-	const subBranchCount = branchCount - trunkBranchCount;
 
-	// --- Trunk-origin branches ---
+	// --- Trunk-origin branches (depth 1) ---
+	const startSide = rng() < 0.5 ? 0 : 1;
 	for (let i = 0; i < trunkBranchCount; i++) {
-		const side: 1 | -1 = i % 2 === 0 ? 1 : -1;
+		const side: 1 | -1 = (i + startSide) % 2 === 0 ? 1 : -1;
 		let accepted: BranchSegment | null = null;
 		for (let attempt = 0; attempt < BRANCH_RETRY_ATTEMPTS; attempt++) {
 			const candidate = rollTrunkBranchCandidate(ctx, side, branchThicknessScale, attempt);
@@ -358,45 +358,49 @@ export function generateBranches(
 		}
 	}
 
-	// --- Sub-branches ---
-	const isolatedBlobIndices = findIsolatedBlobs(blobs);
-	const isolatedReached = new Set<number>();
+	const trunkBranchEndIndex = branches.length;
 
-	for (let i = 0; i < subBranchCount; i++) {
-		if (branches.length === 0) {
-			break;
-		}
-		const side: 1 | -1 = i % 2 === 0 ? 1 : -1;
-		let accepted: BranchSegment | null = null;
-		for (let attempt = 0; attempt < BRANCH_RETRY_ATTEMPTS; attempt++) {
-			const parent = branches[Math.floor(rng() * branches.length)]!;
-			const candidate = rollSubBranchCandidate(ctx, parent, side, branchThicknessScale);
-			if (overlapsAny(candidate, branches)) {
-				continue;
-			}
-			const visible = computeVisibleBranchLength(candidate, blobs, []);
-			if (visible < SUB_BRANCH_MIN_VISIBLE) {
-				continue;
-			}
-			accepted = candidate;
-			break;
-		}
-		if (accepted !== null) {
-			for (const idx of isolatedBlobIndices) {
-				if (isPointInSingleBlob(accepted.x2, accepted.y2, blobs[idx]!)) {
-					isolatedReached.add(idx);
+	// --- Forking sub-branches (depth >= 2) ---
+	// Each trunk-origin branch tip forks into 1-2 child branches.
+	// Children continue the parent's direction ± a fork angle.
+	if (branchDepth >= 2) {
+		for (let i = 0; i < trunkBranchEndIndex; i++) {
+			const parent = branches[i]!;
+			const forkCount = 1 + Math.floor(rng() * 2); // 1-2 forks
+			for (let f = 0; f < forkCount; f++) {
+				const forkSign: 1 | -1 = f === 0 ? 1 : -1;
+				const candidate = rollForkCandidate(rng, parent, forkSign, blobs, canopyBottom);
+				if (!overlapsAny(candidate, branches, parent)) {
+					branches.push(candidate);
 				}
 			}
-			branches.push(accepted);
+		}
+	}
+
+	const depth2EndIndex = branches.length;
+
+	// --- Forking sub-sub-branches (depth >= 3) ---
+	// Each depth-2 fork tip gets 1 child branch.
+	if (branchDepth >= 3) {
+		for (let i = trunkBranchEndIndex; i < depth2EndIndex; i++) {
+			const parent = branches[i]!;
+			const forkSign: 1 | -1 = rng() < 0.5 ? 1 : -1;
+			const candidate = rollForkCandidate(rng, parent, forkSign, blobs, canopyBottom);
+			if (!overlapsAny(candidate, branches, parent)) {
+				branches.push(candidate);
+			}
 		}
 	}
 
 	// --- Floating-blob fallback (exempt from visibility/crossing checks) ---
+	const isolatedBlobIndices = findIsolatedBlobs(blobs);
 	for (const idx of isolatedBlobIndices) {
-		if (isolatedReached.has(idx)) {
+		const blob = blobs[idx]!;
+		// Check if any existing branch tip is inside this blob
+		const reached = branches.some((b) => isPointInSingleBlob(b.x2, b.y2, blob));
+		if (reached) {
 			continue;
 		}
-		const blob = blobs[idx]!;
 		const branchT = randomInRange(rng, 0.1, 0.3);
 		const originY = trunkTop + trunkHeight * branchT;
 		const originX = sampleTrunkCenterX(trunkJunctions, originY);

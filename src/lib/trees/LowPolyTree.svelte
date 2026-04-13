@@ -81,7 +81,19 @@
 			.anchors.trunkBase.y}px;"
 	>
 		{#if showTrunk}
-			<g class="trunk">
+			{#if geometry.trunkSilhouettePath}
+				<defs>
+					<clipPath id="trunk-clip-{config.seed}">
+						<path d={geometry.trunkSilhouettePath} />
+					</clipPath>
+				</defs>
+			{/if}
+			<g
+				class="trunk"
+				clip-path={geometry.trunkSilhouettePath
+					? `url(#trunk-clip-${config.seed})`
+					: undefined}
+			>
 				{#each geometry.trunkTriangles as tri (tri)}
 					<polygon
 						points="{tri.points[0].x},{tri.points[0].y} {tri.points[1].x},{tri.points[1]

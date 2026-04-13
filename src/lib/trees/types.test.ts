@@ -46,6 +46,7 @@ describe('SHAPE_DEFAULTS §2.5', () => {
 		expect(SHAPE_DEFAULTS.oak).toEqual({
 			blobCount: 5,
 			branchCount: 2,
+			branchDepth: 2,
 			blobSizeVariance: 3.0,
 			blobCloseness: 50,
 			branchThickness: 100,
@@ -67,6 +68,7 @@ describe('SHAPE_DEFAULTS §2.5', () => {
 		expect(SHAPE_DEFAULTS.pine).toEqual({
 			blobCount: 3,
 			branchCount: 0,
+			branchDepth: 0,
 			blobSizeVariance: 3.0,
 			blobCloseness: 50,
 			branchThickness: 100,
@@ -88,6 +90,7 @@ describe('SHAPE_DEFAULTS §2.5', () => {
 		expect(SHAPE_DEFAULTS.birch).toEqual({
 			blobCount: 3,
 			branchCount: 1,
+			branchDepth: 3,
 			blobSizeVariance: 3.0,
 			blobCloseness: 50,
 			branchThickness: 100,
@@ -109,6 +112,7 @@ describe('SHAPE_DEFAULTS §2.5', () => {
 		expect(SHAPE_DEFAULTS.fir).toEqual({
 			blobCount: 4,
 			branchCount: 0,
+			branchDepth: 0,
 			blobSizeVariance: 3.0,
 			blobCloseness: 50,
 			branchThickness: 100,
@@ -130,6 +134,7 @@ describe('SHAPE_DEFAULTS §2.5', () => {
 		expect(SHAPE_DEFAULTS.maple).toEqual({
 			blobCount: 5,
 			branchCount: 5,
+			branchDepth: 2,
 			blobSizeVariance: 2.0,
 			blobCloseness: 30,
 			branchThickness: 100,
@@ -151,6 +156,7 @@ describe('SHAPE_DEFAULTS §2.5', () => {
 		expect(SHAPE_DEFAULTS.willow).toEqual({
 			blobCount: 4,
 			branchCount: 4,
+			branchDepth: 2,
 			blobSizeVariance: 3.0,
 			blobCloseness: 50,
 			branchThickness: 150,

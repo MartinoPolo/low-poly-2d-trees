@@ -110,11 +110,11 @@ export function computeTrunkColor(
 	const normal = normalize3({ x: nx, y: 0, z });
 
 	const diffuse = clamp(dot3(normal, light), 0, 1);
-	const lighting = 0.4 + 0.6 * diffuse;
+	const lighting = 0.25 + 0.75 * diffuse;
 
 	const hue = config.trunkHue + (rng() - 0.5) * 8;
 	const sat = config.trunkSaturation + (rng() - 0.5) * 8;
-	const lightness = config.trunkLightness + (lighting - 0.5) * 25 + (rng() - 0.5) * 4;
+	const lightness = config.trunkLightness + (lighting - 0.5) * 35 + (rng() - 0.5) * 4;
 
 	return hslToHex(hue, sat, lightness);
 }

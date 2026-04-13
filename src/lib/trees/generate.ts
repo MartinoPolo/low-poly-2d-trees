@@ -131,13 +131,15 @@ function computeTrunkXBounds(
 
 const ROOTS_DEPTH_PX = 15;
 const FRUIT_SLOTS_SEED_OFFSET = 54321;
+const FRUIT_COUNT_CAP = 7;
+const FRUIT_CONTAINMENT_INSET_FACTOR = 0.85;
 
 function buildCanopyContainmentTest(
 	blobs: readonly Blob[],
 	tiers: readonly Tier[],
 ): (x: number, y: number) => boolean {
 	if (blobs.length > 0) {
-		return (x, y) => isPointInBlobs(x, y, blobs);
+		return (x, y) => isPointInBlobs(x, y, blobs, FRUIT_CONTAINMENT_INSET_FACTOR);
 	}
 	if (tiers.length > 0) {
 		return (x, y) => tiers.some((t) => isPointInTier(x, y, t));
@@ -216,6 +218,55 @@ function computeAnchors(
 		branchTips,
 		fruitSlots,
 	};
+}
+
+// ---------------------------------------------------------------------------
+// Trunk silhouette path (VQ-1: smooth outline for clip-path)
+// ---------------------------------------------------------------------------
+
+function generateTrunkSilhouettePath(
+	trunkJunctions: readonly Point2D[],
+	effectiveBaseWidth: number,
+	effectiveTopWidth: number,
+): string {
+	const points = trunkJunctions;
+	if (points.length < 2) {
+		return '';
+	}
+	const trunkTop = points[points.length - 1]!.y;
+	const trunkBottom = points[0]!.y;
+	const trunkHeight = trunkBottom - trunkTop;
+	if (trunkHeight <= 0) {
+		return '';
+	}
+
+	// Build left and right edge points tracing the trunk outline
+	const leftEdge: Point2D[] = [];
+	const rightEdge: Point2D[] = [];
+
+	for (let i = points.length - 1; i >= 0; i--) {
+		const junction = points[i]!;
+		const t = (junction.y - trunkTop) / trunkHeight;
+		const width = effectiveTopWidth + t * (effectiveBaseWidth - effectiveTopWidth);
+		leftEdge.push({ x: junction.x - width / 2, y: junction.y });
+		rightEdge.push({ x: junction.x + width / 2, y: junction.y });
+	}
+
+	// Trace: top-left -> bottom-left -> bottom-right -> top-right -> close
+	const pathParts: string[] = [];
+	pathParts.push(`M ${leftEdge[0]!.x} ${leftEdge[0]!.y}`);
+	for (let i = 1; i < leftEdge.length; i++) {
+		pathParts.push(`L ${leftEdge[i]!.x} ${leftEdge[i]!.y}`);
+	}
+	// Bottom edge (left to right)
+	const lastRight = rightEdge[rightEdge.length - 1]!;
+	pathParts.push(`L ${lastRight.x} ${lastRight.y}`);
+	// Right edge (bottom to top)
+	for (let i = rightEdge.length - 2; i >= 0; i--) {
+		pathParts.push(`L ${rightEdge[i]!.x} ${rightEdge[i]!.y}`);
+	}
+	pathParts.push('Z');
+	return pathParts.join(' ');
 }
 
 // ---------------------------------------------------------------------------
@@ -369,6 +420,7 @@ function generateBlobCanopy(
 	config: TreeConfig,
 ): BlobGeometry[] {
 	const totalArea = blobs.reduce((sum, b) => sum + b.rx * b.ry, 0);
+	const averageArea = blobs.length > 0 ? totalArea / blobs.length : 1;
 	const depths = assignBlobDepths(blobs, rng);
 
 	const blobGeos: { geo: BlobGeometry; depth: number }[] = [];
@@ -376,8 +428,8 @@ function generateBlobCanopy(
 	for (let i = 0; i < blobs.length; i++) {
 		const blob = blobs[i]!;
 		const blobArea = blob.rx * blob.ry;
-		const polygonShare = totalArea > 0 ? blobArea / totalArea : 1 / blobs.length;
-		const blobBudget = Math.max(4, Math.round(canopyBudget * polygonShare));
+		const areaRatio = averageArea > 0 ? blobArea / averageArea : 1;
+		const blobBudget = Math.max(4, Math.round(canopyBudget * areaRatio));
 
 		const boundaryCount = Math.max(6, Math.floor(blobBudget * 0.15));
 		const rawBoundaryPoints = BOUNDARIES[blob.boundary].sample(
@@ -482,14 +534,15 @@ function generateTierCanopy(
 		return (base * height) / 2;
 	});
 	const totalArea = tierAreas.reduce((sum, a) => sum + a, 0);
+	const averageArea = tiers.length > 0 ? totalArea / tiers.length : 1;
 	const count = tiers.length;
 
 	const blobGeos: BlobGeometry[] = [];
 
 	for (let i = 0; i < count; i++) {
 		const tier = tiers[i]!;
-		const areaShare = totalArea > 0 ? tierAreas[i]! / totalArea : 1 / count;
-		const tierBudget = Math.max(4, Math.round(canopyBudget * areaShare));
+		const areaRatio = averageArea > 0 ? tierAreas[i]! / averageArea : 1;
+		const tierBudget = Math.max(4, Math.round(canopyBudget * areaRatio));
 
 		const boundaryCount = Math.max(6, Math.floor(tierBudget * 0.15));
 		const boundaryPoints = sampleTierBoundary(tier, boundaryCount, rng);
@@ -745,6 +798,13 @@ function generateTreeCore(config: TreeConfig, addStakes: boolean, addFruit: bool
 		config,
 	);
 
+	const thicknessScale = config.trunkThickness / 100;
+	const trunkSilhouettePath = generateTrunkSilhouettePath(
+		trunkJunctions,
+		shapeDef.trunkBaseWidth * thicknessScale,
+		shapeDef.trunkTopWidth * thicknessScale,
+	);
+
 	const branchGroups = generateBranchMesh(
 		rng,
 		createPrng(config.seed + 9999),
@@ -757,8 +817,8 @@ function generateTreeCore(config: TreeConfig, addStakes: boolean, addFruit: bool
 
 	const smoothAcuteAngles = SHAPES_WITH_ACUTE_SMOOTHING.has(config.shape);
 	const canopyBlobs = isPine
-		? generateTierCanopy(rng, tiers, config.canopyPolygons, config)
-		: generateBlobCanopy(rng, blobs, config.canopyPolygons, smoothAcuteAngles, config);
+		? generateTierCanopy(rng, tiers, config.polygonsPerBlob, config)
+		: generateBlobCanopy(rng, blobs, config.polygonsPerBlob, smoothAcuteAngles, config);
 
 	const anchors = computeAnchors(
 		trunkJunctions,
@@ -772,32 +832,11 @@ function generateTreeCore(config: TreeConfig, addStakes: boolean, addFruit: bool
 
 	// Fruit generation: produce triangulated fruit shapes at anchor slots
 	const effectiveFruitType = config.fruitType;
-	const effectiveFruitCount = config.fruitCount;
+	const effectiveFruitCount = Math.min(config.fruitCount, FRUIT_COUNT_CAP);
 	let fruitTriangles: Triangle[] = [];
 
 	if (effectiveFruitType !== FRUIT_TYPES.none && effectiveFruitCount > 0) {
 		const fruitSlots = [...anchors.fruitSlots];
-
-		// If requested count exceeds pre-sampled slots, generate more within canopy
-		if (effectiveFruitCount > fruitSlots.length) {
-			const extraRng = createPrng(config.seed + FRUIT_SLOTS_SEED_OFFSET + 1000);
-			const needed = effectiveFruitCount - fruitSlots.length;
-			const boundsArea =
-				(canopyBounds.maxX - canopyBounds.minX) * (canopyBounds.maxY - canopyBounds.minY);
-			// Progressively reduce minDistance to fit more slots
-			const minDistance = Math.max(1.5, Math.sqrt(boundsArea / effectiveFruitCount) * 0.4);
-
-			const extraContainmentTest = buildCanopyContainmentTest(blobs, tiers);
-
-			const extraSlots = poissonSample(
-				extraRng,
-				needed,
-				canopyBounds,
-				extraContainmentTest,
-				minDistance,
-			);
-			fruitSlots.push(...extraSlots);
-		}
 
 		const fruitRng = createPrng(config.seed + FRUIT_SLOTS_SEED_OFFSET + 2000);
 		fruitTriangles = generateFruitAtSlots(
@@ -812,6 +851,7 @@ function generateTreeCore(config: TreeConfig, addStakes: boolean, addFruit: bool
 
 	return {
 		trunkTriangles,
+		trunkSilhouettePath,
 		branchTriangles,
 		branchGroups,
 		canopyBlobs,
