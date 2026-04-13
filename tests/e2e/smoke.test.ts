@@ -7,9 +7,11 @@ test('homepage loads', async ({ page }) => {
 
 /** Helper: select a fruit type from the Growables card dropdown. */
 async function selectFruitType(page: Page, fruitName: string) {
-	// The Fruit Type select trigger is the second [data-slot="select-trigger"] on the page.
-	// First is Tree Type.
-	const fruitTypeTrigger = page.locator('[data-slot="select-trigger"]').nth(1);
+	// Scope to the Growables card via data-slot, then find the select trigger inside it.
+	const growablesCard = page
+		.getByText('Growables')
+		.locator('xpath=ancestor::*[@data-slot="card"]');
+	const fruitTypeTrigger = growablesCard.locator('[data-slot="select-trigger"]');
 	await fruitTypeTrigger.click();
 	await page.waitForTimeout(300);
 
