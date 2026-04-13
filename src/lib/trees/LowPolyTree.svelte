@@ -30,6 +30,7 @@
 		animateGrowth?: boolean;
 		toolVisibility?: ToolVisibility;
 		animateTools?: boolean;
+		reviewerCount?: number;
 		class?: string;
 		onanchors?: (anchors: TreeAnchors) => void;
 	}
@@ -46,6 +47,7 @@
 		animateGrowth = false,
 		toolVisibility,
 		animateTools = false,
+		reviewerCount = 0,
 		class: className = '',
 		onanchors,
 	}: Props = $props();
@@ -203,6 +205,7 @@
 							anchor={geometry.anchors[TOOL_ANCHOR_MAP[toolType]]}
 							size={toolVisibility[toolType].size}
 							animate={animateTools}
+							{reviewerCount}
 						/>
 					{/if}
 				{/each}

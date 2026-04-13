@@ -1,0 +1,43 @@
+<!--
+	Woodpecker placeholder SVG — tree-doctor bird silhouette.
+	Flat design: warm brown/red bird clinging to trunk.
+	Snap point: feet/claws at local (0, 10).
+-->
+<g>
+	<!-- Body (oval) -->
+	<ellipse cx="0" cy="-2" rx="6" ry="8" fill="#8B4513" />
+	<!-- Belly (lighter) -->
+	<ellipse cx="0" cy="0" rx="4" ry="5" fill="#D2B48C" />
+	<!-- Head -->
+	<circle cx="0" cy="-12" r="5" fill="#8B4513" />
+	<!-- Red crest -->
+	<path d="M-2,-17 L0,-20 L2,-17 L1,-15 L-1,-15 Z" fill="#CC3333" />
+	<!-- Eye -->
+	<circle cx="2" cy="-13" r="1.2" fill="white" />
+	<circle cx="2.3" cy="-13" r="0.6" fill="#1A1A1A" />
+	<!-- Beak (pointed, for pecking) -->
+	<path d="M5,-12 L12,-12 L5,-10 Z" fill="#4A4A4A" />
+	<!-- Wing -->
+	<path d="M-5,-6 L-8,-2 L-6,4 L-2,2 L-3,-4 Z" fill="#6B3410" />
+	<!-- Wing markings -->
+	<path d="M-4,-4 L-6,-1 L-5,2 L-3,0 Z" fill="#5A2A08" />
+	<!-- Tail feathers -->
+	<path d="M-3,6 L-5,12 L-1,10 Z" fill="#6B3410" />
+	<path d="M0,6 L-1,13 L2,10 Z" fill="#5A2A08" />
+	<path d="M3,6 L4,12 L1,10 Z" fill="#6B3410" />
+	<!-- Feet/claws (grip point) -->
+	<path
+		d="M-2,6 L-3,10 L-4,9 L-3,10 L-2,9"
+		fill="none"
+		stroke="#4A4A4A"
+		stroke-width="1"
+		stroke-linecap="round"
+	/>
+	<path
+		d="M2,6 L3,10 L4,9 L3,10 L2,9"
+		fill="none"
+		stroke="#4A4A4A"
+		stroke-width="1"
+		stroke-linecap="round"
+	/>
+</g>
