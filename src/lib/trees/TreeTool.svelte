@@ -13,16 +13,16 @@
 
 	let { tool, anchor, size, animate }: Props = $props();
 
+	const TOOL_CSS_CLASS: Record<ToolType, string> = {
+		shovel: 'tool-shovel',
+		ladder: 'tool-ladder',
+		wateringCan: 'tool-watering-can',
+		birdNest: 'tool-bird-nest',
+	};
+
 	const svgData = $derived(TOOL_SVG_DATA[tool]);
 	const animationConfig = $derived(TOOL_ANIMATIONS[tool]);
-
-	const cssClass = $derived(
-		tool === 'wateringCan'
-			? 'tool-watering-can'
-			: tool === 'birdNest'
-				? 'tool-bird-nest'
-				: `tool-${tool}`,
-	);
+	const cssClass = $derived(TOOL_CSS_CLASS[tool]);
 </script>
 
 <!-- Outer <g> for positioning (translate + scale) — not animated -->
