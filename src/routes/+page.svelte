@@ -10,6 +10,11 @@
 	import TrunkColorCard from '$lib/components/composed/TrunkColorCard.svelte';
 	import { SHAPE_DEFAULTS } from '$lib/trees/types.js';
 	import { isParamDisabled } from '$lib/trees/disabled_params.js';
+	import {
+		TOOL_OPTIONS,
+		DEFAULT_TOOL_VISIBILITY,
+		type ToolVisibility,
+	} from '$lib/trees/tools/tool_types.js';
 	import { createTreeConfigContext } from '$lib/trees/tree_config.context.svelte.js';
 	import { createSceneConfigContext } from '$lib/scene/scene_config.context.svelte.js';
 	import { generateSceneLayout } from '$lib/scene/scene_layout.js';
@@ -27,6 +32,8 @@
 	let animateCanopySway = $state(false);
 	let animateBranches = $state(false);
 	let animateGrowth = $state(false);
+	let toolVisibility: ToolVisibility = $state({ ...DEFAULT_TOOL_VISIBILITY });
+	let animateTools = $state(false);
 
 	const trunkCrookednessDisabled = $derived(
 		isParamDisabled('custom', 'trunkCrookedness', {
@@ -108,6 +115,8 @@
 						{animateCanopySway}
 						{animateBranches}
 						{animateGrowth}
+						{toolVisibility}
+						{animateTools}
 						class="h-auto w-full"
 					/>
 				</div>
@@ -342,6 +351,41 @@
 							bind:value={treeConfig.current.depthVariance}
 							class="w-full accent-primary"
 						/>
+					</div>
+				</SectionCard>
+
+				<SectionCard title="Tools & Accessories" contentClass="space-y-4">
+					{#each TOOL_OPTIONS as option (option.value)}
+						<div class="flex items-center gap-2">
+							<Checkbox
+								data-testid="tool-{option.value}-visible"
+								checked={toolVisibility[option.value].visible}
+								onCheckedChange={(v) =>
+									(toolVisibility[option.value] = {
+										...toolVisibility[option.value],
+										visible: v === true,
+									})}
+							/>
+							<Label>{option.label}</Label>
+						</div>
+						{#if toolVisibility[option.value].visible}
+							<LabeledRangeSlider
+								label="{option.label} Size"
+								min={0.5}
+								max={2}
+								step={0.1}
+								bind:value={toolVisibility[option.value].size}
+								id="tool-{option.value}-size"
+							/>
+						{/if}
+					{/each}
+					<div class="flex items-center gap-2">
+						<Checkbox
+							data-testid="animate-tools"
+							checked={animateTools}
+							onCheckedChange={(v) => (animateTools = v === true)}
+						/>
+						<Label>Animate Tools</Label>
 					</div>
 				</SectionCard>
 

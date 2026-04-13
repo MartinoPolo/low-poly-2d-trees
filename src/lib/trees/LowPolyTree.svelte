@@ -11,6 +11,12 @@
 		computeBranchDuration,
 		computeBranchDelay,
 	} from '$lib/trees/animation.js';
+	import TreeTool from '$lib/trees/TreeTool.svelte';
+	import {
+		TOOL_TYPES,
+		TOOL_ANCHOR_MAP,
+		type ToolVisibility,
+	} from '$lib/trees/tools/tool_types.js';
 
 	interface Props {
 		config?: TreeConfig;
@@ -22,6 +28,8 @@
 		animateCanopySway?: boolean;
 		animateBranches?: boolean;
 		animateGrowth?: boolean;
+		toolVisibility?: ToolVisibility;
+		animateTools?: boolean;
 		class?: string;
 		onanchors?: (anchors: TreeAnchors) => void;
 	}
@@ -36,6 +44,8 @@
 		animateCanopySway = false,
 		animateBranches = false,
 		animateGrowth = false,
+		toolVisibility,
+		animateTools = false,
 		class: className = '',
 		onanchors,
 	}: Props = $props();
@@ -157,6 +167,21 @@
 						stroke={tri.color}
 						stroke-width="0.5"
 					/>
+				{/each}
+			</g>
+		{/if}
+
+		{#if toolVisibility}
+			<g class="tools-group">
+				{#each Object.values(TOOL_TYPES) as toolType (toolType)}
+					{#if toolVisibility[toolType].visible}
+						<TreeTool
+							tool={toolType}
+							anchor={geometry.anchors[TOOL_ANCHOR_MAP[toolType]]}
+							size={toolVisibility[toolType].size}
+							animate={animateTools}
+						/>
+					{/if}
 				{/each}
 			</g>
 		{/if}
