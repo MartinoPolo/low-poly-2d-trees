@@ -35,14 +35,14 @@ test.describe('Growables card', () => {
 		await page.goto('/editor');
 		await page.waitForLoadState('networkidle');
 
-		// Fruit count slider should be disabled initially (fruitType defaults to none)
-		const fruitCountSlider = page.locator('#range-fruit-count');
-		await expect(fruitCountSlider).toBeDisabled();
+		// Fruit count slider (shadcn) — auto-generated ID from label "Fruit Count"
+		const fruitCountSlider = page.locator('#slider-fruit-count');
+		await expect(fruitCountSlider).toHaveAttribute('data-disabled', '');
 
 		await selectFruitType(page, 'Apple');
 
-		// After selecting Apple, the fruit count slider should be enabled
-		await expect(fruitCountSlider).toBeEnabled();
+		// After selecting Apple, the fruit count slider should be enabled (no data-disabled)
+		await expect(fruitCountSlider).not.toHaveAttribute('data-disabled', '');
 	});
 
 	test('setting fruit count > 0 with Apple renders fruit polygons', async ({ page }) => {
@@ -51,9 +51,13 @@ test.describe('Growables card', () => {
 
 		await selectFruitType(page, 'Apple');
 
-		// Set fruit count to 5 via the slider
-		const fruitCountSlider = page.locator('#range-fruit-count');
-		await fruitCountSlider.fill('5');
+		// Set fruit count via keyboard on the shadcn slider
+		const fruitCountSlider = page.locator('#slider-fruit-count');
+		await fruitCountSlider.click();
+		// Press ArrowRight multiple times to increase value to ~5
+		for (let i = 0; i < 5; i++) {
+			await page.keyboard.press('ArrowRight');
+		}
 		await page.waitForTimeout(300);
 
 		// Check SVG has a .fruit group with children
@@ -69,16 +73,21 @@ test.describe('Growables card', () => {
 
 		await selectFruitType(page, 'Apple');
 
-		const fruitCountSlider = page.locator('#range-fruit-count');
-		await fruitCountSlider.fill('5');
+		// Increase fruit count via keyboard
+		const fruitCountSlider = page.locator('#slider-fruit-count');
+		await fruitCountSlider.click();
+		for (let i = 0; i < 5; i++) {
+			await page.keyboard.press('ArrowRight');
+		}
 		await page.waitForTimeout(300);
 
 		// Verify fruit is shown
 		const fruitPolygons = page.locator('svg .fruit polygon');
 		expect(await fruitPolygons.count()).toBeGreaterThan(0);
 
-		// Set count to 0
-		await fruitCountSlider.fill('0');
+		// Set count to 0 — press Home key to go to min value
+		await fruitCountSlider.click();
+		await page.keyboard.press('Home');
 		await page.waitForTimeout(300);
 
 		// Fruit polygons should be gone

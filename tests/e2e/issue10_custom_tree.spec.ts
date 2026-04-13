@@ -79,7 +79,6 @@ test.describe('Issue #10 — Custom tree mode', () => {
 		await firstBlob.click();
 
 		const content = page.locator('[data-slot="accordion-content"]').first();
-		// Boundary select is the second select trigger in the DOM (shape is first).
 		await expect(content.locator('label').filter({ hasText: /Boundary/i })).toBeVisible();
 		await expect(content.locator('label').filter({ hasText: /^Rotation/ })).toBeVisible();
 		await expect(content.locator('label').filter({ hasText: /^Size/ })).toBeVisible();
@@ -113,18 +112,17 @@ test.describe('Issue #10 — Custom tree mode', () => {
 			.locator('svg .canopy polygon')
 			.evaluateAll((els) => els.map((el) => el.getAttribute('points')));
 
-		const xSlider = content
-			.locator('label')
-			.filter({ hasText: /^X:/ })
-			.locator('..')
-			.locator('input[type="range"]');
+		// Find the X slider within the first accordion content.
+		// The LabeledSlider for "X" renders a shadcn slider with auto-ID "slider-x".
+		// Scope within the accordion content to get the correct one.
+		const xSliderContainer = content.locator('label').filter({ hasText: /^X:/ }).locator('..');
+		const xSlider = xSliderContainer.locator('[data-slot="slider"]');
 		await expect(xSlider).toBeVisible();
 
-		await xSlider.evaluate((el) => {
-			const input = el as HTMLInputElement;
-			input.value = '0.75';
-			input.dispatchEvent(new Event('input', { bubbles: true }));
-		});
+		// Click the slider and press End to move to max value
+		await xSlider.click();
+		await page.keyboard.press('End');
+		await page.waitForTimeout(300);
 
 		// Wait for the preview to re-render.
 		await expect(page.locator('svg .canopy polygon').first()).toBeVisible();
@@ -204,20 +202,16 @@ test.describe('Issue #10 — Custom tree mode', () => {
 			.locator('svg .canopy polygon')
 			.evaluateAll((els) => els.map((el) => el.getAttribute('points')));
 
-		// Change blob 2's X position.
+		// Change blob 2's X position via the slider.
 		const content = page.locator('[data-slot="accordion-content"]').nth(2);
-		const xSlider = content
-			.locator('label')
-			.filter({ hasText: /^X:/ })
-			.locator('..')
-			.locator('input[type="range"]');
+		const xSliderContainer = content.locator('label').filter({ hasText: /^X:/ }).locator('..');
+		const xSlider = xSliderContainer.locator('[data-slot="slider"]');
 		await expect(xSlider).toBeVisible();
 
-		await xSlider.evaluate((el) => {
-			const input = el as HTMLInputElement;
-			input.value = '-0.80';
-			input.dispatchEvent(new Event('input', { bubbles: true }));
-		});
+		// Click and press Home to go to min value
+		await xSlider.click();
+		await page.keyboard.press('Home');
+		await page.waitForTimeout(300);
 
 		await expect(page.locator('svg .canopy polygon').first()).toBeVisible();
 
@@ -232,9 +226,7 @@ test.describe('Issue #10 — Custom tree mode', () => {
 		await page.goto('/');
 		await page.waitForLoadState('networkidle');
 
-		// Scene editor has no shape dropdown. It renders exactly three hardcoded
-		// trees (oak/pine/birch per the current layout). Custom must not appear
-		// as a label.
+		// Scene editor has no shape dropdown. Custom must not appear as a label.
 		await expect(page.getByText(/^custom$/i)).toHaveCount(0);
 	});
 });

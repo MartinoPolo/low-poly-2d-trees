@@ -45,6 +45,7 @@ test.describe('Environment effects (#41)', () => {
 	});
 
 	test('rain intensity slider only visible when rain enabled', async ({ page }) => {
+		// The rain-intensity slider (shadcn) should not exist when rain is off
 		await expect(page.locator('#rain-intensity')).toHaveCount(0);
 
 		const rainToggle = page.locator('[data-testid="env-rain-toggle"]');
@@ -63,9 +64,10 @@ test.describe('Environment effects (#41)', () => {
 		// Default intensity = 50
 		const defaultDropCount = await page.locator('[data-testid="rain-drop"]').count();
 
-		// Increase intensity
-		await slider.fill('180');
-		await slider.dispatchEvent('input');
+		// Increase intensity via keyboard — press End to go to max
+		await slider.click();
+		await page.keyboard.press('End');
+		await page.waitForTimeout(300);
 
 		const highDropCount = await page.locator('[data-testid="rain-drop"]').count();
 		expect(highDropCount).toBeGreaterThan(defaultDropCount);
