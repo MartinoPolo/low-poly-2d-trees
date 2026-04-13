@@ -5,6 +5,7 @@ export default {
 			true,
 			{ ignoreAtRules: ['custom-variant', 'theme', 'utility', 'plugin', 'source'] },
 		],
+		'custom-property-empty-line-before': null,
 		'import-notation': 'string',
 	},
 };
