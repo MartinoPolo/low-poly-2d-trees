@@ -19,10 +19,14 @@
 	import { createSceneConfigContext } from '$lib/scene/scene_config.context.svelte.js';
 	import { generateSceneLayout } from '$lib/scene/scene_layout.js';
 	import { SCENE_LIMITS } from '$lib/scene/scene_config.js';
+	import { createEnvironmentConfigContext } from '$lib/environment/environment_config.context.svelte.js';
+	import { ENVIRONMENT_LIMITS } from '$lib/environment/environment_config.js';
+	import EnvironmentOverlay from '$lib/environment/EnvironmentOverlay.svelte';
 	import Shuffle from '@lucide/svelte/icons/shuffle';
 
 	const treeConfig = createTreeConfigContext();
 	const sceneConfig = createSceneConfigContext();
+	const environmentConfig = createEnvironmentConfigContext();
 
 	let usePerShapeDefaults = $state(false);
 	let showAnchors = $state(false);
@@ -121,6 +125,10 @@
 					/>
 				</div>
 			{/each}
+			<EnvironmentOverlay
+				config={environmentConfig}
+				lightAngle={treeConfig.current.lightAngle}
+			/>
 		</div>
 
 		<!-- Shared Controls -->
@@ -351,6 +359,77 @@
 							bind:value={treeConfig.current.depthVariance}
 							class="w-full accent-primary"
 						/>
+					</div>
+				</SectionCard>
+
+				<SectionCard title="Environment" contentClass="space-y-4">
+					<div class="flex items-center gap-2">
+						<Checkbox
+							data-testid="env-rain-toggle"
+							checked={environmentConfig.rainEnabled}
+							onCheckedChange={(v) => (environmentConfig.rainEnabled = v === true)}
+						/>
+						<Label>Rain</Label>
+					</div>
+					{#if environmentConfig.rainEnabled}
+						<LabeledRangeSlider
+							label="Rain Intensity"
+							min={ENVIRONMENT_LIMITS.rainIntensityMin}
+							max={ENVIRONMENT_LIMITS.rainIntensityMax}
+							bind:value={environmentConfig.rainIntensity}
+							id="rain-intensity"
+						/>
+					{/if}
+					<div class="flex items-center gap-2">
+						<Checkbox
+							data-testid="env-lightning-toggle"
+							checked={environmentConfig.lightningEnabled}
+							onCheckedChange={(v) =>
+								(environmentConfig.lightningEnabled = v === true)}
+						/>
+						<Label>Lightning</Label>
+					</div>
+					<div class="flex items-center gap-2">
+						<Checkbox
+							data-testid="env-snow-toggle"
+							checked={environmentConfig.snowEnabled}
+							onCheckedChange={(v) => (environmentConfig.snowEnabled = v === true)}
+						/>
+						<Label>Snow</Label>
+					</div>
+					<div class="flex items-center gap-2">
+						<Checkbox
+							data-testid="env-fireflies-toggle"
+							checked={environmentConfig.firefliesEnabled}
+							onCheckedChange={(v) =>
+								(environmentConfig.firefliesEnabled = v === true)}
+						/>
+						<Label>Fireflies</Label>
+					</div>
+					<div class="flex items-center gap-2">
+						<Checkbox
+							data-testid="env-wind-toggle"
+							checked={environmentConfig.windParticlesEnabled}
+							onCheckedChange={(v) =>
+								(environmentConfig.windParticlesEnabled = v === true)}
+						/>
+						<Label>Wind Particles</Label>
+					</div>
+					<div class="flex items-center gap-2">
+						<Checkbox
+							data-testid="env-sun-rays-toggle"
+							checked={environmentConfig.sunRaysEnabled}
+							onCheckedChange={(v) => (environmentConfig.sunRaysEnabled = v === true)}
+						/>
+						<Label>Sun Rays</Label>
+					</div>
+					<div class="flex items-center gap-2">
+						<Checkbox
+							data-testid="env-clouds-toggle"
+							checked={environmentConfig.cloudsEnabled}
+							onCheckedChange={(v) => (environmentConfig.cloudsEnabled = v === true)}
+						/>
+						<Label>Clouds</Label>
 					</div>
 				</SectionCard>
 
