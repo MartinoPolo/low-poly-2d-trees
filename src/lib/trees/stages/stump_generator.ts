@@ -67,6 +67,7 @@ export function generateStumpGeometry(): TreeGeometry {
 		branchTriangles: [],
 		branchGroups: [],
 		canopyBlobs: [],
+		fruitTriangles: [],
 		stakeTriangles: [],
 		fruitSlots: [],
 		anchors,

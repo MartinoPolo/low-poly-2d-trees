@@ -1,4 +1,5 @@
 import type { CustomBlob } from './custom.js';
+import { FRUIT_TYPES, type FruitType } from './fruit.js';
 
 export const TREE_STAGES = {
 	seed: 'seed',
@@ -88,6 +89,8 @@ export interface TreeConfig {
 	 * unused so re-growing never loses prior user tuning.
 	 */
 	readonly customBlobs?: readonly CustomBlob[];
+	readonly fruitType: FruitType;
+	readonly fruitCount: number;
 }
 
 export const DEFAULT_TREE_CONFIG: TreeConfig = {
@@ -117,6 +120,8 @@ export const DEFAULT_TREE_CONFIG: TreeConfig = {
 	trunkCrookedness: 0,
 	branchLength: 100,
 	branchLengthVariance: 50,
+	fruitType: FRUIT_TYPES.none,
+	fruitCount: 0,
 } as const;
 
 /**
@@ -139,6 +144,8 @@ export const SHAPE_DEFAULTS = {
 		trunkHue: 25,
 		trunkSaturation: 50,
 		trunkLightness: 25,
+		fruitType: FRUIT_TYPES.none,
+		fruitCount: 0,
 	},
 	[TREE_SHAPES.pine]: {
 		blobCount: 3,
@@ -155,6 +162,8 @@ export const SHAPE_DEFAULTS = {
 		trunkHue: 20,
 		trunkSaturation: 45,
 		trunkLightness: 20,
+		fruitType: FRUIT_TYPES.none,
+		fruitCount: 0,
 	},
 	[TREE_SHAPES.birch]: {
 		blobCount: 3,
@@ -171,6 +180,8 @@ export const SHAPE_DEFAULTS = {
 		trunkHue: 40,
 		trunkSaturation: 15,
 		trunkLightness: 80,
+		fruitType: FRUIT_TYPES.none,
+		fruitCount: 0,
 	},
 	[TREE_SHAPES.fir]: {
 		blobCount: 4,
@@ -187,6 +198,8 @@ export const SHAPE_DEFAULTS = {
 		trunkHue: 22,
 		trunkSaturation: 50,
 		trunkLightness: 28,
+		fruitType: FRUIT_TYPES.none,
+		fruitCount: 0,
 	},
 	[TREE_SHAPES.maple]: {
 		blobCount: 5,
@@ -203,6 +216,8 @@ export const SHAPE_DEFAULTS = {
 		trunkHue: 30,
 		trunkSaturation: 20,
 		trunkLightness: 35,
+		fruitType: FRUIT_TYPES.none,
+		fruitCount: 0,
 	},
 	[TREE_SHAPES.willow]: {
 		blobCount: 4,
@@ -219,6 +234,8 @@ export const SHAPE_DEFAULTS = {
 		trunkHue: 25,
 		trunkSaturation: 40,
 		trunkLightness: 22,
+		fruitType: FRUIT_TYPES.none,
+		fruitCount: 0,
 	},
 } as const satisfies Record<
 	Exclude<TreeShape, 'custom'>,
@@ -238,6 +255,8 @@ export const SHAPE_DEFAULTS = {
 		| 'trunkHue'
 		| 'trunkSaturation'
 		| 'trunkLightness'
+		| 'fruitType'
+		| 'fruitCount'
 	>
 >;
 

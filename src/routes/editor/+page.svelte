@@ -15,8 +15,11 @@
 		TREE_SHAPE_OPTIONS,
 		TREE_STAGE_OPTIONS,
 		SHAPE_DEFAULTS,
+		FRUIT_TYPES,
+		FRUIT_TYPE_OPTIONS,
 		isTreeStage,
 		type TreeShape,
+		type FruitType,
 	} from '$lib/trees/types.js';
 	import { growCustomBlobs } from '$lib/trees/shapes.js';
 	import { isParamDisabled } from '$lib/trees/disabled_params.js';
@@ -35,6 +38,7 @@
 	let showCanopy = $state(true);
 	let showBranches = $state(true);
 	let showTrunk = $state(true);
+	let showFruit = $state(true);
 	let animateCanopySway = $state(false);
 	let animateBranches = $state(false);
 	let animateGrowth = $state(false);
@@ -50,6 +54,11 @@
 			trunkSegments: treeConfig.current.trunkSegments,
 		}),
 	);
+	const fruitCountDisabled = $derived(
+		isParamDisabled(treeConfig.current.shape, 'fruitCount', {
+			fruitType: treeConfig.current.fruitType,
+		}),
+	);
 
 	const savedId = $derived(page.url.searchParams.get('saved'));
 	const savedTreeQuery = $derived(savedId === null ? null : getSavedTree(savedId));
@@ -57,6 +66,20 @@
 
 	function isTreeShape(value: string): value is TreeShape {
 		return (Object.values(TREE_SHAPES) as readonly string[]).includes(value);
+	}
+
+	function isFruitType(value: string): value is FruitType {
+		return (Object.values(FRUIT_TYPES) as readonly string[]).includes(value);
+	}
+
+	function onFruitTypeChange(value: string) {
+		if (!isFruitType(value)) {
+			return;
+		}
+		treeConfig.current.fruitType = value;
+		if (value === FRUIT_TYPES.none) {
+			treeConfig.current.fruitCount = 0;
+		}
 	}
 
 	function onStageChange(value: string) {
@@ -95,6 +118,8 @@
 		treeConfig.current.trunkHue = defaults.trunkHue;
 		treeConfig.current.trunkSaturation = defaults.trunkSaturation;
 		treeConfig.current.trunkLightness = defaults.trunkLightness;
+		treeConfig.current.fruitType = defaults.fruitType;
+		treeConfig.current.fruitCount = defaults.fruitCount;
 	}
 
 	function onBlobCountInput(event: Event) {
@@ -272,6 +297,27 @@
 					/>
 				{/if}
 
+				<Card.Root>
+					<Card.Header>
+						<Card.Title>Growables</Card.Title>
+					</Card.Header>
+					<Card.Content class="space-y-4">
+						<LabeledSelect
+							label="Fruit Type"
+							options={FRUIT_TYPE_OPTIONS}
+							value={treeConfig.current.fruitType}
+							onValueChange={onFruitTypeChange}
+						/>
+						<LabeledRangeSlider
+							label="Fruit Count"
+							min={0}
+							max={20}
+							bind:value={treeConfig.current.fruitCount}
+							disabled={fruitCountDisabled}
+						/>
+					</Card.Content>
+				</Card.Root>
+
 				<CanopyColorCard
 					bind:lightColor={treeConfig.current.canopyLightColor}
 					bind:darkColor={treeConfig.current.canopyDarkColor}
@@ -413,6 +459,13 @@
 						</div>
 						<div class="flex items-center gap-2">
 							<Checkbox
+								checked={showFruit}
+								onCheckedChange={(v) => (showFruit = v === true)}
+							/>
+							<Label>Show Fruit</Label>
+						</div>
+						<div class="flex items-center gap-2">
+							<Checkbox
 								checked={showAnchors}
 								onCheckedChange={(v) => (showAnchors = v === true)}
 							/>
@@ -467,6 +520,7 @@
 					{showCanopy}
 					{showBranches}
 					{showTrunk}
+					{showFruit}
 					{showAnchors}
 					{animateCanopySway}
 					{animateBranches}
