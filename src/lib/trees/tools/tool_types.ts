@@ -23,12 +23,14 @@ export const TOOL_ANCHOR_MAP = {
 	[TOOL_TYPES.birdNest]: 'crownCenter',
 } as const satisfies Record<ToolType, keyof TreeAnchors>;
 
-export const DEFAULT_TOOL_VISIBILITY: ToolVisibility = {
-	[TOOL_TYPES.shovel]: { visible: false, size: 1 },
-	[TOOL_TYPES.ladder]: { visible: false, size: 1 },
-	[TOOL_TYPES.wateringCan]: { visible: false, size: 1 },
-	[TOOL_TYPES.birdNest]: { visible: false, size: 1 },
-};
+export function createDefaultToolVisibility(): ToolVisibility {
+	return {
+		[TOOL_TYPES.shovel]: { visible: false, size: 1 },
+		[TOOL_TYPES.ladder]: { visible: false, size: 1 },
+		[TOOL_TYPES.wateringCan]: { visible: false, size: 1 },
+		[TOOL_TYPES.birdNest]: { visible: false, size: 1 },
+	};
+}
 
 export const TOOL_OPTIONS = [
 	{ value: TOOL_TYPES.shovel, label: 'Shovel' },

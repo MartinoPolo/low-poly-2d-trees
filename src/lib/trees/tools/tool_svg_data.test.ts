@@ -32,9 +32,8 @@ describe('TOOL_SVG_DATA', () => {
 				}
 			});
 
-			it('has positive width and height', () => {
-				expect(TOOL_SVG_DATA[toolType].width).toBeGreaterThan(0);
-				expect(TOOL_SVG_DATA[toolType].height).toBeGreaterThan(0);
+			it('first polygon has a valid points string', () => {
+				expect(TOOL_SVG_DATA[toolType].polygons[0].points.length).toBeGreaterThan(0);
 			});
 		});
 	}
