@@ -45,8 +45,11 @@ describe('SHAPE_DEFAULTS §2.5', () => {
 	it('has oak defaults', () => {
 		expect(SHAPE_DEFAULTS.oak).toEqual({
 			blobCount: 5,
-			branchCount: 2,
 			branchDepth: 2,
+			branchesLevel1Range: [1, 3],
+			branchesLevel2Range: [1, 2],
+			branchesLevel3Range: [0, 1],
+			branchAngle: 50,
 			blobSizeVariance: 3.0,
 			blobCloseness: 50,
 			branchThickness: 100,
@@ -67,8 +70,11 @@ describe('SHAPE_DEFAULTS §2.5', () => {
 	it('has pine defaults', () => {
 		expect(SHAPE_DEFAULTS.pine).toEqual({
 			blobCount: 3,
-			branchCount: 0,
 			branchDepth: 0,
+			branchesLevel1Range: [0, 0],
+			branchesLevel2Range: [0, 0],
+			branchesLevel3Range: [0, 0],
+			branchAngle: 50,
 			blobSizeVariance: 3.0,
 			blobCloseness: 50,
 			branchThickness: 100,
@@ -89,8 +95,11 @@ describe('SHAPE_DEFAULTS §2.5', () => {
 	it('has birch defaults', () => {
 		expect(SHAPE_DEFAULTS.birch).toEqual({
 			blobCount: 3,
-			branchCount: 1,
 			branchDepth: 3,
+			branchesLevel1Range: [1, 2],
+			branchesLevel2Range: [1, 2],
+			branchesLevel3Range: [0, 1],
+			branchAngle: 60,
 			blobSizeVariance: 3.0,
 			blobCloseness: 50,
 			branchThickness: 100,
@@ -111,8 +120,11 @@ describe('SHAPE_DEFAULTS §2.5', () => {
 	it('has fir defaults', () => {
 		expect(SHAPE_DEFAULTS.fir).toEqual({
 			blobCount: 4,
-			branchCount: 0,
 			branchDepth: 0,
+			branchesLevel1Range: [0, 0],
+			branchesLevel2Range: [0, 0],
+			branchesLevel3Range: [0, 0],
+			branchAngle: 50,
 			blobSizeVariance: 3.0,
 			blobCloseness: 50,
 			branchThickness: 100,
@@ -133,13 +145,16 @@ describe('SHAPE_DEFAULTS §2.5', () => {
 	it('has maple defaults (low closeness, low variance)', () => {
 		expect(SHAPE_DEFAULTS.maple).toEqual({
 			blobCount: 5,
-			branchCount: 5,
 			branchDepth: 2,
+			branchesLevel1Range: [3, 5],
+			branchesLevel2Range: [1, 2],
+			branchesLevel3Range: [0, 1],
+			branchAngle: 40,
 			blobSizeVariance: 2.0,
 			blobCloseness: 30,
 			branchThickness: 100,
-			trunkSegments: 1,
-			trunkCrookedness: 0,
+			trunkSegments: 2,
+			trunkCrookedness: 30,
 			branchLength: 100,
 			branchLengthVariance: 50,
 			canopyLightColor: '#e8a028',
@@ -155,8 +170,11 @@ describe('SHAPE_DEFAULTS §2.5', () => {
 	it('has willow defaults (thick branches 150, 3 segments, 40% crookedness)', () => {
 		expect(SHAPE_DEFAULTS.willow).toEqual({
 			blobCount: 4,
-			branchCount: 4,
 			branchDepth: 2,
+			branchesLevel1Range: [3, 5],
+			branchesLevel2Range: [1, 2],
+			branchesLevel3Range: [0, 1],
+			branchAngle: 30,
 			blobSizeVariance: 3.0,
 			blobCloseness: 50,
 			branchThickness: 150,

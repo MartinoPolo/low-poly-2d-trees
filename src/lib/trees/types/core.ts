@@ -45,15 +45,25 @@ export interface BlobGeometry {
 	readonly depth: number;
 }
 
+export interface Quad {
+	/** Four corner points defining the quadrilateral (trapezoid). */
+	readonly points: readonly [Point2D, Point2D, Point2D, Point2D];
+	readonly color: string;
+	readonly group: GeometryGroup;
+}
+
 export interface BranchGeometry {
-	readonly triangles: readonly Triangle[];
+	readonly quads: readonly Quad[];
+	readonly junctionFills: readonly Quad[];
 	readonly origin: Point2D;
+	readonly depth: number;
 }
 
 export interface TreeGeometry {
+	/** Stacked trapezoid quads for trunk (BR-1). Empty for simple stages. */
+	readonly trunkQuads: readonly Quad[];
+	/** Legacy triangles for simple stage geometries (seed, sprouting, stump). */
 	readonly trunkTriangles: readonly Triangle[];
-	readonly trunkSilhouettePath: string;
-	readonly branchTriangles: readonly Triangle[];
 	readonly branchGroups: readonly BranchGeometry[];
 	readonly canopyBlobs: readonly BlobGeometry[];
 	readonly fruitTriangles: readonly Triangle[];

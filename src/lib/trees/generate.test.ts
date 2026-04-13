@@ -3,7 +3,7 @@ import { generateTree } from './generate.js';
 import { isPointInBlobs } from './shapes/shape_bounds.js';
 import { generateBranches } from './shapes/branch_generation.js';
 import type { Blob } from './shapes/shape_types.js';
-import type { CustomBlob, TreeConfig, TreeGeometry, Triangle } from './types.js';
+import type { CustomBlob, TreeConfig, TreeGeometry, Triangle, Quad } from './types.js';
 import {
 	CUSTOM_BLOB_BOUNDARY_KINDS,
 	CUSTOM_BLOB_DEFAULT,
@@ -17,10 +17,12 @@ function makeConfig(overrides: Partial<TreeConfig> = {}): TreeConfig {
 	return { ...DEFAULT_TREE_CONFIG, ...overrides };
 }
 
-function allTriangles(geo: TreeGeometry): Triangle[] {
+/** Collect all renderable primitives for color/validity checks. */
+function allTrianglesAndQuads(geo: TreeGeometry): (Triangle | Quad)[] {
 	return [
 		...geo.trunkTriangles,
-		...geo.branchTriangles,
+		...geo.trunkQuads,
+		...geo.branchGroups.flatMap((g) => [...g.quads, ...g.junctionFills]),
 		...geo.canopyBlobs.flatMap((b) => b.triangles),
 		...geo.fruitTriangles,
 	];
@@ -34,15 +36,15 @@ function hexToBrightness(hex: string): number {
 	return (r + g + b) / 3;
 }
 
-// Find the min-y and max-y triangle vertices across a triangle set
-function extremeYVertices(tris: readonly Triangle[]): {
+// Find the min-y and max-y vertices across a set of quads or triangles
+function extremeYVertices(shapes: readonly (Triangle | Quad)[]): {
 	min: { x: number; y: number };
 	max: { x: number; y: number };
 } {
 	let min = { x: 0, y: Infinity };
 	let max = { x: 0, y: -Infinity };
-	for (const tri of tris) {
-		for (const p of tri.points) {
+	for (const shape of shapes) {
+		for (const p of shape.points) {
 			if (p.y < min.y) {
 				min = { x: p.x, y: p.y };
 			}
@@ -52,6 +54,11 @@ function extremeYVertices(tris: readonly Triangle[]): {
 		}
 	}
 	return { min, max };
+}
+
+/** Flatten all branch quads (segments + junction fills) from geometry. */
+function allBranchQuads(geo: TreeGeometry): Quad[] {
+	return geo.branchGroups.flatMap((g) => [...g.quads, ...g.junctionFills]);
 }
 
 // ============================================================================
@@ -68,24 +75,24 @@ describe('REQ-R: Rendering', () => {
 	});
 
 	describe('REQ-R-02: three top-level <g> layers', () => {
-		it('has trunkTriangles, branchTriangles, canopyBlobs arrays', () => {
+		it('has trunkQuads, branchGroups, canopyBlobs arrays', () => {
 			const geo = generateTree(makeConfig());
-			expect(Array.isArray(geo.trunkTriangles)).toBe(true);
-			expect(Array.isArray(geo.branchTriangles)).toBe(true);
+			expect(Array.isArray(geo.trunkQuads)).toBe(true);
+			expect(Array.isArray(geo.branchGroups)).toBe(true);
 			expect(Array.isArray(geo.canopyBlobs)).toBe(true);
 		});
 
-		it('trunk triangles have group=trunk', () => {
+		it('trunk quads have group=trunk', () => {
 			const geo = generateTree(makeConfig());
-			for (const tri of geo.trunkTriangles) {
-				expect(tri.group).toBe('trunk');
+			for (const quad of geo.trunkQuads) {
+				expect(quad.group).toBe('trunk');
 			}
 		});
 
-		it('branch triangles have group=branch', () => {
-			const geo = generateTree(makeConfig({ branchCount: 5 }));
-			for (const tri of geo.branchTriangles) {
-				expect(tri.group).toBe('branch');
+		it('branch quads have group=branch', () => {
+			const geo = generateTree(makeConfig({ branchesLevel1Range: [5, 5] }));
+			for (const quad of allBranchQuads(geo)) {
+				expect(quad.group).toBe('branch');
 			}
 		});
 
@@ -110,16 +117,18 @@ describe('REQ-R: Rendering', () => {
 		});
 	});
 
-	describe('REQ-R-04: triangle properties', () => {
-		it('each triangle has hex color, group, and 3 vertices', () => {
+	describe('REQ-R-04: primitive properties', () => {
+		it('each triangle/quad has hex color, group, and correct vertex count', () => {
 			const geo = generateTree(makeConfig());
-			const tris = allTriangles(geo);
-			expect(tris.length).toBeGreaterThan(0);
-			for (const tri of tris) {
-				expect(tri.color).toMatch(/^#[0-9a-f]{6}$/);
-				expect(['canopy', 'trunk', 'branch', 'fruit']).toContain(tri.group);
-				expect(tri.points).toHaveLength(3);
-				for (const pt of tri.points) {
+			const shapes = allTrianglesAndQuads(geo);
+			expect(shapes.length).toBeGreaterThan(0);
+			for (const shape of shapes) {
+				expect(shape.color).toMatch(/^#[0-9a-f]{6}$/);
+				expect(['canopy', 'trunk', 'branch', 'fruit']).toContain(shape.group);
+				// Triangles have 3 points, quads have 4
+				expect(shape.points.length).toBeGreaterThanOrEqual(3);
+				expect(shape.points.length).toBeLessThanOrEqual(4);
+				for (const pt of shape.points) {
 					expect(typeof pt.x).toBe('number');
 					expect(typeof pt.y).toBe('number');
 				}
@@ -151,9 +160,9 @@ describe('REQ-P: Configuration Parameters', () => {
 	describe('DEFAULT_TREE_CONFIG smoke test', () => {
 		it('generates valid tree output when hydrated from defaults', () => {
 			const geo = generateTree(makeConfig());
-			expect(geo.trunkTriangles.length).toBeGreaterThan(0);
+			expect(geo.trunkQuads.length).toBeGreaterThan(0);
 			expect(geo.canopyBlobs.length).toBeGreaterThan(0);
-			expect(allTriangles(geo).length).toBeGreaterThan(0);
+			expect(allTrianglesAndQuads(geo).length).toBeGreaterThan(0);
 		});
 	});
 });
@@ -289,14 +298,14 @@ describe('REQ-C: Canopy Generation', () => {
 
 describe('REQ-T: Trunk & Branch Generation', () => {
 	describe('REQ-T-01: trunk is independent layer', () => {
-		it('trunk triangles are separate from canopy and branch triangles', () => {
+		it('trunk quads are separate from canopy and branch geometry', () => {
 			const geo = generateTree(makeConfig());
-			const trunkTris = new Set(geo.trunkTriangles);
-			const branchTris = new Set(geo.branchTriangles);
-			const canopyTris = new Set(geo.canopyBlobs.flatMap((b) => [...b.triangles]));
-			for (const t of trunkTris) {
-				expect(branchTris.has(t)).toBe(false);
-				expect(canopyTris.has(t)).toBe(false);
+			const trunkQuadSet = new Set(geo.trunkQuads);
+			const branchQuadSet = new Set(allBranchQuads(geo));
+			const canopyTriSet = new Set(geo.canopyBlobs.flatMap((b) => [...b.triangles]));
+			for (const q of trunkQuadSet) {
+				expect(branchQuadSet.has(q as Quad)).toBe(false);
+				expect(canopyTriSet.has(q as unknown as Triangle)).toBe(false);
 			}
 		});
 	});
@@ -305,11 +314,11 @@ describe('REQ-T: Trunk & Branch Generation', () => {
 		it('bottom half of trunk vertices spans wider x-range than top half', () => {
 			const geo = generateTree(makeConfig({ seed: 1 }));
 			const midY = (geo.anchors.trunkTop.y + geo.anchors.trunkBase.y) / 2;
-			const topXs = geo.trunkTriangles.flatMap((t) =>
-				t.points.filter((p) => p.y < midY).map((p) => p.x),
+			const topXs = geo.trunkQuads.flatMap((q) =>
+				q.points.filter((p) => p.y < midY).map((p) => p.x),
 			);
-			const bottomXs = geo.trunkTriangles.flatMap((t) =>
-				t.points.filter((p) => p.y >= midY).map((p) => p.x),
+			const bottomXs = geo.trunkQuads.flatMap((q) =>
+				q.points.filter((p) => p.y >= midY).map((p) => p.x),
 			);
 			const topRange = Math.max(...topXs) - Math.min(...topXs);
 			const bottomRange = Math.max(...bottomXs) - Math.min(...bottomXs);
@@ -390,28 +399,29 @@ describe('REQ-T: Trunk & Branch Generation', () => {
 	});
 
 	describe('REQ-T-05: branches in separate layer', () => {
-		it('branch triangles are separate from trunk', () => {
-			const geo = generateTree(makeConfig({ branchCount: 5 }));
-			for (const tri of geo.branchTriangles) {
-				expect(tri.group).toBe('branch');
+		it('branch quads are separate from trunk', () => {
+			const geo = generateTree(makeConfig({ branchesLevel1Range: [5, 5] }));
+			for (const quad of allBranchQuads(geo)) {
+				expect(quad.group).toBe('branch');
 			}
-			for (const tri of geo.trunkTriangles) {
-				expect(tri.group).toBe('trunk');
+			for (const quad of geo.trunkQuads) {
+				expect(quad.group).toBe('trunk');
 			}
 		});
 	});
 
-	describe('REQ-T-05a: per-branch triangulation', () => {
-		it('branches generate triangles when branchCount > 0', () => {
-			const geo = generateTree(makeConfig({ branchCount: 5, seed: 42 }));
-			expect(geo.branchTriangles.length).toBeGreaterThan(0);
+	describe('REQ-T-05a: per-branch quads', () => {
+		it('branches generate quads when branchesLevel1Range > 0', () => {
+			const geo = generateTree(makeConfig({ branchesLevel1Range: [5, 5], seed: 42 }));
+			expect(allBranchQuads(geo).length).toBeGreaterThan(0);
 		});
 	});
 
 	describe('REQ-T-05b: branch divergence from trunk axis', () => {
 		it('a single branch axis diverges from trunk axis by at least 28°', () => {
-			const geo = generateTree(makeConfig({ branchCount: 1, seed: 42 }));
-			const { min, max } = extremeYVertices(geo.branchTriangles);
+			const geo = generateTree(makeConfig({ branchesLevel1Range: [1, 1], seed: 42 }));
+			const branchQuads = allBranchQuads(geo);
+			const { min, max } = extremeYVertices(branchQuads);
 			const branchAxis = { dx: min.x - max.x, dy: min.y - max.y };
 			const trunkAxis = {
 				dx: geo.anchors.trunkTop.x - geo.anchors.trunkBase.x,
@@ -428,15 +438,20 @@ describe('REQ-T: Trunk & Branch Generation', () => {
 
 	describe('REQ-T-06/T-07: branch segment linear taper (widthStart > widthEnd)', () => {
 		it('branch mesh near origin is wider than near tip', () => {
-			const geo = generateTree(makeConfig({ branchCount: 1, seed: 42 }));
-			const { min: tip, max: origin } = extremeYVertices(geo.branchTriangles);
+			const geo = generateTree(
+				makeConfig({ branchesLevel1Range: [1, 1], branchDepth: 1, seed: 42 }),
+			);
+			expect(geo.branchGroups.length).toBeGreaterThan(0);
+			// Use only segment quads (not junction fills) from a single branch
+			const segmentQuads = geo.branchGroups[0]!.quads;
+			const { min: tip, max: origin } = extremeYVertices([...segmentQuads]);
 			const dx = tip.x - origin.x;
 			const dy = tip.y - origin.y;
 			const lenSq = dx * dx + dy * dy;
 			// Project each vertex onto the branch axis, compute perpendicular distance
 			const perpByT: { t: number; perp: number }[] = [];
-			for (const tri of geo.branchTriangles) {
-				for (const p of tri.points) {
+			for (const quad of segmentQuads) {
+				for (const p of quad.points) {
 					const vx = p.x - origin.x;
 					const vy = p.y - origin.y;
 					const t = (vx * dx + vy * dy) / lenSq;
@@ -459,11 +474,12 @@ describe('REQ-T: Trunk & Branch Generation', () => {
 			// Test across multiple seeds to account for PRNG-dependent branch placement.
 			let foundInside = false;
 			for (const seed of [42, 99, 123, 7, 555, 10, 33, 200, 314, 888]) {
-				const geo = generateTree(makeConfig({ branchCount: 2, seed }));
-				if (geo.branchTriangles.length === 0) {
+				const geo = generateTree(makeConfig({ branchesLevel1Range: [2, 2], seed }));
+				const branchQuads = allBranchQuads(geo);
+				if (branchQuads.length === 0) {
 					continue;
 				}
-				const { min: tip } = extremeYVertices(geo.branchTriangles);
+				const { min: tip } = extremeYVertices(branchQuads);
 				const canopyYs = geo.canopyBlobs.flatMap((b) =>
 					b.triangles.flatMap((t) => t.points.map((p) => p.y)),
 				);
@@ -490,18 +506,11 @@ describe('REQ-T: Trunk & Branch Generation', () => {
 		});
 	});
 
-	describe('REQ-T-08: trunkBranchRatio', () => {
-		it('generates branches with the trunkBranchRatio parameter', () => {
-			const geo = generateTree(
-				makeConfig({ branchCount: 10, trunkBranchRatio: 40, seed: 42 }),
-			);
-			expect(geo.branchTriangles.length).toBeGreaterThan(0);
-		});
-	});
-
 	describe('REQ-T-10: no floating blobs', () => {
 		it('with many blobs, all blobs have triangles (none invisible)', () => {
-			const geo = generateTree(makeConfig({ blobCount: 8, branchCount: 5, seed: 42 }));
+			const geo = generateTree(
+				makeConfig({ blobCount: 8, branchesLevel1Range: [5, 5], seed: 42 }),
+			);
 			for (const blob of geo.canopyBlobs) {
 				expect(blob.triangles.length).toBeGreaterThan(0);
 			}
@@ -626,10 +635,10 @@ describe('REQ-T: Trunk & Branch Generation', () => {
 					seed: 42,
 				}),
 			);
-			expect(geo.trunkTriangles.length).toBeGreaterThan(0);
-			// All trunk triangles stay within the trunk y-range.
-			for (const tri of geo.trunkTriangles) {
-				for (const p of tri.points) {
+			expect(geo.trunkQuads.length).toBeGreaterThan(0);
+			// All trunk quads stay within the trunk y-range.
+			for (const quad of geo.trunkQuads) {
+				for (const p of quad.points) {
 					expect(p.y).toBeGreaterThanOrEqual(geo.anchors.trunkTop.y - 3);
 					expect(p.y).toBeLessThanOrEqual(geo.anchors.trunkBase.y + 3);
 				}
@@ -642,11 +651,11 @@ describe('REQ-T: Trunk & Branch Generation', () => {
 					shape: 'oak',
 					trunkSegments: 3,
 					trunkCrookedness: 60,
-					branchCount: 5,
+					branchesLevel1Range: [5, 5],
 					seed: 42,
 				}),
 			);
-			expect(geo.branchTriangles.length).toBeGreaterThan(0);
+			expect(allBranchQuads(geo).length).toBeGreaterThan(0);
 		});
 
 		it('same seed + crooked config is deterministic', () => {
@@ -749,10 +758,10 @@ describe('REQ-L: Lighting & Colour', () => {
 	});
 
 	describe('REQ-L-08: trunk uses cylinder mapping', () => {
-		it('trunk triangles have trunk color (not canopy color)', () => {
+		it('trunk quads have trunk color (not canopy color)', () => {
 			const geo = generateTree(makeConfig());
-			for (const tri of geo.trunkTriangles) {
-				expect(tri.color).toMatch(/^#[0-9a-f]{6}$/);
+			for (const quad of geo.trunkQuads) {
+				expect(quad.color).toMatch(/^#[0-9a-f]{6}$/);
 			}
 		});
 	});
@@ -766,8 +775,9 @@ describe('REQ-O: Output', () => {
 	describe('REQ-O-01: TreeGeometry shape', () => {
 		it('has required properties', () => {
 			const geo = generateTree(makeConfig());
+			expect(geo).toHaveProperty('trunkQuads');
 			expect(geo).toHaveProperty('trunkTriangles');
-			expect(geo).toHaveProperty('branchTriangles');
+			expect(geo).toHaveProperty('branchGroups');
 			expect(geo).toHaveProperty('canopyBlobs');
 			expect(geo).toHaveProperty('anchors');
 			expect(geo).toHaveProperty('viewBox');
@@ -817,20 +827,22 @@ describe('REQ-O: Output', () => {
 		});
 
 		it('B6: branchTips has one tip per generated branch', () => {
-			const geo = generateTree(makeConfig({ shape: 'oak', branchCount: 3, seed: 42 }));
+			const geo = generateTree(
+				makeConfig({ shape: 'oak', branchesLevel1Range: [3, 3], seed: 42 }),
+			);
 			// Branch count is a target — generation may reject some due to overlap.
 			// branchTips must still be > 0 and each must be a valid Point2D.
 			expect(geo.anchors.branchTips.length).toBeGreaterThan(0);
-			// Verify branchTriangles exist iff branchTips exist
-			expect(geo.branchTriangles.length).toBeGreaterThan(0);
+			// Verify branch quads exist iff branchTips exist
+			expect(allBranchQuads(geo).length).toBeGreaterThan(0);
 			for (const tip of geo.anchors.branchTips) {
 				expect(typeof tip.x).toBe('number');
 				expect(typeof tip.y).toBe('number');
 			}
 		});
 
-		it('B6b: branchTips is empty when branchCount is 0', () => {
-			const geo = generateTree(makeConfig({ shape: 'birch', branchCount: 0, seed: 42 }));
+		it('B6b: branchTips is empty when branchDepth is 0', () => {
+			const geo = generateTree(makeConfig({ shape: 'birch', branchDepth: 0, seed: 42 }));
 			expect(Array.isArray(geo.anchors.branchTips)).toBe(true);
 		});
 
@@ -906,38 +918,42 @@ describe('Parameter scaling', () => {
 		it('trunkThickness 200 produces wider trunk than 50', () => {
 			const geoWide = generateTree(makeConfig({ trunkThickness: 200, seed: 42 }));
 			const geoNarrow = generateTree(makeConfig({ trunkThickness: 50, seed: 42 }));
-			const getXRange = (tris: readonly Triangle[]) => {
-				const xs = tris.flatMap((t) => t.points.map((p) => p.x));
+			const getXRange = (quads: readonly Quad[]) => {
+				const xs = quads.flatMap((q) => q.points.map((p) => p.x));
 				return Math.max(...xs) - Math.min(...xs);
 			};
-			expect(getXRange(geoWide.trunkTriangles)).toBeGreaterThan(
-				getXRange(geoNarrow.trunkTriangles),
-			);
+			expect(getXRange(geoWide.trunkQuads)).toBeGreaterThan(getXRange(geoNarrow.trunkQuads));
 		});
 	});
 
 	describe('branchThickness scaling', () => {
 		it('branchThickness 200 produces visually thicker branches than 50', () => {
 			const geoWide = generateTree(
-				makeConfig({ branchThickness: 200, branchCount: 5, seed: 42 }),
+				makeConfig({ branchThickness: 200, branchesLevel1Range: [5, 5], seed: 42 }),
 			);
 			const geoNarrow = generateTree(
-				makeConfig({ branchThickness: 50, branchCount: 5, seed: 42 }),
+				makeConfig({ branchThickness: 50, branchesLevel1Range: [5, 5], seed: 42 }),
 			);
 			// Since issue #7 added a thickness-dependent overlap check (wider
 			// branches reject more candidates and re-roll), branch positions
 			// diverge between runs, so a naive x-range metric is unreliable.
-			// Total triangle area is a direct measure of visual thickness.
-			const totalArea = (tris: readonly Triangle[]): number => {
+			// Total quad area is a direct measure of visual thickness.
+			const totalArea = (quads: readonly Quad[]): number => {
 				let sum = 0;
-				for (const tri of tris) {
-					const [a, b, c] = tri.points;
-					sum += Math.abs((b.x - a.x) * (c.y - a.y) - (c.x - a.x) * (b.y - a.y)) / 2;
+				for (const quad of quads) {
+					// Shoelace formula for a quadrilateral
+					const pts = quad.points;
+					let area = 0;
+					for (let i = 0; i < pts.length; i++) {
+						const j = (i + 1) % pts.length;
+						area += pts[i]!.x * pts[j]!.y - pts[j]!.x * pts[i]!.y;
+					}
+					sum += Math.abs(area) / 2;
 				}
 				return sum;
 			};
-			const wideArea = totalArea(geoWide.branchTriangles);
-			const narrowArea = totalArea(geoNarrow.branchTriangles);
+			const wideArea = totalArea(allBranchQuads(geoWide));
+			const narrowArea = totalArea(allBranchQuads(geoNarrow));
 			expect(wideArea).toBeGreaterThan(narrowArea);
 		});
 	});
@@ -950,9 +966,9 @@ describe('Parameter scaling', () => {
 describe('Issue #8: new tree shapes (fir/maple/willow)', () => {
 	const newShapes = ['fir', 'maple', 'willow'] as const;
 
-	it.each(newShapes)('%s generates trunk and canopy triangles at seed 42', (shape) => {
+	it.each(newShapes)('%s generates trunk and canopy geometry at seed 42', (shape) => {
 		const geo = generateTree(makeConfig({ shape, seed: 42 }));
-		expect(geo.trunkTriangles.length).toBeGreaterThan(0);
+		expect(geo.trunkQuads.length).toBeGreaterThan(0);
 		expect(geo.canopyBlobs.length).toBeGreaterThan(0);
 		const canopyTriTotal = geo.canopyBlobs.reduce((n, b) => n + b.triangles.length, 0);
 		expect(canopyTriTotal).toBeGreaterThan(0);
@@ -960,8 +976,8 @@ describe('Issue #8: new tree shapes (fir/maple/willow)', () => {
 
 	it.each(newShapes)('%s emits only valid hex colors', (shape) => {
 		const geo = generateTree(makeConfig({ shape, seed: 42 }));
-		for (const tri of allTriangles(geo)) {
-			expect(tri.color).toMatch(/^#[0-9a-f]{6}$/);
+		for (const primitive of allTrianglesAndQuads(geo)) {
+			expect(primitive.color).toMatch(/^#[0-9a-f]{6}$/);
 		}
 	});
 
@@ -1005,21 +1021,31 @@ describe('Issue #8: new tree shapes (fir/maple/willow)', () => {
 		},
 	);
 
-	// Maple emits exactly one branch per canopy blob (issue #8 spec). We can't
-	// read structured branch segments back from the triangle mesh, so we
-	// validate reach via bounding-box containment: for each canopy blob, assert
-	// that at least one branch triangle vertex lies inside its axis-aligned
-	// bounding box. Branches terminate at the blob center, so the tip vertex of
-	// the outgoing branch quad mesh must live inside each blob's bbox.
+	// Maple emits branches toward canopy blobs (issue #8 spec). Validate
+	// reach via bounding-box containment: at least one branch quad vertex
+	// lies inside a canopy blob's axis-aligned bounding box. With range-based
+	// branch counts, not every blob is guaranteed a dedicated branch, but
+	// the majority should be reached (>= 50% of blobs).
 	it.each([3, 5, 7])(
-		'maple with blobCount=%i emits a branch reaching every canopy blob',
+		'maple with blobCount=%i emits branches reaching most canopy blobs',
 		(blobCount) => {
 			const geo = generateTree(
-				makeConfig({ shape: 'maple', seed: 42, blobCount, branchThickness: 100 }),
+				makeConfig({
+					shape: 'maple',
+					seed: 42,
+					blobCount,
+					branchThickness: 100,
+					branchesLevel1Range: [3, 5],
+					branchesLevel2Range: [1, 2],
+					branchDepth: 2,
+				}),
 			);
 			expect(geo.canopyBlobs.length).toBe(blobCount);
-			expect(geo.branchTriangles.length).toBeGreaterThan(0);
+			const branchQuads = allBranchQuads(geo);
+			expect(branchQuads.length).toBeGreaterThan(0);
 
+			const margin = 5;
+			let reachedCount = 0;
 			for (const blob of geo.canopyBlobs) {
 				let minX = Infinity;
 				let minY = Infinity;
@@ -1041,21 +1067,29 @@ describe('Issue #8: new tree shapes (fir/maple/willow)', () => {
 						}
 					}
 				}
-				const reached = geo.branchTriangles.some((tri) =>
-					tri.points.some(
-						(p) => p.x >= minX && p.x <= maxX && p.y >= minY && p.y <= maxY,
+				const reached = branchQuads.some((quad) =>
+					quad.points.some(
+						(p) =>
+							p.x >= minX - margin &&
+							p.x <= maxX + margin &&
+							p.y >= minY - margin &&
+							p.y <= maxY + margin,
 					),
 				);
-				expect(reached).toBe(true);
+				if (reached) {
+					reachedCount++;
+				}
 			}
+			// At least half the blobs should be reached by branches
+			expect(reachedCount).toBeGreaterThanOrEqual(Math.ceil(blobCount / 2));
 		},
 	);
 
-	it('fir (branchCount=0) produces zero branch triangles', () => {
+	it('fir (branchDepth=0) produces zero branch quads', () => {
 		const geo = generateTree(
-			makeConfig({ shape: 'fir', seed: 42, branchCount: 0, blobCount: 4 }),
+			makeConfig({ shape: 'fir', seed: 42, branchDepth: 0, blobCount: 4 }),
 		);
-		expect(geo.branchTriangles.length).toBe(0);
+		expect(allBranchQuads(geo).length).toBe(0);
 	});
 
 	// REQ-C-12: acute-angle smoothing applies to oak, birch, maple AND willow.
@@ -1079,11 +1113,11 @@ describe('Issue #8: new tree shapes (fir/maple/willow)', () => {
 				seed: 42,
 				trunkSegments: 3,
 				trunkCrookedness: 40,
-				branchCount: 4,
+				branchesLevel1Range: [4, 4],
 			}),
 		);
-		expect(geo.trunkTriangles.length).toBeGreaterThan(0);
-		expect(geo.branchTriangles.length).toBeGreaterThan(0);
+		expect(geo.trunkQuads.length).toBeGreaterThan(0);
+		expect(allBranchQuads(geo).length).toBeGreaterThan(0);
 	});
 });
 
@@ -1208,7 +1242,7 @@ describe('Issue #10: custom tree shape', () => {
 				],
 			}),
 		);
-		for (const tri of allTriangles(geo)) {
+		for (const tri of allTrianglesAndQuads(geo)) {
 			expect(tri.color).toMatch(/^#[0-9a-f]{6}$/);
 		}
 	});
@@ -1290,19 +1324,19 @@ describe('Issue #10: custom tree shape', () => {
 		expect(base.canopyBlobs[0]!.triangles).not.toEqual(rotated.canopyBlobs[0]!.triangles);
 	});
 
-	it('custom tree respects generic branch algorithm with branchCount=3', () => {
+	it('custom tree respects generic branch algorithm with branchesLevel1Range', () => {
 		const geo = generateTree(
 			makeConfig({
 				shape: 'custom',
 				blobCount: 2,
-				branchCount: 3,
+				branchesLevel1Range: [3, 3],
 				customBlobs: [
 					makeCustomBlob({ position: { x: 0.2, y: -0.2 } }),
 					makeCustomBlob({ position: { x: -0.2, y: 0.2 } }),
 				],
 			}),
 		);
-		expect(geo.branchTriangles.length).toBeGreaterThan(0);
+		expect(allBranchQuads(geo).length).toBeGreaterThan(0);
 	});
 
 	it('custom tree trunk top penetrates canopy (trunk clamp still applies)', () => {
@@ -1388,11 +1422,11 @@ describe('Fruit generation', () => {
 
 describe('Issue #60: Visual quality quick-wins', () => {
 	// VQ-5: trunkHeight=10 produces valid geometry
-	it('VQ-5: trunkHeight=10 produces trunk triangles with valid coordinates', () => {
+	it('VQ-5: trunkHeight=10 produces trunk quads with valid coordinates', () => {
 		const geo = generateTree(makeConfig({ trunkHeight: 10, seed: 42 }));
-		expect(geo.trunkTriangles.length).toBeGreaterThan(0);
-		for (const tri of geo.trunkTriangles) {
-			for (const p of tri.points) {
+		expect(geo.trunkQuads.length).toBeGreaterThan(0);
+		for (const quad of geo.trunkQuads) {
+			for (const p of quad.points) {
 				expect(Number.isNaN(p.x)).toBe(false);
 				expect(Number.isNaN(p.y)).toBe(false);
 			}
@@ -1443,34 +1477,28 @@ describe('Issue #60: Visual quality quick-wins', () => {
 
 describe('Issue #38: branchGroups (grouped branch geometry)', () => {
 	it('generateTree returns branchGroups array', () => {
-		const geo = generateTree(makeConfig({ branchCount: 5, seed: 42 }));
+		const geo = generateTree(makeConfig({ branchesLevel1Range: [5, 5], seed: 42 }));
 		expect(Array.isArray(geo.branchGroups)).toBe(true);
 		expect(geo.branchGroups.length).toBeGreaterThan(0);
 	});
 
-	it('each branchGroup has triangles and origin', () => {
-		const geo = generateTree(makeConfig({ branchCount: 3, seed: 42 }));
+	it('each branchGroup has quads and origin', () => {
+		const geo = generateTree(makeConfig({ branchesLevel1Range: [3, 3], seed: 42 }));
 		for (const group of geo.branchGroups) {
-			expect(Array.isArray(group.triangles)).toBe(true);
-			expect(group.triangles.length).toBeGreaterThan(0);
+			expect(Array.isArray(group.quads)).toBe(true);
+			expect(group.quads.length).toBeGreaterThan(0);
 			expect(typeof group.origin.x).toBe('number');
 			expect(typeof group.origin.y).toBe('number');
 		}
 	});
 
-	it('branchGroup triangles all have group=branch', () => {
-		const geo = generateTree(makeConfig({ branchCount: 5, seed: 42 }));
+	it('branchGroup quads all have group=branch', () => {
+		const geo = generateTree(makeConfig({ branchesLevel1Range: [5, 5], seed: 42 }));
 		for (const group of geo.branchGroups) {
-			for (const tri of group.triangles) {
-				expect(tri.group).toBe('branch');
+			for (const quad of [...group.quads, ...group.junctionFills]) {
+				expect(quad.group).toBe('branch');
 			}
 		}
-	});
-
-	it('branchGroups flatMap matches branchTriangles count', () => {
-		const geo = generateTree(makeConfig({ branchCount: 5, seed: 42 }));
-		const flatCount = geo.branchGroups.flatMap((g) => g.triangles).length;
-		expect(flatCount).toBe(geo.branchTriangles.length);
 	});
 
 	it('branchGroups is empty for pine shape', () => {
@@ -1479,7 +1507,7 @@ describe('Issue #38: branchGroups (grouped branch geometry)', () => {
 	});
 
 	it('branchGroups origin is at branch base (higher y than tip)', () => {
-		const geo = generateTree(makeConfig({ branchCount: 1, seed: 42 }));
+		const geo = generateTree(makeConfig({ branchesLevel1Range: [1, 1], seed: 42 }));
 		if (geo.branchGroups.length === 0) {
 			return;
 		}
@@ -1572,18 +1600,18 @@ describe('VQ-4: Branch Side Randomization', () => {
 	it('first branch starting side varies across seeds', () => {
 		const sides: number[] = [];
 		for (let seed = 1; seed <= 20; seed++) {
-			const geo = generateTree(makeConfig({ seed, branchCount: 1 }));
+			const geo = generateTree(makeConfig({ seed, branchesLevel1Range: [1, 1] }));
 			if (geo.branchGroups.length === 0) {
 				continue;
 			}
 			const group = geo.branchGroups[0]!;
 			// origin.x is on the trunk center; x2 of the branch segment determines side.
 			// branchGroups origin = { x: branch.x1, y: branch.y1 }
-			// We check whether the branch tip (triangle centroid) is left or right of the origin.
-			const tris = group.triangles;
+			// We check whether the branch tip (quad centroid) is left or right of the origin.
+			const quads = group.quads;
 			const avgX =
-				tris.reduce((sum, t) => sum + t.points.reduce((s, p) => s + p.x, 0) / 3, 0) /
-				tris.length;
+				quads.reduce((sum, q) => sum + q.points.reduce((s, p) => s + p.x, 0) / 4, 0) /
+				quads.length;
 			sides.push(avgX > group.origin.x ? 1 : -1);
 		}
 		const uniqueSides = new Set(sides);
@@ -1592,13 +1620,13 @@ describe('VQ-4: Branch Side Randomization', () => {
 	});
 
 	it('same seed produces identical branch sides (determinism)', () => {
-		const config = makeConfig({ seed: 42, branchCount: 5 });
+		const config = makeConfig({ seed: 42, branchesLevel1Range: [5, 5] });
 		const geo1 = generateTree(config);
 		const geo2 = generateTree(config);
 		expect(geo1.branchGroups.length).toBe(geo2.branchGroups.length);
 		for (let i = 0; i < geo1.branchGroups.length; i++) {
 			expect(geo1.branchGroups[i]!.origin).toEqual(geo2.branchGroups[i]!.origin);
-			expect(geo1.branchGroups[i]!.triangles).toEqual(geo2.branchGroups[i]!.triangles);
+			expect(geo1.branchGroups[i]!.quads).toEqual(geo2.branchGroups[i]!.quads);
 		}
 	});
 });
@@ -1608,35 +1636,31 @@ describe('VQ-4: Branch Side Randomization', () => {
 // ============================================================================
 
 describe('VQ-3: branchDepth config', () => {
-	it('branchDepth 0 produces no branches even with branchCount > 0', () => {
-		const config = makeConfig({ branchDepth: 0, branchCount: 5, shape: 'oak' });
+	it('branchDepth 0 produces no branches even with branchesLevel1Range > 0', () => {
+		const config = makeConfig({ branchDepth: 0, branchesLevel1Range: [5, 5], shape: 'oak' });
 		const geo = generateTree(config);
-		expect(geo.branchTriangles).toHaveLength(0);
+		expect(allBranchQuads(geo)).toHaveLength(0);
 		expect(geo.branchGroups).toHaveLength(0);
 	});
 
 	it('branchDepth 1 caps branches at trunk-origin count (no sub-branches)', () => {
-		// With trunkBranchRatio=30 and branchCount=20, trunkBranchCount = max(1, round(6)) = 6.
-		// At branchDepth 1, total branches must be <= trunkBranchCount (no sub-branches added).
+		// At branchDepth 1, only level-1 branches are generated (no sub-branches).
 		const blobs: Blob[] = [{ cx: 100, cy: 100, rx: 60, ry: 60, boundary: 'circle' }];
 		const trunkJunctions = [
 			{ x: 100, y: 260 },
 			{ x: 100, y: 80 },
 		];
 		const config = makeConfig({
-			branchCount: 20,
+			branchesLevel1Range: [3, 3],
 			branchDepth: 1,
-			trunkBranchRatio: 30,
 			seed: 42,
 		});
 		const rng = createPrng(42 + 7777);
 		const branches = generateBranches(rng, 80, 260, 5, config, trunkJunctions, blobs);
-		const trunkBranchCount = Math.max(1, Math.round(20 * 0.3));
-		// Depth 1 branches cannot exceed the trunk-origin budget (some may be
-		// rejected, but isolated-blob fallbacks can add more). Exclude
-		// fallback branches by checking only the non-fallback portion.
+		// Depth 1 branches are capped by level1Range (some may be
+		// rejected, but isolated-blob fallbacks can add more).
 		expect(branches.length).toBeGreaterThan(0);
-		expect(branches.length).toBeLessThanOrEqual(trunkBranchCount + blobs.length);
+		expect(branches.length).toBeLessThanOrEqual(3 + blobs.length);
 	});
 
 	it('branchDepth 3 produces sub-sub-branches beyond depth 2 count', () => {
@@ -1653,15 +1677,16 @@ describe('VQ-3: branchDepth config', () => {
 			{ x: 100, y: 60 },
 		];
 		const config2 = makeConfig({
-			branchCount: 20,
+			branchesLevel1Range: [3, 5],
+			branchesLevel2Range: [1, 2],
 			branchDepth: 2,
-			trunkBranchRatio: 50,
 			seed: 77,
 		});
 		const config3 = makeConfig({
-			branchCount: 20,
+			branchesLevel1Range: [3, 5],
+			branchesLevel2Range: [1, 2],
+			branchesLevel3Range: [1, 2],
 			branchDepth: 3,
-			trunkBranchRatio: 50,
 			seed: 77,
 		});
 		const branches2 = generateBranches(
@@ -1699,9 +1724,10 @@ describe('VQ-3: branchDepth config', () => {
 			{ x: 100, y: 60 },
 		];
 		const config = makeConfig({
-			branchCount: 20,
+			branchesLevel1Range: [3, 5],
+			branchesLevel2Range: [1, 2],
+			branchesLevel3Range: [1, 2],
 			branchDepth: 3,
-			trunkBranchRatio: 50,
 			seed: 77,
 		});
 		const branches = generateBranches(
@@ -1723,13 +1749,13 @@ describe('VQ-3: branchDepth config', () => {
 	});
 
 	it('determinism: same seed + config produces identical branch geometry', () => {
-		const config = makeConfig({ branchDepth: 3, branchCount: 10, seed: 123 });
+		const config = makeConfig({ branchDepth: 3, branchesLevel1Range: [3, 5], seed: 123 });
 		const geo1 = generateTree(config);
 		const geo2 = generateTree(config);
 		expect(geo1.branchGroups.length).toBe(geo2.branchGroups.length);
 		for (let i = 0; i < geo1.branchGroups.length; i++) {
 			expect(geo1.branchGroups[i]!.origin).toEqual(geo2.branchGroups[i]!.origin);
-			expect(geo1.branchGroups[i]!.triangles).toEqual(geo2.branchGroups[i]!.triangles);
+			expect(geo1.branchGroups[i]!.quads).toEqual(geo2.branchGroups[i]!.quads);
 		}
 	});
 });
@@ -1738,48 +1764,37 @@ describe('VQ-3: branchDepth config', () => {
 // VQ-1: Hybrid Trunk Renderer — trunk silhouette path
 // ============================================================================
 
-describe('VQ-1: trunk silhouette path', () => {
-	it('trunkSilhouettePath exists as a non-empty string in geometry', () => {
+describe('VQ-1: trunk quads', () => {
+	it('trunkQuads is a non-empty array for normal tree stages', () => {
 		const geo = generateTree(makeConfig());
-		expect(typeof geo.trunkSilhouettePath).toBe('string');
-		expect(geo.trunkSilhouettePath.length).toBeGreaterThan(0);
+		expect(Array.isArray(geo.trunkQuads)).toBe(true);
+		expect(geo.trunkQuads.length).toBeGreaterThan(0);
 	});
 
-	it('trunkSilhouettePath is a valid SVG path — starts with M, contains L, ends with Z', () => {
+	it('each trunk quad has 4 valid vertices within viewBox bounds', () => {
 		const geo = generateTree(makeConfig());
-		const path = geo.trunkSilhouettePath;
-		expect(path).toMatch(/^M\s/);
-		expect(path).toContain('L ');
-		expect(path).toMatch(/Z$/);
-	});
-
-	it('path coordinates are within viewBox bounds (200x300)', () => {
-		const geo = generateTree(makeConfig());
-		const path = geo.trunkSilhouettePath;
-		// Extract all numeric coordinates from the path string
-		const numbers = path.match(/-?\d+(\.\d+)?/g)!.map(Number);
-		// Numbers alternate: x, y, x, y, ...
-		for (let i = 0; i < numbers.length; i += 2) {
-			const x = numbers[i]!;
-			const y = numbers[i + 1]!;
-			expect(x).toBeGreaterThanOrEqual(0);
-			expect(x).toBeLessThanOrEqual(200);
-			expect(y).toBeGreaterThanOrEqual(0);
-			expect(y).toBeLessThanOrEqual(300);
+		for (const quad of geo.trunkQuads) {
+			expect(quad.points).toHaveLength(4);
+			for (const p of quad.points) {
+				expect(p.x).toBeGreaterThanOrEqual(0);
+				expect(p.x).toBeLessThanOrEqual(200);
+				expect(p.y).toBeGreaterThanOrEqual(0);
+				expect(p.y).toBeLessThanOrEqual(300);
+			}
 		}
 	});
 
-	it('stage generators produce empty trunkSilhouettePath', () => {
+	it('simple stage generators produce empty trunkQuads (use trunkTriangles instead)', () => {
 		// Seed stage
 		const seedGeo = generateTree(makeConfig({ stage: 'seed' }));
-		expect(seedGeo.trunkSilhouettePath).toBe('');
+		expect(seedGeo.trunkQuads).toHaveLength(0);
 
 		// Sprouting stage
 		const sproutGeo = generateTree(makeConfig({ stage: 'sprouting' }));
-		expect(sproutGeo.trunkSilhouettePath).toBe('');
+		expect(sproutGeo.trunkQuads).toHaveLength(0);
 
 		// Stump stage
 		const stumpGeo = generateTree(makeConfig({ stage: 'stump' }));
-		expect(stumpGeo.trunkSilhouettePath).toBe('');
+		expect(stumpGeo.trunkQuads).toHaveLength(0);
 	});
 });

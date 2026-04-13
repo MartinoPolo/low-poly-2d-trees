@@ -1,5 +1,5 @@
 <script lang="ts">
-	import LabeledRangeSlider from './LabeledRangeSlider.svelte';
+	import LabeledSlider from './LabeledSlider.svelte';
 	import SectionCard from './SectionCard.svelte';
 	import { Label } from '$lib/components/ui/label/index.js';
 	import { hslToHex } from '$lib/trees/color.js';
@@ -64,8 +64,8 @@
 			{/each}
 		</div>
 	</div>
-	<LabeledRangeSlider label="Hue" min={0} max={360} unit="°" bind:value={hue} {disabled} />
-	<LabeledRangeSlider
+	<LabeledSlider label="Hue" min={0} max={360} unit="°" bind:value={hue} {disabled} />
+	<LabeledSlider
 		label="Saturation"
 		min={0}
 		max={100}
@@ -80,12 +80,5 @@
 		both exceed 60, so the slider bound is driven by data rather than the old
 		control-range req.
 	-->
-	<LabeledRangeSlider
-		label="Lightness"
-		min={5}
-		max={100}
-		unit="%"
-		bind:value={lightness}
-		{disabled}
-	/>
+	<LabeledSlider label="Lightness" min={5} max={100} unit="%" bind:value={lightness} {disabled} />
 </SectionCard>

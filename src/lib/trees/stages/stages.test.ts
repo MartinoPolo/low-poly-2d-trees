@@ -48,8 +48,9 @@ describe('stage generation — every stage produces valid TreeGeometry', () => {
 			expect(geo.viewBox.width).toBe(200);
 			expect(geo.viewBox.height).toBe(300);
 			expect(hasValidAnchors(geo)).toBe(true);
+			expect(Array.isArray(geo.trunkQuads)).toBe(true);
 			expect(Array.isArray(geo.trunkTriangles)).toBe(true);
-			expect(Array.isArray(geo.branchTriangles)).toBe(true);
+			expect(Array.isArray(geo.branchGroups)).toBe(true);
 			expect(Array.isArray(geo.canopyBlobs)).toBe(true);
 			expect(Array.isArray(geo.stakeTriangles)).toBe(true);
 			expect(Array.isArray(geo.fruitSlots)).toBe(true);
@@ -74,7 +75,7 @@ describe('seed stage', () => {
 	it('produces no canopy blobs and no branches', () => {
 		const geo = generateTree(makeConfig({ stage: TREE_STAGES.seed }));
 		expect(geo.canopyBlobs).toHaveLength(0);
-		expect(geo.branchTriangles).toHaveLength(0);
+		expect(geo.branchGroups).toHaveLength(0);
 	});
 
 	it('produces trunk triangles (seed polygons)', () => {
@@ -127,7 +128,7 @@ describe('growing stage', () => {
 describe('leafy stage', () => {
 	it('matches default generateTree output (backward compat)', () => {
 		const leafyGeo = generateTree(makeConfig({ stage: TREE_STAGES.leafy }));
-		expect(leafyGeo.trunkTriangles.length).toBeGreaterThan(0);
+		expect(leafyGeo.trunkQuads.length).toBeGreaterThan(0);
 		expect(leafyGeo.canopyBlobs.length).toBeGreaterThan(0);
 		expect(leafyGeo.stakeTriangles).toHaveLength(0);
 		expect(leafyGeo.fruitSlots).toHaveLength(0);
@@ -171,9 +172,9 @@ describe('ready stage', () => {
 	it('geometry is identical to leafy (glow is CSS-only)', () => {
 		const readyGeo = generateTree(makeConfig({ stage: TREE_STAGES.ready, seed: 42 }));
 		const leafyGeo = generateTree(makeConfig({ stage: TREE_STAGES.leafy, seed: 42 }));
-		expect(readyGeo.trunkTriangles).toEqual(leafyGeo.trunkTriangles);
+		expect(readyGeo.trunkQuads).toEqual(leafyGeo.trunkQuads);
 		expect(readyGeo.canopyBlobs).toEqual(leafyGeo.canopyBlobs);
-		expect(readyGeo.branchTriangles).toEqual(leafyGeo.branchTriangles);
+		expect(readyGeo.branchGroups).toEqual(leafyGeo.branchGroups);
 	});
 });
 
@@ -184,9 +185,9 @@ describe('bare stage', () => {
 		expect(totalCanopyTris).toBe(0);
 	});
 
-	it('still has trunk triangles', () => {
+	it('still has trunk quads', () => {
 		const geo = generateTree(makeConfig({ stage: TREE_STAGES.bare }));
-		expect(geo.trunkTriangles.length).toBeGreaterThan(0);
+		expect(geo.trunkQuads.length).toBeGreaterThan(0);
 	});
 });
 
@@ -197,14 +198,14 @@ describe('dead stage', () => {
 		expect(totalCanopyTris).toBe(0);
 	});
 
-	it('has trunk triangles with desaturated colors', () => {
+	it('has trunk quads with desaturated colors', () => {
 		const geo = generateTree(makeConfig({ stage: TREE_STAGES.dead }));
-		expect(geo.trunkTriangles.length).toBeGreaterThan(0);
+		expect(geo.trunkQuads.length).toBeGreaterThan(0);
 		// Dead stage uses trunkSaturation=5 (near grey). Verify trunk colors differ
 		// from default (saturation=50).
 		const leafyGeo = generateTree(makeConfig({ stage: TREE_STAGES.leafy }));
-		const deadColors = new Set(geo.trunkTriangles.map((t) => t.color));
-		const leafyColors = new Set(leafyGeo.trunkTriangles.map((t) => t.color));
+		const deadColors = new Set(geo.trunkQuads.map((q) => q.color));
+		const leafyColors = new Set(leafyGeo.trunkQuads.map((q) => q.color));
 		const overlap = [...deadColors].filter((c) => leafyColors.has(c));
 		expect(overlap.length).toBeLessThan(deadColors.size);
 	});
@@ -214,7 +215,7 @@ describe('stump stage', () => {
 	it('produces very short geometry (no branches, no canopy)', () => {
 		const geo = generateTree(makeConfig({ stage: TREE_STAGES.stump }));
 		expect(geo.canopyBlobs).toHaveLength(0);
-		expect(geo.branchTriangles).toHaveLength(0);
+		expect(geo.branchGroups).toHaveLength(0);
 	});
 
 	it('produces trunk triangles', () => {

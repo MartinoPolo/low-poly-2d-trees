@@ -1,7 +1,7 @@
 import type { TreeConfig, Point2D } from '../types.js';
 import { randomInRange } from '../prng.js';
 import { sampleTrunkCenterX } from './trunk.js';
-import { isPointInBlobs, isPointInSingleBlob, getBlobsBounds } from './shape_bounds.js';
+import { isPointInSingleBlob, getBlobsBounds } from './shape_bounds.js';
 import {
 	computeVisibleBranchLength,
 	branchesOverlap,
@@ -13,34 +13,56 @@ import type { Blob, BranchSegment } from './shape_types.js';
 // Constants
 // ---------------------------------------------------------------------------
 
-// Trunk-origin branch widths pre-scaled by 1.75 (issue #4 base rescale).
-// Shared by rollTrunkBranchCandidate (generic algorithm) and
-// generateMapleBranches (maple per-blob branches) so both paths produce
-// visually consistent branch proportions.
-export const TRUNK_BRANCH_WIDTH_START_MIN = 7;
-export const TRUNK_BRANCH_WIDTH_START_MAX = 12.25;
-export const TRUNK_BRANCH_WIDTH_END_MIN = 1.75;
-export const TRUNK_BRANCH_WIDTH_END_MAX = 5.25;
+/** Max total branches across all levels (Rule J). */
+const MAX_TOTAL_BRANCHES = 25;
 
-const BRANCH_ANGLE_MIN_RAD = (30 * Math.PI) / 180;
-const BRANCH_ANGLE_MAX_ATTEMPTS = 20;
+/** Minimum visible branch length in pixels (Rule C). */
+const MIN_VISIBLE_LENGTH = 5;
+
+/** Angle divergence from parent direction (Rule E): 30-60 degrees. */
+const ANGLE_DIVERGENCE_MIN_DEG = 30;
+const ANGLE_DIVERGENCE_MAX_DEG = 60;
+
+/** Child length ratio (Rule K): 20-80% of parent, default center 50%. */
+const CHILD_LENGTH_RATIO_MIN = 0.2;
+const CHILD_LENGTH_RATIO_MAX = 0.8;
+
+// Trunk-origin branch widths pre-scaled by 1.75.
+const TRUNK_BRANCH_WIDTH_START_MIN = 7;
+const TRUNK_BRANCH_WIDTH_START_MAX = 12.25;
+const TRUNK_BRANCH_WIDTH_END_MIN = 1.75;
+const TRUNK_BRANCH_WIDTH_END_MAX = 5.25;
+
+const BRANCH_RETRY_ATTEMPTS = 5;
 
 // Base length ranges for branches at branchLength=100.
 const TRUNK_BRANCH_BASE_MIN = 40;
 const TRUNK_BRANCH_BASE_MAX = 80;
 
-const BRANCH_RETRY_ATTEMPTS = 3;
-const TRUNK_BRANCH_MIN_VISIBLE = 15;
+// ---------------------------------------------------------------------------
+// Internal types
+// ---------------------------------------------------------------------------
 
-// Fork parameters: angle spread and length scaling per depth level.
-const FORK_ANGLE_MIN = 0.25; // ~14° minimum divergence from parent
-const FORK_ANGLE_MAX = 0.75; // ~43° maximum divergence from parent
-const FORK_LENGTH_SCALE_MIN = 0.5;
-const FORK_LENGTH_SCALE_MAX = 0.8;
-const FORK_WIDTH_TAPER = 0.55; // child widthEnd = widthStart * taper
+interface InternalBranch {
+	readonly segment: BranchSegment;
+	readonly depth: number;
+	readonly parentIndex: number | null;
+}
+
+interface BranchContext {
+	readonly rng: () => number;
+	readonly config: TreeConfig;
+	readonly trunkJunctions: readonly Point2D[];
+	readonly blobs: readonly Blob[];
+	readonly trunkTop: number;
+	readonly trunkBottom: number;
+	readonly canopyBottom: number;
+	readonly trunkAxisAngle: number;
+	readonly branchThicknessScale: number;
+}
 
 // ---------------------------------------------------------------------------
-// Hierarchical branching (D1, D2, D3)
+// Helpers
 // ---------------------------------------------------------------------------
 
 function blobsOverlap(a: Blob, b: Blob): boolean {
@@ -81,21 +103,9 @@ function angleDivergence(a: number, b: number): number {
 	return diff;
 }
 
-interface BranchCandidateContext {
-	readonly rng: () => number;
-	readonly config: TreeConfig;
-	readonly trunkJunctions: readonly Point2D[];
-	readonly blobs: readonly Blob[];
-	readonly trunkTop: number;
-	readonly trunkHeight: number;
-	readonly canopyBottom: number;
-	readonly trunkAxisAngle: number;
-}
-
 /**
  * Snap an endpoint to the same side of the trunk center as the start point so
- * the branch cannot cross the trunk axis. If the endpoint is already on the
- * correct side, returns it unchanged.
+ * the branch cannot cross the trunk axis (Rule D).
  */
 function reflectEndpointIfCrossing(startX: number, endX: number, centerX: number): number {
 	const startSide = Math.sign(startX - centerX);
@@ -103,190 +113,276 @@ function reflectEndpointIfCrossing(startX: number, endX: number, centerX: number
 	if (startSide === 0 || endSide === 0 || startSide === endSide) {
 		return endX;
 	}
-	// Reflect endX about centerX.
 	return centerX + (centerX - endX);
 }
 
 /**
- * Progressive branchT window per retry attempt. Later attempts push the
- * origin lower on the trunk (away from the dense canopy core) so the branch
- * has more unobstructed length below the canopy.
+ * Map branchAngle slider (0-100%) to angle range.
+ * 0% = wide spread (more horizontal), 100% = vertical growth.
  */
-const TRUNK_BRANCH_T_WINDOWS: readonly [number, number][] = [
-	[0.05, 0.35],
-	[0.2, 0.5],
-	[0.35, 0.6],
-];
-
-/**
- * If a branch's endpoint is above the canopy bottom and NOT inside any blob,
- * walk forward along the branch direction (both x and y) until the point
- * lands inside a blob. Returns the adjusted endpoint, or the original if no
- * blob is reached within the extension cap.
- */
-function extendTipIntoCanopy(
-	startX: number,
-	startY: number,
-	endX: number,
-	endY: number,
-	blobs: readonly Blob[],
-	canopyBottom: number,
-	maxExtension: number,
-): { endX: number; endY: number } {
-	if (endY >= canopyBottom || isPointInBlobs(endX, endY, blobs)) {
-		return { endX, endY };
-	}
-	const dirX = endX - startX;
-	const dirY = endY - startY;
-	const dirLen = Math.sqrt(dirX * dirX + dirY * dirY);
-	if (dirLen === 0) {
-		return { endX, endY };
-	}
-	const ux = dirX / dirLen;
-	const uy = dirY / dirLen;
-	for (let ext = 1; ext <= maxExtension; ext++) {
-		const px = endX + ux * ext;
-		const py = endY + uy * ext;
-		if (isPointInBlobs(px, py, blobs)) {
-			return { endX: px, endY: py };
-		}
-	}
-	return { endX, endY };
-}
-
-function rollTrunkBranchCandidate(
-	ctx: BranchCandidateContext,
-	side: 1 | -1,
-	branchThicknessScale: number,
-	attempt: number,
-): BranchSegment {
-	const {
-		rng,
-		config,
-		trunkJunctions,
-		blobs,
-		trunkTop,
-		trunkHeight,
-		canopyBottom,
-		trunkAxisAngle,
-	} = ctx;
-	const tWindow = TRUNK_BRANCH_T_WINDOWS[Math.min(attempt, TRUNK_BRANCH_T_WINDOWS.length - 1)]!;
-	const branchT = randomInRange(rng, tWindow[0], tWindow[1]);
-	const startY = trunkTop + trunkHeight * branchT;
-	const startX = sampleTrunkCenterX(trunkJunctions, startY);
-	const { min: lenMin, max: lenMax } = resolveBranchLengthRange(
-		TRUNK_BRANCH_BASE_MIN,
-		TRUNK_BRANCH_BASE_MAX,
-		config.branchLength,
-		config.branchLengthVariance,
-		true,
-	);
-	const length = randomInRange(rng, lenMin, lenMax);
-
-	let upAngle = 0;
-	for (let angleAttempt = 0; angleAttempt < BRANCH_ANGLE_MAX_ATTEMPTS; angleAttempt++) {
-		upAngle = randomInRange(rng, 0.3, 1.2);
-		const candidateAngle = Math.atan2(
-			-Math.sin(upAngle) * length,
-			Math.cos(upAngle) * length * side,
-		);
-		if (angleDivergence(candidateAngle, trunkAxisAngle) >= BRANCH_ANGLE_MIN_RAD) {
-			break;
-		}
-	}
-
-	const rawEndX = startX + Math.cos(upAngle) * length * side;
-	const rawEndY = startY - Math.sin(upAngle) * length;
-	const reflectedEndX = reflectEndpointIfCrossing(startX, rawEndX, startX);
-	const extended = extendTipIntoCanopy(
-		startX,
-		startY,
-		reflectedEndX,
-		rawEndY,
-		blobs,
-		canopyBottom,
-		40,
-	);
-	const widthStart =
-		randomInRange(rng, TRUNK_BRANCH_WIDTH_START_MIN, TRUNK_BRANCH_WIDTH_START_MAX) *
-		branchThicknessScale;
-	const widthEnd =
-		randomInRange(rng, TRUNK_BRANCH_WIDTH_END_MIN, TRUNK_BRANCH_WIDTH_END_MAX) *
-		branchThicknessScale;
-
+function mapBranchAngleRange(branchAngle: number): { minRad: number; maxRad: number } {
+	const t = branchAngle / 100;
+	// At 0%: 15-45 degrees from horizontal (wide). At 100%: 60-85 degrees (vertical).
+	const minDeg = 15 + t * 45; // 15 -> 60
+	const maxDeg = 45 + t * 40; // 45 -> 85
 	return {
-		x1: startX,
-		y1: startY,
-		x2: extended.endX,
-		y2: extended.endY,
-		widthStart,
-		widthEnd,
+		minRad: (minDeg * Math.PI) / 180,
+		maxRad: (maxDeg * Math.PI) / 180,
 	};
 }
 
 /**
- * Generate a child branch that forks from the TIP of a parent branch.
- * The direction is relative to the parent's direction ± a fork angle,
- * creating natural Y-shaped branching.
+ * Get the branch count for a given depth level by sampling from the range.
  */
-function rollForkCandidate(
-	rng: () => number,
-	parent: BranchSegment,
-	forkAngleSign: 1 | -1,
-	blobs: readonly Blob[],
-	canopyBottom: number,
-): BranchSegment {
-	const parentDirX = parent.x2 - parent.x1;
-	const parentDirY = parent.y2 - parent.y1;
-	const parentLength = Math.sqrt(parentDirX * parentDirX + parentDirY * parentDirY);
-	const parentAngle = Math.atan2(parentDirY, parentDirX);
+function sampleBranchCountForLevel(rng: () => number, config: TreeConfig, depth: number): number {
+	let range: readonly [number, number];
+	if (depth === 1) {
+		range = config.branchesLevel1Range;
+	} else if (depth === 2) {
+		range = config.branchesLevel2Range;
+	} else {
+		range = config.branchesLevel3Range;
+	}
 
-	const forkAngle = randomInRange(rng, FORK_ANGLE_MIN, FORK_ANGLE_MAX) * forkAngleSign;
-	const childAngle = parentAngle + forkAngle;
-	const lengthScale = randomInRange(rng, FORK_LENGTH_SCALE_MIN, FORK_LENGTH_SCALE_MAX);
-	const childLength = Math.max(8, parentLength * lengthScale);
-
-	const rawEndX = parent.x2 + Math.cos(childAngle) * childLength;
-	const rawEndY = parent.y2 + Math.sin(childAngle) * childLength;
-
-	const extended = extendTipIntoCanopy(
-		parent.x2,
-		parent.y2,
-		rawEndX,
-		rawEndY,
-		blobs,
-		canopyBottom,
-		25,
-	);
-
-	const widthStart = parent.widthEnd;
-	const widthEnd = Math.max(0.5, widthStart * FORK_WIDTH_TAPER);
-
-	return {
-		x1: parent.x2,
-		y1: parent.y2,
-		x2: extended.endX,
-		y2: extended.endY,
-		widthStart,
-		widthEnd,
-	};
+	const [min, max] = range;
+	if (min === max) {
+		return min;
+	}
+	return min + Math.floor(rng() * (max - min + 1));
 }
 
-function overlapsAny(
+/**
+ * Check overlap only against branches at the same depth (Rule F).
+ */
+function overlapsAnySameDepth(
 	candidate: BranchSegment,
-	existing: readonly BranchSegment[],
-	excludeParent?: BranchSegment,
+	branches: readonly InternalBranch[],
+	depth: number,
+	excludeParentSegment?: BranchSegment,
 ): boolean {
-	for (const other of existing) {
-		if (excludeParent !== undefined && other === excludeParent) {
+	for (const other of branches) {
+		if (other.depth !== depth) {
 			continue;
 		}
-		if (branchesOverlap(candidate, other)) {
+		if (excludeParentSegment !== undefined && other.segment === excludeParentSegment) {
+			continue;
+		}
+		if (branchesOverlap(candidate, other.segment)) {
 			return true;
 		}
 	}
 	return false;
 }
+
+// ---------------------------------------------------------------------------
+// Branch generation — trunk-origin (depth 1)
+// ---------------------------------------------------------------------------
+
+function generateTrunkBranches(ctx: BranchContext, branches: InternalBranch[]): void {
+	const { rng, config, trunkJunctions, blobs, trunkTop, trunkAxisAngle } = ctx;
+	const trunkHeight = ctx.trunkBottom - trunkTop;
+	const count = sampleBranchCountForLevel(rng, config, 1);
+	if (count <= 0) {
+		return;
+	}
+
+	const angleRange = mapBranchAngleRange(config.branchAngle);
+
+	// Rule I: L1 alternates left/right with random start
+	const startSide = rng() < 0.5 ? 0 : 1;
+
+	// Rule H: L1 branches from upper half only (t = 0.0 to 0.5 where 0 = top)
+	for (let i = 0; i < count; i++) {
+		if (branches.length >= MAX_TOTAL_BRANCHES) {
+			return;
+		}
+
+		const side: 1 | -1 = (i + startSide) % 2 === 0 ? 1 : -1;
+		let accepted: BranchSegment | null = null;
+
+		for (let attempt = 0; attempt < BRANCH_RETRY_ATTEMPTS; attempt++) {
+			// Upper half placement (Rule H): t ranges from 0.05 to 0.5
+			const branchT = randomInRange(rng, 0.05, 0.5);
+			const startY = trunkTop + trunkHeight * branchT;
+			const startX = sampleTrunkCenterX(trunkJunctions, startY);
+
+			const { min: lenMin, max: lenMax } = resolveBranchLengthRange(
+				TRUNK_BRANCH_BASE_MIN,
+				TRUNK_BRANCH_BASE_MAX,
+				config.branchLength,
+				config.branchLengthVariance,
+				true,
+			);
+			const length = randomInRange(rng, lenMin, lenMax);
+
+			// Generate branch angle within the mapped range
+			const upAngle = randomInRange(rng, angleRange.minRad, angleRange.maxRad);
+
+			// Check angle divergence from trunk axis (Rule E)
+			const candidateAngle = Math.atan2(
+				-Math.sin(upAngle) * length,
+				Math.cos(upAngle) * length * side,
+			);
+			const divergence = angleDivergence(candidateAngle, trunkAxisAngle);
+			const minDivRad = (ANGLE_DIVERGENCE_MIN_DEG * Math.PI) / 180;
+			if (divergence < minDivRad) {
+				continue;
+			}
+
+			const rawEndX = startX + Math.cos(upAngle) * length * side;
+			const rawEndY = startY - Math.sin(upAngle) * length;
+			const endX = reflectEndpointIfCrossing(startX, rawEndX, startX);
+
+			const widthStart =
+				randomInRange(rng, TRUNK_BRANCH_WIDTH_START_MIN, TRUNK_BRANCH_WIDTH_START_MAX) *
+				ctx.branchThicknessScale;
+			const widthEnd =
+				randomInRange(rng, TRUNK_BRANCH_WIDTH_END_MIN, TRUNK_BRANCH_WIDTH_END_MAX) *
+				ctx.branchThicknessScale;
+
+			const candidate: BranchSegment = {
+				x1: startX,
+				y1: startY,
+				x2: endX,
+				y2: rawEndY,
+				widthStart,
+				widthEnd,
+			};
+
+			// Rule F: overlap check same-depth only
+			if (overlapsAnySameDepth(candidate, branches, 1)) {
+				continue;
+			}
+
+			// Rule C: min visible length
+			const visible = computeVisibleBranchLength(candidate, blobs, []);
+			if (visible < MIN_VISIBLE_LENGTH) {
+				continue;
+			}
+
+			accepted = candidate;
+			break;
+		}
+
+		if (accepted !== null) {
+			branches.push({ segment: accepted, depth: 1, parentIndex: null });
+		}
+	}
+}
+
+// ---------------------------------------------------------------------------
+// Sub-branch generation (depth 2+)
+// ---------------------------------------------------------------------------
+
+function generateSubBranches(
+	ctx: BranchContext,
+	branches: InternalBranch[],
+	parentDepth: number,
+): void {
+	const { rng, config, blobs } = ctx;
+	const targetDepth = parentDepth + 1;
+	if (targetDepth > config.branchDepth) {
+		return;
+	}
+
+	// Collect parent indices before we start adding children
+	const parentIndices: number[] = [];
+	for (let i = 0; i < branches.length; i++) {
+		if (branches[i]!.depth === parentDepth) {
+			parentIndices.push(i);
+		}
+	}
+
+	for (const parentIndex of parentIndices) {
+		if (branches.length >= MAX_TOTAL_BRANCHES) {
+			return;
+		}
+
+		const parent = branches[parentIndex]!.segment;
+		const childCount = sampleBranchCountForLevel(rng, config, targetDepth);
+		if (childCount <= 0) {
+			continue;
+		}
+
+		// BR-5: Children originate from upper 50-100% of parent length
+		const parentDirX = parent.x2 - parent.x1;
+		const parentDirY = parent.y2 - parent.y1;
+		const parentLength = Math.sqrt(parentDirX * parentDirX + parentDirY * parentDirY);
+		const parentAngle = Math.atan2(parentDirY, parentDirX);
+
+		for (let c = 0; c < childCount; c++) {
+			if (branches.length >= MAX_TOTAL_BRANCHES) {
+				return;
+			}
+
+			let accepted: BranchSegment | null = null;
+
+			for (let attempt = 0; attempt < BRANCH_RETRY_ATTEMPTS; attempt++) {
+				// Origin along upper 50-100% of parent
+				const originT = randomInRange(rng, 0.5, 1.0);
+				const originX = parent.x1 + parentDirX * originT;
+				const originY = parent.y1 + parentDirY * originT;
+
+				// Rule K: child length 20-80% of parent
+				const lengthRatio = randomInRange(
+					rng,
+					CHILD_LENGTH_RATIO_MIN,
+					CHILD_LENGTH_RATIO_MAX,
+				);
+				const childLength = Math.max(8, parentLength * lengthRatio);
+
+				// Rule E: angle divergence 30-60 degrees from parent direction
+				const divergenceDeg = randomInRange(
+					rng,
+					ANGLE_DIVERGENCE_MIN_DEG,
+					ANGLE_DIVERGENCE_MAX_DEG,
+				);
+				const divergenceRad = (divergenceDeg * Math.PI) / 180;
+				const forkSign: 1 | -1 = rng() < 0.5 ? 1 : -1;
+				const childAngle = parentAngle + divergenceRad * forkSign;
+
+				const endX = originX + Math.cos(childAngle) * childLength;
+				const endY = originY + Math.sin(childAngle) * childLength;
+
+				// BR-7: depth taper
+				const taperRatio = config.branchDepthTaper / 100;
+				const widthStart = parent.widthEnd * taperRatio;
+				const widthEnd = Math.max(0.5, widthStart * 0.55);
+
+				const candidate: BranchSegment = {
+					x1: originX,
+					y1: originY,
+					x2: endX,
+					y2: endY,
+					widthStart,
+					widthEnd,
+				};
+
+				// Rule F: same-depth overlap only
+				if (overlapsAnySameDepth(candidate, branches, targetDepth, parent)) {
+					continue;
+				}
+
+				// Rule C: min visible length
+				const visible = computeVisibleBranchLength(candidate, blobs, []);
+				if (visible < MIN_VISIBLE_LENGTH) {
+					continue;
+				}
+
+				accepted = candidate;
+				break;
+			}
+
+			if (accepted !== null) {
+				branches.push({ segment: accepted, depth: targetDepth, parentIndex });
+			}
+		}
+	}
+}
+
+// ---------------------------------------------------------------------------
+// Public API
+// ---------------------------------------------------------------------------
 
 export function generateBranches(
 	rng: () => number,
@@ -302,16 +398,7 @@ export function generateBranches(
 		return [];
 	}
 
-	const branchCount = config.branchCount;
-	if (branchCount <= 0) {
-		return [];
-	}
-
 	const branchThicknessScale = config.branchThickness / 100;
-	const trunkBranchRatio = config.trunkBranchRatio / 100;
-
-	const branches: BranchSegment[] = [];
-	const trunkHeight = trunkBottom - trunkTop;
 	const canopyBottom = blobs.length > 0 ? getBlobsBounds(blobs).maxY : trunkTop;
 
 	const baseJunction = trunkJunctions[0]!;
@@ -323,97 +410,55 @@ export function generateBranches(
 		topJunction.y,
 	);
 
-	const ctx: BranchCandidateContext = {
+	const ctx: BranchContext = {
 		rng,
 		config,
 		trunkJunctions,
 		blobs,
 		trunkTop,
-		trunkHeight,
+		trunkBottom,
 		canopyBottom,
 		trunkAxisAngle,
+		branchThicknessScale,
 	};
 
-	const trunkBranchCount = Math.max(1, Math.round(branchCount * trunkBranchRatio));
+	const branches: InternalBranch[] = [];
 
-	// --- Trunk-origin branches (depth 1) ---
-	const startSide = rng() < 0.5 ? 0 : 1;
-	for (let i = 0; i < trunkBranchCount; i++) {
-		const side: 1 | -1 = (i + startSide) % 2 === 0 ? 1 : -1;
-		let accepted: BranchSegment | null = null;
-		for (let attempt = 0; attempt < BRANCH_RETRY_ATTEMPTS; attempt++) {
-			const candidate = rollTrunkBranchCandidate(ctx, side, branchThicknessScale, attempt);
-			if (overlapsAny(candidate, branches)) {
-				continue;
-			}
-			const visible = computeVisibleBranchLength(candidate, blobs, []);
-			if (visible < TRUNK_BRANCH_MIN_VISIBLE) {
-				continue;
-			}
-			accepted = candidate;
-			break;
-		}
-		if (accepted !== null) {
-			branches.push(accepted);
-		}
+	// Depth 1: trunk-origin branches
+	generateTrunkBranches(ctx, branches);
+
+	// Depth 2+: sub-branches (Rule J: stop deeper levels first when cap hit)
+	for (let depth = 1; depth < branchDepth; depth++) {
+		generateSubBranches(ctx, branches, depth);
 	}
 
-	const trunkBranchEndIndex = branches.length;
-
-	// --- Forking sub-branches (depth >= 2) ---
-	// Each trunk-origin branch tip forks into 1-2 child branches.
-	// Children continue the parent's direction ± a fork angle.
-	if (branchDepth >= 2) {
-		for (let i = 0; i < trunkBranchEndIndex; i++) {
-			const parent = branches[i]!;
-			const forkCount = 1 + Math.floor(rng() * 2); // 1-2 forks
-			for (let f = 0; f < forkCount; f++) {
-				const forkSign: 1 | -1 = f === 0 ? 1 : -1;
-				const candidate = rollForkCandidate(rng, parent, forkSign, blobs, canopyBottom);
-				if (!overlapsAny(candidate, branches, parent)) {
-					branches.push(candidate);
-				}
-			}
-		}
-	}
-
-	const depth2EndIndex = branches.length;
-
-	// --- Forking sub-sub-branches (depth >= 3) ---
-	// Each depth-2 fork tip gets 1 child branch.
-	if (branchDepth >= 3) {
-		for (let i = trunkBranchEndIndex; i < depth2EndIndex; i++) {
-			const parent = branches[i]!;
-			const forkSign: 1 | -1 = rng() < 0.5 ? 1 : -1;
-			const candidate = rollForkCandidate(rng, parent, forkSign, blobs, canopyBottom);
-			if (!overlapsAny(candidate, branches, parent)) {
-				branches.push(candidate);
-			}
-		}
-	}
-
-	// --- Floating-blob fallback (exempt from visibility/crossing checks) ---
+	// Floating-blob fallback (Rule G): last resort emergency branches
 	const isolatedBlobIndices = findIsolatedBlobs(blobs);
 	for (const idx of isolatedBlobIndices) {
 		const blob = blobs[idx]!;
-		// Check if any existing branch tip is inside this blob
-		const reached = branches.some((b) => isPointInSingleBlob(b.x2, b.y2, blob));
+		const reached = branches.some((b) => isPointInSingleBlob(b.segment.x2, b.segment.y2, blob));
 		if (reached) {
 			continue;
 		}
+
 		const branchT = randomInRange(rng, 0.1, 0.3);
+		const trunkHeight = trunkBottom - trunkTop;
 		const originY = trunkTop + trunkHeight * branchT;
 		const originX = sampleTrunkCenterX(trunkJunctions, originY);
 
 		branches.push({
-			x1: originX,
-			y1: originY,
-			x2: blob.cx,
-			y2: blob.cy,
-			widthStart: randomInRange(rng, 5.25, 8.75) * branchThicknessScale,
-			widthEnd: randomInRange(rng, 1.75, 3.5) * branchThicknessScale,
+			segment: {
+				x1: originX,
+				y1: originY,
+				x2: blob.cx,
+				y2: blob.cy,
+				widthStart: randomInRange(rng, 5.25, 8.75) * branchThicknessScale,
+				widthEnd: randomInRange(rng, 1.75, 3.5) * branchThicknessScale,
+			},
+			depth: 1,
+			parentIndex: null,
 		});
 	}
 
-	return branches;
+	return branches.map((b) => b.segment);
 }

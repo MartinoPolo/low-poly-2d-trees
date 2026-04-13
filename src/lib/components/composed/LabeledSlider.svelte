@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { Label } from '$lib/components/ui/label/index.js';
+	import { Slider } from '$lib/components/ui/slider/index.js';
 
 	interface Props {
 		label: string;
@@ -10,7 +11,7 @@
 		unit?: string;
 		format?: (value: number) => string;
 		disabled?: boolean;
-		oninput?: (event: Event) => void;
+		onValueChange?: (value: number) => void;
 		id?: string;
 		class?: string;
 	}
@@ -24,33 +25,37 @@
 		unit,
 		format,
 		disabled = false,
-		oninput,
+		onValueChange,
 		id,
 		class: className,
 	}: Props = $props();
 
 	const inputId = $derived(
 		id ??
-			`range-${label
+			`slider-${label
 				.toLowerCase()
 				.replace(/[^a-z0-9]+/g, '-')
 				.replace(/^-|-$/g, '')}`,
 	);
 	const displayValue = $derived(format ? format(value) : String(value));
 	const suffix = $derived(unit ?? '');
+
+	function handleValueChange(newValue: number) {
+		value = newValue;
+		onValueChange?.(newValue);
+	}
 </script>
 
 <div class="space-y-2 {className ?? ''}">
 	<Label for={inputId}>{label}: {displayValue}{suffix}</Label>
-	<input
-		type="range"
+	<Slider
+		type="single"
 		id={inputId}
+		{value}
 		{min}
 		{max}
 		{step}
-		bind:value
-		{oninput}
 		{disabled}
-		class="w-full accent-primary disabled:cursor-not-allowed disabled:opacity-50"
+		onValueChange={handleValueChange}
 	/>
 </div>

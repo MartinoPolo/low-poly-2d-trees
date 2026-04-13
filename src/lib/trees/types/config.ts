@@ -68,7 +68,6 @@ export interface TreeConfig {
 	readonly trunkLightness: number;
 	readonly lightAngle: number;
 	readonly blobCount: number;
-	readonly branchCount: number;
 	readonly depthVariance: number;
 	readonly blobSizeVariance: number;
 	readonly blobCloseness: number;
@@ -76,7 +75,6 @@ export interface TreeConfig {
 	readonly branchThickness: number;
 	readonly canopySize: number;
 	readonly trunkHeight: number;
-	readonly trunkBranchRatio: number;
 	readonly trunkLean: number;
 	readonly trunkSegments: number;
 	readonly trunkCrookedness: number;
@@ -87,6 +85,18 @@ export interface TreeConfig {
 	 * 2 = trunk + sub-branches (default), 3 = trunk + sub + sub-sub-branches.
 	 */
 	readonly branchDepth: number;
+	/** Per-level branch count ranges. When min === max, fixed count. */
+	readonly branchesLevel1Range: readonly [number, number];
+	readonly branchesLevel2Range: readonly [number, number];
+	readonly branchesLevel3Range: readonly [number, number];
+	/** Number of segments per branch (1-3). */
+	readonly branchSegments: number;
+	/** Branch crookedness (0-100). Default = 50% of trunk crookedness. */
+	readonly branchCrookedness: number;
+	/** Child start width = parent end width * taper ratio (30-80%). */
+	readonly branchDepthTaper: number;
+	/** Branch angle slider (0-100%). 0% = wide spread, 100% = vertical. */
+	readonly branchAngle: number;
 	/**
 	 * Per-blob overrides for the `custom` tree shape. Only consulted when
 	 * `shape === 'custom'`. Grown lazily in UI state as the user raises the
@@ -111,7 +121,6 @@ export const DEFAULT_TREE_CONFIG: TreeConfig = {
 	trunkLightness: 25,
 	lightAngle: 130,
 	blobCount: 5,
-	branchCount: 2,
 	depthVariance: 1.0,
 	blobSizeVariance: 3.0,
 	blobCloseness: 50,
@@ -119,13 +128,19 @@ export const DEFAULT_TREE_CONFIG: TreeConfig = {
 	branchThickness: 100,
 	canopySize: 100,
 	trunkHeight: 100,
-	trunkBranchRatio: 70,
 	trunkLean: 0,
 	trunkSegments: 1,
 	trunkCrookedness: 0,
 	branchLength: 100,
 	branchLengthVariance: 50,
 	branchDepth: 2,
+	branchesLevel1Range: [1, 3],
+	branchesLevel2Range: [1, 2],
+	branchesLevel3Range: [0, 1],
+	branchSegments: 1,
+	branchCrookedness: 0,
+	branchDepthTaper: 55,
+	branchAngle: 50,
 	fruitType: FRUIT_TYPES.none,
 	fruitCount: 0,
 } as const;
@@ -137,8 +152,11 @@ export const DEFAULT_TREE_CONFIG: TreeConfig = {
 export const SHAPE_DEFAULTS = {
 	[TREE_SHAPES.oak]: {
 		blobCount: 5,
-		branchCount: 2,
 		branchDepth: 2,
+		branchesLevel1Range: [1, 3] as readonly [number, number],
+		branchesLevel2Range: [1, 2] as readonly [number, number],
+		branchesLevel3Range: [0, 1] as readonly [number, number],
+		branchAngle: 50,
 		blobSizeVariance: 3.0,
 		blobCloseness: 50,
 		branchThickness: 100,
@@ -156,8 +174,11 @@ export const SHAPE_DEFAULTS = {
 	},
 	[TREE_SHAPES.pine]: {
 		blobCount: 3,
-		branchCount: 0,
 		branchDepth: 0,
+		branchesLevel1Range: [0, 0] as readonly [number, number],
+		branchesLevel2Range: [0, 0] as readonly [number, number],
+		branchesLevel3Range: [0, 0] as readonly [number, number],
+		branchAngle: 50,
 		blobSizeVariance: 3.0,
 		blobCloseness: 50,
 		branchThickness: 100,
@@ -175,8 +196,11 @@ export const SHAPE_DEFAULTS = {
 	},
 	[TREE_SHAPES.birch]: {
 		blobCount: 3,
-		branchCount: 1,
 		branchDepth: 3,
+		branchesLevel1Range: [1, 2] as readonly [number, number],
+		branchesLevel2Range: [1, 2] as readonly [number, number],
+		branchesLevel3Range: [0, 1] as readonly [number, number],
+		branchAngle: 60,
 		blobSizeVariance: 3.0,
 		blobCloseness: 50,
 		branchThickness: 100,
@@ -194,8 +218,11 @@ export const SHAPE_DEFAULTS = {
 	},
 	[TREE_SHAPES.fir]: {
 		blobCount: 4,
-		branchCount: 0,
 		branchDepth: 0,
+		branchesLevel1Range: [0, 0] as readonly [number, number],
+		branchesLevel2Range: [0, 0] as readonly [number, number],
+		branchesLevel3Range: [0, 0] as readonly [number, number],
+		branchAngle: 50,
 		blobSizeVariance: 3.0,
 		blobCloseness: 50,
 		branchThickness: 100,
@@ -213,13 +240,16 @@ export const SHAPE_DEFAULTS = {
 	},
 	[TREE_SHAPES.maple]: {
 		blobCount: 5,
-		branchCount: 5,
 		branchDepth: 2,
+		branchesLevel1Range: [3, 5] as readonly [number, number],
+		branchesLevel2Range: [1, 2] as readonly [number, number],
+		branchesLevel3Range: [0, 1] as readonly [number, number],
+		branchAngle: 40,
 		blobSizeVariance: 2.0,
 		blobCloseness: 30,
 		branchThickness: 100,
-		trunkSegments: 1,
-		trunkCrookedness: 0,
+		trunkSegments: 2,
+		trunkCrookedness: 30,
 		branchLength: 100,
 		branchLengthVariance: 50,
 		canopyLightColor: '#e8a028',
@@ -232,8 +262,11 @@ export const SHAPE_DEFAULTS = {
 	},
 	[TREE_SHAPES.willow]: {
 		blobCount: 4,
-		branchCount: 4,
 		branchDepth: 2,
+		branchesLevel1Range: [3, 5] as readonly [number, number],
+		branchesLevel2Range: [1, 2] as readonly [number, number],
+		branchesLevel3Range: [0, 1] as readonly [number, number],
+		branchAngle: 30,
 		blobSizeVariance: 3.0,
 		blobCloseness: 50,
 		branchThickness: 150,
@@ -254,8 +287,11 @@ export const SHAPE_DEFAULTS = {
 	Pick<
 		TreeConfig,
 		| 'blobCount'
-		| 'branchCount'
 		| 'branchDepth'
+		| 'branchesLevel1Range'
+		| 'branchesLevel2Range'
+		| 'branchesLevel3Range'
+		| 'branchAngle'
 		| 'blobSizeVariance'
 		| 'blobCloseness'
 		| 'branchThickness'
