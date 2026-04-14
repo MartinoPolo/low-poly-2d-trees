@@ -68,6 +68,7 @@
 			fruitType: treeConfig.current.fruitType,
 		}),
 	);
+	const fruitTypeDisabled = $derived(isParamDisabled(treeConfig.current.shape, 'fruitType', {}));
 	const level1Disabled = $derived(
 		isParamDisabled(treeConfig.current.shape, 'branchesLevel1Range', {
 			branchDepth: treeConfig.current.branchDepth,
@@ -331,6 +332,7 @@
 							options={FRUIT_TYPE_OPTIONS}
 							value={treeConfig.current.fruitType}
 							onValueChange={onFruitTypeChange}
+							disabled={fruitTypeDisabled}
 						/>
 						<LabeledSlider
 							label="Fruit Count"

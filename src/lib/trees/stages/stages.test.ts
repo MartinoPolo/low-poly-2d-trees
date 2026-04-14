@@ -22,12 +22,12 @@ function hasValidAnchors(geo: TreeGeometry): boolean {
 }
 
 describe('TREE_STAGES', () => {
-	it('has exactly 11 entries', () => {
-		expect(Object.keys(TREE_STAGES)).toHaveLength(11);
+	it('has exactly 12 entries', () => {
+		expect(Object.keys(TREE_STAGES)).toHaveLength(12);
 	});
 
-	it('TREE_STAGE_OPTIONS has 11 options with label/value pairs', () => {
-		expect(TREE_STAGE_OPTIONS).toHaveLength(11);
+	it('TREE_STAGE_OPTIONS has 12 options with label/value pairs', () => {
+		expect(TREE_STAGE_OPTIONS).toHaveLength(12);
 		for (const option of TREE_STAGE_OPTIONS) {
 			expect(typeof option.value).toBe('string');
 			expect(typeof option.label).toBe('string');
@@ -54,6 +54,8 @@ describe('stage generation — every stage produces valid TreeGeometry', () => {
 			expect(Array.isArray(geo.canopyBlobs)).toBe(true);
 			expect(Array.isArray(geo.stakeTriangles)).toBe(true);
 			expect(Array.isArray(geo.fruitSlots)).toBe(true);
+			expect(Array.isArray(geo.flowerSlots)).toBe(true);
+			expect(typeof geo.showFallingLeaves).toBe('boolean');
 		});
 	}
 });
@@ -112,16 +114,9 @@ describe('sapling stage', () => {
 });
 
 describe('growing stage', () => {
-	it('includes stake triangles', () => {
+	it('has no stakes', () => {
 		const geo = generateTree(makeConfig({ stage: TREE_STAGES.growing }));
-		expect(geo.stakeTriangles.length).toBeGreaterThan(0);
-	});
-
-	it('stake triangles have group=stake', () => {
-		const geo = generateTree(makeConfig({ stage: TREE_STAGES.growing }));
-		for (const tri of geo.stakeTriangles) {
-			expect(tri.group).toBe('stake');
-		}
+		expect(geo.stakeTriangles).toHaveLength(0);
 	});
 });
 
@@ -135,14 +130,38 @@ describe('leafy stage', () => {
 	});
 });
 
+describe('flowering stage', () => {
+	it('populates flowerSlots with at least 1 point', () => {
+		const geo = generateTree(makeConfig({ stage: TREE_STAGES.flowering }));
+		expect(geo.flowerSlots.length).toBeGreaterThanOrEqual(1);
+	});
+
+	it('flowerSlots contain valid Point2D', () => {
+		const geo = generateTree(makeConfig({ stage: TREE_STAGES.flowering }));
+		for (const slot of geo.flowerSlots) {
+			expect(typeof slot.x).toBe('number');
+			expect(typeof slot.y).toBe('number');
+		}
+	});
+
+	it('has empty fruitSlots (not yet fruiting)', () => {
+		const geo = generateTree(makeConfig({ stage: TREE_STAGES.flowering }));
+		expect(geo.fruitSlots).toHaveLength(0);
+	});
+});
+
 describe('fruiting stage', () => {
 	it('populates fruitSlots with at least 1 point', () => {
-		const geo = generateTree(makeConfig({ stage: TREE_STAGES.fruiting }));
+		const geo = generateTree(
+			makeConfig({ stage: TREE_STAGES.fruiting, fruitType: 'apple', fruitCount: 5 }),
+		);
 		expect(geo.fruitSlots.length).toBeGreaterThanOrEqual(1);
 	});
 
 	it('fruitSlots contain valid Point2D', () => {
-		const geo = generateTree(makeConfig({ stage: TREE_STAGES.fruiting }));
+		const geo = generateTree(
+			makeConfig({ stage: TREE_STAGES.fruiting, fruitType: 'apple', fruitCount: 5 }),
+		);
 		for (const slot of geo.fruitSlots) {
 			expect(typeof slot.x).toBe('number');
 			expect(typeof slot.y).toBe('number');
@@ -166,6 +185,34 @@ describe('autumn stage', () => {
 		// Autumn and leafy should have largely different color sets
 		expect(overlap.length).toBeLessThan(autumnSet.size);
 	});
+
+	it('has showFallingLeaves true', () => {
+		const geo = generateTree(makeConfig({ stage: TREE_STAGES.autumn }));
+		expect(geo.showFallingLeaves).toBe(true);
+	});
+});
+
+describe('showFallingLeaves — only autumn', () => {
+	const allStages = Object.values(TREE_STAGES) as TreeStage[];
+	const nonAutumnStages = allStages.filter((s) => s !== TREE_STAGES.autumn);
+
+	for (const stage of nonAutumnStages) {
+		it(`${stage}: showFallingLeaves is false`, () => {
+			const geo = generateTree(makeConfig({ stage }));
+			expect(geo.showFallingLeaves).toBe(false);
+		});
+	}
+});
+
+describe('flowerSlots array present on all stages', () => {
+	const allStages = Object.values(TREE_STAGES) as TreeStage[];
+
+	for (const stage of allStages) {
+		it(`${stage}: has flowerSlots array`, () => {
+			const geo = generateTree(makeConfig({ stage }));
+			expect(Array.isArray(geo.flowerSlots)).toBe(true);
+		});
+	}
 });
 
 describe('ready stage', () => {

@@ -1,0 +1,18 @@
+<!--
+	Cherry Flower — Pink sakura blossom (iconic 5 petals).
+	Centered at origin, ~5 units radius.
+-->
+<g>
+	<!-- Five sakura petals with notched tips -->
+	<path d="M0,-1 L-1.2,-4.5 L0,-3.8 L1.2,-4.5 Z" fill="#FFB7C5" />
+	<path d="M0,-1 L3.5,-2.8 L3,-1.5 L4.5,-1 Z" fill="#FF8CA0" />
+	<path d="M0,-1 L3,2.5 L1.8,2 L2.8,3.8 Z" fill="#FFB7C5" />
+	<path d="M0,-1 L-3,2.5 L-1.8,2 L-2.8,3.8 Z" fill="#FF8CA0" />
+	<path d="M0,-1 L-3.5,-2.8 L-3,-1.5 L-4.5,-1 Z" fill="#FFB7C5" />
+	<!-- Center -->
+	<circle cx="0" cy="-0.5" r="1.2" fill="#FF8CA0" />
+	<!-- Stamens -->
+	<circle cx="0" cy="-1.5" r="0.25" fill="#FFB7C5" />
+	<circle cx="0.8" cy="0" r="0.25" fill="#FFB7C5" />
+	<circle cx="-0.8" cy="0" r="0.25" fill="#FFB7C5" />
+</g>

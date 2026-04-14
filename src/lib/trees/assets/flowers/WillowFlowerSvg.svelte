@@ -1,0 +1,16 @@
+<!--
+	Willow Flower — Fuzzy silver-white catkin.
+	Centered at origin, ~5 units tall.
+-->
+<g>
+	<!-- Catkin stem -->
+	<line x1="0" y1="-4" x2="0" y2="4" stroke="#C8C8B0" stroke-width="0.5" />
+	<!-- Fuzzy oval clusters -->
+	<ellipse cx="0" cy="-2.5" rx="1.8" ry="1.2" fill="#E0E0D0" />
+	<ellipse cx="0" cy="0" rx="2" ry="1.4" fill="#C8C8B0" />
+	<ellipse cx="0" cy="2.5" rx="1.8" ry="1.2" fill="#E0E0D0" />
+	<!-- Fuzzy texture dots -->
+	<circle cx="1" cy="-2" r="0.3" fill="#C8C8B0" />
+	<circle cx="-0.8" cy="0.5" r="0.3" fill="#E0E0D0" />
+	<circle cx="0.5" cy="2" r="0.3" fill="#C8C8B0" />
+</g>

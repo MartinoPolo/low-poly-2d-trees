@@ -110,5 +110,10 @@ export function isParamDisabled(
 		return true;
 	}
 
+	// Fruit type is locked for non-custom shapes (auto-set from SHAPE_FRUIT_MAP)
+	if (param === 'fruitType' && shape !== TREE_SHAPES.custom) {
+		return true;
+	}
+
 	return false;
 }

@@ -1,4 +1,11 @@
-import { DEFAULT_TREE_CONFIG, TREE_SHAPES, type CustomBlob, type TreeConfig } from './types.js';
+import {
+	DEFAULT_TREE_CONFIG,
+	TREE_SHAPES,
+	FRUIT_TYPES,
+	type CustomBlob,
+	type TreeConfig,
+	type FruitType,
+} from './types.js';
 
 /** Strip readonly from all properties so `bind:value` can write through the deep proxy. */
 type Mutable<T> = { -readonly [K in keyof T]: T[K] };
@@ -36,6 +43,11 @@ class TreeConfigState {
 		const migrated = { ...DEFAULT_TREE_CONFIG, ...config };
 		if (legacy.branchCount !== undefined && !('branchesLevel1Range' in config)) {
 			migrated.branchesLevel1Range = [legacy.branchCount, legacy.branchCount];
+		}
+		// Migrate removed fruit types from old configs
+		const validFruitTypes = new Set<string>(Object.values(FRUIT_TYPES));
+		if (!validFruitTypes.has(migrated.fruitType)) {
+			migrated.fruitType = FRUIT_TYPES.none as FruitType;
 		}
 		this.current = migrated;
 		this.customBlobs = config.customBlobs ?? [];

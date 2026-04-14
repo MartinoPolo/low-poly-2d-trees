@@ -1,202 +1,88 @@
 import { describe, it, expect } from 'vitest';
-import { FRUIT_TYPES, FRUIT_TYPE_OPTIONS, FRUIT_SPECS } from './types.js';
+import { FRUIT_TYPES, FRUIT_TYPE_OPTIONS } from './types.js';
 import { GEOMETRY_GROUPS } from './types.js';
-import { createPrng } from './prng.js';
 
 // ============================================================================
 // Fruit type definitions
 // ============================================================================
 
 describe('Fruit type definitions', () => {
-	it('FRUIT_TYPES has none, apple, cherry, flower', () => {
+	it('FRUIT_TYPES has 13 entries (none + 12 fruit types)', () => {
+		expect(Object.keys(FRUIT_TYPES)).toHaveLength(13);
+	});
+
+	it('FRUIT_TYPES includes all expected keys', () => {
 		expect(FRUIT_TYPES).toEqual({
 			none: 'none',
+			acorn: 'acorn',
+			catkin_birch: 'catkin_birch',
+			samara: 'samara',
+			pine_cone: 'pine_cone',
+			fir_cone: 'fir_cone',
+			catkin_willow: 'catkin_willow',
+			small_cone: 'small_cone',
 			apple: 'apple',
-			cherry: 'cherry',
-			flower: 'flower',
+			cherry_pair: 'cherry_pair',
+			berry: 'berry',
+			baobab_fruit: 'baobab_fruit',
+			seed_pod: 'seed_pod',
 		});
 	});
 
-	it('FRUIT_TYPE_OPTIONS provides labeled options for LabeledSelect', () => {
-		expect(FRUIT_TYPE_OPTIONS).toEqual([
-			{ value: 'none', label: 'None' },
-			{ value: 'apple', label: 'Apple' },
-			{ value: 'cherry', label: 'Cherry' },
-			{ value: 'flower', label: 'Flower' },
-		]);
+	it('FRUIT_TYPE_OPTIONS has 13 entries', () => {
+		expect(FRUIT_TYPE_OPTIONS).toHaveLength(13);
 	});
 
-	it('FRUIT_SPECS maps non-none types to color and generateShape', () => {
-		expect(FRUIT_SPECS.apple.color).toBe('#e53e3e');
-		expect(FRUIT_SPECS.cherry.color).toBe('#9b2c2c');
-		expect(FRUIT_SPECS.flower.color).toBe('#ed64a6');
-		expect(typeof FRUIT_SPECS.apple.generateShape).toBe('function');
-		expect(typeof FRUIT_SPECS.cherry.generateShape).toBe('function');
-		expect(typeof FRUIT_SPECS.flower.generateShape).toBe('function');
+	it('FRUIT_TYPE_OPTIONS provides labeled options for LabeledSelect', () => {
+		for (const option of FRUIT_TYPE_OPTIONS) {
+			expect(typeof option.value).toBe('string');
+			expect(typeof option.label).toBe('string');
+		}
+		// Verify first and last
+		expect(FRUIT_TYPE_OPTIONS[0]).toEqual({ value: 'none', label: 'None' });
+		expect(FRUIT_TYPE_OPTIONS[FRUIT_TYPE_OPTIONS.length - 1]).toEqual({
+			value: 'seed_pod',
+			label: 'Seed Pod',
+		});
 	});
 });
 
 // ============================================================================
-// GEOMETRY_GROUPS includes fruit
+// GEOMETRY_GROUPS includes fruit and flower
 // ============================================================================
 
-describe('GEOMETRY_GROUPS includes fruit', () => {
+describe('GEOMETRY_GROUPS includes fruit and flower', () => {
 	it('has a fruit group', () => {
 		expect(GEOMETRY_GROUPS.fruit).toBe('fruit');
 	});
+
+	it('has a flower group', () => {
+		expect(GEOMETRY_GROUPS.flower).toBe('flower');
+	});
 });
 
 // ============================================================================
-// Fruit geometry generation
+// FRUIT_SVG_COMPONENTS map
 // ============================================================================
 
-describe('generateApple', () => {
-	it('returns array of triangles (each 3 Point2D), 5-6 total', async () => {
-		const { generateApple } = await import('./shapes/fruit_geometry.js');
-		const rng = createPrng(42);
-		const result = generateApple(50, 50, 4, rng);
-		expect(result.length).toBeGreaterThanOrEqual(5);
-		expect(result.length).toBeLessThanOrEqual(6);
-		for (const tri of result) {
-			expect(tri).toHaveLength(3);
-			for (const pt of tri) {
-				expect(typeof pt.x).toBe('number');
-				expect(typeof pt.y).toBe('number');
-			}
+describe('FRUIT_SVG_COMPONENTS', () => {
+	it('has exactly 12 entries (all non-none fruit types)', async () => {
+		const mod = await import('./shapes/fruit_geometry.js');
+		expect(Object.keys(mod.FRUIT_SVG_COMPONENTS)).toHaveLength(12);
+	});
+
+	it('every key corresponds to a non-none FRUIT_TYPES value', async () => {
+		const mod = await import('./shapes/fruit_geometry.js');
+		const nonNoneTypes = Object.values(FRUIT_TYPES).filter((t) => t !== 'none');
+		for (const fruitType of nonNoneTypes) {
+			expect(mod.FRUIT_SVG_COMPONENTS).toHaveProperty(fruitType);
 		}
 	});
 
-	it('all points lie within reasonable radius of anchor', async () => {
-		const { generateApple } = await import('./shapes/fruit_geometry.js');
-		const rng = createPrng(42);
-		const cx = 100;
-		const cy = 100;
-		const size = 4;
-		const result = generateApple(cx, cy, size, rng);
-		const maxRadius = size * 2;
-		for (const tri of result) {
-			for (const pt of tri) {
-				const dx = pt.x - cx;
-				const dy = pt.y - cy;
-				expect(Math.sqrt(dx * dx + dy * dy)).toBeLessThan(maxRadius);
-			}
-		}
-	});
-});
-
-describe('generateCherry', () => {
-	it('returns two groups of 3-4 triangles each', async () => {
-		const { generateCherry } = await import('./shapes/fruit_geometry.js');
-		const rng = createPrng(42);
-		const result = generateCherry(50, 50, 3, rng);
-		// Two cherries = 6-8 triangles total, plus stem triangles
-		expect(result.length).toBeGreaterThanOrEqual(6);
-		expect(result.length).toBeLessThanOrEqual(12);
-		for (const tri of result) {
-			expect(tri).toHaveLength(3);
-		}
-	});
-
-	it('all points lie within reasonable radius of anchor', async () => {
-		const { generateCherry } = await import('./shapes/fruit_geometry.js');
-		const rng = createPrng(42);
-		const cx = 100;
-		const cy = 100;
-		const size = 3;
-		const result = generateCherry(cx, cy, size, rng);
-		const maxRadius = size * 4;
-		for (const tri of result) {
-			for (const pt of tri) {
-				const dx = pt.x - cx;
-				const dy = pt.y - cy;
-				expect(Math.sqrt(dx * dx + dy * dy)).toBeLessThan(maxRadius);
-			}
-		}
-	});
-});
-
-describe('generateFlower', () => {
-	it('returns 4 triangles in diamond arrangement', async () => {
-		const { generateFlower } = await import('./shapes/fruit_geometry.js');
-		const rng = createPrng(42);
-		const result = generateFlower(50, 50, 4, rng);
-		expect(result).toHaveLength(4);
-		for (const tri of result) {
-			expect(tri).toHaveLength(3);
-		}
-	});
-
-	it('all points lie within reasonable radius of anchor', async () => {
-		const { generateFlower } = await import('./shapes/fruit_geometry.js');
-		const rng = createPrng(42);
-		const cx = 100;
-		const cy = 100;
-		const size = 4;
-		const result = generateFlower(cx, cy, size, rng);
-		const maxRadius = size * 2;
-		for (const tri of result) {
-			for (const pt of tri) {
-				const dx = pt.x - cx;
-				const dy = pt.y - cy;
-				expect(Math.sqrt(dx * dx + dy * dy)).toBeLessThan(maxRadius);
-			}
-		}
-	});
-});
-
-describe('generateFruitAtSlots', () => {
-	it('with apple produces triangles with red color and fruit group', async () => {
-		const { generateFruitAtSlots } = await import('./shapes/fruit_geometry.js');
-		const rng = createPrng(42);
-		const slots = [
-			{ x: 50, y: 50 },
-			{ x: 80, y: 80 },
-		];
-		const result = generateFruitAtSlots('apple', slots, rng);
-		expect(result.length).toBeGreaterThan(0);
-		for (const tri of result) {
-			expect(tri.color).toBe('#e53e3e');
-			expect(tri.group).toBe(GEOMETRY_GROUPS.fruit);
-			expect(tri.points).toHaveLength(3);
-		}
-	});
-
-	it('with none returns empty array', async () => {
-		const { generateFruitAtSlots } = await import('./shapes/fruit_geometry.js');
-		const rng = createPrng(42);
-		const slots = [{ x: 50, y: 50 }];
-		const result = generateFruitAtSlots('none', slots, rng);
-		expect(result).toEqual([]);
-	});
-
-	it('with empty slots returns empty array', async () => {
-		const { generateFruitAtSlots } = await import('./shapes/fruit_geometry.js');
-		const rng = createPrng(42);
-		const result = generateFruitAtSlots('apple', [], rng);
-		expect(result).toEqual([]);
-	});
-
-	it('cherry triangles have cherry color', async () => {
-		const { generateFruitAtSlots } = await import('./shapes/fruit_geometry.js');
-		const rng = createPrng(42);
-		const slots = [{ x: 50, y: 50 }];
-		const result = generateFruitAtSlots('cherry', slots, rng);
-		expect(result.length).toBeGreaterThan(0);
-		for (const tri of result) {
-			expect(tri.color).toBe('#9b2c2c');
-			expect(tri.group).toBe(GEOMETRY_GROUPS.fruit);
-		}
-	});
-
-	it('flower triangles have flower color', async () => {
-		const { generateFruitAtSlots } = await import('./shapes/fruit_geometry.js');
-		const rng = createPrng(42);
-		const slots = [{ x: 50, y: 50 }];
-		const result = generateFruitAtSlots('flower', slots, rng);
-		expect(result.length).toBeGreaterThan(0);
-		for (const tri of result) {
-			expect(tri.color).toBe('#ed64a6');
-			expect(tri.group).toBe(GEOMETRY_GROUPS.fruit);
+	it('each entry is a Svelte component (function)', async () => {
+		const mod = await import('./shapes/fruit_geometry.js');
+		for (const component of Object.values(mod.FRUIT_SVG_COMPONENTS)) {
+			expect(typeof component).toBe('function');
 		}
 	});
 });

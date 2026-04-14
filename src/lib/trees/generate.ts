@@ -11,13 +11,7 @@ import type {
 	Tier,
 	TreeShape,
 } from './types.js';
-import {
-	GEOMETRY_GROUPS,
-	VIEWBOX_WIDTH,
-	VIEWBOX_HEIGHT,
-	TREE_SHAPES,
-	FRUIT_TYPES,
-} from './types.js';
+import { GEOMETRY_GROUPS, VIEWBOX_WIDTH, VIEWBOX_HEIGHT, TREE_SHAPES } from './types.js';
 import { applyStageModifiers, generateStakeTriangles } from './stages/index.js';
 import { createPrng, poissonSample } from './prng.js';
 import {
@@ -38,7 +32,6 @@ import {
 	buildTrunkPath,
 	sampleTrunkCenterX,
 	generateCustomBlobs,
-	generateFruitAtSlots,
 	CUSTOM_BLOB_CANOPY_CENTER_X,
 	CUSTOM_BLOB_CANOPY_CENTER_Y,
 	CUSTOM_BLOB_SPREAD_RADIUS,
@@ -520,18 +513,37 @@ function generateTierCanopy(
 // Main entry point
 // ---------------------------------------------------------------------------
 
+interface StageFlags {
+	readonly addStakes: boolean;
+	readonly addFruit: boolean;
+	readonly addFlowers: boolean;
+	readonly addFallingLeaves: boolean;
+}
+
+const DEFAULT_STAGE_FLAGS: StageFlags = {
+	addStakes: false,
+	addFruit: false,
+	addFlowers: false,
+	addFallingLeaves: false,
+};
+
 export function generateTree(config: TreeConfig): TreeGeometry {
 	if (config.shape !== TREE_SHAPES.custom) {
 		const stageResult = applyStageModifiers(config);
 		if (stageResult.kind === 'directGeometry') {
 			return stageResult.geometry;
 		}
-		return generateTreeCore(stageResult.config, stageResult.addStakes, stageResult.addFruit);
+		return generateTreeCore(stageResult.config, {
+			addStakes: stageResult.addStakes,
+			addFruit: stageResult.addFruit,
+			addFlowers: stageResult.addFlowers,
+			addFallingLeaves: stageResult.addFallingLeaves,
+		});
 	}
-	return generateTreeCore(config, false, false);
+	return generateTreeCore(config, DEFAULT_STAGE_FLAGS);
 }
 
-function generateTreeCore(config: TreeConfig, addStakes: boolean, addFruit: boolean): TreeGeometry {
+function generateTreeCore(config: TreeConfig, flags: StageFlags): TreeGeometry {
 	const rng = createPrng(config.seed);
 	const shapeDef = getShapeDefinition(config.shape);
 	const isTiered = TIERED_SHAPES.has(config.shape);
@@ -657,31 +669,21 @@ function generateTreeCore(config: TreeConfig, addStakes: boolean, addFruit: bool
 		config.seed,
 	);
 
-	const effectiveFruitType = config.fruitType;
 	const effectiveFruitCount = Math.min(config.fruitCount, FRUIT_COUNT_CAP);
-	let fruitTriangles: Triangle[] = [];
-
-	if (effectiveFruitType !== FRUIT_TYPES.none && effectiveFruitCount > 0) {
-		const fruitSlots = [...anchors.fruitSlots];
-		const fruitRng = createPrng(config.seed + FRUIT_SLOTS_SEED_OFFSET + 2000);
-		fruitTriangles = generateFruitAtSlots(
-			effectiveFruitType,
-			fruitSlots.slice(0, effectiveFruitCount),
-			fruitRng,
-		);
-	}
-
-	const stakeTriangles = addStakes ? generateStakeTriangles(anchors) : [];
-	const fruitSlotsResult = addFruit ? anchors.fruitSlots : [];
+	const stakeTriangles = flags.addStakes ? generateStakeTriangles(anchors) : [];
+	const fruitSlotsResult = flags.addFruit ? anchors.fruitSlots.slice(0, effectiveFruitCount) : [];
+	const flowerSlotsResult = flags.addFlowers ? anchors.fruitSlots : [];
 
 	return {
 		trunkQuads,
 		trunkTriangles: [],
 		branchGroups,
 		canopyBlobs,
-		fruitTriangles,
+		fruitTriangles: [],
 		stakeTriangles,
 		fruitSlots: fruitSlotsResult,
+		flowerSlots: flowerSlotsResult,
+		showFallingLeaves: flags.addFallingLeaves,
 		anchors,
 		viewBox: { width: VIEWBOX_WIDTH, height: VIEWBOX_HEIGHT },
 	};

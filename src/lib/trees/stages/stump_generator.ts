@@ -70,6 +70,8 @@ export function generateStumpGeometry(): TreeGeometry {
 		fruitTriangles: [],
 		stakeTriangles: [],
 		fruitSlots: [],
+		flowerSlots: [],
+		showFallingLeaves: false,
 		anchors,
 		viewBox: { width: VIEWBOX_WIDTH, height: VIEWBOX_HEIGHT },
 	};

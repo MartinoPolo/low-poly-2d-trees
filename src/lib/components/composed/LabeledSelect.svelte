@@ -17,6 +17,7 @@
 		value: string;
 		onValueChange?: (value: string) => void;
 		placeholder?: string;
+		disabled?: boolean;
 		class?: string;
 		triggerClass?: string;
 		customItems?: Snippet;
@@ -28,6 +29,7 @@
 		value,
 		onValueChange,
 		placeholder = 'Select\u2026',
+		disabled = false,
 		class: className,
 		triggerClass = 'w-full',
 		customItems,
@@ -41,7 +43,7 @@
 <div class="space-y-2 {className ?? ''}">
 	<Label>{labelText}</Label>
 	{#if browser}
-		<Select.Root type="single" {value} {onValueChange}>
+		<Select.Root type="single" {value} {onValueChange} {disabled}>
 			<Select.Trigger class={triggerClass}>{triggerText}</Select.Trigger>
 			<Select.Content>
 				{#if customItems}

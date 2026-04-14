@@ -1,43 +1,35 @@
-import type { Point2D, Triangle } from '../types/core.js';
-import { GEOMETRY_GROUPS } from '../types/core.js';
-import { FRUIT_TYPES, FRUIT_SPECS, type FruitType } from '../types/fruit.js';
+import { FRUIT_TYPES, type FruitType } from '../types/fruit.js';
+import type { Component } from 'svelte';
+import {
+	AcornSvg,
+	CatkinBirchSvg,
+	SamaraSvg,
+	PineConeSvg,
+	FirConeSvg,
+	CatkinWillowSvg,
+	SmallConeSvg,
+	AppleSvg,
+	CherryPairSvg,
+	BerrySvg,
+	BaobabFruitSvg,
+	SeedPodSvg,
+} from '../assets/fruits/index.js';
 
 /**
- * Re-export individual shape generators for direct testing.
- * The canonical implementations live in FRUIT_SPECS (types/fruit.ts).
+ * Maps each non-none fruit type to its SVG Svelte component.
+ * The renderer places these at fruit slot positions via `<svelte:component>`.
  */
-export const generateApple = FRUIT_SPECS[FRUIT_TYPES.apple].generateShape;
-export const generateCherry = FRUIT_SPECS[FRUIT_TYPES.cherry].generateShape;
-export const generateFlower = FRUIT_SPECS[FRUIT_TYPES.flower].generateShape;
-
-const DEFAULT_FRUIT_SIZE = 4;
-
-/**
- * Dispatches to the correct shape generator per slot, applies FRUIT_SPECS color,
- * sets group to GEOMETRY_GROUPS.fruit.
- */
-export function generateFruitAtSlots(
-	fruitType: FruitType,
-	slots: readonly Point2D[],
-	rng: () => number,
-): Triangle[] {
-	if (fruitType === FRUIT_TYPES.none || slots.length === 0) {
-		return [];
-	}
-
-	const spec = FRUIT_SPECS[fruitType];
-	const triangles: Triangle[] = [];
-
-	for (const slot of slots) {
-		const shapeTriangles = spec.generateShape(slot.x, slot.y, DEFAULT_FRUIT_SIZE, rng);
-		for (const points of shapeTriangles) {
-			triangles.push({
-				points,
-				color: spec.color,
-				group: GEOMETRY_GROUPS.fruit,
-			});
-		}
-	}
-
-	return triangles;
-}
+export const FRUIT_SVG_COMPONENTS: Record<Exclude<FruitType, 'none'>, Component> = {
+	[FRUIT_TYPES.acorn]: AcornSvg,
+	[FRUIT_TYPES.catkin_birch]: CatkinBirchSvg,
+	[FRUIT_TYPES.samara]: SamaraSvg,
+	[FRUIT_TYPES.pine_cone]: PineConeSvg,
+	[FRUIT_TYPES.fir_cone]: FirConeSvg,
+	[FRUIT_TYPES.catkin_willow]: CatkinWillowSvg,
+	[FRUIT_TYPES.small_cone]: SmallConeSvg,
+	[FRUIT_TYPES.apple]: AppleSvg,
+	[FRUIT_TYPES.cherry_pair]: CherryPairSvg,
+	[FRUIT_TYPES.berry]: BerrySvg,
+	[FRUIT_TYPES.baobab_fruit]: BaobabFruitSvg,
+	[FRUIT_TYPES.seed_pod]: SeedPodSvg,
+};
