@@ -1,5 +1,7 @@
 <script lang="ts">
 	import LowPolyTree from '$lib/trees/LowPolyTree.svelte';
+	import PottedPlant from '$lib/trees/PottedPlant.svelte';
+	import OakTree from '$lib/trees/OakTree.svelte';
 	import LabeledSelect from '$lib/components/composed/LabeledSelect.svelte';
 	import {
 		DEFAULT_TREE_CONFIG,
@@ -8,6 +10,7 @@
 		TREE_STAGES,
 		TREE_STAGE_OPTIONS,
 		SHAPE_FRUIT_MAP,
+		POTTED_PLANT_STAGES,
 		isTreeStage,
 		type TreeConfig,
 		type TreeShape,
@@ -18,6 +21,7 @@
 	const allShapes = Object.values(TREE_SHAPES).filter(
 		(s): s is Exclude<TreeShape, 'custom'> => s !== 'custom',
 	);
+	const allPlantStages = Object.values(POTTED_PLANT_STAGES);
 
 	const stageConfigs: ReadonlyMap<TreeStage, TreeConfig> = new Map(
 		allStages.map((stage) => [
@@ -48,6 +52,8 @@
 	}
 
 	const selectedConfig = $derived(stageConfigs.get(selectedStage)!);
+
+	const oakCompletionRatios = [0, 0.25, 0.5, 0.75, 1.0];
 </script>
 
 <svelte:head>
@@ -103,6 +109,51 @@
 					>
 				</div>
 			{/each}
+		</div>
+
+		<h2 class="text-xl font-semibold">Potted Plants</h2>
+
+		<div class="grid grid-cols-3 gap-4 sm:grid-cols-5">
+			{#each allPlantStages as plantStage (plantStage)}
+				<div class="flex flex-col items-center gap-2">
+					<div class="w-full rounded-lg border border-border bg-muted/20 p-2">
+						<PottedPlant stage={plantStage} class="h-auto w-full" />
+					</div>
+					<span class="text-xs font-medium capitalize text-muted-foreground"
+						>{plantStage}</span
+					>
+				</div>
+			{/each}
+		</div>
+
+		<h2 class="text-xl font-semibold">Oak PRD Tree (Completion Tracking)</h2>
+
+		<div class="grid grid-cols-3 gap-4 sm:grid-cols-5">
+			{#each oakCompletionRatios as ratio (ratio)}
+				<div class="flex flex-col items-center gap-2">
+					<div class="w-full rounded-lg border border-border bg-muted/20 p-2">
+						<OakTree completionRatio={ratio} issueCount={10} class="h-auto w-full" />
+					</div>
+					<span class="text-xs font-medium text-muted-foreground"
+						>{Math.round(ratio * 100)}%</span
+					>
+				</div>
+			{/each}
+		</div>
+
+		<h2 class="text-xl font-semibold">Oak PRD Tree with Nameplate</h2>
+
+		<div
+			class="flex items-center justify-center rounded-xl border border-border bg-muted/30 p-8"
+		>
+			<div class="w-full max-w-xs">
+				<OakTree
+					completionRatio={0.7}
+					issueCount={15}
+					name="My PRD"
+					class="h-auto w-full"
+				/>
+			</div>
 		</div>
 	</div>
 </main>

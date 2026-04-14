@@ -5,6 +5,7 @@ export const GEOMETRY_GROUPS = {
 	fruit: 'fruit',
 	flower: 'flower',
 	stake: 'stake',
+	pot: 'pot',
 } as const;
 
 export type GeometryGroup = (typeof GEOMETRY_GROUPS)[keyof typeof GEOMETRY_GROUPS];
