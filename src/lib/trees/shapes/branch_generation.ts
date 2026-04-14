@@ -1,4 +1,5 @@
 import type { TreeConfig, Point2D } from '../types.js';
+import { VIEWBOX_WIDTH } from '../types.js';
 import { randomInRange } from '../prng.js';
 import { sampleTrunkCenterX } from './trunk.js';
 import { isPointInSingleBlob, getBlobsBounds } from './shape_bounds.js';
@@ -35,9 +36,9 @@ const TRUNK_BRANCH_WIDTH_END_MAX = 5.25;
 
 const BRANCH_RETRY_ATTEMPTS = 5;
 
-// Base length ranges for branches at branchLength=100.
-const TRUNK_BRANCH_BASE_MIN = 40;
-const TRUNK_BRANCH_BASE_MAX = 80;
+// Base length ranges for branches at branchLength=100 (proportional to viewport).
+const TRUNK_BRANCH_BASE_MIN = VIEWBOX_WIDTH * 0.2;
+const TRUNK_BRANCH_BASE_MAX = VIEWBOX_WIDTH * 0.4;
 
 // ---------------------------------------------------------------------------
 // Internal types

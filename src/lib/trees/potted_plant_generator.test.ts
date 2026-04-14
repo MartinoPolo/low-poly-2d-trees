@@ -36,9 +36,9 @@ describe('potted plant — all stages return valid TreeGeometry', () => {
 	const allStages = Object.values(POTTED_PLANT_STAGES);
 
 	for (const stage of allStages) {
-		it(`${stage}: viewBox 200x300, valid anchors, all arrays present`, () => {
+		it(`${stage}: viewBox 300x300, valid anchors, all arrays present`, () => {
 			const geo = generatePottedPlant(makeConfig({ stage }));
-			expect(geo.viewBox.width).toBe(200);
+			expect(geo.viewBox.width).toBe(300);
 			expect(geo.viewBox.height).toBe(300);
 			expect(hasValidAnchors(geo)).toBe(true);
 			expect(Array.isArray(geo.trunkQuads)).toBe(true);
@@ -177,15 +177,15 @@ describe('dried stage', () => {
 });
 
 describe('pot is wide planter style', () => {
-	it('pot geometry spans ~120px wide (60% of viewBox width)', () => {
+	it('pot geometry spans ~180px wide (60% of viewBox width)', () => {
 		const geo = generatePottedPlant(makeConfig({ stage: POTTED_PLANT_STAGES.potWithSoil }));
 		const potTriangles = geo.trunkTriangles.filter((t) => t.group === GEOMETRY_GROUPS.pot);
 		const allX = potTriangles.flatMap((t) => t.points.map((p) => p.x));
 		const minX = Math.min(...allX);
 		const maxX = Math.max(...allX);
 		const potWidth = maxX - minX;
-		expect(potWidth).toBeGreaterThanOrEqual(100);
-		expect(potWidth).toBeLessThanOrEqual(140);
+		expect(potWidth).toBeGreaterThanOrEqual(150); // POT_BOTTOM_WIDTH = 0.5 * 300
+		expect(potWidth).toBeLessThanOrEqual(200); // POT_TOP_WIDTH = 0.6 * 300 + margin
 	});
 });
 
@@ -194,7 +194,7 @@ describe('anchors are pot-relative', () => {
 		const geo = generatePottedPlant(makeConfig({ stage: POTTED_PLANT_STAGES.sprout }));
 		// potTopY = GROUND_LINE_Y - 40 = 285 - 40 = 245
 		expect(geo.anchors.trunkBase.y).toBe(245);
-		expect(geo.anchors.trunkBase.x).toBe(100); // cx = 200/2
+		expect(geo.anchors.trunkBase.x).toBe(150); // cx = 300/2
 	});
 
 	it('roots at pot bottom', () => {

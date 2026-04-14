@@ -455,7 +455,7 @@ export const SHAPE_DEFAULTS = {
 	>
 >;
 
-export const VIEWBOX_WIDTH = 200;
+export const VIEWBOX_WIDTH = 300;
 export const VIEWBOX_HEIGHT = 300;
 
 export function isTreeStage(value: string): value is TreeStage {
