@@ -10,6 +10,12 @@ const SHAPE_LABELS: Record<TreeShape, string> = {
 	[TREE_SHAPES.fir]: 'Fir',
 	[TREE_SHAPES.maple]: 'Maple',
 	[TREE_SHAPES.willow]: 'Willow',
+	[TREE_SHAPES.cypress]: 'Cypress',
+	[TREE_SHAPES.apple]: 'Apple',
+	[TREE_SHAPES.cherry]: 'Cherry',
+	[TREE_SHAPES.bush]: 'Bush',
+	[TREE_SHAPES.baobab]: 'Baobab',
+	[TREE_SHAPES.acacia]: 'Acacia',
 	[TREE_SHAPES.custom]: 'Custom',
 } as const;
 

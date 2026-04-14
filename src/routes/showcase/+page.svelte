@@ -4,16 +4,29 @@
 	import {
 		DEFAULT_TREE_CONFIG,
 		TREE_STAGES,
+		TREE_SHAPES,
 		TREE_STAGE_OPTIONS,
+		SHAPE_DEFAULTS,
 		isTreeStage,
 		type TreeConfig,
 		type TreeStage,
+		type TreeShape,
 	} from '$lib/trees/types.js';
 
 	const allStages = Object.values(TREE_STAGES);
+	const allShapes = Object.values(TREE_SHAPES).filter(
+		(s): s is Exclude<TreeShape, 'custom'> => s !== 'custom',
+	);
 
 	const stageConfigs: ReadonlyMap<TreeStage, TreeConfig> = new Map(
 		allStages.map((stage) => [stage, { ...DEFAULT_TREE_CONFIG, stage }]),
+	);
+
+	const shapeConfigs: ReadonlyMap<Exclude<TreeShape, 'custom'>, TreeConfig> = new Map(
+		allShapes.map((shape) => [
+			shape,
+			{ ...DEFAULT_TREE_CONFIG, ...SHAPE_DEFAULTS[shape], shape, stage: TREE_STAGES.leafy },
+		]),
 	);
 
 	let selectedStage = $state<TreeStage>(TREE_STAGES.leafy);
@@ -64,6 +77,20 @@
 						<LowPolyTree config={stageConfigs.get(stage)!} class="h-auto w-full" />
 					</div>
 					<span class="text-xs font-medium capitalize text-muted-foreground">{stage}</span
+					>
+				</div>
+			{/each}
+		</div>
+
+		<h2 class="text-xl font-semibold">All Shapes</h2>
+
+		<div class="grid grid-cols-3 gap-4 sm:grid-cols-4 md:grid-cols-6">
+			{#each allShapes as shape (shape)}
+				<div class="flex flex-col items-center gap-2">
+					<div class="w-full rounded-lg border border-border bg-muted/20 p-2">
+						<LowPolyTree config={shapeConfigs.get(shape)!} class="h-auto w-full" />
+					</div>
+					<span class="text-xs font-medium capitalize text-muted-foreground">{shape}</span
 					>
 				</div>
 			{/each}

@@ -18,12 +18,27 @@ describe('DISABLED_PARAMS_BY_SHAPE', () => {
 		expect(DISABLED_PARAMS_BY_SHAPE.fir).toEqual(DISABLED_PARAMS_BY_SHAPE.pine);
 	});
 
-	it('oak, birch, maple, willow, custom have empty disabled lists', () => {
+	it('oak, birch, maple, willow, apple, cherry, baobab, acacia, custom have empty disabled lists', () => {
 		expect(DISABLED_PARAMS_BY_SHAPE.oak).toEqual([]);
 		expect(DISABLED_PARAMS_BY_SHAPE.birch).toEqual([]);
 		expect(DISABLED_PARAMS_BY_SHAPE.maple).toEqual([]);
 		expect(DISABLED_PARAMS_BY_SHAPE.willow).toEqual([]);
+		expect(DISABLED_PARAMS_BY_SHAPE.apple).toEqual([]);
+		expect(DISABLED_PARAMS_BY_SHAPE.cherry).toEqual([]);
+		expect(DISABLED_PARAMS_BY_SHAPE.baobab).toEqual([]);
+		expect(DISABLED_PARAMS_BY_SHAPE.acacia).toEqual([]);
 		expect(DISABLED_PARAMS_BY_SHAPE.custom).toEqual([]);
+	});
+
+	it('cypress disables same 7 branch params as pine', () => {
+		expect(DISABLED_PARAMS_BY_SHAPE.cypress).toEqual(DISABLED_PARAMS_BY_SHAPE.pine);
+	});
+
+	it('bush disables all branch + trunk params (ground-level shrub)', () => {
+		expect(DISABLED_PARAMS_BY_SHAPE.bush).toContain('branchesLevel1Range');
+		expect(DISABLED_PARAMS_BY_SHAPE.bush).toContain('trunkThickness');
+		expect(DISABLED_PARAMS_BY_SHAPE.bush).toContain('trunkHeight');
+		expect(DISABLED_PARAMS_BY_SHAPE.bush).toContain('trunkLean');
 	});
 });
 

@@ -56,6 +56,11 @@ const SHAPES_WITH_ACUTE_SMOOTHING = new Set<TreeShape>([
 	TREE_SHAPES.birch,
 	TREE_SHAPES.maple,
 	TREE_SHAPES.willow,
+	TREE_SHAPES.apple,
+	TREE_SHAPES.cherry,
+	TREE_SHAPES.bush,
+	TREE_SHAPES.baobab,
+	TREE_SHAPES.acacia,
 ]);
 
 function triangulatePoints(
