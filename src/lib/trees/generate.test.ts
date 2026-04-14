@@ -1896,7 +1896,7 @@ describe('VQ-3: branchDepth config', () => {
 		// while sub-sub-branches use SUB_BRANCH_WIDTH_MIN (3.5) at scale 0.5 = 1.75.
 		// At least one branch should be thinner than the trunk-origin minimum.
 		const trunkMinWidthAtScale1 = 7; // TRUNK_BRANCH_WIDTH_START_MIN
-		const allWidths = branches.map((b) => b.widthStart);
+		const allWidths = branches.map((b) => b.segment.widthStart);
 		const minOverallWidth = Math.min(...allWidths);
 		expect(minOverallWidth).toBeLessThan(trunkMinWidthAtScale1);
 	});
@@ -1909,6 +1909,97 @@ describe('VQ-3: branchDepth config', () => {
 		for (let i = 0; i < geo1.branchGroups.length; i++) {
 			expect(geo1.branchGroups[i]!.origin).toEqual(geo2.branchGroups[i]!.origin);
 			expect(geo1.branchGroups[i]!.quads).toEqual(geo2.branchGroups[i]!.quads);
+		}
+	});
+});
+
+// ============================================================================
+// #83: Hierarchical branch nesting — parentIndex on BranchGeometry
+// ============================================================================
+
+describe('#83: hierarchical branch parentIndex', () => {
+	it('BranchGeometry includes parentIndex property', () => {
+		const config = makeConfig({
+			shape: TREE_SHAPES.oak,
+			branchDepth: 2,
+			branchesLevel1Range: [3, 5],
+			branchesLevel2Range: [1, 2],
+			seed: 42,
+		});
+		const geometry = generateTree(config);
+		for (const group of geometry.branchGroups) {
+			expect(group).toHaveProperty('parentIndex');
+		}
+	});
+
+	it('depth-2 branches have non-null parentIndex', () => {
+		const config = makeConfig({
+			shape: TREE_SHAPES.oak,
+			branchDepth: 2,
+			branchesLevel1Range: [3, 5],
+			branchesLevel2Range: [1, 2],
+			seed: 42,
+		});
+		const geometry = generateTree(config);
+		const hasParent = geometry.branchGroups.some((g) => g.parentIndex !== null);
+		expect(hasParent).toBe(true);
+	});
+
+	it('depth-2 branches reference valid parent indices with correct depth', () => {
+		const config = makeConfig({
+			shape: TREE_SHAPES.oak,
+			branchDepth: 2,
+			branchesLevel1Range: [3, 5],
+			branchesLevel2Range: [1, 2],
+			seed: 42,
+		});
+		const geometry = generateTree(config);
+		for (const group of geometry.branchGroups) {
+			if (group.parentIndex !== null) {
+				expect(group.parentIndex).toBeGreaterThanOrEqual(0);
+				expect(group.parentIndex).toBeLessThan(geometry.branchGroups.length);
+				expect(geometry.branchGroups[group.parentIndex]!.depth).toBe(group.depth - 1);
+			}
+		}
+	});
+
+	it('depth-1 branches have parentIndex null', () => {
+		const config = makeConfig({
+			shape: TREE_SHAPES.oak,
+			branchDepth: 2,
+			branchesLevel1Range: [3, 5],
+			branchesLevel2Range: [1, 2],
+			seed: 42,
+		});
+		const geometry = generateTree(config);
+		for (const group of geometry.branchGroups) {
+			if (group.depth === 1) {
+				expect(group.parentIndex).toBeNull();
+			}
+		}
+	});
+
+	it('generateBranches returns GeneratedBranch[] with depth and parentIndex', () => {
+		const blobs: Blob[] = [{ cx: 100, cy: 100, rx: 60, ry: 60, boundary: 'circle' }];
+		const trunkJunctions = [
+			{ x: 100, y: 260 },
+			{ x: 100, y: 80 },
+		];
+		const config = makeConfig({
+			branchesLevel1Range: [3, 3],
+			branchesLevel2Range: [1, 2],
+			branchDepth: 2,
+			seed: 42,
+		});
+		const rng = createPrng(42 + 7777);
+		const branches = generateBranches(rng, 80, 260, 5, config, trunkJunctions, blobs);
+		expect(branches.length).toBeGreaterThan(0);
+		for (const b of branches) {
+			expect(b).toHaveProperty('segment');
+			expect(b).toHaveProperty('depth');
+			expect(b).toHaveProperty('parentIndex');
+			expect(b.segment).toHaveProperty('x1');
+			expect(b.segment).toHaveProperty('y1');
 		}
 	});
 });

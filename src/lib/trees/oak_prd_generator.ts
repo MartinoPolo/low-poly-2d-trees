@@ -50,6 +50,7 @@ function scaleBranchGeometry(branch: BranchGeometry): BranchGeometry {
 		junctionFills: branch.junctionFills.map(scaleQuad),
 		origin: scalePoint(branch.origin),
 		depth: branch.depth,
+		parentIndex: branch.parentIndex,
 	};
 }
 

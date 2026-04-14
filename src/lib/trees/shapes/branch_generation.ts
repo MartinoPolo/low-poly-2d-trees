@@ -40,10 +40,10 @@ const TRUNK_BRANCH_BASE_MIN = 40;
 const TRUNK_BRANCH_BASE_MAX = 80;
 
 // ---------------------------------------------------------------------------
-// Internal types
+// Public enriched branch type
 // ---------------------------------------------------------------------------
 
-interface InternalBranch {
+export interface GeneratedBranch {
 	readonly segment: BranchSegment;
 	readonly depth: number;
 	readonly parentIndex: number | null;
@@ -156,7 +156,7 @@ function sampleBranchCountForLevel(rng: () => number, config: TreeConfig, depth:
  */
 function overlapsAnySameDepth(
 	candidate: BranchSegment,
-	branches: readonly InternalBranch[],
+	branches: readonly GeneratedBranch[],
 	depth: number,
 	excludeParentSegment?: BranchSegment,
 ): boolean {
@@ -178,7 +178,7 @@ function overlapsAnySameDepth(
 // Branch generation — trunk-origin (depth 1)
 // ---------------------------------------------------------------------------
 
-function generateTrunkBranches(ctx: BranchContext, branches: InternalBranch[]): void {
+function generateTrunkBranches(ctx: BranchContext, branches: GeneratedBranch[]): void {
 	const { rng, config, trunkJunctions, blobs, trunkTop, trunkAxisAngle } = ctx;
 	const trunkHeight = ctx.trunkBottom - trunkTop;
 	const count = sampleBranchCountForLevel(rng, config, 1);
@@ -276,7 +276,7 @@ function generateTrunkBranches(ctx: BranchContext, branches: InternalBranch[]): 
 
 function generateSubBranches(
 	ctx: BranchContext,
-	branches: InternalBranch[],
+	branches: GeneratedBranch[],
 	parentDepth: number,
 ): void {
 	const { rng, config, blobs } = ctx;
@@ -392,7 +392,7 @@ export function generateBranches(
 	config: TreeConfig,
 	trunkJunctions: readonly Point2D[],
 	blobs: readonly Blob[],
-): BranchSegment[] {
+): GeneratedBranch[] {
 	const branchDepth = config.branchDepth;
 	if (branchDepth <= 0) {
 		return [];
@@ -422,7 +422,7 @@ export function generateBranches(
 		branchThicknessScale,
 	};
 
-	const branches: InternalBranch[] = [];
+	const branches: GeneratedBranch[] = [];
 
 	// Depth 1: trunk-origin branches
 	generateTrunkBranches(ctx, branches);
@@ -460,5 +460,5 @@ export function generateBranches(
 		});
 	}
 
-	return branches.map((b) => b.segment);
+	return branches;
 }
