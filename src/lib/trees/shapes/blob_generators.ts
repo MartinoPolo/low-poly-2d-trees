@@ -241,6 +241,247 @@ function generateWillowBlobs(rng: () => number, blobCount: number): Blob[] {
 }
 
 // ---------------------------------------------------------------------------
+// Cypress blob generator (#63)
+// ---------------------------------------------------------------------------
+
+/**
+ * Cypress canopy: 1-2 tall teardrop blobs stacked vertically, forming a tall
+ * narrow column silhouette like an Italian pencil cypress.
+ */
+function generateCypressBlobs(rng: () => number, blobCount: number): Blob[] {
+	const blobs: Blob[] = [];
+	const centerX = W / 2;
+	const effectiveCount = Math.max(1, Math.min(blobCount, 3));
+
+	// Primary teardrop — tall and narrow, centered high
+	blobs.push({
+		cx: centerX,
+		cy: H * 0.22,
+		rx: W * 0.1,
+		ry: H * 0.22,
+		boundary: BOUNDARY_KINDS.teardrop,
+		rotationDeg: 0,
+	});
+
+	// Secondary teardrop stacked below
+	if (effectiveCount >= 2) {
+		blobs.push({
+			cx: centerX + randomInRange(rng, -2, 2),
+			cy: H * 0.4,
+			rx: W * 0.12,
+			ry: H * 0.18,
+			boundary: BOUNDARY_KINDS.teardrop,
+			rotationDeg: 0,
+		});
+	}
+
+	// Optional third blob for denser config
+	if (effectiveCount >= 3) {
+		blobs.push({
+			cx: centerX + randomInRange(rng, -3, 3),
+			cy: H * 0.32,
+			rx: W * 0.08,
+			ry: H * 0.14,
+			boundary: BOUNDARY_KINDS.circle,
+		});
+	}
+
+	return blobs;
+}
+
+// ---------------------------------------------------------------------------
+// Apple blob generator (#63)
+// ---------------------------------------------------------------------------
+
+/**
+ * Apple canopy: 1-3 round blobs forming a compact, round silhouette.
+ * Shorter and rounder than oak.
+ */
+function generateAppleBlobs(rng: () => number, blobCount: number): Blob[] {
+	const blobs: Blob[] = [];
+	const centerX = W / 2;
+	const canopyCenterY = H * 0.32;
+	const effectiveCount = Math.max(1, Math.min(blobCount, 4));
+
+	// Primary large round blob
+	const r = randomInRange(rng, W * 0.22, W * 0.3);
+	blobs.push({
+		cx: centerX,
+		cy: canopyCenterY,
+		rx: r,
+		ry: r * 0.9,
+		boundary: BOUNDARY_KINDS.circle,
+	});
+
+	// Secondary blobs tightly clustered around center
+	for (let i = 1; i < effectiveCount; i++) {
+		const angle = ((i - 1) / Math.max(1, effectiveCount - 1)) * Math.PI * 2;
+		const dist = randomInRange(rng, W * 0.05, W * 0.12);
+		const cx = centerX + Math.cos(angle) * dist;
+		const cy = canopyCenterY + Math.sin(angle) * dist * 0.6;
+		const r = randomInRange(rng, W * 0.15, W * 0.22);
+		blobs.push({
+			cx,
+			cy,
+			rx: r,
+			ry: r * 0.9,
+			boundary: BOUNDARY_KINDS.circle,
+		});
+	}
+
+	ensureLargestBlobInBottomHalf(blobs);
+	return blobs;
+}
+
+// ---------------------------------------------------------------------------
+// Cherry blob generator (#63)
+// ---------------------------------------------------------------------------
+
+/**
+ * Cherry canopy: 3-5 blobs arranged wider than tall, creating a horizontal
+ * spreading shape reminiscent of a sakura tree.
+ */
+function generateCherryBlobs(rng: () => number, blobCount: number): Blob[] {
+	const blobs: Blob[] = [];
+	const centerX = W / 2;
+	const canopyCenterY = H * 0.32;
+	const effectiveCount = Math.max(2, Math.min(blobCount, 6));
+	const spreadX = W * 0.35;
+
+	for (let i = 0; i < effectiveCount; i++) {
+		// Distribute along a horizontal arc
+		const t = effectiveCount === 1 ? 0.5 : i / (effectiveCount - 1);
+		const x = centerX + (t - 0.5) * 2 * spreadX + randomInRange(rng, -5, 5);
+		const y = canopyCenterY + randomInRange(rng, -H * 0.04, H * 0.04);
+		// Wider than tall for horizontal spread
+		const rx = randomInRange(rng, W * 0.15, W * 0.25);
+		const ry = randomInRange(rng, H * 0.08, H * 0.14);
+		blobs.push({
+			cx: x,
+			cy: y,
+			rx,
+			ry,
+			boundary: BOUNDARY_KINDS.circle,
+		});
+	}
+
+	ensureLargestBlobInBottomHalf(blobs);
+	return blobs;
+}
+
+// ---------------------------------------------------------------------------
+// Bush blob generator (#63)
+// ---------------------------------------------------------------------------
+
+/**
+ * Bush canopy: 1-2 blobs sitting directly on the ground line with no trunk
+ * gap. Represents a small ground-level shrub.
+ */
+function generateBushBlobs(rng: () => number, blobCount: number): Blob[] {
+	const blobs: Blob[] = [];
+	const centerX = W / 2;
+	const groundY = H * 0.82;
+	const effectiveCount = Math.max(1, Math.min(blobCount, 3));
+
+	blobs.push({
+		cx: centerX,
+		cy: groundY,
+		rx: randomInRange(rng, W * 0.18, W * 0.26),
+		ry: randomInRange(rng, H * 0.1, H * 0.16),
+		boundary: BOUNDARY_KINDS.circle,
+	});
+
+	if (effectiveCount >= 2) {
+		const side = rng() < 0.5 ? -1 : 1;
+		blobs.push({
+			cx: centerX + side * randomInRange(rng, W * 0.06, W * 0.14),
+			cy: groundY + randomInRange(rng, -H * 0.02, H * 0.02),
+			rx: randomInRange(rng, W * 0.14, W * 0.2),
+			ry: randomInRange(rng, H * 0.08, H * 0.12),
+			boundary: BOUNDARY_KINDS.circle,
+		});
+	}
+
+	if (effectiveCount >= 3) {
+		const side = rng() < 0.5 ? -1 : 1;
+		blobs.push({
+			cx: centerX + side * randomInRange(rng, W * 0.04, W * 0.1),
+			cy: groundY + randomInRange(rng, -H * 0.01, H * 0.01),
+			rx: randomInRange(rng, W * 0.1, W * 0.16),
+			ry: randomInRange(rng, H * 0.06, H * 0.1),
+			boundary: BOUNDARY_KINDS.circle,
+		});
+	}
+
+	return blobs;
+}
+
+// ---------------------------------------------------------------------------
+// Baobab blob generator (#63)
+// ---------------------------------------------------------------------------
+
+/**
+ * Baobab canopy: 2-3 small blobs clustered at the very top of the tree.
+ * The trunk is the dominant visual feature; canopy is minimal.
+ */
+function generateBaobabBlobs(rng: () => number, blobCount: number): Blob[] {
+	const blobs: Blob[] = [];
+	const centerX = W / 2;
+	const topY = H * 0.15;
+	const effectiveCount = Math.max(1, Math.min(blobCount, 4));
+
+	for (let i = 0; i < effectiveCount; i++) {
+		const angle = (i / effectiveCount) * Math.PI * 2;
+		const dist = i === 0 ? 0 : randomInRange(rng, W * 0.06, W * 0.14);
+		const cx = centerX + Math.cos(angle) * dist;
+		const cy = topY + Math.sin(angle) * dist * 0.5 + randomInRange(rng, -3, 3);
+		blobs.push({
+			cx,
+			cy,
+			rx: randomInRange(rng, W * 0.1, W * 0.16),
+			ry: randomInRange(rng, H * 0.06, H * 0.1),
+			boundary: BOUNDARY_KINDS.circle,
+		});
+	}
+
+	return blobs;
+}
+
+// ---------------------------------------------------------------------------
+// Acacia blob generator (#63)
+// ---------------------------------------------------------------------------
+
+/**
+ * Acacia canopy: wide flat blobs in a narrow horizontal band, creating the
+ * characteristic flat-topped umbrella/parasol silhouette.
+ */
+function generateAcaciaBlobs(rng: () => number, blobCount: number): Blob[] {
+	const blobs: Blob[] = [];
+	const centerX = W / 2;
+	const canopyY = H * 0.2;
+	const effectiveCount = Math.max(2, Math.min(blobCount, 5));
+	const spreadX = W * 0.38;
+
+	for (let i = 0; i < effectiveCount; i++) {
+		const t = effectiveCount === 1 ? 0.5 : i / (effectiveCount - 1);
+		const x = centerX + (t - 0.5) * 2 * spreadX + randomInRange(rng, -3, 3);
+		const y = canopyY + randomInRange(rng, -H * 0.02, H * 0.02);
+		// Very wide, very flat blobs
+		const rx = randomInRange(rng, W * 0.2, W * 0.3);
+		const ry = randomInRange(rng, H * 0.04, H * 0.07);
+		blobs.push({
+			cx: x,
+			cy: y,
+			rx,
+			ry,
+			boundary: BOUNDARY_KINDS.circle,
+		});
+	}
+
+	return blobs;
+}
+
+// ---------------------------------------------------------------------------
 // Custom shape blob generator (issue #10)
 // ---------------------------------------------------------------------------
 
@@ -403,6 +644,48 @@ const shapeDefinitions: Record<TreeShape, ShapeDefinition> = {
 		trunkBottom: H * 0.95,
 		defaultTrunkTop: H * 0.45,
 		generateBlobs: generateWillowBlobs,
+	},
+	cypress: {
+		trunkBaseWidth: 14,
+		trunkTopWidth: 8,
+		trunkBottom: H * 0.95,
+		defaultTrunkTop: H * 0.2,
+		generateBlobs: generateCypressBlobs,
+	},
+	apple: {
+		trunkBaseWidth: 32,
+		trunkTopWidth: 22,
+		trunkBottom: H * 0.95,
+		defaultTrunkTop: H * 0.55,
+		generateBlobs: generateAppleBlobs,
+	},
+	cherry: {
+		trunkBaseWidth: 22,
+		trunkTopWidth: 14,
+		trunkBottom: H * 0.95,
+		defaultTrunkTop: H * 0.45,
+		generateBlobs: generateCherryBlobs,
+	},
+	bush: {
+		trunkBaseWidth: 10,
+		trunkTopWidth: 6,
+		trunkBottom: H * 0.92,
+		defaultTrunkTop: H * 0.88,
+		generateBlobs: generateBushBlobs,
+	},
+	baobab: {
+		trunkBaseWidth: 50,
+		trunkTopWidth: 20,
+		trunkBottom: H * 0.95,
+		defaultTrunkTop: H * 0.25,
+		generateBlobs: generateBaobabBlobs,
+	},
+	acacia: {
+		trunkBaseWidth: 16,
+		trunkTopWidth: 10,
+		trunkBottom: H * 0.95,
+		defaultTrunkTop: H * 0.35,
+		generateBlobs: generateAcaciaBlobs,
 	},
 	custom: {
 		trunkBaseWidth: 28,

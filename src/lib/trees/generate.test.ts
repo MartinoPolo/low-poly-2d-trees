@@ -56,6 +56,33 @@ function extremeYVertices(shapes: readonly (Triangle | Quad)[]): {
 	return { min, max };
 }
 
+/** Compute canopy bounding box width and height from geometry. */
+function canopyBounds(geo: TreeGeometry): { width: number; height: number } {
+	let minX = Infinity;
+	let maxX = -Infinity;
+	let minY = Infinity;
+	let maxY = -Infinity;
+	for (const blob of geo.canopyBlobs) {
+		for (const tri of blob.triangles) {
+			for (const p of tri.points) {
+				if (p.x < minX) {
+					minX = p.x;
+				}
+				if (p.x > maxX) {
+					maxX = p.x;
+				}
+				if (p.y < minY) {
+					minY = p.y;
+				}
+				if (p.y > maxY) {
+					maxY = p.y;
+				}
+			}
+		}
+	}
+	return { width: maxX - minX, height: maxY - minY };
+}
+
 /** Flatten all branch quads (segments + junction fills) from geometry. */
 function allBranchQuads(geo: TreeGeometry): Quad[] {
 	return geo.branchGroups.flatMap((g) => [...g.quads, ...g.junctionFills]);
@@ -1118,6 +1145,122 @@ describe('Issue #8: new tree shapes (fir/maple/willow)', () => {
 		);
 		expect(geo.trunkQuads.length).toBeGreaterThan(0);
 		expect(allBranchQuads(geo).length).toBeGreaterThan(0);
+	});
+});
+
+// ============================================================================
+// Issue #63: new tree shapes (cypress/apple/cherry/bush/baobab/acacia)
+// ============================================================================
+
+describe('Issue #63: new tree shapes', () => {
+	const newShapes = ['cypress', 'apple', 'cherry', 'bush', 'baobab', 'acacia'] as const;
+
+	it.each(newShapes)('%s generates trunk and canopy geometry at seed 42', (shape) => {
+		const geo = generateTree(makeConfig({ shape, seed: 42 }));
+		expect(geo.trunkQuads.length).toBeGreaterThan(0);
+		expect(geo.canopyBlobs.length).toBeGreaterThan(0);
+		const canopyTriTotal = geo.canopyBlobs.reduce((n, b) => n + b.triangles.length, 0);
+		expect(canopyTriTotal).toBeGreaterThan(0);
+	});
+
+	it.each(newShapes)('%s emits only valid hex colors', (shape) => {
+		const geo = generateTree(makeConfig({ shape, seed: 42 }));
+		for (const primitive of allTrianglesAndQuads(geo)) {
+			expect(primitive.color).toMatch(/^#[0-9a-f]{6}$/);
+		}
+	});
+
+	it.each(newShapes)('%s is deterministic across runs', (shape) => {
+		const cfg = makeConfig({ shape, seed: 42 });
+		const a = generateTree(cfg);
+		const b = generateTree(cfg);
+		expect(a).toEqual(b);
+	});
+
+	it.each(newShapes)('%s renders without NaN vertices', (shape) => {
+		const geo = generateTree(makeConfig({ shape, seed: 42 }));
+		for (const blob of geo.canopyBlobs) {
+			for (const tri of blob.triangles) {
+				for (const p of tri.points) {
+					expect(Number.isNaN(p.x)).toBe(false);
+					expect(Number.isNaN(p.y)).toBe(false);
+				}
+			}
+		}
+	});
+
+	it('cypress canopy is taller than wide', () => {
+		const geo = generateTree(makeConfig({ shape: 'cypress', seed: 42 }));
+		const bounds = canopyBounds(geo);
+		expect(bounds.height).toBeGreaterThan(bounds.width);
+	});
+
+	it('cherry canopy is wider than tall', () => {
+		const geo = generateTree(makeConfig({ shape: 'cherry', seed: 42 }));
+		const bounds = canopyBounds(geo);
+		expect(bounds.width).toBeGreaterThan(bounds.height);
+	});
+
+	it('bush trunk is very short (less than 5% of viewBox height)', () => {
+		const geo = generateTree(makeConfig({ shape: 'bush', seed: 42 }));
+		const trunkVerts = geo.trunkQuads.flatMap((q) => q.points);
+		const trunkMinY = Math.min(...trunkVerts.map((p) => p.y));
+		const trunkMaxY = Math.max(...trunkVerts.map((p) => p.y));
+		const trunkHeight = trunkMaxY - trunkMinY;
+		// Bush trunk should be < 5% of 300px viewBox = 15px
+		expect(trunkHeight).toBeLessThan(15);
+	});
+
+	it('acacia canopy is wider than tall (flat-topped)', () => {
+		const geo = generateTree(makeConfig({ shape: 'acacia', seed: 42 }));
+		const bounds = canopyBounds(geo);
+		expect(bounds.width).toBeGreaterThan(bounds.height);
+	});
+
+	it('baobab trunk is thicker than oak trunk', () => {
+		const baobabGeo = generateTree(makeConfig({ shape: 'baobab', seed: 42 }));
+		const oakGeo = generateTree(makeConfig({ shape: 'oak', seed: 42 }));
+		const maxTrunkWidth = (geo: typeof baobabGeo) => {
+			let maxW = 0;
+			for (const quad of geo.trunkQuads) {
+				const xs = quad.points.map((p) => p.x);
+				const w = Math.max(...xs) - Math.min(...xs);
+				if (w > maxW) {
+					maxW = w;
+				}
+			}
+			return maxW;
+		};
+		expect(maxTrunkWidth(baobabGeo)).toBeGreaterThan(maxTrunkWidth(oakGeo));
+	});
+
+	it('cypress and bush (branchDepth=0) produce zero branch quads', () => {
+		for (const shape of ['cypress', 'bush'] as const) {
+			const geo = generateTree(makeConfig({ shape, seed: 42, branchDepth: 0 }));
+			expect(allBranchQuads(geo).length).toBe(0);
+		}
+	});
+
+	it.each(newShapes)('%s works with all lifecycle stages', (shape) => {
+		const stages = [
+			'seed',
+			'sprouting',
+			'sapling',
+			'growing',
+			'leafy',
+			'fruiting',
+			'autumn',
+			'ready',
+			'bare',
+			'dead',
+			'stump',
+		] as const;
+		for (const stage of stages) {
+			const geo = generateTree(makeConfig({ shape, stage, seed: 42 }));
+			expect(geo).toBeDefined();
+			expect(geo.viewBox.width).toBe(200);
+			expect(geo.viewBox.height).toBe(300);
+		}
 	});
 });
 
