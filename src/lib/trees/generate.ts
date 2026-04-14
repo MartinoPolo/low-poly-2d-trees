@@ -560,6 +560,7 @@ function generateTreeCore(config: TreeConfig, flags: StageFlags): TreeGeometry {
 		config.trunkCrookedness,
 		effectiveTrunkTop,
 		trunkBottom,
+		config.crookednessMode,
 	);
 	const topJunctionInitial = trunkJunctions[trunkJunctions.length - 1]!;
 	const horizontalCanopyShift = topJunctionInitial.x - VIEWBOX_WIDTH / 2;

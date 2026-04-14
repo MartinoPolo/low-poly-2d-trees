@@ -128,6 +128,126 @@ describe('buildTrunkPath', () => {
 		const p9 = buildTrunkPath(createPrng(42), 0, 9, 0, trunkTopY, trunkBottomY);
 		expect(p9).toHaveLength(6);
 	});
+
+	it('alternating mode: jitter directions strictly alternate after first junction', () => {
+		// With 5 segments and crookedness=50, consecutive angular changes
+		// should have opposite signs (L,R,L,R pattern).
+		const path = buildTrunkPath(
+			createPrng(42),
+			0,
+			5,
+			50,
+			trunkTopY,
+			trunkBottomY,
+			'alternating',
+		);
+		const segmentAngles: number[] = [];
+		for (let i = 0; i < path.length - 1; i++) {
+			const dx = path[i + 1]!.x - path[i]!.x;
+			const dy = path[i + 1]!.y - path[i]!.y;
+			segmentAngles.push(Math.atan2(dx, -dy));
+		}
+		// Compute angular deltas (jitter) at each junction after the first segment
+		const deltas: number[] = [];
+		for (let i = 1; i < segmentAngles.length; i++) {
+			deltas.push(segmentAngles[i]! - segmentAngles[i - 1]!);
+		}
+		// Consecutive deltas should have opposite signs (alternating pattern)
+		for (let i = 1; i < deltas.length; i++) {
+			expect(Math.sign(deltas[i]!) * Math.sign(deltas[i - 1]!)).toBe(-1);
+		}
+	});
+
+	it('random mode: does not enforce strict alternation', () => {
+		// Run multiple seeds; at least one should produce same-direction consecutive jitters
+		let foundSameDirection = false;
+		for (let seed = 0; seed < 50; seed++) {
+			const path = buildTrunkPath(
+				createPrng(seed),
+				0,
+				5,
+				80,
+				trunkTopY,
+				trunkBottomY,
+				'random',
+			);
+			const segmentAngles: number[] = [];
+			for (let i = 0; i < path.length - 1; i++) {
+				const dx = path[i + 1]!.x - path[i]!.x;
+				const dy = path[i + 1]!.y - path[i]!.y;
+				segmentAngles.push(Math.atan2(dx, -dy));
+			}
+			const deltas: number[] = [];
+			for (let i = 1; i < segmentAngles.length; i++) {
+				deltas.push(segmentAngles[i]! - segmentAngles[i - 1]!);
+			}
+			for (let i = 1; i < deltas.length; i++) {
+				if (Math.sign(deltas[i]!) === Math.sign(deltas[i - 1]!) && deltas[i]! !== 0) {
+					foundSameDirection = true;
+				}
+			}
+		}
+		expect(foundSameDirection).toBe(true);
+	});
+
+	it('segment Y-lengths vary within [0.7, 1.3] of average and preserve total height', () => {
+		const path = buildTrunkPath(createPrng(42), 0, 5, 0, trunkTopY, trunkBottomY);
+		// 6 points = 5 segments
+		expect(path).toHaveLength(6);
+		const segmentLengths: number[] = [];
+		for (let i = 0; i < path.length - 1; i++) {
+			segmentLengths.push(Math.abs(path[i + 1]!.y - path[i]!.y));
+		}
+		const averageLength = trunkHeightPx / 5;
+		for (const len of segmentLengths) {
+			expect(len).toBeGreaterThanOrEqual(averageLength * 0.7 - 0.01);
+			expect(len).toBeLessThanOrEqual(averageLength * 1.3 + 0.01);
+		}
+		// Total height preserved
+		const totalYTraversed = segmentLengths.reduce((sum, l) => sum + l, 0);
+		expect(totalYTraversed).toBeCloseTo(trunkHeightPx, 6);
+	});
+
+	it('same seed + same mode produces identical path', () => {
+		const p1 = buildTrunkPath(
+			createPrng(99),
+			10,
+			5,
+			60,
+			trunkTopY,
+			trunkBottomY,
+			'alternating',
+		);
+		const p2 = buildTrunkPath(
+			createPrng(99),
+			10,
+			5,
+			60,
+			trunkTopY,
+			trunkBottomY,
+			'alternating',
+		);
+		expect(p1).toEqual(p2);
+
+		const p3 = buildTrunkPath(createPrng(99), 10, 5, 60, trunkTopY, trunkBottomY, 'random');
+		const p4 = buildTrunkPath(createPrng(99), 10, 5, 60, trunkTopY, trunkBottomY, 'random');
+		expect(p3).toEqual(p4);
+	});
+
+	it('default crookednessMode is alternating (omitted 7th arg)', () => {
+		// Calling with and without the 7th argument should produce the same path
+		const withDefault = buildTrunkPath(createPrng(42), 10, 5, 50, trunkTopY, trunkBottomY);
+		const withExplicit = buildTrunkPath(
+			createPrng(42),
+			10,
+			5,
+			50,
+			trunkTopY,
+			trunkBottomY,
+			'alternating',
+		);
+		expect(withDefault).toEqual(withExplicit);
+	});
 });
 
 describe('sampleTrunkCenterX', () => {
