@@ -114,6 +114,54 @@ function generateOakBlobs(rng: () => number, blobCount: number): Blob[] {
 }
 
 // ---------------------------------------------------------------------------
+// Birch blob generator
+// ---------------------------------------------------------------------------
+
+/**
+ * Birch canopy: thin white trunk with wide-spread blobs. Primary blob is
+ * centered, non-primary blobs alternate sides with larger horizontal offsets
+ * for a wide, airy canopy.
+ */
+function generateBirchBlobs(rng: () => number, blobCount: number): Blob[] {
+	const blobs: Blob[] = [];
+	const centerX = W / 2;
+	const canopyCenterY = H * 0.25;
+
+	// Primary blob centered on trunk axis
+	if (blobCount >= 1) {
+		const rx = randomInRange(rng, W * 0.12, W * 0.22);
+		const ry = randomInRange(rng, H * 0.18, H * 0.32);
+		blobs.push({
+			cx: centerX,
+			cy: canopyCenterY,
+			rx,
+			ry,
+			boundary: BOUNDARY_KINDS.circle,
+		});
+	}
+
+	// Non-primary blobs: wider horizontal spread with varied sizes
+	for (let i = 1; i < blobCount; i++) {
+		const side = i % 2 === 0 ? 1 : -1;
+		const verticalOffset = randomInRange(rng, -H * 0.1, H * 0.1);
+		const horizontalOffset = randomInRange(rng, W * 0.06, W * 0.18) * side;
+		const cx = centerX + horizontalOffset;
+		const cy = canopyCenterY + verticalOffset;
+		const rx = randomInRange(rng, W * 0.1, W * 0.2);
+		const ry = randomInRange(rng, H * 0.15, H * 0.28);
+		blobs.push({
+			cx,
+			cy,
+			rx,
+			ry,
+			boundary: BOUNDARY_KINDS.circle,
+		});
+	}
+	ensureLargestBlobInBottomHalf(blobs);
+	return blobs;
+}
+
+// ---------------------------------------------------------------------------
 // Maple blob generator
 // ---------------------------------------------------------------------------
 
@@ -326,44 +374,7 @@ const shapeDefinitions: Record<TreeShape, ShapeDefinition> = {
 		trunkTopWidth: 9,
 		trunkBottom: H * 0.95,
 		defaultTrunkTop: H * 0.45,
-		generateBlobs(rng, blobCount) {
-			const blobs: Blob[] = [];
-			const centerX = W / 2;
-			const canopyCenterY = H * 0.25;
-
-			// Primary blob centered on trunk axis
-			if (blobCount >= 1) {
-				const rx = randomInRange(rng, W * 0.12, W * 0.22);
-				const ry = randomInRange(rng, H * 0.18, H * 0.32);
-				blobs.push({
-					cx: centerX,
-					cy: canopyCenterY,
-					rx,
-					ry,
-					boundary: BOUNDARY_KINDS.circle,
-				});
-			}
-
-			// Non-primary blobs: wider horizontal spread with varied sizes
-			for (let i = 1; i < blobCount; i++) {
-				const side = i % 2 === 0 ? 1 : -1;
-				const verticalOffset = randomInRange(rng, -H * 0.1, H * 0.1);
-				const horizontalOffset = randomInRange(rng, W * 0.06, W * 0.18) * side;
-				const cx = centerX + horizontalOffset;
-				const cy = canopyCenterY + verticalOffset;
-				const rx = randomInRange(rng, W * 0.1, W * 0.2);
-				const ry = randomInRange(rng, H * 0.15, H * 0.28);
-				blobs.push({
-					cx,
-					cy,
-					rx,
-					ry,
-					boundary: BOUNDARY_KINDS.circle,
-				});
-			}
-			ensureLargestBlobInBottomHalf(blobs);
-			return blobs;
-		},
+		generateBlobs: generateBirchBlobs,
 	},
 	fir: {
 		trunkBaseWidth: 19,

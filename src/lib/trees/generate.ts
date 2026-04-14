@@ -65,6 +65,9 @@ const SHAPES_WITH_ACUTE_SMOOTHING = new Set<TreeShape>([
 	TREE_SHAPES.willow,
 ]);
 
+// Shapes that use tier-based canopy rendering instead of blob-based.
+const TIERED_SHAPES = new Set<TreeShape>([TREE_SHAPES.pine, TREE_SHAPES.fir]);
+
 function triangulatePoints(
 	points: readonly { x: number; y: number }[],
 ): [Point2D, Point2D, Point2D][] {
@@ -653,8 +656,7 @@ export function generateTree(config: TreeConfig): TreeGeometry {
 function generateTreeCore(config: TreeConfig, addStakes: boolean, addFruit: boolean): TreeGeometry {
 	const rng = createPrng(config.seed);
 	const shapeDef = getShapeDefinition(config.shape);
-	const tieredShapes = new Set<TreeShape>([TREE_SHAPES.pine, TREE_SHAPES.fir]);
-	const isTiered = tieredShapes.has(config.shape);
+	const isTiered = TIERED_SHAPES.has(config.shape);
 	const isCustom = config.shape === TREE_SHAPES.custom;
 
 	const effectiveTrunkTop = computeEffectiveTrunkTop(shapeDef, config.trunkHeight);
