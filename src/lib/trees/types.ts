@@ -42,3 +42,12 @@ export {
 	CUSTOM_BLOB_POSITION_STEP,
 	CUSTOM_BLOB_DEFAULT,
 } from './types/custom.js';
+
+export {
+	POTTED_PLANT_STAGES,
+	type PottedPlantStage,
+	type PottedPlantConfig,
+	DEFAULT_POTTED_PLANT_CONFIG,
+} from './types/potted_plant_types.js';
+
+export { type OakPrdConfig, DEFAULT_OAK_PRD_CONFIG } from './types/oak_prd_types.js';
