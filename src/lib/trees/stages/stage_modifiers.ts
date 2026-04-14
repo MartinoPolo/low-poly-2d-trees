@@ -36,6 +36,8 @@ const STAGE_HANDLERS = {
 		}),
 		addStakes: false,
 		addFruit: false,
+		addFlowers: false,
+		addFallingLeaves: false,
 	}),
 
 	[TREE_STAGES.growing]: (_config: TreeConfig): StageResult => ({
@@ -49,8 +51,10 @@ const STAGE_HANDLERS = {
 			polygonsPerBlob: 9,
 			trunkPolygons: 22,
 		}),
-		addStakes: true,
+		addStakes: false,
 		addFruit: false,
+		addFlowers: false,
+		addFallingLeaves: false,
 	}),
 
 	[TREE_STAGES.leafy]: (_config: TreeConfig): StageResult => ({
@@ -58,6 +62,17 @@ const STAGE_HANDLERS = {
 		config: _config,
 		addStakes: false,
 		addFruit: false,
+		addFlowers: false,
+		addFallingLeaves: false,
+	}),
+
+	[TREE_STAGES.flowering]: (_config: TreeConfig): StageResult => ({
+		kind: 'modifiedConfig',
+		config: _config,
+		addStakes: false,
+		addFruit: false,
+		addFlowers: true,
+		addFallingLeaves: false,
 	}),
 
 	[TREE_STAGES.fruiting]: (_config: TreeConfig): StageResult => ({
@@ -65,6 +80,8 @@ const STAGE_HANDLERS = {
 		config: _config,
 		addStakes: false,
 		addFruit: true,
+		addFlowers: false,
+		addFallingLeaves: false,
 	}),
 
 	[TREE_STAGES.autumn]: (_config: TreeConfig): StageResult => ({
@@ -75,6 +92,8 @@ const STAGE_HANDLERS = {
 		}),
 		addStakes: false,
 		addFruit: false,
+		addFlowers: false,
+		addFallingLeaves: true,
 	}),
 
 	[TREE_STAGES.ready]: (_config: TreeConfig): StageResult => ({
@@ -82,6 +101,8 @@ const STAGE_HANDLERS = {
 		config: _config,
 		addStakes: false,
 		addFruit: false,
+		addFlowers: false,
+		addFallingLeaves: false,
 	}),
 
 	[TREE_STAGES.bare]: (_config: TreeConfig): StageResult => ({
@@ -92,6 +113,8 @@ const STAGE_HANDLERS = {
 		}),
 		addStakes: false,
 		addFruit: false,
+		addFlowers: false,
+		addFallingLeaves: false,
 	}),
 
 	[TREE_STAGES.dead]: (_config: TreeConfig): StageResult => ({
@@ -108,6 +131,8 @@ const STAGE_HANDLERS = {
 		}),
 		addStakes: false,
 		addFruit: false,
+		addFlowers: false,
+		addFallingLeaves: false,
 	}),
 
 	[TREE_STAGES.stump]: (): StageResult => ({

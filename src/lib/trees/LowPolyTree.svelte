@@ -3,8 +3,11 @@
 	import {
 		DEFAULT_TREE_CONFIG,
 		TREE_STAGES,
+		TREE_SHAPES,
+		FRUIT_TYPES,
 		type TreeConfig,
 		type TreeAnchors,
+		type TreeShape,
 	} from '$lib/trees/types.js';
 	import {
 		computeAnimationDelay,
@@ -17,6 +20,9 @@
 		TOOL_ANCHOR_MAP,
 		type ToolVisibility,
 	} from '$lib/trees/tools/tool_types.js';
+	import { FRUIT_SVG_COMPONENTS } from '$lib/trees/shapes/fruit_geometry.js';
+	import { FLOWER_SVG_COMPONENTS } from '$lib/trees/shapes/flower_geometry.js';
+	import { createPrng, randomInRange } from '$lib/trees/prng.js';
 
 	interface Props {
 		config?: TreeConfig;
@@ -28,6 +34,7 @@
 		animateCanopySway?: boolean;
 		animateBranches?: boolean;
 		animateGrowth?: boolean;
+		growthProgress?: number;
 		toolVisibility?: ToolVisibility;
 		animateTools?: boolean;
 		reviewerCount?: number;
@@ -45,6 +52,7 @@
 		animateCanopySway = false,
 		animateBranches = false,
 		animateGrowth = false,
+		growthProgress = 1,
 		toolVisibility,
 		animateTools = false,
 		reviewerCount = 0,
@@ -65,6 +73,50 @@
 		geometry.branchGroups.map((_, i) => computeBranchDelay(config.seed, i)),
 	);
 
+	const fruitComponent = $derived(
+		config.fruitType !== FRUIT_TYPES.none ? FRUIT_SVG_COMPONENTS[config.fruitType] : null,
+	);
+
+	const flowerComponent = $derived.by(() => {
+		if (config.shape === TREE_SHAPES.custom || geometry.flowerSlots.length === 0) {
+			return null;
+		}
+		return FLOWER_SVG_COMPONENTS[config.shape as Exclude<TreeShape, 'custom'>];
+	});
+
+	/** Falling leaf particle data for autumn stage. */
+	const fallingLeaves = $derived.by(() => {
+		if (!geometry.showFallingLeaves) {
+			return [];
+		}
+		const rng = createPrng(config.seed + 99999);
+		const count = 8;
+		const leaves: {
+			x: number;
+			y: number;
+			delay: number;
+			duration: number;
+			rotation: number;
+			color: string;
+		}[] = [];
+		const bounds = geometry.anchors;
+		const minX = bounds.crownCenter.x - 30;
+		const maxX = bounds.crownCenter.x + 30;
+		const startY = bounds.crownTop.y;
+		const colors = ['#E8A028', '#C47020', '#8B2010', '#A05020', '#D08030'];
+		for (let i = 0; i < count; i++) {
+			leaves.push({
+				x: randomInRange(rng, minX, maxX),
+				y: startY + randomInRange(rng, -5, 15),
+				delay: randomInRange(rng, 0, 4),
+				duration: randomInRange(rng, 2, 4),
+				rotation: randomInRange(rng, -180, 180),
+				color: colors[Math.floor(rng() * colors.length)]!,
+			});
+		}
+		return leaves;
+	});
+
 	$effect(() => {
 		onanchors?.(geometry.anchors);
 	});
@@ -80,7 +132,7 @@
 		class="tree-root"
 		class:animate-growth={animateGrowth}
 		style="--growth-origin-x: {geometry.anchors.trunkBase.x}px; --growth-origin-y: {geometry
-			.anchors.trunkBase.y}px;"
+			.anchors.trunkBase.y}px; --growth-progress: {growthProgress};"
 	>
 		{#if showTrunk}
 			<g class="trunk">
@@ -182,16 +234,37 @@
 			</g>
 		{/if}
 
-		{#if showFruit}
+		{#if showFruit && fruitComponent && geometry.fruitSlots.length > 0}
+			{@const FruitSvg = fruitComponent}
 			<g class="fruit">
-				{#each geometry.fruitTriangles as tri (tri)}
-					<polygon
-						points="{tri.points[0].x},{tri.points[0].y} {tri.points[1].x},{tri.points[1]
-							.y} {tri.points[2].x},{tri.points[2].y}"
-						fill={tri.color}
-						stroke={tri.color}
-						stroke-width="0.5"
-					/>
+				{#each geometry.fruitSlots as slot (slot)}
+					<g transform="translate({slot.x},{slot.y})">
+						<FruitSvg />
+					</g>
+				{/each}
+			</g>
+		{/if}
+
+		{#if flowerComponent && geometry.flowerSlots.length > 0}
+			{@const FlowerSvg = flowerComponent}
+			<g class="flowers">
+				{#each geometry.flowerSlots as slot (slot)}
+					<g transform="translate({slot.x},{slot.y})">
+						<FlowerSvg />
+					</g>
+				{/each}
+			</g>
+		{/if}
+
+		{#if fallingLeaves.length > 0}
+			<g class="falling-leaves">
+				{#each fallingLeaves as leaf, i (i)}
+					<g
+						class="falling-leaf"
+						style="--leaf-start-x: {leaf.x}px; --leaf-start-y: {leaf.y}px; --leaf-delay: {leaf.delay}s; --leaf-duration: {leaf.duration}s; --leaf-rotation: {leaf.rotation}deg;"
+					>
+						<path d="M0,-2 L1.5,0 L0,2 L-1.5,0 Z" fill={leaf.color} opacity="0.85" />
+					</g>
 				{/each}
 			</g>
 		{/if}
@@ -316,11 +389,28 @@
 
 	@keyframes tree-growth {
 		0% {
-			transform: scale(0.05);
+			transform: scaleY(0.05) scaleX(1);
 		}
 
 		100% {
-			transform: scale(1);
+			transform: scaleY(1) scaleX(1);
+		}
+	}
+
+	@keyframes leaf-fall {
+		0% {
+			transform: translate(var(--leaf-start-x), var(--leaf-start-y)) rotate(0deg);
+			opacity: 0.85;
+		}
+
+		50% {
+			opacity: 0.7;
+		}
+
+		100% {
+			transform: translate(calc(var(--leaf-start-x) + 10px), calc(var(--leaf-start-y) + 60px))
+				rotate(var(--leaf-rotation));
+			opacity: 0;
 		}
 	}
 
@@ -342,5 +432,11 @@
 		animation: tree-growth 2s ease-in-out infinite alternate;
 		transform-origin: var(--growth-origin-x) var(--growth-origin-y);
 		will-change: transform;
+	}
+
+	.falling-leaf {
+		animation: leaf-fall var(--leaf-duration) ease-in-out infinite;
+		animation-delay: var(--leaf-delay);
+		will-change: transform, opacity;
 	}
 </style>

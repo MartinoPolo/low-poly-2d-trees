@@ -132,8 +132,22 @@ describe('isParamDisabled', () => {
 			expect(isParamDisabled('oak', 'fruitCount', { fruitType: 'apple' })).toBe(false);
 		});
 
-		it('does not disable fruitCount when fruitType is cherry', () => {
-			expect(isParamDisabled('oak', 'fruitCount', { fruitType: 'cherry' })).toBe(false);
+		it('does not disable fruitCount when fruitType is cherry_pair', () => {
+			expect(isParamDisabled('oak', 'fruitCount', { fruitType: 'cherry_pair' })).toBe(false);
+		});
+	});
+
+	describe('fruitType locked for non-custom shapes', () => {
+		it('disables fruitType for oak', () => {
+			expect(isParamDisabled('oak', 'fruitType', {})).toBe(true);
+		});
+
+		it('disables fruitType for pine', () => {
+			expect(isParamDisabled('pine', 'fruitType', {})).toBe(true);
+		});
+
+		it('does not disable fruitType for custom', () => {
+			expect(isParamDisabled('custom', 'fruitType', {})).toBe(false);
 		});
 	});
 });

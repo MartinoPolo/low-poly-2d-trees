@@ -3,6 +3,7 @@ export const GEOMETRY_GROUPS = {
 	trunk: 'trunk',
 	branch: 'branch',
 	fruit: 'fruit',
+	flower: 'flower',
 	stake: 'stake',
 	pot: 'pot',
 } as const;
@@ -70,6 +71,10 @@ export interface TreeGeometry {
 	readonly fruitTriangles: readonly Triangle[];
 	readonly stakeTriangles: readonly Triangle[];
 	readonly fruitSlots: readonly Point2D[];
+	/** Slots where flower SVGs should be rendered (flowering stage). */
+	readonly flowerSlots: readonly Point2D[];
+	/** Whether to show falling leaf particles (autumn stage). */
+	readonly showFallingLeaves: boolean;
 	readonly anchors: TreeAnchors;
 	readonly viewBox: { readonly width: number; readonly height: number };
 }

@@ -140,12 +140,9 @@ describe('flowering stage', () => {
 		expect(geo.canopyBlobs.length).toBeGreaterThan(0);
 	});
 
-	it('has fruitTriangles (flowers)', () => {
+	it('has flowerSlots for SVG flower rendering', () => {
 		const geo = generatePottedPlant(makeConfig({ stage: POTTED_PLANT_STAGES.flowering }));
-		expect(geo.fruitTriangles.length).toBeGreaterThan(0);
-		for (const tri of geo.fruitTriangles) {
-			expect(tri.group).toBe(GEOMETRY_GROUPS.fruit);
-		}
+		expect(geo.flowerSlots.length).toBeGreaterThan(0);
 	});
 
 	it('has more fruitSlots than small-plant (3-5)', () => {
@@ -156,14 +153,14 @@ describe('flowering stage', () => {
 });
 
 describe('dried stage', () => {
-	it('has same structure as flowering (pot + stem + canopy + fruit)', () => {
+	it('has same structure as flowering (pot + stem + canopy + flowerSlots)', () => {
 		const geo = generatePottedPlant(makeConfig({ stage: POTTED_PLANT_STAGES.dried }));
 		const potTriangles = geo.trunkTriangles.filter((t) => t.group === GEOMETRY_GROUPS.pot);
 		const stemTriangles = geo.trunkTriangles.filter((t) => t.group === GEOMETRY_GROUPS.trunk);
 		expect(potTriangles.length).toBeGreaterThan(0);
 		expect(stemTriangles.length).toBeGreaterThan(0);
 		expect(geo.canopyBlobs.length).toBeGreaterThan(0);
-		expect(geo.fruitTriangles.length).toBeGreaterThan(0);
+		expect(geo.flowerSlots.length).toBeGreaterThan(0);
 	});
 
 	it('canopy colors are brown/yellow tones (not green)', () => {

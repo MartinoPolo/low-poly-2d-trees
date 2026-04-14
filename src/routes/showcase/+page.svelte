@@ -9,6 +9,7 @@
 		TREE_SHAPES,
 		TREE_STAGES,
 		TREE_STAGE_OPTIONS,
+		SHAPE_FRUIT_MAP,
 		POTTED_PLANT_STAGES,
 		isTreeStage,
 		type TreeConfig,
@@ -23,7 +24,15 @@
 	const allPlantStages = Object.values(POTTED_PLANT_STAGES);
 
 	const stageConfigs: ReadonlyMap<TreeStage, TreeConfig> = new Map(
-		allStages.map((stage) => [stage, { ...DEFAULT_TREE_CONFIG, stage }]),
+		allStages.map((stage) => [
+			stage,
+			{
+				...DEFAULT_TREE_CONFIG,
+				fruitType: SHAPE_FRUIT_MAP.oak,
+				fruitCount: 3,
+				stage,
+			},
+		]),
 	);
 
 	const shapeConfigs: ReadonlyMap<Exclude<TreeShape, 'custom'>, TreeConfig> = new Map(
@@ -76,7 +85,7 @@
 
 		<h2 class="text-xl font-semibold">All Stages</h2>
 
-		<div class="grid grid-cols-3 gap-4 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-11">
+		<div class="grid grid-cols-3 gap-4 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-12">
 			{#each allStages as stage (stage)}
 				<div class="flex flex-col items-center gap-2">
 					<div class="w-full rounded-lg border border-border bg-muted/20 p-2">

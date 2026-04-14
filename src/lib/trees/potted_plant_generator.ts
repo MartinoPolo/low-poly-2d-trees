@@ -1,10 +1,9 @@
 import type { TreeGeometry, Triangle, BlobGeometry, Point2D, TreeAnchors } from './types.js';
-import { GEOMETRY_GROUPS, VIEWBOX_WIDTH, VIEWBOX_HEIGHT, FRUIT_TYPES } from './types.js';
+import { GEOMETRY_GROUPS, VIEWBOX_WIDTH, VIEWBOX_HEIGHT } from './types.js';
 import { GROUND_LINE_Y } from './stages/constants.js';
 import type { PottedPlantConfig } from './types/potted_plant_types.js';
 import { POTTED_PLANT_STAGES } from './types/potted_plant_types.js';
 import { createPrng, randomInRange } from './prng.js';
-import { generateFruitAtSlots } from './shapes/fruit_geometry.js';
 
 const POT_COLOR = '#c2754a';
 const POT_DARK_COLOR = '#a0603d';
@@ -185,7 +184,6 @@ export function generatePottedPlant(config: PottedPlantConfig): TreeGeometry {
 
 	const trunkTriangles: Triangle[] = buildPotTriangles(cx, potTopY, potBottomY);
 	const canopyBlobs: BlobGeometry[] = [];
-	let fruitTriangles: Triangle[] = [];
 	let fruitSlots: Point2D[] = [];
 
 	const hasStem = config.stage !== POTTED_PLANT_STAGES.potWithSoil;
@@ -228,8 +226,7 @@ export function generatePottedPlant(config: PottedPlantConfig): TreeGeometry {
 		// 3-5 fruit slots
 		const slotCount = 3 + Math.floor(rng() * 3); // 3, 4, or 5
 		fruitSlots = generateFruitSlotPositions(cx, stemTopY, slotCount, rng);
-		// Generate flower fruit triangles at slots
-		fruitTriangles = generateFruitAtSlots(FRUIT_TYPES.flower, fruitSlots, rng);
+		// Flowers are now rendered as SVG overlays via flowerSlots
 	}
 
 	// Compute anchors
@@ -258,9 +255,11 @@ export function generatePottedPlant(config: PottedPlantConfig): TreeGeometry {
 		trunkTriangles,
 		branchGroups: [],
 		canopyBlobs,
-		fruitTriangles,
+		fruitTriangles: [],
 		stakeTriangles: [],
 		fruitSlots,
+		flowerSlots: fruitSlots,
+		showFallingLeaves: false,
 		anchors,
 		viewBox: { width: VIEWBOX_WIDTH, height: VIEWBOX_HEIGHT },
 	};

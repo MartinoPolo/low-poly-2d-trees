@@ -1506,62 +1506,61 @@ describe('Issue #10: custom tree shape', () => {
 // Fruit generation integration
 // ============================================================================
 
-describe('Fruit generation', () => {
-	it('fruitType apple with fruitCount 5 produces fruitTriangles', () => {
-		const geo = generateTree(makeConfig({ fruitType: 'apple', fruitCount: 5 }));
-		expect(geo.fruitTriangles.length).toBeGreaterThan(0);
-		for (const tri of geo.fruitTriangles) {
-			expect(tri.group).toBe('fruit');
-			expect(tri.color).toBe('#e53e3e');
-		}
-	});
-
-	it('fruitCount 0 produces zero fruitTriangles regardless of fruitType', () => {
-		const geo = generateTree(makeConfig({ fruitType: 'apple', fruitCount: 0 }));
+describe('Fruit generation (SVG-based)', () => {
+	it('fruitTriangles is always empty (SVG-based rendering)', () => {
+		const geo = generateTree(
+			makeConfig({ stage: 'fruiting', fruitType: 'apple', fruitCount: 5 }),
+		);
 		expect(geo.fruitTriangles).toHaveLength(0);
 	});
 
-	it('fruitType none produces zero fruitTriangles regardless of fruitCount', () => {
-		const geo = generateTree(makeConfig({ fruitType: 'none', fruitCount: 10 }));
-		expect(geo.fruitTriangles).toHaveLength(0);
-	});
-
-	it('fruitCount 20 (exceeds default slots) still produces fruitTriangles without error', () => {
-		const geo = generateTree(makeConfig({ fruitType: 'cherry', fruitCount: 20 }));
-		expect(geo.fruitTriangles.length).toBeGreaterThan(0);
-	});
-
-	it('all fruit triangle centroids lie within canopy bounds', () => {
-		const geo = generateTree(makeConfig({ fruitType: 'apple', fruitCount: 5 }));
-		const canopyTris = geo.canopyBlobs.flatMap((b) => b.triangles);
-		const allCanopyX = canopyTris.flatMap((t) => t.points.map((p) => p.x));
-		const allCanopyY = canopyTris.flatMap((t) => t.points.map((p) => p.y));
-		const canopyMinX = Math.min(...allCanopyX);
-		const canopyMaxX = Math.max(...allCanopyX);
-		const canopyMinY = Math.min(...allCanopyY);
-		const canopyMaxY = Math.max(...allCanopyY);
-		// Fruit anchor centroids should be within canopy bounds (with margin for fruit shape radius)
-		const margin = 10;
-		for (const tri of geo.fruitTriangles) {
-			const cx = (tri.points[0].x + tri.points[1].x + tri.points[2].x) / 3;
-			const cy = (tri.points[0].y + tri.points[1].y + tri.points[2].y) / 3;
-			expect(cx).toBeGreaterThan(canopyMinX - margin);
-			expect(cx).toBeLessThan(canopyMaxX + margin);
-			expect(cy).toBeGreaterThan(canopyMinY - margin);
-			expect(cy).toBeLessThan(canopyMaxY + margin);
+	it('fruiting stage with fruitCount 5 produces fruitSlots', () => {
+		const geo = generateTree(
+			makeConfig({ stage: 'fruiting', fruitType: 'apple', fruitCount: 5 }),
+		);
+		expect(geo.fruitSlots.length).toBeGreaterThanOrEqual(1);
+		for (const slot of geo.fruitSlots) {
+			expect(typeof slot.x).toBe('number');
+			expect(typeof slot.y).toBe('number');
 		}
 	});
 
-	it('deterministic: same seed + config = same fruitTriangles', () => {
-		const config = makeConfig({ seed: 999, fruitType: 'flower', fruitCount: 5 });
+	it('fruiting stage with fruitCount 0 produces zero fruitSlots', () => {
+		const geo = generateTree(
+			makeConfig({ stage: 'fruiting', fruitType: 'apple', fruitCount: 0 }),
+		);
+		expect(geo.fruitSlots).toHaveLength(0);
+	});
+
+	it('leafy stage produces zero fruitSlots regardless of fruitType', () => {
+		const geo = generateTree(
+			makeConfig({ stage: 'leafy', fruitType: 'apple', fruitCount: 10 }),
+		);
+		expect(geo.fruitSlots).toHaveLength(0);
+	});
+
+	it('fruiting stage with fruitCount 20 (exceeds default slots) produces fruitSlots without error', () => {
+		const geo = generateTree(
+			makeConfig({ stage: 'fruiting', fruitType: 'cherry_pair', fruitCount: 20 }),
+		);
+		expect(geo.fruitSlots.length).toBeGreaterThan(0);
+	});
+
+	it('deterministic: same seed + config = same fruitSlots', () => {
+		const config = makeConfig({
+			seed: 999,
+			stage: 'fruiting',
+			fruitType: 'apple',
+			fruitCount: 5,
+		});
 		const geo1 = generateTree(config);
 		const geo2 = generateTree(config);
-		expect(geo1.fruitTriangles).toEqual(geo2.fruitTriangles);
+		expect(geo1.fruitSlots).toEqual(geo2.fruitSlots);
 	});
 
-	it('default config (no fruitType/fruitCount) produces zero fruitTriangles', () => {
+	it('default config (no fruitType/fruitCount) produces zero fruitSlots', () => {
 		const geo = generateTree(makeConfig());
-		expect(geo.fruitTriangles).toHaveLength(0);
+		expect(geo.fruitSlots).toHaveLength(0);
 	});
 });
 

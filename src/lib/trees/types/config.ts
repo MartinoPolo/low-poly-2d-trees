@@ -1,5 +1,5 @@
 import type { CustomBlob } from './custom.js';
-import { FRUIT_TYPES, type FruitType } from './fruit.js';
+import { FRUIT_TYPES, SHAPE_FRUIT_MAP, type FruitType } from './fruit.js';
 
 export const TREE_STAGES = {
 	seed: 'seed',
@@ -7,6 +7,7 @@ export const TREE_STAGES = {
 	sapling: 'sapling',
 	growing: 'growing',
 	leafy: 'leafy',
+	flowering: 'flowering',
 	fruiting: 'fruiting',
 	autumn: 'autumn',
 	ready: 'ready',
@@ -23,6 +24,7 @@ export const TREE_STAGE_OPTIONS: readonly { value: TreeStage; label: string }[] 
 	{ value: TREE_STAGES.sapling, label: 'Sapling' },
 	{ value: TREE_STAGES.growing, label: 'Growing' },
 	{ value: TREE_STAGES.leafy, label: 'Leafy' },
+	{ value: TREE_STAGES.flowering, label: 'Flowering' },
 	{ value: TREE_STAGES.fruiting, label: 'Fruiting' },
 	{ value: TREE_STAGES.autumn, label: 'Autumn' },
 	{ value: TREE_STAGES.ready, label: 'Ready' },
@@ -181,8 +183,8 @@ export const SHAPE_DEFAULTS = {
 		trunkHue: 25,
 		trunkSaturation: 50,
 		trunkLightness: 25,
-		fruitType: FRUIT_TYPES.none,
-		fruitCount: 0,
+		fruitType: SHAPE_FRUIT_MAP.oak,
+		fruitCount: 3,
 	},
 	[TREE_SHAPES.pine]: {
 		blobCount: 5,
@@ -203,8 +205,8 @@ export const SHAPE_DEFAULTS = {
 		trunkHue: 20,
 		trunkSaturation: 45,
 		trunkLightness: 20,
-		fruitType: FRUIT_TYPES.none,
-		fruitCount: 0,
+		fruitType: SHAPE_FRUIT_MAP.pine,
+		fruitCount: 3,
 	},
 	[TREE_SHAPES.birch]: {
 		blobCount: 6,
@@ -225,8 +227,8 @@ export const SHAPE_DEFAULTS = {
 		trunkHue: 40,
 		trunkSaturation: 8,
 		trunkLightness: 82,
-		fruitType: FRUIT_TYPES.none,
-		fruitCount: 0,
+		fruitType: SHAPE_FRUIT_MAP.birch,
+		fruitCount: 3,
 	},
 	[TREE_SHAPES.fir]: {
 		blobCount: 6,
@@ -247,8 +249,8 @@ export const SHAPE_DEFAULTS = {
 		trunkHue: 22,
 		trunkSaturation: 50,
 		trunkLightness: 28,
-		fruitType: FRUIT_TYPES.none,
-		fruitCount: 0,
+		fruitType: SHAPE_FRUIT_MAP.fir,
+		fruitCount: 3,
 	},
 	[TREE_SHAPES.maple]: {
 		blobCount: 5,
@@ -269,8 +271,8 @@ export const SHAPE_DEFAULTS = {
 		trunkHue: 30,
 		trunkSaturation: 20,
 		trunkLightness: 35,
-		fruitType: FRUIT_TYPES.none,
-		fruitCount: 0,
+		fruitType: SHAPE_FRUIT_MAP.maple,
+		fruitCount: 3,
 	},
 	[TREE_SHAPES.willow]: {
 		blobCount: 6,
@@ -291,8 +293,8 @@ export const SHAPE_DEFAULTS = {
 		trunkHue: 25,
 		trunkSaturation: 40,
 		trunkLightness: 22,
-		fruitType: FRUIT_TYPES.none,
-		fruitCount: 0,
+		fruitType: SHAPE_FRUIT_MAP.willow,
+		fruitCount: 3,
 	},
 	[TREE_SHAPES.cypress]: {
 		blobCount: 2,
@@ -313,8 +315,8 @@ export const SHAPE_DEFAULTS = {
 		trunkHue: 25,
 		trunkSaturation: 50,
 		trunkLightness: 25,
-		fruitType: FRUIT_TYPES.flower,
-		fruitCount: 0,
+		fruitType: SHAPE_FRUIT_MAP.cypress,
+		fruitCount: 3,
 	},
 	[TREE_SHAPES.apple]: {
 		blobCount: 2,
@@ -335,7 +337,7 @@ export const SHAPE_DEFAULTS = {
 		trunkHue: 25,
 		trunkSaturation: 50,
 		trunkLightness: 30,
-		fruitType: FRUIT_TYPES.apple,
+		fruitType: SHAPE_FRUIT_MAP.apple,
 		fruitCount: 3,
 	},
 	[TREE_SHAPES.cherry]: {
@@ -357,7 +359,7 @@ export const SHAPE_DEFAULTS = {
 		trunkHue: 20,
 		trunkSaturation: 40,
 		trunkLightness: 25,
-		fruitType: FRUIT_TYPES.cherry,
+		fruitType: SHAPE_FRUIT_MAP.cherry,
 		fruitCount: 4,
 	},
 	[TREE_SHAPES.bush]: {
@@ -379,8 +381,8 @@ export const SHAPE_DEFAULTS = {
 		trunkHue: 25,
 		trunkSaturation: 50,
 		trunkLightness: 25,
-		fruitType: FRUIT_TYPES.flower,
-		fruitCount: 0,
+		fruitType: SHAPE_FRUIT_MAP.bush,
+		fruitCount: 3,
 	},
 	[TREE_SHAPES.baobab]: {
 		blobCount: 3,
@@ -401,8 +403,8 @@ export const SHAPE_DEFAULTS = {
 		trunkHue: 30,
 		trunkSaturation: 15,
 		trunkLightness: 45,
-		fruitType: FRUIT_TYPES.flower,
-		fruitCount: 0,
+		fruitType: SHAPE_FRUIT_MAP.baobab,
+		fruitCount: 3,
 	},
 	[TREE_SHAPES.acacia]: {
 		blobCount: 3,
@@ -423,8 +425,8 @@ export const SHAPE_DEFAULTS = {
 		trunkHue: 25,
 		trunkSaturation: 35,
 		trunkLightness: 28,
-		fruitType: FRUIT_TYPES.flower,
-		fruitCount: 0,
+		fruitType: SHAPE_FRUIT_MAP.acacia,
+		fruitCount: 3,
 	},
 } as const satisfies Record<
 	Exclude<TreeShape, 'custom'>,

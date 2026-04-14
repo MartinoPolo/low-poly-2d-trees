@@ -83,6 +83,8 @@ function scaleGeometry(geometry: TreeGeometry): TreeGeometry {
 		fruitTriangles: geometry.fruitTriangles.map(scaleTriangle),
 		stakeTriangles: geometry.stakeTriangles.map(scaleTriangle),
 		fruitSlots: geometry.fruitSlots.map(scalePoint),
+		flowerSlots: geometry.flowerSlots.map(scalePoint),
+		showFallingLeaves: geometry.showFallingLeaves,
 		anchors: scaleAnchors(geometry.anchors),
 		viewBox: OAK_PRD_VIEWBOX,
 	};

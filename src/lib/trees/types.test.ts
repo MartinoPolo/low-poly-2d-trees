@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
 	DEFAULT_TREE_CONFIG,
 	SHAPE_DEFAULTS,
+	SHAPE_FRUIT_MAP,
 	TREE_SHAPES,
 	TREE_SHAPE_OPTIONS,
 	type TreeShape,
@@ -82,8 +83,8 @@ describe('SHAPE_DEFAULTS §2.5', () => {
 			trunkHue: 25,
 			trunkSaturation: 50,
 			trunkLightness: 25,
-			fruitType: 'none',
-			fruitCount: 0,
+			fruitType: 'acorn',
+			fruitCount: 3,
 		});
 	});
 
@@ -107,8 +108,8 @@ describe('SHAPE_DEFAULTS §2.5', () => {
 			trunkHue: 20,
 			trunkSaturation: 45,
 			trunkLightness: 20,
-			fruitType: 'none',
-			fruitCount: 0,
+			fruitType: 'pine_cone',
+			fruitCount: 3,
 		});
 	});
 
@@ -132,8 +133,8 @@ describe('SHAPE_DEFAULTS §2.5', () => {
 			trunkHue: 40,
 			trunkSaturation: 8,
 			trunkLightness: 82,
-			fruitType: 'none',
-			fruitCount: 0,
+			fruitType: 'catkin_birch',
+			fruitCount: 3,
 		});
 	});
 
@@ -157,8 +158,8 @@ describe('SHAPE_DEFAULTS §2.5', () => {
 			trunkHue: 22,
 			trunkSaturation: 50,
 			trunkLightness: 28,
-			fruitType: 'none',
-			fruitCount: 0,
+			fruitType: 'fir_cone',
+			fruitCount: 3,
 		});
 	});
 
@@ -182,8 +183,8 @@ describe('SHAPE_DEFAULTS §2.5', () => {
 			trunkHue: 30,
 			trunkSaturation: 20,
 			trunkLightness: 35,
-			fruitType: 'none',
-			fruitCount: 0,
+			fruitType: 'samara',
+			fruitCount: 3,
 		});
 	});
 
@@ -207,8 +208,8 @@ describe('SHAPE_DEFAULTS §2.5', () => {
 			trunkHue: 25,
 			trunkSaturation: 40,
 			trunkLightness: 22,
-			fruitType: 'none',
-			fruitCount: 0,
+			fruitType: 'catkin_willow',
+			fruitCount: 3,
 		});
 	});
 
@@ -235,6 +236,8 @@ describe('SHAPE_DEFAULTS §2.5', () => {
 		expect(SHAPE_DEFAULTS.cypress.blobCount).toBe(2);
 		expect(SHAPE_DEFAULTS.cypress.branchDepth).toBe(0);
 		expect(SHAPE_DEFAULTS.cypress.canopyLightColor).toBe('#2d5e3a');
+		expect(SHAPE_DEFAULTS.cypress.fruitType).toBe('small_cone');
+		expect(SHAPE_DEFAULTS.cypress.fruitCount).toBe(3);
 	});
 
 	it('has apple defaults (compact round, short trunk, apple fruit)', () => {
@@ -244,12 +247,12 @@ describe('SHAPE_DEFAULTS §2.5', () => {
 		expect(SHAPE_DEFAULTS.apple.fruitCount).toBe(3);
 	});
 
-	it('has cherry defaults (wide spread, pink canopy, cherry fruit)', () => {
+	it('has cherry defaults (wide spread, pink canopy, cherry_pair fruit)', () => {
 		expect(SHAPE_DEFAULTS.cherry.blobCount).toBe(4);
 		expect(SHAPE_DEFAULTS.cherry.branchDepth).toBe(2);
 		expect(SHAPE_DEFAULTS.cherry.canopyLightColor).toBe('#ffb7c5');
 		expect(SHAPE_DEFAULTS.cherry.canopyDarkColor).toBe('#c4586a');
-		expect(SHAPE_DEFAULTS.cherry.fruitType).toBe('cherry');
+		expect(SHAPE_DEFAULTS.cherry.fruitType).toBe('cherry_pair');
 		expect(SHAPE_DEFAULTS.cherry.fruitCount).toBe(4);
 	});
 
@@ -275,5 +278,26 @@ describe('DEFAULT_TREE_CONFIG canopy color defaults (REQ-P-30/31)', () => {
 	it('uses oak canopyLightColor and canopyDarkColor from §2.6', () => {
 		expect(DEFAULT_TREE_CONFIG.canopyLightColor).toBe('#a8d84e');
 		expect(DEFAULT_TREE_CONFIG.canopyDarkColor).toBe('#1a472a');
+	});
+});
+
+describe('SHAPE_FRUIT_MAP', () => {
+	it('has 12 entries (one per non-custom shape)', () => {
+		expect(Object.keys(SHAPE_FRUIT_MAP)).toHaveLength(12);
+	});
+
+	it('maps each shape to its expected fruit type', () => {
+		expect(SHAPE_FRUIT_MAP.oak).toBe('acorn');
+		expect(SHAPE_FRUIT_MAP.birch).toBe('catkin_birch');
+		expect(SHAPE_FRUIT_MAP.maple).toBe('samara');
+		expect(SHAPE_FRUIT_MAP.pine).toBe('pine_cone');
+		expect(SHAPE_FRUIT_MAP.fir).toBe('fir_cone');
+		expect(SHAPE_FRUIT_MAP.willow).toBe('catkin_willow');
+		expect(SHAPE_FRUIT_MAP.cypress).toBe('small_cone');
+		expect(SHAPE_FRUIT_MAP.apple).toBe('apple');
+		expect(SHAPE_FRUIT_MAP.cherry).toBe('cherry_pair');
+		expect(SHAPE_FRUIT_MAP.bush).toBe('berry');
+		expect(SHAPE_FRUIT_MAP.baobab).toBe('baobab_fruit');
+		expect(SHAPE_FRUIT_MAP.acacia).toBe('seed_pod');
 	});
 });

@@ -6,5 +6,7 @@ export type StageResult =
 			readonly config: TreeConfig;
 			readonly addStakes: boolean;
 			readonly addFruit: boolean;
+			readonly addFlowers: boolean;
+			readonly addFallingLeaves: boolean;
 	  }
 	| { readonly kind: 'directGeometry'; readonly geometry: TreeGeometry };

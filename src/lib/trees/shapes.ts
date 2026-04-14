@@ -34,8 +34,6 @@ export {
 
 export { generateBranches } from './shapes/branch_generation.js';
 
-export { generateFruitAtSlots } from './shapes/fruit_geometry.js';
-
 export {
 	getShapeDefinition,
 	generateCustomBlobs,
