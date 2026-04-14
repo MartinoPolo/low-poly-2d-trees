@@ -118,3 +118,42 @@ export function computeTrunkColor(
 
 	return hslToHex(hue, sat, lightness);
 }
+
+/**
+ * Compute two-tone trunk/branch colors (BR-2).
+ * Returns light and dark hex colors. Light side flips with lightAngle.
+ */
+export function computeTwoToneColors(config: LightConfig): {
+	lightColor: string;
+	darkColor: string;
+} {
+	const lightOffset = 12;
+	const darkOffset = -8;
+
+	const lightColor = hslToHex(
+		config.trunkHue,
+		config.trunkSaturation,
+		config.trunkLightness + lightOffset,
+	);
+	const darkColor = hslToHex(
+		config.trunkHue,
+		config.trunkSaturation,
+		config.trunkLightness + darkOffset,
+	);
+
+	return { lightColor, darkColor };
+}
+
+/**
+ * Determine if the "left" side of a quad (relative to its direction) is the
+ * light side based on lightAngle. For trunk (vertical), left = screen-left.
+ * For branches, left is perpendicular-left relative to branch direction.
+ */
+export function isLeftSideLight(lightAngle: number, directionAngleRad: number): boolean {
+	const light = normalize3(lightDirection(lightAngle));
+	// Perpendicular left normal of the branch direction
+	const perpX = -Math.sin(directionAngleRad);
+	const perpY = Math.cos(directionAngleRad);
+	// Dot product with light direction — positive means light hits left side
+	return light.x * perpX + light.y * perpY > 0;
+}

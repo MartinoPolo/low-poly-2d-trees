@@ -7,22 +7,28 @@ import {
 } from './tool_types.js';
 
 describe('TOOL_TYPES', () => {
-	it('defines exactly 4 tools', () => {
+	it('defines exactly 6 tools', () => {
 		const types = Object.values(TOOL_TYPES);
-		expect(types).toHaveLength(4);
+		expect(types).toHaveLength(6);
 	});
 
-	it('contains shovel, ladder, wateringCan, birdNest', () => {
+	it('contains shovel, wateringCan, ladder, axe, rake, woodpecker', () => {
 		expect(TOOL_TYPES.shovel).toBe('shovel');
-		expect(TOOL_TYPES.ladder).toBe('ladder');
 		expect(TOOL_TYPES.wateringCan).toBe('wateringCan');
-		expect(TOOL_TYPES.birdNest).toBe('birdNest');
+		expect(TOOL_TYPES.ladder).toBe('ladder');
+		expect(TOOL_TYPES.axe).toBe('axe');
+		expect(TOOL_TYPES.rake).toBe('rake');
+		expect(TOOL_TYPES.woodpecker).toBe('woodpecker');
+	});
+
+	it('does not contain birdNest', () => {
+		expect(TOOL_TYPES).not.toHaveProperty('birdNest');
 	});
 });
 
 describe('TOOL_ANCHOR_MAP', () => {
 	it('maps every tool type to a valid TreeAnchors key', () => {
-		const validAnchors = ['trunkBase', 'trunkMiddle', 'crownCenter'];
+		const validAnchors = ['trunkBase', 'trunkMiddle'];
 		for (const toolType of Object.values(TOOL_TYPES)) {
 			expect(validAnchors).toContain(TOOL_ANCHOR_MAP[toolType]);
 		}
@@ -32,16 +38,24 @@ describe('TOOL_ANCHOR_MAP', () => {
 		expect(TOOL_ANCHOR_MAP[TOOL_TYPES.shovel]).toBe('trunkBase');
 	});
 
+	it('wateringCan snaps to trunkBase', () => {
+		expect(TOOL_ANCHOR_MAP[TOOL_TYPES.wateringCan]).toBe('trunkBase');
+	});
+
 	it('ladder snaps to trunkMiddle', () => {
 		expect(TOOL_ANCHOR_MAP[TOOL_TYPES.ladder]).toBe('trunkMiddle');
 	});
 
-	it('watering can snaps to trunkBase', () => {
-		expect(TOOL_ANCHOR_MAP[TOOL_TYPES.wateringCan]).toBe('trunkBase');
+	it('axe snaps to trunkBase', () => {
+		expect(TOOL_ANCHOR_MAP[TOOL_TYPES.axe]).toBe('trunkBase');
 	});
 
-	it('bird nest snaps to crownCenter', () => {
-		expect(TOOL_ANCHOR_MAP[TOOL_TYPES.birdNest]).toBe('crownCenter');
+	it('rake snaps to trunkBase', () => {
+		expect(TOOL_ANCHOR_MAP[TOOL_TYPES.rake]).toBe('trunkBase');
+	});
+
+	it('woodpecker snaps to trunkMiddle', () => {
+		expect(TOOL_ANCHOR_MAP[TOOL_TYPES.woodpecker]).toBe('trunkMiddle');
 	});
 });
 
@@ -64,10 +78,20 @@ describe('TOOL_OPTIONS', () => {
 			expect(values).toContain(toolType);
 		}
 	});
+
+	it('has correct labels for all 6 tools', () => {
+		const labelMap = new Map(TOOL_OPTIONS.map((o) => [o.value, o.label]));
+		expect(labelMap.get('shovel')).toBe('Shovel');
+		expect(labelMap.get('wateringCan')).toBe('Watering Can');
+		expect(labelMap.get('ladder')).toBe('Ladder');
+		expect(labelMap.get('axe')).toBe('Axe');
+		expect(labelMap.get('rake')).toBe('Rake');
+		expect(labelMap.get('woodpecker')).toBe('Woodpecker');
+	});
 });
 
 describe('createDefaultToolVisibility', () => {
-	it('has entries for all 4 tools', () => {
+	it('has entries for all 6 tools', () => {
 		const visibility = createDefaultToolVisibility();
 		for (const toolType of Object.values(TOOL_TYPES)) {
 			expect(visibility).toHaveProperty(toolType);

@@ -9,13 +9,15 @@ test.describe('Scene page tool accessories', () => {
 		await page.goto('/', { waitUntil: 'networkidle' });
 	});
 
-	test('has Tools & Accessories section with 4 tool checkboxes and animate toggle', async ({
+	test('has Tools & Accessories section with 6 tool checkboxes and animate toggle', async ({
 		page,
 	}) => {
 		await expect(page.locator('[data-testid="tool-shovel-visible"]')).toBeVisible();
-		await expect(page.locator('[data-testid="tool-ladder-visible"]')).toBeVisible();
 		await expect(page.locator('[data-testid="tool-wateringCan-visible"]')).toBeVisible();
-		await expect(page.locator('[data-testid="tool-birdNest-visible"]')).toBeVisible();
+		await expect(page.locator('[data-testid="tool-ladder-visible"]')).toBeVisible();
+		await expect(page.locator('[data-testid="tool-axe-visible"]')).toBeVisible();
+		await expect(page.locator('[data-testid="tool-rake-visible"]')).toBeVisible();
+		await expect(page.locator('[data-testid="tool-woodpecker-visible"]')).toBeVisible();
 		await expect(page.locator('[data-testid="animate-tools"]')).toBeVisible();
 	});
 
@@ -41,12 +43,12 @@ test.describe('Scene page tool accessories', () => {
 	});
 
 	test('tools toggle independently', async ({ page }) => {
-		// Enable shovel and bird nest
+		// Enable shovel and axe
 		await page.locator('[data-testid="tool-shovel-visible"]').click();
-		await page.locator('[data-testid="tool-birdNest-visible"]').click();
+		await page.locator('[data-testid="tool-axe-visible"]').click();
 
 		await expect(page.locator('[data-tool="shovel"]').first()).toBeVisible();
-		await expect(page.locator('[data-tool="birdNest"]').first()).toBeVisible();
+		await expect(page.locator('[data-tool="axe"]').first()).toBeVisible();
 		await expect(page.locator('[data-tool="ladder"]')).toHaveCount(0);
 		await expect(page.locator('[data-tool="wateringCan"]')).toHaveCount(0);
 	});
@@ -74,7 +76,7 @@ test.describe('Scene page tool accessories', () => {
 		// Enable shovel
 		await page.locator('[data-testid="tool-shovel-visible"]').click();
 
-		// Size slider should appear
+		// Size slider (shadcn) should appear
 		const sizeSlider = page.locator('#tool-shovel-size');
 		await expect(sizeSlider).toBeVisible();
 
@@ -83,8 +85,12 @@ test.describe('Scene page tool accessories', () => {
 		const initialTransform = await toolGroup.getAttribute('transform');
 		expect(initialTransform).toContain('scale(1)');
 
-		// Change size to max
-		await sizeSlider.fill('2');
+		// Change size to max via keyboard (End key) — click thumb first for focus
+		const thumb = sizeSlider.locator('[data-slot="slider-thumb"]');
+		await thumb.click();
+		await page.keyboard.press('End');
+		await page.waitForTimeout(300);
+
 		const updatedTransform = await toolGroup.getAttribute('transform');
 		expect(updatedTransform).toContain('scale(2)');
 	});
@@ -99,11 +105,13 @@ test.describe('Editor page tool accessories', () => {
 		await page.goto('/editor', { waitUntil: 'networkidle' });
 	});
 
-	test('has Tools & Accessories section with 4 tool checkboxes', async ({ page }) => {
+	test('has Tools & Accessories section with 6 tool checkboxes', async ({ page }) => {
 		await expect(page.locator('[data-testid="tool-shovel-visible"]')).toBeVisible();
-		await expect(page.locator('[data-testid="tool-ladder-visible"]')).toBeVisible();
 		await expect(page.locator('[data-testid="tool-wateringCan-visible"]')).toBeVisible();
-		await expect(page.locator('[data-testid="tool-birdNest-visible"]')).toBeVisible();
+		await expect(page.locator('[data-testid="tool-ladder-visible"]')).toBeVisible();
+		await expect(page.locator('[data-testid="tool-axe-visible"]')).toBeVisible();
+		await expect(page.locator('[data-testid="tool-rake-visible"]')).toBeVisible();
+		await expect(page.locator('[data-testid="tool-woodpecker-visible"]')).toBeVisible();
 		await expect(page.locator('[data-testid="animate-tools"]')).toBeVisible();
 	});
 
@@ -122,15 +130,19 @@ test.describe('Editor page tool accessories', () => {
 		await expect(animGroup).toHaveClass(/animate-tool/);
 	});
 
-	test('all 4 tools can be enabled simultaneously', async ({ page }) => {
+	test('all 6 tools can be enabled simultaneously', async ({ page }) => {
 		await page.locator('[data-testid="tool-shovel-visible"]').click();
-		await page.locator('[data-testid="tool-ladder-visible"]').click();
 		await page.locator('[data-testid="tool-wateringCan-visible"]').click();
-		await page.locator('[data-testid="tool-birdNest-visible"]').click();
+		await page.locator('[data-testid="tool-ladder-visible"]').click();
+		await page.locator('[data-testid="tool-axe-visible"]').click();
+		await page.locator('[data-testid="tool-rake-visible"]').click();
+		await page.locator('[data-testid="tool-woodpecker-visible"]').click();
 
 		await expect(page.locator('[data-tool="shovel"]')).toBeVisible();
-		await expect(page.locator('[data-tool="ladder"]')).toBeVisible();
 		await expect(page.locator('[data-tool="wateringCan"]')).toBeVisible();
-		await expect(page.locator('[data-tool="birdNest"]')).toBeVisible();
+		await expect(page.locator('[data-tool="ladder"]')).toBeVisible();
+		await expect(page.locator('[data-tool="axe"]')).toBeVisible();
+		await expect(page.locator('[data-tool="rake"]')).toBeVisible();
+		await expect(page.locator('[data-tool="woodpecker"]')).toBeVisible();
 	});
 });

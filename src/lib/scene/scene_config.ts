@@ -11,6 +11,12 @@ export const SCENE_SHAPES: readonly SceneTreeShape[] = [
 	'fir',
 	'maple',
 	'willow',
+	'cypress',
+	'apple',
+	'cherry',
+	'bush',
+	'baobab',
+	'acacia',
 ] as const;
 
 export interface SceneConfig {

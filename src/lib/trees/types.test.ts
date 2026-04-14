@@ -8,15 +8,29 @@ import {
 } from './types.js';
 
 describe('TREE_SHAPES union', () => {
-	it('includes all 7 Plan v4 shapes', () => {
-		expect(Object.keys(TREE_SHAPES).sort()).toEqual(
-			['birch', 'custom', 'fir', 'maple', 'oak', 'pine', 'willow'].sort(),
-		);
+	const allShapes = [
+		'acacia',
+		'apple',
+		'baobab',
+		'birch',
+		'bush',
+		'cherry',
+		'custom',
+		'cypress',
+		'fir',
+		'maple',
+		'oak',
+		'pine',
+		'willow',
+	];
+
+	it('includes all 13 shapes', () => {
+		expect(Object.keys(TREE_SHAPES).sort()).toEqual(allShapes);
 	});
 
-	it('TREE_SHAPE_OPTIONS exposes all 7 shapes for UI selectors', () => {
+	it('TREE_SHAPE_OPTIONS exposes all 13 shapes for UI selectors', () => {
 		const values = TREE_SHAPE_OPTIONS.map((o) => o.value).sort();
-		expect(values).toEqual(['birch', 'custom', 'fir', 'maple', 'oak', 'pine', 'willow'].sort());
+		expect(values).toEqual(allShapes);
 	});
 });
 
@@ -34,9 +48,15 @@ describe('SHAPE_DEFAULTS §2.5', () => {
 		'fir',
 		'maple',
 		'willow',
+		'cypress',
+		'apple',
+		'cherry',
+		'bush',
+		'baobab',
+		'acacia',
 	];
 
-	it('contains an entry for all 6 non-custom shapes', () => {
+	it('contains an entry for all 12 non-custom shapes', () => {
 		for (const shape of nonCustomShapes) {
 			expect(SHAPE_DEFAULTS[shape]).toBeDefined();
 		}
@@ -45,8 +65,11 @@ describe('SHAPE_DEFAULTS §2.5', () => {
 	it('has oak defaults', () => {
 		expect(SHAPE_DEFAULTS.oak).toEqual({
 			blobCount: 5,
-			branchCount: 3,
 			branchDepth: 2,
+			branchesLevel1Range: [1, 3],
+			branchesLevel2Range: [1, 2],
+			branchesLevel3Range: [0, 1],
+			branchAngle: 50,
 			blobSizeVariance: 2.5,
 			blobCloseness: 45,
 			branchThickness: 100,
@@ -67,8 +90,11 @@ describe('SHAPE_DEFAULTS §2.5', () => {
 	it('has pine defaults', () => {
 		expect(SHAPE_DEFAULTS.pine).toEqual({
 			blobCount: 5,
-			branchCount: 0,
 			branchDepth: 0,
+			branchesLevel1Range: [0, 0],
+			branchesLevel2Range: [0, 0],
+			branchesLevel3Range: [0, 0],
+			branchAngle: 50,
 			blobSizeVariance: 2.0,
 			blobCloseness: 30,
 			branchThickness: 100,
@@ -89,8 +115,11 @@ describe('SHAPE_DEFAULTS §2.5', () => {
 	it('has birch defaults', () => {
 		expect(SHAPE_DEFAULTS.birch).toEqual({
 			blobCount: 6,
-			branchCount: 2,
 			branchDepth: 2,
+			branchesLevel1Range: [1, 2],
+			branchesLevel2Range: [1, 2],
+			branchesLevel3Range: [0, 1],
+			branchAngle: 60,
 			blobSizeVariance: 2.5,
 			blobCloseness: 35,
 			branchThickness: 80,
@@ -111,8 +140,11 @@ describe('SHAPE_DEFAULTS §2.5', () => {
 	it('has fir defaults', () => {
 		expect(SHAPE_DEFAULTS.fir).toEqual({
 			blobCount: 6,
-			branchCount: 0,
 			branchDepth: 0,
+			branchesLevel1Range: [0, 0],
+			branchesLevel2Range: [0, 0],
+			branchesLevel3Range: [0, 0],
+			branchAngle: 50,
 			blobSizeVariance: 2.5,
 			blobCloseness: 45,
 			branchThickness: 100,
@@ -133,13 +165,16 @@ describe('SHAPE_DEFAULTS §2.5', () => {
 	it('has maple defaults (low closeness, reduced variance)', () => {
 		expect(SHAPE_DEFAULTS.maple).toEqual({
 			blobCount: 5,
-			branchCount: 5,
 			branchDepth: 2,
+			branchesLevel1Range: [3, 5],
+			branchesLevel2Range: [1, 2],
+			branchesLevel3Range: [0, 1],
+			branchAngle: 40,
 			blobSizeVariance: 1.3,
 			blobCloseness: 40,
 			branchThickness: 100,
-			trunkSegments: 1,
-			trunkCrookedness: 0,
+			trunkSegments: 2,
+			trunkCrookedness: 30,
 			branchLength: 100,
 			branchLengthVariance: 50,
 			canopyLightColor: '#e8a028',
@@ -155,8 +190,11 @@ describe('SHAPE_DEFAULTS §2.5', () => {
 	it('has willow defaults (drooping, 2 segments, 25% crookedness)', () => {
 		expect(SHAPE_DEFAULTS.willow).toEqual({
 			blobCount: 6,
-			branchCount: 5,
 			branchDepth: 2,
+			branchesLevel1Range: [3, 5],
+			branchesLevel2Range: [1, 2],
+			branchesLevel3Range: [0, 1],
+			branchAngle: 30,
 			blobSizeVariance: 2.0,
 			blobCloseness: 35,
 			branchThickness: 80,
@@ -176,8 +214,9 @@ describe('SHAPE_DEFAULTS §2.5', () => {
 
 	it('every shape entry has branchLength and branchLengthVariance (REQ-P-23/24)', () => {
 		for (const shape of nonCustomShapes) {
-			expect(SHAPE_DEFAULTS[shape].branchLength).toBe(100);
-			expect(SHAPE_DEFAULTS[shape].branchLengthVariance).toBe(50);
+			expect(typeof SHAPE_DEFAULTS[shape].branchLength).toBe('number');
+			expect(SHAPE_DEFAULTS[shape].branchLength).toBeGreaterThan(0);
+			expect(typeof SHAPE_DEFAULTS[shape].branchLengthVariance).toBe('number');
 		}
 	});
 
@@ -190,6 +229,45 @@ describe('SHAPE_DEFAULTS §2.5', () => {
 			expect(typeof entry.trunkSaturation).toBe('number');
 			expect(typeof entry.trunkLightness).toBe('number');
 		}
+	});
+
+	it('has cypress defaults (tall narrow, no branches, dark green)', () => {
+		expect(SHAPE_DEFAULTS.cypress.blobCount).toBe(2);
+		expect(SHAPE_DEFAULTS.cypress.branchDepth).toBe(0);
+		expect(SHAPE_DEFAULTS.cypress.canopyLightColor).toBe('#2d5e3a');
+	});
+
+	it('has apple defaults (compact round, short trunk, apple fruit)', () => {
+		expect(SHAPE_DEFAULTS.apple.blobCount).toBe(2);
+		expect(SHAPE_DEFAULTS.apple.branchDepth).toBe(1);
+		expect(SHAPE_DEFAULTS.apple.fruitType).toBe('apple');
+		expect(SHAPE_DEFAULTS.apple.fruitCount).toBe(3);
+	});
+
+	it('has cherry defaults (wide spread, pink canopy, cherry fruit)', () => {
+		expect(SHAPE_DEFAULTS.cherry.blobCount).toBe(4);
+		expect(SHAPE_DEFAULTS.cherry.branchDepth).toBe(2);
+		expect(SHAPE_DEFAULTS.cherry.canopyLightColor).toBe('#ffb7c5');
+		expect(SHAPE_DEFAULTS.cherry.canopyDarkColor).toBe('#c4586a');
+		expect(SHAPE_DEFAULTS.cherry.fruitType).toBe('cherry');
+		expect(SHAPE_DEFAULTS.cherry.fruitCount).toBe(4);
+	});
+
+	it('has bush defaults (ground-level, no branches)', () => {
+		expect(SHAPE_DEFAULTS.bush.blobCount).toBe(2);
+		expect(SHAPE_DEFAULTS.bush.branchDepth).toBe(0);
+	});
+
+	it('has baobab defaults (small canopy, short branches at top)', () => {
+		expect(SHAPE_DEFAULTS.baobab.blobCount).toBe(3);
+		expect(SHAPE_DEFAULTS.baobab.branchDepth).toBe(1);
+		expect(SHAPE_DEFAULTS.baobab.trunkSaturation).toBe(15);
+	});
+
+	it('has acacia defaults (flat-topped, olive-green)', () => {
+		expect(SHAPE_DEFAULTS.acacia.blobCount).toBe(3);
+		expect(SHAPE_DEFAULTS.acacia.branchDepth).toBe(1);
+		expect(SHAPE_DEFAULTS.acacia.branchAngle).toBe(25);
 	});
 });
 

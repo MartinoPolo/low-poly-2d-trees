@@ -30,6 +30,7 @@
 		animateGrowth?: boolean;
 		toolVisibility?: ToolVisibility;
 		animateTools?: boolean;
+		reviewerCount?: number;
 		class?: string;
 		onanchors?: (anchors: TreeAnchors) => void;
 	}
@@ -46,6 +47,7 @@
 		animateGrowth = false,
 		toolVisibility,
 		animateTools = false,
+		reviewerCount = 0,
 		class: className = '',
 		onanchors,
 	}: Props = $props();
@@ -81,19 +83,19 @@
 			.anchors.trunkBase.y}px;"
 	>
 		{#if showTrunk}
-			{#if geometry.trunkSilhouettePath}
-				<defs>
-					<clipPath id="trunk-clip-{config.seed}">
-						<path d={geometry.trunkSilhouettePath} />
-					</clipPath>
-				</defs>
-			{/if}
-			<g
-				class="trunk"
-				clip-path={geometry.trunkSilhouettePath
-					? `url(#trunk-clip-${config.seed})`
-					: undefined}
-			>
+			<g class="trunk">
+				<!-- Quad-based trunk (BR-1: stacked trapezoids) -->
+				{#each geometry.trunkQuads as quad (quad)}
+					<polygon
+						points="{quad.points[0].x},{quad.points[0].y} {quad.points[1].x},{quad
+							.points[1].y} {quad.points[2].x},{quad.points[2].y} {quad.points[3]
+							.x},{quad.points[3].y}"
+						fill={quad.color}
+						stroke={quad.color}
+						stroke-width="0.5"
+					/>
+				{/each}
+				<!-- Legacy triangles for simple stages (seed, sprouting, stump) -->
 				{#each geometry.trunkTriangles as tri (tri)}
 					<polygon
 						points="{tri.points[0].x},{tri.points[0].y} {tri.points[1].x},{tri.points[1]
@@ -117,12 +119,23 @@
 						]}s; --branch-delay: {branchDelays[groupIndex]}s; --branch-origin-x: {group
 							.origin.x}px; --branch-origin-y: {group.origin.y}px;"
 					>
-						{#each group.triangles as tri (tri)}
+						{#each group.quads as quad (quad)}
 							<polygon
-								points="{tri.points[0].x},{tri.points[0].y} {tri.points[1].x},{tri
-									.points[1].y} {tri.points[2].x},{tri.points[2].y}"
-								fill={tri.color}
-								stroke={tri.color}
+								points="{quad.points[0].x},{quad.points[0].y} {quad.points[1]
+									.x},{quad.points[1].y} {quad.points[2].x},{quad.points[2]
+									.y} {quad.points[3].x},{quad.points[3].y}"
+								fill={quad.color}
+								stroke={quad.color}
+								stroke-width="0.5"
+							/>
+						{/each}
+						{#each group.junctionFills as fill (fill)}
+							<polygon
+								points="{fill.points[0].x},{fill.points[0].y} {fill.points[1]
+									.x},{fill.points[1].y} {fill.points[2].x},{fill.points[2]
+									.y} {fill.points[3].x},{fill.points[3].y}"
+								fill={fill.color}
+								stroke={fill.color}
 								stroke-width="0.5"
 							/>
 						{/each}
@@ -192,6 +205,7 @@
 							anchor={geometry.anchors[TOOL_ANCHOR_MAP[toolType]]}
 							size={toolVisibility[toolType].size}
 							animate={animateTools}
+							{reviewerCount}
 						/>
 					{/if}
 				{/each}

@@ -1,7 +1,8 @@
 <script lang="ts">
 	import LowPolyTree from '$lib/trees/LowPolyTree.svelte';
 	import LabeledSelect from '$lib/components/composed/LabeledSelect.svelte';
-	import LabeledRangeSlider from '$lib/components/composed/LabeledRangeSlider.svelte';
+	import LabeledSlider from '$lib/components/composed/LabeledSlider.svelte';
+	import LabeledRangeSliderDual from '$lib/components/composed/LabeledRangeSliderDual.svelte';
 
 	import CustomBlobsEditor from '$lib/components/composed/CustomBlobsEditor.svelte';
 	import CanopyColorCard from '$lib/components/composed/CanopyColorCard.svelte';
@@ -50,21 +51,36 @@
 	let animateGrowth = $state(false);
 	let toolVisibility: ToolVisibility = $state(createDefaultToolVisibility());
 	let animateTools = $state(false);
+	let showAdvancedControls = $state(false);
 
-	const branchCountDisabled = $derived(
-		isParamDisabled(treeConfig.current.shape, 'branchCount', {}),
-	);
-	const trunkBranchRatioDisabled = $derived(
-		isParamDisabled(treeConfig.current.shape, 'trunkBranchRatio', {}),
-	);
 	const trunkCrookednessDisabled = $derived(
 		isParamDisabled(treeConfig.current.shape, 'trunkCrookedness', {
 			trunkSegments: treeConfig.current.trunkSegments,
 		}),
 	);
+	const branchCrookednessDisabled = $derived(
+		isParamDisabled(treeConfig.current.shape, 'branchCrookedness', {
+			branchSegments: treeConfig.current.branchSegments,
+		}),
+	);
 	const fruitCountDisabled = $derived(
 		isParamDisabled(treeConfig.current.shape, 'fruitCount', {
 			fruitType: treeConfig.current.fruitType,
+		}),
+	);
+	const level1Disabled = $derived(
+		isParamDisabled(treeConfig.current.shape, 'branchesLevel1Range', {
+			branchDepth: treeConfig.current.branchDepth,
+		}),
+	);
+	const level2Disabled = $derived(
+		isParamDisabled(treeConfig.current.shape, 'branchesLevel2Range', {
+			branchDepth: treeConfig.current.branchDepth,
+		}),
+	);
+	const level3Disabled = $derived(
+		isParamDisabled(treeConfig.current.shape, 'branchesLevel3Range', {
+			branchDepth: treeConfig.current.branchDepth,
 		}),
 	);
 
@@ -113,7 +129,11 @@
 		}
 		const defaults = SHAPE_DEFAULTS[value];
 		treeConfig.current.blobCount = defaults.blobCount;
-		treeConfig.current.branchCount = defaults.branchCount;
+		treeConfig.current.branchDepth = defaults.branchDepth;
+		treeConfig.current.branchesLevel1Range = [...defaults.branchesLevel1Range];
+		treeConfig.current.branchesLevel2Range = [...defaults.branchesLevel2Range];
+		treeConfig.current.branchesLevel3Range = [...defaults.branchesLevel3Range];
+		treeConfig.current.branchAngle = defaults.branchAngle;
 		treeConfig.current.blobSizeVariance = defaults.blobSizeVariance;
 		treeConfig.current.blobCloseness = defaults.blobCloseness;
 		treeConfig.current.branchThickness = defaults.branchThickness;
@@ -130,14 +150,12 @@
 		treeConfig.current.fruitCount = defaults.fruitCount;
 	}
 
-	function onBlobCountInput(event: Event) {
-		const target = event.currentTarget as HTMLInputElement;
-		const next = Number(target.value);
-		treeConfig.current.blobCount = next;
+	function onBlobCountChange(value: number) {
+		treeConfig.current.blobCount = value;
 		if (treeConfig.current.shape === TREE_SHAPES.custom) {
 			treeConfig.customBlobs = growCustomBlobs(
 				treeConfig.customBlobs,
-				next,
+				value,
 				treeConfig.current.seed,
 				treeConfig.current.blobCloseness,
 			);
@@ -148,7 +166,6 @@
 		treeConfig.current.seed = Math.floor(Math.random() * 100000);
 	}
 
-	// Hydrate state from saved tree when ?saved=id is present.
 	$effect(() => {
 		if (!savedTreeQuery) {
 			return;
@@ -244,39 +261,32 @@
 						<Card.Title>Geometry</Card.Title>
 					</Card.Header>
 					<Card.Content class="space-y-4">
-						<LabeledRangeSlider
+						<LabeledSlider
 							label="Polygons Per Blob"
 							min={4}
 							max={30}
 							bind:value={treeConfig.current.polygonsPerBlob}
 						/>
-						<LabeledRangeSlider
+						<LabeledSlider
 							label="Trunk Polygons"
 							min={10}
 							max={100}
 							bind:value={treeConfig.current.trunkPolygons}
 						/>
-						<LabeledRangeSlider
+						<LabeledSlider
 							label="Blob Count"
 							min={1}
 							max={8}
 							value={treeConfig.current.blobCount}
-							oninput={onBlobCountInput}
+							onValueChange={onBlobCountChange}
 						/>
-						<LabeledRangeSlider
-							label="Branches"
-							min={0}
-							max={20}
-							bind:value={treeConfig.current.branchCount}
-							disabled={branchCountDisabled}
-						/>
-						<LabeledRangeSlider
+						<LabeledSlider
 							label="Branch Depth"
 							min={0}
 							max={3}
 							bind:value={treeConfig.current.branchDepth}
 						/>
-						<LabeledRangeSlider
+						<LabeledSlider
 							label="Blob Size Variance"
 							min={1}
 							max={10}
@@ -285,14 +295,14 @@
 							unit="x"
 							bind:value={treeConfig.current.blobSizeVariance}
 						/>
-						<LabeledRangeSlider
+						<LabeledSlider
 							label="Blob Closeness"
 							min={0}
 							max={100}
 							unit="%"
 							bind:value={treeConfig.current.blobCloseness}
 						/>
-						<LabeledRangeSlider
+						<LabeledSlider
 							label="Canopy Size"
 							min={25}
 							max={400}
@@ -322,7 +332,7 @@
 							value={treeConfig.current.fruitType}
 							onValueChange={onFruitTypeChange}
 						/>
-						<LabeledRangeSlider
+						<LabeledSlider
 							label="Fruit Count"
 							min={0}
 							max={7}
@@ -345,17 +355,27 @@
 
 				<Card.Root>
 					<Card.Header>
-						<Card.Title>Trunk & Branches</Card.Title>
+						<div class="flex items-center justify-between">
+							<Card.Title>Trunk & Branches</Card.Title>
+							<div class="flex items-center gap-2">
+								<Checkbox
+									checked={showAdvancedControls}
+									onCheckedChange={(v) => (showAdvancedControls = v === true)}
+								/>
+								<Label class="text-xs">Advanced</Label>
+							</div>
+						</div>
 					</Card.Header>
 					<Card.Content class="space-y-4">
-						<LabeledRangeSlider
+						<!-- Simple controls (always visible) -->
+						<LabeledSlider
 							label="Trunk Height"
 							min={10}
 							max={150}
 							unit="%"
 							bind:value={treeConfig.current.trunkHeight}
 						/>
-						<LabeledRangeSlider
+						<LabeledSlider
 							label="Trunk Thickness"
 							min={25}
 							max={400}
@@ -363,7 +383,7 @@
 							unit="%"
 							bind:value={treeConfig.current.trunkThickness}
 						/>
-						<LabeledRangeSlider
+						<LabeledSlider
 							label="Branch Thickness"
 							min={25}
 							max={400}
@@ -371,30 +391,14 @@
 							unit="%"
 							bind:value={treeConfig.current.branchThickness}
 						/>
-						<LabeledRangeSlider
-							label="Trunk/Branch Ratio"
-							min={30}
-							max={100}
-							unit="%"
-							bind:value={treeConfig.current.trunkBranchRatio}
-							disabled={trunkBranchRatioDisabled}
-						/>
-						<LabeledRangeSlider
-							label="Trunk Lean"
-							min={-45}
-							max={45}
-							step={1}
-							unit="°"
-							bind:value={treeConfig.current.trunkLean}
-						/>
-						<LabeledRangeSlider
+						<LabeledSlider
 							label="Trunk Segments"
 							min={1}
 							max={5}
 							step={1}
 							bind:value={treeConfig.current.trunkSegments}
 						/>
-						<LabeledRangeSlider
+						<LabeledSlider
 							label="Trunk Crookedness"
 							min={0}
 							max={100}
@@ -403,22 +407,99 @@
 							bind:value={treeConfig.current.trunkCrookedness}
 							disabled={trunkCrookednessDisabled}
 						/>
-						<LabeledRangeSlider
-							label="Branch Length"
-							min={25}
-							max={400}
-							step={5}
-							unit="%"
-							bind:value={treeConfig.current.branchLength}
+						<LabeledSlider
+							label="Trunk Lean"
+							min={-45}
+							max={45}
+							step={1}
+							unit="°"
+							bind:value={treeConfig.current.trunkLean}
 						/>
-						<LabeledRangeSlider
-							label="Branch Length Variance"
+						<LabeledSlider
+							label="Branch Angle"
 							min={0}
 							max={100}
 							step={5}
 							unit="%"
-							bind:value={treeConfig.current.branchLengthVariance}
+							bind:value={treeConfig.current.branchAngle}
+							disabled={level1Disabled}
 						/>
+
+						<!-- Per-level branch count range sliders (BR-4) -->
+						{#if treeConfig.current.branchDepth >= 1}
+							<LabeledRangeSliderDual
+								label="L1 Branches"
+								min={0}
+								max={10}
+								value={[...treeConfig.current.branchesLevel1Range]}
+								onValueChange={(v) => (treeConfig.current.branchesLevel1Range = v)}
+								disabled={level1Disabled}
+							/>
+						{/if}
+						{#if treeConfig.current.branchDepth >= 2}
+							<LabeledRangeSliderDual
+								label="L2 Branches"
+								min={0}
+								max={5}
+								value={[...treeConfig.current.branchesLevel2Range]}
+								onValueChange={(v) => (treeConfig.current.branchesLevel2Range = v)}
+								disabled={level2Disabled}
+							/>
+						{/if}
+						{#if treeConfig.current.branchDepth >= 3}
+							<LabeledRangeSliderDual
+								label="L3 Branches"
+								min={0}
+								max={3}
+								value={[...treeConfig.current.branchesLevel3Range]}
+								onValueChange={(v) => (treeConfig.current.branchesLevel3Range = v)}
+								disabled={level3Disabled}
+							/>
+						{/if}
+
+						<!-- Advanced controls (BR-14: toggle) -->
+						{#if showAdvancedControls}
+							<LabeledSlider
+								label="Branch Segments"
+								min={1}
+								max={3}
+								step={1}
+								bind:value={treeConfig.current.branchSegments}
+							/>
+							<LabeledSlider
+								label="Branch Crookedness"
+								min={0}
+								max={100}
+								step={5}
+								unit="%"
+								bind:value={treeConfig.current.branchCrookedness}
+								disabled={branchCrookednessDisabled}
+							/>
+							<LabeledSlider
+								label="Branch Depth Taper"
+								min={30}
+								max={80}
+								step={5}
+								unit="%"
+								bind:value={treeConfig.current.branchDepthTaper}
+							/>
+							<LabeledSlider
+								label="Branch Length"
+								min={25}
+								max={400}
+								step={5}
+								unit="%"
+								bind:value={treeConfig.current.branchLength}
+							/>
+							<LabeledSlider
+								label="Branch Length Variance"
+								min={0}
+								max={100}
+								step={5}
+								unit="%"
+								bind:value={treeConfig.current.branchLengthVariance}
+							/>
+						{/if}
 					</Card.Content>
 				</Card.Root>
 
@@ -427,14 +508,14 @@
 						<Card.Title>Lighting</Card.Title>
 					</Card.Header>
 					<Card.Content class="space-y-4">
-						<LabeledRangeSlider
+						<LabeledSlider
 							label="Light Angle"
 							min={0}
 							max={360}
 							unit="°"
 							bind:value={treeConfig.current.lightAngle}
 						/>
-						<LabeledRangeSlider
+						<LabeledSlider
 							label="Depth Variance"
 							min={0}
 							max={2}

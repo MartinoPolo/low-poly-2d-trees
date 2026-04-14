@@ -83,10 +83,9 @@ describe('buildTrunkPath', () => {
 		}
 	});
 
-	it('REQ-T-12b: junction angle jitter stays within lerp(5°, 20°) per crookedness', () => {
-		// With crookedness=100, maxJitter=20°. Measure the angle delta between
-		// consecutive segments; each must be ≤ 20° in magnitude.
-		const maxJitterDeg = 20;
+	it('BR-11: junction angle jitter stays within 90° at 100% crookedness', () => {
+		// With crookedness=100, maxJitter=90°. Absolute angle clamped to ±85°.
+		const maxJitterDeg = 90;
 		const rng = createPrng(42);
 		const p = buildTrunkPath(rng, 0, 5, 100, trunkTopY, trunkBottomY);
 		const segAngles: number[] = [];
@@ -101,9 +100,9 @@ describe('buildTrunkPath', () => {
 		}
 	});
 
-	it('REQ-T-12b: crookedness=50 keeps per-junction jitter within 12.5°', () => {
-		// maxJitter for 50 = lerp(5, 20, 0.5) = 12.5°
-		const maxJitterDeg = 12.5;
+	it('BR-11: crookedness=50 keeps per-junction jitter within 45°', () => {
+		// maxJitter for 50 = lerp(0, 90, 0.5) = 45°
+		const maxJitterDeg = 45;
 		const p = buildTrunkPath(createPrng(42), 0, 5, 50, trunkTopY, trunkBottomY);
 		const segAngles: number[] = [];
 		for (let i = 0; i < p.length - 1; i++) {
@@ -431,12 +430,11 @@ function setupOakBranchInputs(config: TreeConfig): {
 }
 
 describe('generateBranches — visibility & crossing invariants', () => {
-	it('every trunk-origin branch has visible length ≥ 15', () => {
+	it('every trunk-origin branch has visible length ≥ MIN_VISIBLE_LENGTH (5)', () => {
 		const config = makeConfig({
 			shape: 'oak',
-			branchCount: 6,
+			branchesLevel1Range: [6, 6],
 			seed: 7,
-			trunkBranchRatio: 100,
 			branchDepth: 1,
 		});
 		const { rng, trunkTop, trunkBottom, trunkTopWidth, trunkJunctions, blobs } =
@@ -453,16 +451,16 @@ describe('generateBranches — visibility & crossing invariants', () => {
 		expect(branches.length).toBeGreaterThan(0);
 		for (const b of branches) {
 			const visible = computeVisibleBranchLength(b, blobs, []);
-			expect(visible).toBeGreaterThanOrEqual(15);
+			expect(visible).toBeGreaterThanOrEqual(5);
 		}
 	});
 
 	it('forked sub-branches exist at depth >= 2', () => {
 		const config = makeConfig({
 			shape: 'oak',
-			branchCount: 10,
+			branchesLevel1Range: [3, 3],
+			branchesLevel2Range: [2, 3],
 			seed: 42,
-			trunkBranchRatio: 50,
 			branchDepth: 2,
 		});
 		const { rng, trunkTop, trunkBottom, trunkTopWidth, trunkJunctions, blobs } =
@@ -476,13 +474,13 @@ describe('generateBranches — visibility & crossing invariants', () => {
 			trunkJunctions,
 			blobs,
 		);
-		// At depth 2, forks should be generated beyond trunk-origin branches
-		const trunkBranchCount = Math.max(1, Math.round(10 * 0.5));
-		expect(branches.length).toBeGreaterThan(trunkBranchCount);
+		// At depth 2, total branches should exceed the level-1 count (sub-branches added)
+		const level1Count = config.branchesLevel1Range[0];
+		expect(branches.length).toBeGreaterThan(level1Count);
 	});
 
 	it('no branch crosses the trunk center axis (sign invariant)', () => {
-		const config = makeConfig({ shape: 'oak', branchCount: 8, seed: 123 });
+		const config = makeConfig({ shape: 'oak', branchesLevel1Range: [4, 8], seed: 123 });
 		const { rng, trunkTop, trunkBottom, trunkTopWidth, trunkJunctions, blobs } =
 			setupOakBranchInputs(config);
 		const branches = generateBranches(
@@ -514,8 +512,14 @@ describe('generateBranches — visibility & crossing invariants', () => {
 		}
 	});
 
-	it('branches.length never exceeds config.branchCount', () => {
-		const config = makeConfig({ shape: 'oak', branchCount: 6, seed: 5 });
+	it('branches.length never exceeds MAX_TOTAL_BRANCHES (25)', () => {
+		const config = makeConfig({
+			shape: 'oak',
+			branchesLevel1Range: [6, 6],
+			branchesLevel2Range: [3, 3],
+			branchDepth: 2,
+			seed: 5,
+		});
 		const { rng, trunkTop, trunkBottom, trunkTopWidth, trunkJunctions, blobs } =
 			setupOakBranchInputs(config);
 		const branches = generateBranches(
@@ -527,11 +531,11 @@ describe('generateBranches — visibility & crossing invariants', () => {
 			trunkJunctions,
 			blobs,
 		);
-		expect(branches.length).toBeLessThanOrEqual(config.branchCount);
+		expect(branches.length).toBeLessThanOrEqual(25);
 	});
 
 	it('pathological blob covering whole tree completes fast and returns few branches', () => {
-		const config = makeConfig({ shape: 'oak', branchCount: 8, seed: 9 });
+		const config = makeConfig({ shape: 'oak', branchesLevel1Range: [4, 8], seed: 9 });
 		const setup = setupOakBranchInputs(config);
 		// Replace blobs with a single huge blob covering the whole viewbox.
 		const giantBlob: Blob[] = [
@@ -549,11 +553,11 @@ describe('generateBranches — visibility & crossing invariants', () => {
 		);
 		const elapsed = Date.now() - start;
 		expect(elapsed).toBeLessThan(1000);
-		expect(branches.length).toBeLessThanOrEqual(config.branchCount);
+		expect(branches.length).toBeLessThanOrEqual(25);
 	});
 
 	it('branchLength=200 produces meaningfully longer max branch than branchLength=100', () => {
-		const base = makeConfig({ shape: 'oak', branchCount: 6, seed: 77 });
+		const base = makeConfig({ shape: 'oak', branchesLevel1Range: [3, 6], seed: 77 });
 		const short = setupOakBranchInputs(base);
 		const shortBranches = generateBranches(
 			short.rng,
@@ -582,7 +586,7 @@ describe('generateBranches — visibility & crossing invariants', () => {
 	});
 
 	it('same seed + same config → identical branch list across two runs', () => {
-		const config = makeConfig({ shape: 'oak', branchCount: 6, seed: 33 });
+		const config = makeConfig({ shape: 'oak', branchesLevel1Range: [3, 6], seed: 33 });
 		const a = setupOakBranchInputs(config);
 		const bA = generateBranches(
 			a.rng,

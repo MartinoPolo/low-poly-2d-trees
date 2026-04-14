@@ -3,6 +3,7 @@ import type {
 	TreeConfig,
 	TreeGeometry,
 	Triangle,
+	Quad,
 	Point2D,
 	TreeAnchors,
 	BlobGeometry,
@@ -18,12 +19,10 @@ import {
 	FRUIT_TYPES,
 } from './types.js';
 import { applyStageModifiers, generateStakeTriangles } from './stages/index.js';
-import { createPrng, poissonSample, randomInRange } from './prng.js';
+import { createPrng, poissonSample } from './prng.js';
 import {
 	getShapeDefinition,
 	computeEffectiveTrunkTop,
-	isPointInTrunkPath,
-	isPointInBranch,
 	isPointInBlobs,
 	generateBranches,
 	getBlobsBounds,
@@ -44,25 +43,24 @@ import {
 	CUSTOM_BLOB_CANOPY_CENTER_Y,
 	CUSTOM_BLOB_SPREAD_RADIUS,
 	TRUNK_ENTRY_MIN_PX,
-	TRUNK_BRANCH_WIDTH_START_MIN,
-	TRUNK_BRANCH_WIDTH_START_MAX,
-	TRUNK_BRANCH_WIDTH_END_MIN,
-	TRUNK_BRANCH_WIDTH_END_MAX,
 	type Blob,
 	type BranchSegment,
 } from './shapes.js';
 import { BOUNDARIES, BOUNDARY_KINDS, smoothAcuteBoundaryAngles } from './boundaries.js';
-import { computeCanopyColor, computeTrunkColor } from './lighting.js';
+import { computeCanopyColor, computeTwoToneColors, isLeftSideLight } from './lighting.js';
 
 // REQ-C-12: shapes whose circle-boundary blobs should have acute concavities
-// pulled back to the ellipse ring for a rounder silhouette. Teardrop blobs are
-// gated out per-blob below so fir can be listed here safely if ever needed;
-// currently fir relies on its teardrop tip and has no circle smoothing.
+// pulled back to the ellipse ring for a rounder silhouette.
 const SHAPES_WITH_ACUTE_SMOOTHING = new Set<TreeShape>([
 	TREE_SHAPES.oak,
 	TREE_SHAPES.birch,
 	TREE_SHAPES.maple,
 	TREE_SHAPES.willow,
+	TREE_SHAPES.apple,
+	TREE_SHAPES.cherry,
+	TREE_SHAPES.bush,
+	TREE_SHAPES.baobab,
+	TREE_SHAPES.acacia,
 ]);
 
 // Shapes that use tier-based canopy rendering instead of blob-based.
@@ -107,31 +105,6 @@ function isTriangleInsideRegion(
 	return test(cx, cy);
 }
 
-/**
- * Horizontal bounds of the trunk mesh cover the full polyline plus the base
- * width on each side, so cylinder color mapping keys off the entire visible
- * trunk x-range. Reused by trunk and branch mesh generation.
- */
-function computeTrunkXBounds(
-	trunkJunctions: readonly Point2D[],
-	effectiveBaseWidth: number,
-): { minX: number; maxX: number } {
-	let minJunctionX = Infinity;
-	let maxJunctionX = -Infinity;
-	for (const j of trunkJunctions) {
-		if (j.x < minJunctionX) {
-			minJunctionX = j.x;
-		}
-		if (j.x > maxJunctionX) {
-			maxJunctionX = j.x;
-		}
-	}
-	return {
-		minX: minJunctionX - effectiveBaseWidth / 2,
-		maxX: maxJunctionX + effectiveBaseWidth / 2,
-	};
-}
-
 const ROOTS_DEPTH_PX = 15;
 const FRUIT_SLOTS_SEED_OFFSET = 54321;
 const FRUIT_COUNT_CAP = 7;
@@ -161,8 +134,6 @@ function computeAnchors(
 ): TreeAnchors {
 	const baseJunction = trunkJunctions[0]!;
 	const topJunction = trunkJunctions[trunkJunctions.length - 1]!;
-	// trunkMiddle lies on the trunk polyline (not on a straight base→top line)
-	// so it remains visually meaningful for multi-segment crooked trunks.
 	const midY = (baseJunction.y + topJunction.y) / 2;
 
 	const crownCenter: Point2D = {
@@ -170,7 +141,6 @@ function computeAnchors(
 		y: (canopyBounds.minY + canopyBounds.maxY) / 2,
 	};
 
-	// crownTop: vertex with minimum y across all canopy triangles
 	let crownTopY = Infinity;
 	let crownTopX = crownCenter.x;
 	for (const blob of canopyBlobs) {
@@ -188,10 +158,8 @@ function computeAnchors(
 			? { x: crownTopX, y: crownTopY }
 			: { x: crownCenter.x, y: canopyBounds.minY };
 
-	// branchTips: endpoint of each branch
 	const branchTips: Point2D[] = allBranches.map((b) => ({ x: b.x2, y: b.y2 }));
 
-	// fruitSlots: 5-7 Poisson-sampled points within canopy
 	const fruitRng = createPrng(seed + FRUIT_SLOTS_SEED_OFFSET);
 	const fruitCount = 5 + Math.floor(fruitRng() * 3);
 	const boundsArea =
@@ -224,66 +192,14 @@ function computeAnchors(
 }
 
 // ---------------------------------------------------------------------------
-// Trunk silhouette path (VQ-1: smooth outline for clip-path)
+// Trunk quad generation (BR-1: stacked trapezoids with centerline)
 // ---------------------------------------------------------------------------
 
-function generateTrunkSilhouettePath(
+function generateTrunkQuads(
 	trunkJunctions: readonly Point2D[],
-	effectiveBaseWidth: number,
-	effectiveTopWidth: number,
-): string {
-	const points = trunkJunctions;
-	if (points.length < 2) {
-		return '';
-	}
-	const trunkTop = points[points.length - 1]!.y;
-	const trunkBottom = points[0]!.y;
-	const trunkHeight = trunkBottom - trunkTop;
-	if (trunkHeight <= 0) {
-		return '';
-	}
-
-	// Build left and right edge points tracing the trunk outline
-	const leftEdge: Point2D[] = [];
-	const rightEdge: Point2D[] = [];
-
-	for (let i = points.length - 1; i >= 0; i--) {
-		const junction = points[i]!;
-		const t = (junction.y - trunkTop) / trunkHeight;
-		const width = effectiveTopWidth + t * (effectiveBaseWidth - effectiveTopWidth);
-		leftEdge.push({ x: junction.x - width / 2, y: junction.y });
-		rightEdge.push({ x: junction.x + width / 2, y: junction.y });
-	}
-
-	// Trace: top-left -> bottom-left -> bottom-right -> top-right -> close
-	const pathParts: string[] = [];
-	pathParts.push(`M ${leftEdge[0]!.x} ${leftEdge[0]!.y}`);
-	for (let i = 1; i < leftEdge.length; i++) {
-		pathParts.push(`L ${leftEdge[i]!.x} ${leftEdge[i]!.y}`);
-	}
-	// Bottom edge (left to right)
-	const lastRight = rightEdge[rightEdge.length - 1]!;
-	pathParts.push(`L ${lastRight.x} ${lastRight.y}`);
-	// Right edge (bottom to top)
-	for (let i = rightEdge.length - 2; i >= 0; i--) {
-		pathParts.push(`L ${rightEdge[i]!.x} ${rightEdge[i]!.y}`);
-	}
-	pathParts.push('Z');
-	return pathParts.join(' ');
-}
-
-// ---------------------------------------------------------------------------
-// Trunk mesh generation
-// ---------------------------------------------------------------------------
-
-function generateTrunkMesh(
-	rng: () => number,
-	colorRng: () => number,
 	shapeDef: { readonly trunkBaseWidth: number; readonly trunkTopWidth: number },
-	trunkJunctions: readonly Point2D[],
-	trunkBudget: number,
 	config: TreeConfig,
-): Triangle[] {
+): Quad[] {
 	const thicknessScale = config.trunkThickness / 100;
 	const effectiveBaseWidth = shapeDef.trunkBaseWidth * thicknessScale;
 	const effectiveTopWidth = shapeDef.trunkTopWidth * thicknessScale;
@@ -291,128 +207,138 @@ function generateTrunkMesh(
 	const trunkTop = trunkJunctions[trunkJunctions.length - 1]!.y;
 	const trunkBottom = trunkJunctions[0]!.y;
 	const trunkHeight = trunkBottom - trunkTop;
-
-	const trunkPoints: { x: number; y: number }[] = [];
-	const trunkSteps = Math.max(3, Math.floor(trunkBudget / 4));
-
-	for (let i = 0; i <= trunkSteps; i++) {
-		const t = i / trunkSteps;
-		const y = trunkTop + t * trunkHeight;
-		const width = effectiveTopWidth + t * (effectiveBaseWidth - effectiveTopWidth);
-		const centerX = sampleTrunkCenterX(trunkJunctions, y);
-		trunkPoints.push({ x: centerX - width / 2, y });
-		trunkPoints.push({ x: centerX + width / 2, y });
-		if (i > 0 && i < trunkSteps) {
-			trunkPoints.push({
-				x: centerX + randomInRange(rng, -width / 4, width / 4),
-				y: y + randomInRange(rng, -2, 2),
-			});
-		}
-	}
-
-	// Seed explicit left/right points at each interior junction so kinks in a
-	// crooked trunk are accurately triangulated (REQ-T-12).
-	for (let i = 1; i < trunkJunctions.length - 1; i++) {
-		const junc = trunkJunctions[i]!;
-		const tj = (junc.y - trunkTop) / trunkHeight;
-		const widthJ = effectiveTopWidth + tj * (effectiveBaseWidth - effectiveTopWidth);
-		trunkPoints.push({ x: junc.x - widthJ / 2, y: junc.y });
-		trunkPoints.push({ x: junc.x + widthJ / 2, y: junc.y });
-	}
-
-	const rawTris = triangulatePoints(trunkPoints);
-	const filtered = rawTris.filter((tri) =>
-		isTriangleInsideRegion(tri, (x, y) =>
-			isPointInTrunkPath(x, y, trunkJunctions, effectiveTopWidth, effectiveBaseWidth),
-		),
-	);
-
-	const trunkXBounds = computeTrunkXBounds(trunkJunctions, effectiveBaseWidth);
-
-	return filtered.map((tri) => ({
-		points: tri,
-		color: computeTrunkColor(tri, trunkXBounds, config, colorRng),
-		group: GEOMETRY_GROUPS.trunk,
-	}));
-}
-
-// ---------------------------------------------------------------------------
-// Per-branch mesh generation (D1: each branch triangulated independently)
-// ---------------------------------------------------------------------------
-
-function generateSingleBranchMesh(
-	rng: () => number,
-	colorRng: () => number,
-	branch: BranchSegment,
-	trunkXBounds: { minX: number; maxX: number },
-	config: TreeConfig,
-): Triangle[] {
-	const branchPoints: { x: number; y: number }[] = [];
-	const segSteps = 3;
-
-	for (let i = 0; i <= segSteps; i++) {
-		const t = i / segSteps;
-		const px = branch.x1 + t * (branch.x2 - branch.x1);
-		const py = branch.y1 + t * (branch.y2 - branch.y1);
-		const localWidth = branch.widthStart + t * (branch.widthEnd - branch.widthStart);
-		const halfW = localWidth / 2;
-		const nx = -(branch.y2 - branch.y1);
-		const ny = branch.x2 - branch.x1;
-		const len = Math.sqrt(nx * nx + ny * ny);
-		if (len > 0) {
-			branchPoints.push({ x: px + (nx / len) * halfW, y: py + (ny / len) * halfW });
-			branchPoints.push({ x: px - (nx / len) * halfW, y: py - (ny / len) * halfW });
-		}
-	}
-
-	if (branchPoints.length < 3) {
+	if (trunkHeight <= 0) {
 		return [];
 	}
 
-	const rawTris = triangulatePoints(branchPoints);
-	const filtered = rawTris.filter((tri) =>
-		isTriangleInsideRegion(tri, (x, y) => isPointInBranch(x, y, [branch])),
+	const { lightColor, darkColor } = computeTwoToneColors(config);
+	// For trunk (vertical direction), angle is ~-PI/2 (pointing up)
+	const trunkDirectionAngle = Math.atan2(
+		trunkJunctions[trunkJunctions.length - 1]!.y - trunkJunctions[0]!.y,
+		trunkJunctions[trunkJunctions.length - 1]!.x - trunkJunctions[0]!.x,
 	);
+	const leftIsLight = isLeftSideLight(config.lightAngle, trunkDirectionAngle);
 
-	return filtered.map((tri) => ({
-		points: tri,
-		color: computeTrunkColor(tri, trunkXBounds, config, colorRng),
-		group: GEOMETRY_GROUPS.branch,
-	}));
+	const quads: Quad[] = [];
+
+	// Build one quad per trunk segment (between adjacent junctions)
+	for (let i = 0; i < trunkJunctions.length - 1; i++) {
+		const bottom = trunkJunctions[i]!;
+		const top = trunkJunctions[i + 1]!;
+
+		const tBottom = (bottom.y - trunkTop) / trunkHeight;
+		const tTop = (top.y - trunkTop) / trunkHeight;
+		const widthBottom = effectiveTopWidth + tBottom * (effectiveBaseWidth - effectiveTopWidth);
+		const widthTop = effectiveTopWidth + tTop * (effectiveBaseWidth - effectiveTopWidth);
+
+		// Left half quad (from left edge to centerline)
+		const leftColor = leftIsLight ? lightColor : darkColor;
+		quads.push({
+			points: [
+				{ x: top.x - widthTop / 2, y: top.y },
+				{ x: top.x, y: top.y },
+				{ x: bottom.x, y: bottom.y },
+				{ x: bottom.x - widthBottom / 2, y: bottom.y },
+			],
+			color: leftColor,
+			group: GEOMETRY_GROUPS.trunk,
+		});
+
+		// Right half quad (from centerline to right edge)
+		const rightColor = leftIsLight ? darkColor : lightColor;
+		quads.push({
+			points: [
+				{ x: top.x, y: top.y },
+				{ x: top.x + widthTop / 2, y: top.y },
+				{ x: bottom.x + widthBottom / 2, y: bottom.y },
+				{ x: bottom.x, y: bottom.y },
+			],
+			color: rightColor,
+			group: GEOMETRY_GROUPS.trunk,
+		});
+	}
+
+	return quads;
 }
 
-function generateBranchMesh(
-	rng: () => number,
-	colorRng: () => number,
+// ---------------------------------------------------------------------------
+// Branch quad generation (BR-3: same quad + centerline system as trunk)
+// ---------------------------------------------------------------------------
+
+function generateBranchQuadGroup(
+	branch: BranchSegment,
+	config: TreeConfig,
+	depth: number,
+): BranchGeometry {
+	const { lightColor, darkColor } = computeTwoToneColors(config);
+
+	const dirX = branch.x2 - branch.x1;
+	const dirY = branch.y2 - branch.y1;
+	const length = Math.sqrt(dirX * dirX + dirY * dirY);
+	if (length === 0) {
+		return { quads: [], junctionFills: [], origin: { x: branch.x1, y: branch.y1 }, depth };
+	}
+
+	// Unit direction and perpendicular
+	const ux = dirX / length;
+	const uy = dirY / length;
+	const perpX = -uy;
+	const perpY = ux;
+
+	const branchAngle = Math.atan2(dirY, dirX);
+	const leftIsLight = isLeftSideLight(config.lightAngle, branchAngle);
+	const leftColor = leftIsLight ? lightColor : darkColor;
+	const rightColor = leftIsLight ? darkColor : lightColor;
+
+	// Single segment: one quad pair (left half + right half)
+	const halfStart = branch.widthStart / 2;
+	const halfEnd = branch.widthEnd / 2;
+
+	const startLeft: Point2D = {
+		x: branch.x1 + perpX * halfStart,
+		y: branch.y1 + perpY * halfStart,
+	};
+	const startCenter: Point2D = { x: branch.x1, y: branch.y1 };
+	const startRight: Point2D = {
+		x: branch.x1 - perpX * halfStart,
+		y: branch.y1 - perpY * halfStart,
+	};
+	const endLeft: Point2D = { x: branch.x2 + perpX * halfEnd, y: branch.y2 + perpY * halfEnd };
+	const endCenter: Point2D = { x: branch.x2, y: branch.y2 };
+	const endRight: Point2D = { x: branch.x2 - perpX * halfEnd, y: branch.y2 - perpY * halfEnd };
+
+	const quads: Quad[] = [
+		// Left half
+		{
+			points: [startLeft, startCenter, endCenter, endLeft],
+			color: leftColor,
+			group: GEOMETRY_GROUPS.branch,
+		},
+		// Right half
+		{
+			points: [startCenter, startRight, endRight, endCenter],
+			color: rightColor,
+			group: GEOMETRY_GROUPS.branch,
+		},
+	];
+
+	return {
+		quads,
+		junctionFills: [],
+		origin: { x: branch.x1, y: branch.y1 },
+		depth,
+	};
+}
+
+function generateAllBranchQuads(
 	branches: readonly BranchSegment[],
-	trunkJunctions: readonly Point2D[],
-	shapeDef: { readonly trunkBaseWidth: number },
 	config: TreeConfig,
 ): BranchGeometry[] {
-	if (branches.length === 0) {
-		return [];
-	}
-
-	const effectiveBaseWidth = shapeDef.trunkBaseWidth * (config.trunkThickness / 100);
-	const trunkXBounds = computeTrunkXBounds(trunkJunctions, effectiveBaseWidth);
-
-	const groups: BranchGeometry[] = [];
-
-	for (const branch of branches) {
-		const branchTris = generateSingleBranchMesh(rng, colorRng, branch, trunkXBounds, config);
-		if (branchTris.length > 0) {
-			groups.push({
-				triangles: branchTris,
-				origin: { x: branch.x1, y: branch.y1 },
-			});
-		}
-	}
-
-	return groups;
+	return branches.map((branch) => generateBranchQuadGroup(branch, config, 1));
 }
 
 // ---------------------------------------------------------------------------
-// Per-blob canopy triangulation
+// Per-blob canopy triangulation (unchanged — still uses Delaunay)
 // ---------------------------------------------------------------------------
 
 function generateBlobCanopy(
@@ -444,11 +370,6 @@ function generateBlobCanopy(
 			rng,
 			blob.rotationDeg ?? 0,
 		);
-		// Teardrop blobs must never be acute-angle smoothed: the smoother would
-		// round off the pointy top, destroying the teardrop silhouette. Gate the
-		// smoothing per-blob on the boundary kind so shapes containing a mix of
-		// boundary types (fir: teardrop + circles) can opt in at shape level
-		// without affecting the teardrop.
 		const shouldSmooth = smoothAcuteAnglesForCircles && blob.boundary === BOUNDARY_KINDS.circle;
 		const boundaryPoints = shouldSmooth
 			? smoothAcuteBoundaryAngles(rawBoundaryPoints, blob.cx, blob.cy, blob.rx, blob.ry)
@@ -517,7 +438,7 @@ function generateBlobCanopy(
 }
 
 // ---------------------------------------------------------------------------
-// Per-tier canopy triangulation (pine)
+// Per-tier canopy triangulation (pine — unchanged)
 // ---------------------------------------------------------------------------
 
 function generateTierCanopy(
@@ -596,58 +517,15 @@ function generateTierCanopy(
 }
 
 // ---------------------------------------------------------------------------
-// Maple per-blob branches (issue #8)
-// ---------------------------------------------------------------------------
-//
-// Maple emits exactly one branch per canopy blob, originating from the trunk
-// just below the canopy bottom and terminating at the blob center. This
-// replaces the generic trunk/sub-branch algorithm for maple because the
-// blob-per-branch correspondence is intrinsic to the shape. The user-visible
-// branchCount slider stays on the UI but is ignored for maple — one branch
-// per blob is the intentional spec.
-
-function generateMapleBranches(
-	rng: () => number,
-	trunkJunctions: readonly Point2D[],
-	blobs: readonly Blob[],
-	config: TreeConfig,
-	canopyBottom: number,
-): BranchSegment[] {
-	const branchThicknessScale = config.branchThickness / 100;
-	const segments: BranchSegment[] = [];
-	for (const blob of blobs) {
-		const originY = canopyBottom - randomInRange(rng, 5, 15);
-		const originX = sampleTrunkCenterX(trunkJunctions, originY);
-		const widthStart =
-			randomInRange(rng, TRUNK_BRANCH_WIDTH_START_MIN, TRUNK_BRANCH_WIDTH_START_MAX) *
-			branchThicknessScale;
-		const widthEnd =
-			randomInRange(rng, TRUNK_BRANCH_WIDTH_END_MIN, TRUNK_BRANCH_WIDTH_END_MAX) *
-			branchThicknessScale;
-		segments.push({
-			x1: originX,
-			y1: originY,
-			x2: blob.cx,
-			y2: blob.cy,
-			widthStart,
-			widthEnd,
-		});
-	}
-	return segments;
-}
-
-// ---------------------------------------------------------------------------
 // Main entry point
 // ---------------------------------------------------------------------------
 
 export function generateTree(config: TreeConfig): TreeGeometry {
-	// Stage dispatch: custom shape ignores stage entirely.
 	if (config.shape !== TREE_SHAPES.custom) {
 		const stageResult = applyStageModifiers(config);
 		if (stageResult.kind === 'directGeometry') {
 			return stageResult.geometry;
 		}
-		// Use modified config for the rest of the pipeline
 		return generateTreeCore(stageResult.config, stageResult.addStakes, stageResult.addFruit);
 	}
 	return generateTreeCore(config, false, false);
@@ -660,16 +538,9 @@ function generateTreeCore(config: TreeConfig, addStakes: boolean, addFruit: bool
 	const isCustom = config.shape === TREE_SHAPES.custom;
 
 	const effectiveTrunkTop = computeEffectiveTrunkTop(shapeDef, config.trunkHeight);
-	// Canopy must follow trunk top so that raising/lowering the trunk shifts the
-	// whole canopy in lock-step. Delta is the per-axis offset applied to every
-	// blob cy (and tier y) after shape-specific positioning runs at defaults.
 	const canopyDelta = effectiveTrunkTop - shapeDef.defaultTrunkTop;
 	const trunkBottom = shapeDef.trunkBottom;
 
-	// Build the trunk path first (driven by the trunkLean/trunkSegments/
-	// trunkCrookedness params — REQ-T-11, REQ-T-12). This replaces the old
-	// random jitter. trunkTop here is the pre-clamp effective top; we may
-	// tighten it after canopy bounds are known.
 	let trunkJunctions = buildTrunkPath(
 		rng,
 		config.trunkLean,
@@ -685,11 +556,6 @@ function generateTreeCore(config: TreeConfig, addStakes: boolean, addFruit: bool
 	if (isTiered) {
 		blobs = [];
 	} else if (isCustom) {
-		// Custom tree: user-placed blobs from `config.customBlobs`. The spread
-		// radius, canopy center, and trunkDelta follow the trunk top so the
-		// custom layout rises/falls with the trunkHeight slider exactly like
-		// the other shapes — but we skip size-variance, closeness, and
-		// canopy-size scaling because those are the user's job per blob.
 		blobs = generateCustomBlobs(
 			config.customBlobs ?? [],
 			config.blobCount,
@@ -711,7 +577,6 @@ function generateTreeCore(config: TreeConfig, addStakes: boolean, addFruit: bool
 		applyCanopySize(blobs, config.canopySize);
 		for (const blob of blobs) {
 			blob.cy += canopyDelta;
-			// REQ-T-12d: canopy follows the topmost trunk segment horizontally.
 			blob.cx += horizontalCanopyShift;
 		}
 	}
@@ -743,12 +608,6 @@ function generateTreeCore(config: TreeConfig, addStakes: boolean, addFruit: bool
 					maxY: effectiveTrunkTop + TRUNK_ENTRY_MIN_PX,
 				};
 
-	// Enforce the trunk-penetration invariant: trunk top must enter the lowest
-	// canopy edge by at least TRUNK_ENTRY_MIN_PX. If the user's chosen trunk
-	// height would leave the trunk dangling below the canopy, clamp upward.
-	// When clamping is needed we substitute the topmost junction with the
-	// clamped y while preserving its x (so the lean/crookedness choices remain
-	// visible).
 	const clampedTrunkTop = Math.min(effectiveTrunkTop, canopyBounds.maxY - TRUNK_ENTRY_MIN_PX);
 	if (clampedTrunkTop !== effectiveTrunkTop) {
 		const clamped = [...trunkJunctions];
@@ -758,25 +617,10 @@ function generateTreeCore(config: TreeConfig, addStakes: boolean, addFruit: bool
 	}
 	const trunkTop = trunkJunctions[trunkJunctions.length - 1]!.y;
 
-	// Branch generation dispatch:
-	//   - pine has no branches
-	//   - maple emits one branch per canopy blob (issue #8) using
-	//     generateMapleBranches — this replaces the generic algorithm because
-	//     every blob needs a dedicated branch from the trunk. The user-visible
-	//     branchCount slider is intentionally ignored for maple (spec).
-	//   - all other shapes use the generic generateBranches entry point.
-	// The maple branch rng uses the same seed offset (+7777) as the generic
-	// branch path so determinism holds across shape switches.
+	// Branch generation: all shapes (including maple) use the generic system (BR-13)
 	let branches: BranchSegment[];
 	if (isTiered) {
 		branches = [];
-	} else if (config.shape === TREE_SHAPES.maple) {
-		const mapleRng = createPrng(config.seed + 7777);
-		// Reuse the already-computed canopyBounds (getBlobsBounds result from
-		// above) rather than recomputing. For maple this is always the blob
-		// bounds path (pine is excluded by the outer branch).
-		const canopyBottomY = blobs.length > 0 ? canopyBounds.maxY : trunkTop;
-		branches = generateMapleBranches(mapleRng, trunkJunctions, blobs, config, canopyBottomY);
 	} else {
 		branches = generateBranches(
 			createPrng(config.seed + 7777),
@@ -792,31 +636,11 @@ function generateTreeCore(config: TreeConfig, addStakes: boolean, addFruit: bool
 	const extraBranches = isTiered ? [] : validateNoFloatingBlobs(blobs, branches);
 	const allBranches = [...branches, ...extraBranches];
 
-	const trunkTriangles = generateTrunkMesh(
-		rng,
-		createPrng(config.seed + 9999),
-		shapeDef,
-		trunkJunctions,
-		config.trunkPolygons,
-		config,
-	);
+	// Generate trunk quads (BR-1: stacked trapezoids with centerline)
+	const trunkQuads = generateTrunkQuads(trunkJunctions, shapeDef, config);
 
-	const thicknessScale = config.trunkThickness / 100;
-	const trunkSilhouettePath = generateTrunkSilhouettePath(
-		trunkJunctions,
-		shapeDef.trunkBaseWidth * thicknessScale,
-		shapeDef.trunkTopWidth * thicknessScale,
-	);
-
-	const branchGroups = generateBranchMesh(
-		rng,
-		createPrng(config.seed + 9999),
-		allBranches,
-		trunkJunctions,
-		shapeDef,
-		config,
-	);
-	const branchTriangles = branchGroups.flatMap((g) => g.triangles);
+	// Generate branch quads (BR-3: same quad + centerline system)
+	const branchGroups = generateAllBranchQuads(allBranches, config);
 
 	const smoothAcuteAngles = SHAPES_WITH_ACUTE_SMOOTHING.has(config.shape);
 	const canopyBlobs = isTiered
@@ -833,14 +657,12 @@ function generateTreeCore(config: TreeConfig, addStakes: boolean, addFruit: bool
 		config.seed,
 	);
 
-	// Fruit generation: produce triangulated fruit shapes at anchor slots
 	const effectiveFruitType = config.fruitType;
 	const effectiveFruitCount = Math.min(config.fruitCount, FRUIT_COUNT_CAP);
 	let fruitTriangles: Triangle[] = [];
 
 	if (effectiveFruitType !== FRUIT_TYPES.none && effectiveFruitCount > 0) {
 		const fruitSlots = [...anchors.fruitSlots];
-
 		const fruitRng = createPrng(config.seed + FRUIT_SLOTS_SEED_OFFSET + 2000);
 		fruitTriangles = generateFruitAtSlots(
 			effectiveFruitType,
@@ -853,9 +675,8 @@ function generateTreeCore(config: TreeConfig, addStakes: boolean, addFruit: bool
 	const fruitSlotsResult = addFruit ? anchors.fruitSlots : [];
 
 	return {
-		trunkTriangles,
-		trunkSilhouettePath,
-		branchTriangles,
+		trunkQuads,
+		trunkTriangles: [],
 		branchGroups,
 		canopyBlobs,
 		fruitTriangles,

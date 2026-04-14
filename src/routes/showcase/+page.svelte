@@ -5,7 +5,6 @@
 		DEFAULT_TREE_CONFIG,
 		SHAPE_DEFAULTS,
 		TREE_SHAPES,
-		TREE_SHAPE_OPTIONS,
 		TREE_STAGES,
 		TREE_STAGE_OPTIONS,
 		isTreeStage,
@@ -15,15 +14,20 @@
 	} from '$lib/trees/types.js';
 
 	const allStages = Object.values(TREE_STAGES);
-	const nonCustomShapes = TREE_SHAPE_OPTIONS.filter((o) => o.value !== TREE_SHAPES.custom);
+	const allShapes = Object.values(TREE_SHAPES).filter(
+		(s): s is Exclude<TreeShape, 'custom'> => s !== 'custom',
+	);
 
 	const stageConfigs: ReadonlyMap<TreeStage, TreeConfig> = new Map(
 		allStages.map((stage) => [stage, { ...DEFAULT_TREE_CONFIG, stage }]),
 	);
 
-	function shapeConfig(shape: Exclude<TreeShape, 'custom'>, stage: TreeStage): TreeConfig {
-		return { ...DEFAULT_TREE_CONFIG, ...SHAPE_DEFAULTS[shape], shape, stage };
-	}
+	const shapeConfigs: ReadonlyMap<Exclude<TreeShape, 'custom'>, TreeConfig> = new Map(
+		allShapes.map((shape) => [
+			shape,
+			{ ...DEFAULT_TREE_CONFIG, ...SHAPE_DEFAULTS[shape], shape, stage: TREE_STAGES.leafy },
+		]),
+	);
 
 	let selectedStage = $state<TreeStage>(TREE_STAGES.leafy);
 
@@ -80,19 +84,14 @@
 
 		<h2 class="text-xl font-semibold">All Shapes</h2>
 
-		<div class="grid grid-cols-2 gap-6 sm:grid-cols-3 md:grid-cols-6">
-			{#each nonCustomShapes as { value: shape, label } (shape)}
+		<div class="grid grid-cols-3 gap-4 sm:grid-cols-4 md:grid-cols-6">
+			{#each allShapes as shape (shape)}
 				<div class="flex flex-col items-center gap-2">
-					<div class="w-full rounded-lg border border-border bg-muted/20 p-3">
-						<LowPolyTree
-							config={shapeConfig(
-								shape as Exclude<TreeShape, 'custom'>,
-								selectedStage,
-							)}
-							class="h-auto w-full"
-						/>
+					<div class="w-full rounded-lg border border-border bg-muted/20 p-2">
+						<LowPolyTree config={shapeConfigs.get(shape)!} class="h-auto w-full" />
 					</div>
-					<span class="text-sm font-medium text-muted-foreground">{label}</span>
+					<span class="text-xs font-medium capitalize text-muted-foreground">{shape}</span
+					>
 				</div>
 			{/each}
 		</div>

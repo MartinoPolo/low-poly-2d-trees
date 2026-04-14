@@ -1,0 +1,21 @@
+<!--
+	Axe placeholder SVG — wood-cutting axe.
+	Flat design: dark charcoal metal blade + warm tan wooden handle.
+	Snap point: blade edge at local (14, -18).
+-->
+<g>
+	<!-- Handle (long wooden shaft) -->
+	<rect x="-1.5" y="-22" width="3" height="34" rx="1" fill="#A0782C" />
+	<!-- Handle grip (bottom) -->
+	<rect x="-2.5" y="10" width="5" height="4" rx="1.5" fill="#5C4033" />
+	<!-- Handle top cap -->
+	<rect x="-2" y="-24" width="4" height="3" rx="1" fill="#8B6914" />
+	<!-- Axe head (blade) — extends to the right -->
+	<path d="M1,-22 L1,-16 L12,-14 L14,-18 L12,-22 Z" fill="#3A3A3A" />
+	<!-- Blade edge highlight -->
+	<path d="M12,-22 L14,-18 L12,-14 L13,-18 Z" fill="#2A2A2A" />
+	<!-- Blade face shading -->
+	<path d="M1,-22 L1,-16 L8,-15 L8,-21 Z" fill="#4D4D4D" />
+	<!-- Eye (hole where handle goes through) -->
+	<ellipse cx="1" cy="-19" rx="2" ry="3" fill="#5C4033" />
+</g>

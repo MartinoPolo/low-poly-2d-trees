@@ -10,7 +10,7 @@ test.describe('Issue #9 — Color system overhaul', () => {
 		await expect(lightPicker).toHaveAttribute('type', 'color');
 		await expect(darkPicker).toHaveAttribute('type', 'color');
 
-		// Default oak palette (§2.6)
+		// Default oak palette
 		await expect(lightPicker).toHaveValue('#a8d84e');
 		await expect(darkPicker).toHaveValue('#1a472a');
 
@@ -31,7 +31,7 @@ test.describe('Issue #9 — Color system overhaul', () => {
 		await page.goto('/editor');
 		await page.waitForLoadState('networkidle');
 
-		// Switch to pine (§2.6 canopyLightColor = #4a9e5c)
+		// Switch to pine
 		const trigger = page.locator('[data-slot="select-trigger"]').first();
 		await trigger.click();
 		await page.locator('[role="option"]').filter({ hasText: /pine/i }).first().click();
@@ -49,9 +49,14 @@ test.describe('Issue #9 — Color system overhaul', () => {
 		await page.locator('[data-trunk-preset="Dark brown"]').click();
 
 		// Dark brown: hue=20, sat=55, light=20
-		await expect(page.locator('#range-hue')).toHaveValue('20');
-		await expect(page.locator('#range-saturation')).toHaveValue('55');
-		await expect(page.locator('#range-lightness')).toHaveValue('20');
+		// shadcn sliders: read value from the thumb's aria-valuenow
+		const hueThumb = page.locator('#slider-hue [data-slot="slider-thumb"]');
+		const satThumb = page.locator('#slider-saturation [data-slot="slider-thumb"]');
+		const lightThumb = page.locator('#slider-lightness [data-slot="slider-thumb"]');
+
+		await expect(hueThumb).toHaveAttribute('aria-valuenow', '20');
+		await expect(satThumb).toHaveAttribute('aria-valuenow', '55');
+		await expect(lightThumb).toHaveAttribute('aria-valuenow', '20');
 	});
 
 	test('scene editor shows the per-shape defaults toggle', async ({ page }) => {
@@ -69,16 +74,22 @@ test.describe('Issue #9 — Color system overhaul', () => {
 		await expect(lightPicker).toBeEnabled();
 		await expect(darkPicker).toBeEnabled();
 
-		// Click the toggle (shadcn Checkbox delegates; click the Label)
+		// Click the toggle
 		await page.locator('label[for="use-per-shape-defaults"]').click();
 
 		await expect(lightPicker).toBeDisabled();
 		await expect(darkPicker).toBeDisabled();
-		await expect(page.locator('#range-hue')).toBeDisabled();
-		await expect(page.locator('#range-saturation')).toBeDisabled();
-		await expect(page.locator('#range-lightness')).toBeDisabled();
 
-		// Click again → controls re-enabled
+		// HSL sliders (shadcn): check data-disabled attribute
+		const hueSlider = page.locator('#slider-hue');
+		const satSlider = page.locator('#slider-saturation');
+		const lightSlider = page.locator('#slider-lightness');
+
+		await expect(hueSlider).toHaveAttribute('data-disabled', '');
+		await expect(satSlider).toHaveAttribute('data-disabled', '');
+		await expect(lightSlider).toHaveAttribute('data-disabled', '');
+
+		// Click again -> controls re-enabled
 		await page.locator('label[for="use-per-shape-defaults"]').click();
 		await expect(lightPicker).toBeEnabled();
 		await expect(darkPicker).toBeEnabled();
@@ -90,10 +101,6 @@ test.describe('Issue #9 — Color system overhaul', () => {
 		await page.goto('/');
 		await page.waitForLoadState('networkidle');
 
-		// Read canopy triangle fills for each rendered tree. Each <LowPolyTree>
-		// SVG contains <g class="canopy"> with nested <polygon> elements carrying
-		// the triangle fills. Filter out icon SVGs (DarkModeToggle, Shuffle, etc.)
-		// by requiring a canopy group.
 		const getCanopyFills = () =>
 			page.evaluate(() => {
 				const treeSvgs = Array.from(document.querySelectorAll('svg')).filter(
@@ -109,16 +116,13 @@ test.describe('Issue #9 — Color system overhaul', () => {
 		const sharedFills = await getCanopyFills();
 		expect(sharedFills.length).toBeGreaterThanOrEqual(3);
 
-		// Toggle ON: each tree should use its own shape default palette, so the
-		// palette for oak and pine must diverge visibly.
+		// Toggle ON
 		await page.locator('label[for="use-per-shape-defaults"]').click();
 		await expect(page.locator('#canopy-light-color')).toBeDisabled();
 
 		const perShapeFills = await getCanopyFills();
 		expect(perShapeFills.length).toBeGreaterThanOrEqual(3);
 
-		// Any two tree fill sets should now be different (different palettes),
-		// and the per-shape palette must differ from the shared-palette baseline.
 		expect(perShapeFills[0]).not.toEqual(perShapeFills[1]);
 		expect(perShapeFills).not.toEqual(sharedFills);
 	});

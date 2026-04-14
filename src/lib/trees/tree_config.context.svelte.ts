@@ -28,7 +28,16 @@ class TreeConfigState {
 	}
 
 	applyConfig(config: TreeConfig) {
-		this.current = { ...config };
+		// Migrate old saved configs that used branchCount/trunkBranchRatio
+		const legacy = config as TreeConfig & {
+			branchCount?: number;
+			trunkBranchRatio?: number;
+		};
+		const migrated = { ...DEFAULT_TREE_CONFIG, ...config };
+		if (legacy.branchCount !== undefined && !('branchesLevel1Range' in config)) {
+			migrated.branchesLevel1Range = [legacy.branchCount, legacy.branchCount];
+		}
+		this.current = migrated;
 		this.customBlobs = config.customBlobs ?? [];
 	}
 }
