@@ -26,6 +26,7 @@ import {
 	CUSTOM_BLOB_BOUNDARY_KINDS,
 	CUSTOM_BLOB_DEFAULT,
 	DEFAULT_TREE_CONFIG,
+	VIEWBOX_HEIGHT,
 	VIEWBOX_WIDTH,
 	type CustomBlob,
 } from './types.js';
@@ -689,35 +690,35 @@ describe('REQ-C-18: oak radial blob distribution', () => {
 // REQ-C-19: birch canopy rx doubled (W*0.12 .. W*0.24)
 // ============================================================================
 
-describe('REQ-C-19: birch canopy rx range', () => {
+describe('REQ-C-19: birch canopy rx range (#62 redesign)', () => {
 	const shapeDef = getShapeDefinition('birch');
 	const W = VIEWBOX_WIDTH;
 
-	it('birch blobs at seed 42 include at least one rx ≥ W*0.12', () => {
-		const blobs = shapeDef.generateBlobs(createPrng(42), 5);
-		const hasMinRx = blobs.some((b) => b.rx >= W * 0.12 - 1e-9);
+	it('birch blobs at seed 42 include at least one rx ≥ W*0.1', () => {
+		const blobs = shapeDef.generateBlobs(createPrng(42), 6);
+		const hasMinRx = blobs.some((b) => b.rx >= W * 0.1 - 1e-9);
 		expect(hasMinRx).toBe(true);
 	});
 
-	it('all birch blobs have rx within [W*0.12, W*0.24]', () => {
-		const blobs = shapeDef.generateBlobs(createPrng(42), 5);
+	it('all birch blobs have rx within [W*0.1, W*0.22]', () => {
+		const blobs = shapeDef.generateBlobs(createPrng(42), 6);
 		for (const b of blobs) {
-			expect(b.rx).toBeGreaterThanOrEqual(W * 0.12 - 1e-9);
-			expect(b.rx).toBeLessThanOrEqual(W * 0.24 + 1e-9);
+			expect(b.rx).toBeGreaterThanOrEqual(W * 0.1 - 1e-9);
+			expect(b.rx).toBeLessThanOrEqual(W * 0.22 + 1e-9);
 		}
 	});
 
-	it('across many seeds, max rx approaches W*0.24', () => {
+	it('across many seeds, max rx approaches W*0.2', () => {
 		let maxRx = -Infinity;
 		for (let seed = 1; seed <= 100; seed++) {
-			const blobs = shapeDef.generateBlobs(createPrng(seed), 5);
+			const blobs = shapeDef.generateBlobs(createPrng(seed), 6);
 			for (const b of blobs) {
 				if (b.rx > maxRx) {
 					maxRx = b.rx;
 				}
 			}
 		}
-		expect(maxRx).toBeGreaterThan(W * 0.22);
+		expect(maxRx).toBeGreaterThan(W * 0.18);
 	});
 });
 
@@ -725,53 +726,21 @@ describe('REQ-C-19: birch canopy rx range', () => {
 // REQ-C-20: fir canopy — teardrop top + circle bottom blobs
 // ============================================================================
 
-describe('REQ-C-20: fir canopy blobs', () => {
+describe('REQ-C-20: fir canopy (tier-based after #62)', () => {
 	const shapeDef = getShapeDefinition('fir');
-	const W = VIEWBOX_WIDTH;
 
-	it('fir generates exactly 4 blobs at seed 42 / blobCount 4', () => {
+	it('fir generateBlobs returns empty array (tiers used instead)', () => {
 		const blobs = shapeDef.generateBlobs(createPrng(42), 4);
-		expect(blobs.length).toBe(4);
+		expect(blobs.length).toBe(0);
 	});
 
-	it('fir canopy includes at least one teardrop boundary blob', () => {
-		const blobs = shapeDef.generateBlobs(createPrng(42), 4);
-		const teardrops = blobs.filter((b) => b.boundary === BOUNDARY_KINDS.teardrop);
-		expect(teardrops.length).toBeGreaterThanOrEqual(1);
+	it('fir has a short trunk (defaultTrunkTop >= H*0.75)', () => {
+		expect(shapeDef.defaultTrunkTop).toBeGreaterThanOrEqual(VIEWBOX_HEIGHT * 0.75);
 	});
 
-	// REQ-C-20: the teardrop must live at index 0 AND be the topmost (smallest cy)
-	// blob across every seed. Earlier code ran ensureLargestBlobInBottomHalf on
-	// fir, which could swap a bottom circle to index 0 when its rx*ry exceeded
-	// the teardrop's, pushing the teardrop down and breaking the cone
-	// silhouette. Skipping the helper for fir is the structural fix; these
-	// assertions protect against the regression on multiple seeds.
-	it.each([1, 42, 100, 999])(
-		'fir seed %i: blobs[0] is the teardrop and sits at the topmost cy',
-		(seed) => {
-			const blobs = shapeDef.generateBlobs(createPrng(seed), 4);
-			expect(blobs[0]!.boundary).toBe(BOUNDARY_KINDS.teardrop);
-			const minCy = Math.min(...blobs.map((b) => b.cy));
-			expect(blobs[0]!.cy).toBe(minCy);
-		},
-	);
-
-	it('fir bottom 3 circles share similar cy (within ±25 px)', () => {
-		const blobs = shapeDef.generateBlobs(createPrng(42), 4);
-		const circles = blobs.filter((b) => b.boundary === BOUNDARY_KINDS.circle);
-		expect(circles.length).toBe(3);
-		const meanCy = circles.reduce((sum, b) => sum + b.cy, 0) / circles.length;
-		for (const c of circles) {
-			expect(Math.abs(c.cy - meanCy)).toBeLessThanOrEqual(25);
-		}
-	});
-
-	it('fir bottom circles straddle the trunk axis (one left, one right)', () => {
-		const blobs = shapeDef.generateBlobs(createPrng(42), 4);
-		const circles = blobs.filter((b) => b.boundary === BOUNDARY_KINDS.circle);
-		const leftExists = circles.some((b) => b.cx < W / 2);
-		const rightExists = circles.some((b) => b.cx > W / 2);
-		expect(leftExists && rightExists).toBe(true);
+	it('fir trunk is narrower than pine', () => {
+		const pineDef = getShapeDefinition('pine');
+		expect(shapeDef.trunkBaseWidth).toBeLessThan(pineDef.trunkBaseWidth);
 	});
 
 	it('fir is deterministic across runs', () => {
@@ -820,33 +789,32 @@ describe('REQ-C-21: maple canopy arc layout', () => {
 // REQ-C-22: willow canopy — reuses oak radial with scaled secondary blobs
 // ============================================================================
 
-describe('REQ-C-22: willow canopy', () => {
+describe('REQ-C-22: willow canopy (#62 redesign — weeping silhouette)', () => {
 	const shapeDef = getShapeDefinition('willow');
 
-	it('willow default (blobCount 4) produces 4 blobs', () => {
-		const blobs = shapeDef.generateBlobs(createPrng(42), 4);
-		expect(blobs.length).toBe(4);
+	it('willow with blobCount=6 produces 6 blobs', () => {
+		const blobs = shapeDef.generateBlobs(createPrng(42), 6);
+		expect(blobs.length).toBe(6);
 	});
 
-	it('willow primary blob is larger than every secondary blob', () => {
-		const blobs = shapeDef.generateBlobs(createPrng(42), 4);
+	it('willow secondary blobs are smaller on average than primary', () => {
+		const blobs = shapeDef.generateBlobs(createPrng(42), 6);
 		const primaryArea = blobs[0]!.rx * blobs[0]!.ry;
-		for (let i = 1; i < blobs.length; i++) {
-			const secondaryArea = blobs[i]!.rx * blobs[i]!.ry;
-			expect(primaryArea).toBeGreaterThan(secondaryArea);
-		}
+		const secondaryMeanArea =
+			blobs.slice(1).reduce((s, b) => s + b.rx * b.ry, 0) / (blobs.length - 1);
+		expect(primaryArea).toBeGreaterThan(secondaryMeanArea);
 	});
 
 	it('every willow blob uses circle boundary', () => {
-		const blobs = shapeDef.generateBlobs(createPrng(42), 4);
+		const blobs = shapeDef.generateBlobs(createPrng(42), 6);
 		for (const b of blobs) {
 			expect(b.boundary).toBe(BOUNDARY_KINDS.circle);
 		}
 	});
 
 	it('willow is deterministic', () => {
-		const a = shapeDef.generateBlobs(createPrng(42), 4);
-		const b = shapeDef.generateBlobs(createPrng(42), 4);
+		const a = shapeDef.generateBlobs(createPrng(42), 6);
+		const b = shapeDef.generateBlobs(createPrng(42), 6);
 		expect(a).toEqual(b);
 	});
 });
@@ -1088,5 +1056,137 @@ describe('DRAWS_PER_BLOB accuracy', () => {
 
 	it('DRAWS_PER_BLOB constant equals 2', () => {
 		expect(DRAWS_PER_BLOB).toBe(2);
+	});
+});
+
+// ============================================================================
+// B2: Oak redesign — tuned defaults + blob generator
+// ============================================================================
+
+describe('B2: oak redesign', () => {
+	const W = VIEWBOX_WIDTH;
+	const H = VIEWBOX_HEIGHT;
+	const shapeDef = getShapeDefinition('oak');
+
+	it('oak blob generator with blobCount=5 returns 5 blobs all with circle boundary', () => {
+		const blobs = shapeDef.generateBlobs(createPrng(42), 5);
+		expect(blobs.length).toBe(5);
+		for (const b of blobs) {
+			expect(b.boundary).toBe(BOUNDARY_KINDS.circle);
+		}
+	});
+
+	it('oak primary blob (index 0) is centered near W/2, canopy center y ~H*0.3', () => {
+		const blobs = shapeDef.generateBlobs(createPrng(42), 5);
+		expect(Math.abs(blobs[0]!.cx - W / 2)).toBeLessThan(5);
+		expect(Math.abs(blobs[0]!.cy - H * 0.3)).toBeLessThan(H * 0.1);
+	});
+
+	it('all oak blobs have rx >= W*0.2 (large blobs)', () => {
+		const blobs = shapeDef.generateBlobs(createPrng(42), 5);
+		for (const b of blobs) {
+			expect(b.rx).toBeGreaterThanOrEqual(W * 0.2);
+		}
+	});
+
+	it('oak trunkBaseWidth is 32 (thick trunk)', () => {
+		expect(shapeDef.trunkBaseWidth).toBe(32);
+	});
+});
+
+// ============================================================================
+// B3: Birch redesign — thin trunk, wider blobs
+// ============================================================================
+
+describe('B3: birch redesign', () => {
+	const W = VIEWBOX_WIDTH;
+	const shapeDef = getShapeDefinition('birch');
+
+	it('birch blob generator with blobCount=6 returns 6 blobs', () => {
+		const blobs = shapeDef.generateBlobs(createPrng(42), 6);
+		expect(blobs.length).toBe(6);
+	});
+
+	it('birch blobs spread wider horizontally: max cx - min cx > W*0.15', () => {
+		const blobs = shapeDef.generateBlobs(createPrng(42), 6);
+		const minCx = Math.min(...blobs.map((b) => b.cx));
+		const maxCx = Math.max(...blobs.map((b) => b.cx));
+		expect(maxCx - minCx).toBeGreaterThan(W * 0.15);
+	});
+
+	it('birch ShapeDefinition: trunkBaseWidth <= 18 (thin trunk)', () => {
+		expect(shapeDef.trunkBaseWidth).toBeLessThanOrEqual(18);
+	});
+});
+
+// ============================================================================
+// B4: Maple redesign — Y-fork trunk, similar-sized blobs
+// ============================================================================
+
+describe('B4: maple redesign', () => {
+	const H = VIEWBOX_HEIGHT;
+	const shapeDef = getShapeDefinition('maple');
+
+	it('maple blob generator with blobCount=5 returns 5 blobs', () => {
+		const blobs = shapeDef.generateBlobs(createPrng(42), 5);
+		expect(blobs.length).toBe(5);
+	});
+
+	it('all maple blobs are circle boundary', () => {
+		const blobs = shapeDef.generateBlobs(createPrng(42), 5);
+		for (const b of blobs) {
+			expect(b.boundary).toBe(BOUNDARY_KINDS.circle);
+		}
+	});
+
+	it('maple blobs: most spread across upper half (cy < H*0.5)', () => {
+		const blobs = shapeDef.generateBlobs(createPrng(42), 5);
+		const upperCount = blobs.filter((b) => b.cy < H * 0.5).length;
+		expect(upperCount).toBeGreaterThanOrEqual(3);
+	});
+});
+
+// ============================================================================
+// B5: Pine redesign — short trunk
+// ============================================================================
+
+describe('B5: pine redesign', () => {
+	const H = VIEWBOX_HEIGHT;
+	const shapeDef = getShapeDefinition('pine');
+
+	it('pine ShapeDefinition: defaultTrunkTop >= H*0.75 (short trunk)', () => {
+		expect(shapeDef.defaultTrunkTop).toBeGreaterThanOrEqual(H * 0.75);
+	});
+});
+
+// ============================================================================
+// B7: Willow redesign — drooping branches, small clusters
+// ============================================================================
+
+describe('B7: willow redesign', () => {
+	const shapeDef = getShapeDefinition('willow');
+	const oakDef = getShapeDefinition('oak');
+
+	it('willow blob generator with blobCount=6 returns 6 blobs', () => {
+		const blobs = shapeDef.generateBlobs(createPrng(42), 6);
+		expect(blobs.length).toBe(6);
+	});
+
+	it('willow non-primary blobs have smaller rx/ry than oak equivalents', () => {
+		const willowBlobs = shapeDef.generateBlobs(createPrng(42), 6);
+		const oakBlobs = oakDef.generateBlobs(createPrng(42), 6);
+		// Compare mean rx of non-primary blobs
+		const willowMeanRx =
+			willowBlobs.slice(1).reduce((s, b) => s + b.rx, 0) / (willowBlobs.length - 1);
+		const oakMeanRx = oakBlobs.slice(1).reduce((s, b) => s + b.rx, 0) / (oakBlobs.length - 1);
+		expect(willowMeanRx).toBeLessThan(oakMeanRx);
+	});
+
+	it('willow canopy center is lower than oak (cy closer to H*0.4)', () => {
+		const willowBlobs = shapeDef.generateBlobs(createPrng(42), 6);
+		const oakBlobs = oakDef.generateBlobs(createPrng(42), 6);
+		const willowMeanCy = willowBlobs.reduce((s, b) => s + b.cy, 0) / willowBlobs.length;
+		const oakMeanCy = oakBlobs.reduce((s, b) => s + b.cy, 0) / oakBlobs.length;
+		expect(willowMeanCy).toBeGreaterThan(oakMeanCy);
 	});
 });

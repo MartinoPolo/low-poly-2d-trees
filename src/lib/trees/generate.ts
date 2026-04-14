@@ -63,6 +63,9 @@ const SHAPES_WITH_ACUTE_SMOOTHING = new Set<TreeShape>([
 	TREE_SHAPES.acacia,
 ]);
 
+// Shapes that use tier-based canopy rendering instead of blob-based.
+const TIERED_SHAPES = new Set<TreeShape>([TREE_SHAPES.pine, TREE_SHAPES.fir]);
+
 function triangulatePoints(
 	points: readonly { x: number; y: number }[],
 ): [Point2D, Point2D, Point2D][] {
@@ -531,7 +534,7 @@ export function generateTree(config: TreeConfig): TreeGeometry {
 function generateTreeCore(config: TreeConfig, addStakes: boolean, addFruit: boolean): TreeGeometry {
 	const rng = createPrng(config.seed);
 	const shapeDef = getShapeDefinition(config.shape);
-	const isPine = config.shape === TREE_SHAPES.pine;
+	const isTiered = TIERED_SHAPES.has(config.shape);
 	const isCustom = config.shape === TREE_SHAPES.custom;
 
 	const effectiveTrunkTop = computeEffectiveTrunkTop(shapeDef, config.trunkHeight);
@@ -550,7 +553,7 @@ function generateTreeCore(config: TreeConfig, addStakes: boolean, addFruit: bool
 	const horizontalCanopyShift = topJunctionInitial.x - VIEWBOX_WIDTH / 2;
 
 	let blobs: Blob[];
-	if (isPine) {
+	if (isTiered) {
 		blobs = [];
 	} else if (isCustom) {
 		blobs = generateCustomBlobs(
@@ -578,7 +581,7 @@ function generateTreeCore(config: TreeConfig, addStakes: boolean, addFruit: bool
 		}
 	}
 
-	const tiers = isPine
+	const tiers = isTiered
 		? generateTiers(
 				rng,
 				config.blobCount,
@@ -590,7 +593,11 @@ function generateTreeCore(config: TreeConfig, addStakes: boolean, addFruit: bool
 			)
 		: [];
 
-	const canopyBounds = isPine
+	// Custom trees may legitimately have zero blobs (user dragged blobCount to
+	// 0 with no overrides yet). Fall back to trivial bounds anchored on the
+	// current trunk top so `computeAnchors` and the trunk-penetration clamp
+	// below stay well-defined.
+	const canopyBounds = isTiered
 		? getTiersBounds(tiers)
 		: blobs.length > 0
 			? getBlobsBounds(blobs)
@@ -612,7 +619,7 @@ function generateTreeCore(config: TreeConfig, addStakes: boolean, addFruit: bool
 
 	// Branch generation: all shapes (including maple) use the generic system (BR-13)
 	let branches: BranchSegment[];
-	if (isPine) {
+	if (isTiered) {
 		branches = [];
 	} else {
 		branches = generateBranches(
@@ -626,7 +633,7 @@ function generateTreeCore(config: TreeConfig, addStakes: boolean, addFruit: bool
 		);
 	}
 
-	const extraBranches = isPine ? [] : validateNoFloatingBlobs(blobs, branches);
+	const extraBranches = isTiered ? [] : validateNoFloatingBlobs(blobs, branches);
 	const allBranches = [...branches, ...extraBranches];
 
 	// Generate trunk quads (BR-1: stacked trapezoids with centerline)
@@ -636,7 +643,7 @@ function generateTreeCore(config: TreeConfig, addStakes: boolean, addFruit: bool
 	const branchGroups = generateAllBranchQuads(allBranches, config);
 
 	const smoothAcuteAngles = SHAPES_WITH_ACUTE_SMOOTHING.has(config.shape);
-	const canopyBlobs = isPine
+	const canopyBlobs = isTiered
 		? generateTierCanopy(rng, tiers, config.polygonsPerBlob, config)
 		: generateBlobCanopy(rng, blobs, config.polygonsPerBlob, smoothAcuteAngles, config);
 

@@ -70,8 +70,8 @@ describe('SHAPE_DEFAULTS §2.5', () => {
 			branchesLevel2Range: [1, 2],
 			branchesLevel3Range: [0, 1],
 			branchAngle: 50,
-			blobSizeVariance: 3.0,
-			blobCloseness: 50,
+			blobSizeVariance: 2.5,
+			blobCloseness: 45,
 			branchThickness: 100,
 			trunkSegments: 1,
 			trunkCrookedness: 0,
@@ -89,14 +89,14 @@ describe('SHAPE_DEFAULTS §2.5', () => {
 
 	it('has pine defaults', () => {
 		expect(SHAPE_DEFAULTS.pine).toEqual({
-			blobCount: 3,
+			blobCount: 5,
 			branchDepth: 0,
 			branchesLevel1Range: [0, 0],
 			branchesLevel2Range: [0, 0],
 			branchesLevel3Range: [0, 0],
 			branchAngle: 50,
-			blobSizeVariance: 3.0,
-			blobCloseness: 50,
+			blobSizeVariance: 2.0,
+			blobCloseness: 30,
 			branchThickness: 100,
 			trunkSegments: 1,
 			trunkCrookedness: 0,
@@ -114,15 +114,15 @@ describe('SHAPE_DEFAULTS §2.5', () => {
 
 	it('has birch defaults', () => {
 		expect(SHAPE_DEFAULTS.birch).toEqual({
-			blobCount: 3,
-			branchDepth: 3,
+			blobCount: 6,
+			branchDepth: 2,
 			branchesLevel1Range: [1, 2],
 			branchesLevel2Range: [1, 2],
 			branchesLevel3Range: [0, 1],
 			branchAngle: 60,
-			blobSizeVariance: 3.0,
-			blobCloseness: 50,
-			branchThickness: 100,
+			blobSizeVariance: 2.5,
+			blobCloseness: 35,
+			branchThickness: 80,
 			trunkSegments: 1,
 			trunkCrookedness: 0,
 			branchLength: 100,
@@ -130,8 +130,8 @@ describe('SHAPE_DEFAULTS §2.5', () => {
 			canopyLightColor: '#b8e065',
 			canopyDarkColor: '#2d5e3a',
 			trunkHue: 40,
-			trunkSaturation: 15,
-			trunkLightness: 80,
+			trunkSaturation: 8,
+			trunkLightness: 82,
 			fruitType: 'none',
 			fruitCount: 0,
 		});
@@ -139,14 +139,14 @@ describe('SHAPE_DEFAULTS §2.5', () => {
 
 	it('has fir defaults', () => {
 		expect(SHAPE_DEFAULTS.fir).toEqual({
-			blobCount: 4,
+			blobCount: 6,
 			branchDepth: 0,
 			branchesLevel1Range: [0, 0],
 			branchesLevel2Range: [0, 0],
 			branchesLevel3Range: [0, 0],
 			branchAngle: 50,
-			blobSizeVariance: 3.0,
-			blobCloseness: 50,
+			blobSizeVariance: 2.5,
+			blobCloseness: 45,
 			branchThickness: 100,
 			trunkSegments: 1,
 			trunkCrookedness: 0,
@@ -162,7 +162,7 @@ describe('SHAPE_DEFAULTS §2.5', () => {
 		});
 	});
 
-	it('has maple defaults (low closeness, low variance)', () => {
+	it('has maple defaults (low closeness, reduced variance)', () => {
 		expect(SHAPE_DEFAULTS.maple).toEqual({
 			blobCount: 5,
 			branchDepth: 2,
@@ -170,8 +170,8 @@ describe('SHAPE_DEFAULTS §2.5', () => {
 			branchesLevel2Range: [1, 2],
 			branchesLevel3Range: [0, 1],
 			branchAngle: 40,
-			blobSizeVariance: 2.0,
-			blobCloseness: 30,
+			blobSizeVariance: 1.3,
+			blobCloseness: 40,
 			branchThickness: 100,
 			trunkSegments: 2,
 			trunkCrookedness: 30,
@@ -187,19 +187,19 @@ describe('SHAPE_DEFAULTS §2.5', () => {
 		});
 	});
 
-	it('has willow defaults (thick branches 150, 3 segments, 40% crookedness)', () => {
+	it('has willow defaults (drooping, 2 segments, 25% crookedness)', () => {
 		expect(SHAPE_DEFAULTS.willow).toEqual({
-			blobCount: 4,
+			blobCount: 6,
 			branchDepth: 2,
 			branchesLevel1Range: [3, 5],
 			branchesLevel2Range: [1, 2],
 			branchesLevel3Range: [0, 1],
 			branchAngle: 30,
-			blobSizeVariance: 3.0,
-			blobCloseness: 50,
-			branchThickness: 150,
-			trunkSegments: 3,
-			trunkCrookedness: 40,
+			blobSizeVariance: 2.0,
+			blobCloseness: 35,
+			branchThickness: 80,
+			trunkSegments: 2,
+			trunkCrookedness: 25,
 			branchLength: 100,
 			branchLengthVariance: 50,
 			canopyLightColor: '#7cc45a',

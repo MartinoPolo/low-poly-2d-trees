@@ -3,14 +3,14 @@
 	import LabeledSelect from '$lib/components/composed/LabeledSelect.svelte';
 	import {
 		DEFAULT_TREE_CONFIG,
-		TREE_STAGES,
-		TREE_SHAPES,
-		TREE_STAGE_OPTIONS,
 		SHAPE_DEFAULTS,
+		TREE_SHAPES,
+		TREE_STAGES,
+		TREE_STAGE_OPTIONS,
 		isTreeStage,
 		type TreeConfig,
-		type TreeStage,
 		type TreeShape,
+		type TreeStage,
 	} from '$lib/trees/types.js';
 
 	const allStages = Object.values(TREE_STAGES);
