@@ -653,7 +653,8 @@ export function generateTree(config: TreeConfig): TreeGeometry {
 function generateTreeCore(config: TreeConfig, addStakes: boolean, addFruit: boolean): TreeGeometry {
 	const rng = createPrng(config.seed);
 	const shapeDef = getShapeDefinition(config.shape);
-	const isPine = config.shape === TREE_SHAPES.pine;
+	const tieredShapes = new Set<TreeShape>([TREE_SHAPES.pine, TREE_SHAPES.fir]);
+	const isTiered = tieredShapes.has(config.shape);
 	const isCustom = config.shape === TREE_SHAPES.custom;
 
 	const effectiveTrunkTop = computeEffectiveTrunkTop(shapeDef, config.trunkHeight);
@@ -679,7 +680,7 @@ function generateTreeCore(config: TreeConfig, addStakes: boolean, addFruit: bool
 	const horizontalCanopyShift = topJunctionInitial.x - VIEWBOX_WIDTH / 2;
 
 	let blobs: Blob[];
-	if (isPine) {
+	if (isTiered) {
 		blobs = [];
 	} else if (isCustom) {
 		// Custom tree: user-placed blobs from `config.customBlobs`. The spread
@@ -713,7 +714,7 @@ function generateTreeCore(config: TreeConfig, addStakes: boolean, addFruit: bool
 		}
 	}
 
-	const tiers = isPine
+	const tiers = isTiered
 		? generateTiers(
 				rng,
 				config.blobCount,
@@ -729,7 +730,7 @@ function generateTreeCore(config: TreeConfig, addStakes: boolean, addFruit: bool
 	// 0 with no overrides yet). Fall back to trivial bounds anchored on the
 	// current trunk top so `computeAnchors` and the trunk-penetration clamp
 	// below stay well-defined.
-	const canopyBounds = isPine
+	const canopyBounds = isTiered
 		? getTiersBounds(tiers)
 		: blobs.length > 0
 			? getBlobsBounds(blobs)
@@ -765,7 +766,7 @@ function generateTreeCore(config: TreeConfig, addStakes: boolean, addFruit: bool
 	// The maple branch rng uses the same seed offset (+7777) as the generic
 	// branch path so determinism holds across shape switches.
 	let branches: BranchSegment[];
-	if (isPine) {
+	if (isTiered) {
 		branches = [];
 	} else if (config.shape === TREE_SHAPES.maple) {
 		const mapleRng = createPrng(config.seed + 7777);
@@ -786,7 +787,7 @@ function generateTreeCore(config: TreeConfig, addStakes: boolean, addFruit: bool
 		);
 	}
 
-	const extraBranches = isPine ? [] : validateNoFloatingBlobs(blobs, branches);
+	const extraBranches = isTiered ? [] : validateNoFloatingBlobs(blobs, branches);
 	const allBranches = [...branches, ...extraBranches];
 
 	const trunkTriangles = generateTrunkMesh(
@@ -816,7 +817,7 @@ function generateTreeCore(config: TreeConfig, addStakes: boolean, addFruit: bool
 	const branchTriangles = branchGroups.flatMap((g) => g.triangles);
 
 	const smoothAcuteAngles = SHAPES_WITH_ACUTE_SMOOTHING.has(config.shape);
-	const canopyBlobs = isPine
+	const canopyBlobs = isTiered
 		? generateTierCanopy(rng, tiers, config.polygonsPerBlob, config)
 		: generateBlobCanopy(rng, blobs, config.polygonsPerBlob, smoothAcuteAngles, config);
 
