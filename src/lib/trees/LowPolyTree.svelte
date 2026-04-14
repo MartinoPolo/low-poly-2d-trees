@@ -8,11 +8,13 @@
 		type TreeConfig,
 		type TreeAnchors,
 		type TreeShape,
+		type BranchGeometry,
 	} from '$lib/trees/types.js';
 	import {
 		computeAnimationDelay,
 		computeBranchDuration,
 		computeBranchDelay,
+		computeCanopyBottomY,
 	} from '$lib/trees/animation.js';
 	import TreeTool from '$lib/trees/TreeTool.svelte';
 	import {
@@ -23,6 +25,7 @@
 	import { FRUIT_SVG_COMPONENTS } from '$lib/trees/shapes/fruit_geometry.js';
 	import { FLOWER_SVG_COMPONENTS } from '$lib/trees/shapes/flower_geometry.js';
 	import { createPrng, randomInRange } from '$lib/trees/prng.js';
+	import { SvelteMap } from 'svelte/reactivity';
 
 	interface Props {
 		config?: TreeConfig;
@@ -73,6 +76,25 @@
 		geometry.branchGroups.map((_, i) => computeBranchDelay(config.seed, i)),
 	);
 
+	const rootBranches = $derived(
+		geometry.branchGroups
+			.map((group, index) => ({ group, index }))
+			.filter(({ group }) => group.parentIndex === null),
+	);
+
+	const childBranchesByParent = $derived.by(() => {
+		const map = new SvelteMap<number, { group: BranchGeometry; index: number }[]>();
+		for (let i = 0; i < geometry.branchGroups.length; i++) {
+			const group = geometry.branchGroups[i]!;
+			if (group.parentIndex !== null) {
+				const children = map.get(group.parentIndex) ?? [];
+				children.push({ group, index: i });
+				map.set(group.parentIndex, children);
+			}
+		}
+		return map;
+	});
+
 	const fruitComponent = $derived(
 		config.fruitType !== FRUIT_TYPES.none ? FRUIT_SVG_COMPONENTS[config.fruitType] : null,
 	);
@@ -102,7 +124,7 @@
 		const bounds = geometry.anchors;
 		const minX = bounds.crownCenter.x - 30;
 		const maxX = bounds.crownCenter.x + 30;
-		const startY = bounds.crownTop.y;
+		const startY = computeCanopyBottomY(geometry.canopyBlobs);
 		const colors = ['#E8A028', '#C47020', '#8B2010', '#A05020', '#D08030'];
 		for (let i = 0; i < count; i++) {
 			leaves.push({
@@ -160,38 +182,45 @@
 			</g>
 		{/if}
 
+		{#snippet branchGroupSnippet(branchGroup: BranchGeometry, branchIndex: number)}
+			<g
+				class="branch-group"
+				class:animate-branch-sway={animateBranches}
+				style="--branch-duration: {branchDurations[
+					branchIndex
+				]}s; --branch-delay: {branchDelays[branchIndex]}s; --branch-origin-x: {branchGroup
+					.origin.x}px; --branch-origin-y: {branchGroup.origin.y}px;"
+			>
+				{#each branchGroup.quads as quad (quad)}
+					<polygon
+						points="{quad.points[0].x},{quad.points[0].y} {quad.points[1].x},{quad
+							.points[1].y} {quad.points[2].x},{quad.points[2].y} {quad.points[3]
+							.x},{quad.points[3].y}"
+						fill={quad.color}
+						stroke={quad.color}
+						stroke-width="0.5"
+					/>
+				{/each}
+				{#each branchGroup.junctionFills as fill (fill)}
+					<polygon
+						points="{fill.points[0].x},{fill.points[0].y} {fill.points[1].x},{fill
+							.points[1].y} {fill.points[2].x},{fill.points[2].y} {fill.points[3]
+							.x},{fill.points[3].y}"
+						fill={fill.color}
+						stroke={fill.color}
+						stroke-width="0.5"
+					/>
+				{/each}
+				{#each childBranchesByParent.get(branchIndex) ?? [] as { group: child, index: childIndex } (childIndex)}
+					{@render branchGroupSnippet(child, childIndex)}
+				{/each}
+			</g>
+		{/snippet}
+
 		{#if showBranches}
 			<g class="branches">
-				{#each geometry.branchGroups as group, groupIndex (group)}
-					<g
-						class="branch-group"
-						class:animate-branch-sway={animateBranches}
-						style="--branch-duration: {branchDurations[
-							groupIndex
-						]}s; --branch-delay: {branchDelays[groupIndex]}s; --branch-origin-x: {group
-							.origin.x}px; --branch-origin-y: {group.origin.y}px;"
-					>
-						{#each group.quads as quad (quad)}
-							<polygon
-								points="{quad.points[0].x},{quad.points[0].y} {quad.points[1]
-									.x},{quad.points[1].y} {quad.points[2].x},{quad.points[2]
-									.y} {quad.points[3].x},{quad.points[3].y}"
-								fill={quad.color}
-								stroke={quad.color}
-								stroke-width="0.5"
-							/>
-						{/each}
-						{#each group.junctionFills as fill (fill)}
-							<polygon
-								points="{fill.points[0].x},{fill.points[0].y} {fill.points[1]
-									.x},{fill.points[1].y} {fill.points[2].x},{fill.points[2]
-									.y} {fill.points[3].x},{fill.points[3].y}"
-								fill={fill.color}
-								stroke={fill.color}
-								stroke-width="0.5"
-							/>
-						{/each}
-					</g>
+				{#each rootBranches as { group, index: groupIndex } (groupIndex)}
+					{@render branchGroupSnippet(group, groupIndex)}
 				{/each}
 			</g>
 		{/if}

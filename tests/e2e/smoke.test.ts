@@ -5,19 +5,25 @@ test('homepage loads', async ({ page }) => {
 	expect(response?.status()).toBe(200);
 });
 
-/** Helper: select a fruit type from the Growables card dropdown. */
-async function selectFruitType(page: Page, fruitName: string) {
-	// Scope to the Growables card via data-slot, then find the select trigger inside it.
-	const growablesCard = page
-		.getByText('Growables')
-		.locator('xpath=ancestor::*[@data-slot="card"]');
-	const fruitTypeTrigger = growablesCard.locator('[data-slot="select-trigger"]');
-	await fruitTypeTrigger.click();
+/** Helper: select a value from a LabeledSelect dropdown identified by its label text. */
+async function selectDropdownOption(page: Page, labelText: string, optionName: string) {
+	const card = page.getByText(labelText).locator('xpath=ancestor::*[contains(@class,"grid")]');
+	const trigger = card.locator('[data-slot="select-trigger"]');
+	await trigger.click();
 	await page.waitForTimeout(300);
 
-	// The listbox is portalled to the body root; use getByRole to find the option.
-	await page.getByRole('option', { name: fruitName, exact: true }).click();
+	await page.getByRole('option', { name: optionName, exact: true }).click();
 	await page.waitForTimeout(300);
+}
+
+/** Helper: switch tree shape to Custom so fruit type dropdown is unlocked. */
+async function switchToCustomShape(page: Page) {
+	await selectDropdownOption(page, 'Tree Type', 'Custom');
+}
+
+/** Helper: select a fruit type from the Growables card dropdown. */
+async function selectFruitType(page: Page, fruitName: string) {
+	await selectDropdownOption(page, 'Fruit Type', fruitName);
 }
 
 test.describe('Growables card', () => {
@@ -35,6 +41,11 @@ test.describe('Growables card', () => {
 		await page.goto('/editor');
 		await page.waitForLoadState('networkidle');
 
+		// Fruit type dropdown is locked for non-custom shapes; switch to Custom first.
+		await switchToCustomShape(page);
+		// Custom inherits the previous shape's fruit type — reset to None.
+		await selectFruitType(page, 'None');
+
 		// Fruit count slider (shadcn) — auto-generated ID from label "Fruit Count"
 		const fruitCountSlider = page.locator('#slider-fruit-count');
 		await expect(fruitCountSlider).toHaveAttribute('data-disabled', '');
@@ -49,6 +60,7 @@ test.describe('Growables card', () => {
 		await page.goto('/editor');
 		await page.waitForLoadState('networkidle');
 
+		await switchToCustomShape(page);
 		await selectFruitType(page, 'Apple');
 
 		// Set fruit count via keyboard on the shadcn slider
@@ -71,6 +83,7 @@ test.describe('Growables card', () => {
 		await page.goto('/editor');
 		await page.waitForLoadState('networkidle');
 
+		await switchToCustomShape(page);
 		await selectFruitType(page, 'Apple');
 
 		// Increase fruit count via keyboard

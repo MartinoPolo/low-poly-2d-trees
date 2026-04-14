@@ -59,6 +59,7 @@ export interface BranchGeometry {
 	readonly junctionFills: readonly Quad[];
 	readonly origin: Point2D;
 	readonly depth: number;
+	readonly parentIndex: number | null;
 }
 
 export interface TreeGeometry {

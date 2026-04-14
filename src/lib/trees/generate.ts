@@ -38,6 +38,7 @@ import {
 	TRUNK_ENTRY_MIN_PX,
 	type Blob,
 	type BranchSegment,
+	type GeneratedBranch,
 } from './shapes.js';
 import { BOUNDARIES, BOUNDARY_KINDS, smoothAcuteBoundaryAngles } from './boundaries.js';
 import { computeCanopyColor, computeTwoToneColors, isLeftSideLight } from './lighting.js';
@@ -262,6 +263,7 @@ function generateBranchQuadGroup(
 	branch: BranchSegment,
 	config: TreeConfig,
 	depth: number,
+	parentIndex: number | null = null,
 ): BranchGeometry {
 	const { lightColor, darkColor } = computeTwoToneColors(config);
 
@@ -269,7 +271,13 @@ function generateBranchQuadGroup(
 	const dirY = branch.y2 - branch.y1;
 	const length = Math.sqrt(dirX * dirX + dirY * dirY);
 	if (length === 0) {
-		return { quads: [], junctionFills: [], origin: { x: branch.x1, y: branch.y1 }, depth };
+		return {
+			quads: [],
+			junctionFills: [],
+			origin: { x: branch.x1, y: branch.y1 },
+			depth,
+			parentIndex,
+		};
 	}
 
 	// Unit direction and perpendicular
@@ -320,14 +328,17 @@ function generateBranchQuadGroup(
 		junctionFills: [],
 		origin: { x: branch.x1, y: branch.y1 },
 		depth,
+		parentIndex,
 	};
 }
 
 function generateAllBranchQuads(
-	branches: readonly BranchSegment[],
+	branches: readonly GeneratedBranch[],
 	config: TreeConfig,
 ): BranchGeometry[] {
-	return branches.map((branch) => generateBranchQuadGroup(branch, config, 1));
+	return branches.map((branch) =>
+		generateBranchQuadGroup(branch.segment, config, branch.depth, branch.parentIndex),
+	);
 }
 
 // ---------------------------------------------------------------------------
@@ -630,7 +641,7 @@ function generateTreeCore(config: TreeConfig, flags: StageFlags): TreeGeometry {
 	const trunkTop = trunkJunctions[trunkJunctions.length - 1]!.y;
 
 	// Branch generation: all shapes (including maple) use the generic system (BR-13)
-	let branches: BranchSegment[];
+	let branches: GeneratedBranch[];
 	if (isTiered) {
 		branches = [];
 	} else {
@@ -645,7 +656,17 @@ function generateTreeCore(config: TreeConfig, flags: StageFlags): TreeGeometry {
 		);
 	}
 
-	const extraBranches = isTiered ? [] : validateNoFloatingBlobs(blobs, branches);
+	const extraSegments = isTiered
+		? []
+		: validateNoFloatingBlobs(
+				blobs,
+				branches.map((b) => b.segment),
+			);
+	const extraBranches: GeneratedBranch[] = extraSegments.map((seg) => ({
+		segment: seg,
+		depth: 1,
+		parentIndex: null,
+	}));
 	const allBranches = [...branches, ...extraBranches];
 
 	// Generate trunk quads (BR-1: stacked trapezoids with centerline)
@@ -662,7 +683,7 @@ function generateTreeCore(config: TreeConfig, flags: StageFlags): TreeGeometry {
 	const anchors = computeAnchors(
 		trunkJunctions,
 		canopyBounds,
-		allBranches,
+		allBranches.map((b) => b.segment),
 		canopyBlobs,
 		blobs,
 		tiers,
