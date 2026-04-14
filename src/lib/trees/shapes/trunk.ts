@@ -51,15 +51,19 @@ function buildCrookedPath(
 	const baseSegmentLenY = totalHeight / segmentCount;
 	const direction = startY > endY ? -1 : 1; // -1 = going up (trunk), +1 = going down
 
-	// Segment length variation: generate multipliers then normalize to preserve total height
-	const segmentMultipliers: number[] = [];
-	let multiplierSum = 0;
-	for (let i = 0; i < segmentCount; i++) {
-		const mult = 0.7 + rng() * 0.6; // 0.7-1.3 range (+/-30%)
-		segmentMultipliers.push(mult);
-		multiplierSum += mult;
+	// Segment length variation: only when crookedness > 0 (otherwise no visible effect)
+	let segmentMultipliers: number[] | null = null;
+	let normalizeScale = 1;
+	if (clampedCrookedness > 0) {
+		segmentMultipliers = [];
+		let multiplierSum = 0;
+		for (let i = 0; i < segmentCount; i++) {
+			const mult = 0.7 + rng() * 0.6; // 0.7-1.3 range (+/-30%)
+			segmentMultipliers.push(mult);
+			multiplierSum += mult;
+		}
+		normalizeScale = segmentCount / multiplierSum;
 	}
-	const normalizeScale = segmentCount / multiplierSum;
 
 	const junctions: Point2D[] = [{ x: startX, y: startY }];
 
@@ -70,11 +74,14 @@ function buildCrookedPath(
 	let currentAngleRad = initialAngleRad;
 	let currentX = startX;
 	// For alternating mode: initialize first direction randomly, then flip each junction
-	let alternatingSign = rng() < 0.5 ? -1 : 1;
+	let alternatingSign = clampedCrookedness > 0 ? (rng() < 0.5 ? -1 : 1) : 1;
 	let cumulativeY = 0;
 
 	for (let i = 1; i <= segmentCount; i++) {
-		const segmentLenY = baseSegmentLenY * segmentMultipliers[i - 1]! * normalizeScale;
+		const segmentLenY =
+			segmentMultipliers !== null
+				? baseSegmentLenY * segmentMultipliers[i - 1]! * normalizeScale
+				: baseSegmentLenY;
 
 		if (i > 1 && clampedCrookedness > 0) {
 			// Per-junction jitter reduction: up to 50% of max
