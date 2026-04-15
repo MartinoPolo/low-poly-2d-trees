@@ -171,6 +171,8 @@ export interface StripColorInput {
 	readonly centerPerturbationX: number;
 	readonly centerPerturbationY: number;
 	readonly stripCount: number;
+	/** Additional lightness offset for back branches (REQ-EV2-Z-02): −3 for back, 0 for front. */
+	readonly lightnessOffset?: number;
 }
 
 /**
@@ -191,6 +193,7 @@ export function computeStripColors(input: StripColorInput): string[] {
 		centerPerturbationX,
 		centerPerturbationY,
 		stripCount,
+		lightnessOffset = 0,
 	} = input;
 
 	const len = Math.sqrt(dx * dx + dy * dy);
@@ -220,7 +223,13 @@ export function computeStripColors(input: StripColorInput): string[] {
 		}
 
 		colors.push(
-			computeFaceLightnessColor(normal, light, trunkHue, trunkSaturation, trunkLightness),
+			computeFaceLightnessColor(
+				normal,
+				light,
+				trunkHue,
+				trunkSaturation,
+				trunkLightness + lightnessOffset,
+			),
 		);
 	}
 

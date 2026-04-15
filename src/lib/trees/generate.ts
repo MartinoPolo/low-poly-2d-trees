@@ -52,6 +52,14 @@ import {
 } from './shapes.js';
 import { BOUNDARIES, BOUNDARY_KINDS, smoothAcuteBoundaryAngles } from './boundaries.js';
 import { computeCanopyColor, computeStripColors } from './lighting.js';
+import {
+	classifyBranchZOrder,
+	classifyChildBranchZOrder,
+	branchZOrderToLayer,
+	canopyZOrderToLayer,
+} from './z_ordering.js';
+import { computeCanopyEnvelope } from './canopy_envelope.js';
+import { clusterBranchTips, computeClusterBlob, type BranchTipInfo } from './canopy_clustering.js';
 
 // REQ-C-12: shapes whose circle-boundary blobs should have acute concavities
 // pulled back to the ellipse ring for a rounder silhouette.
@@ -469,15 +477,20 @@ function generateTrunkQuads(
 /** Twist attenuation per depth: L1=full, L2=50%, L3+=0% (REQ-EV2-B-03). */
 const TWIST_ATTENUATION_BY_DEPTH: Record<number, number> = { 1: 1.0, 2: 0.5 };
 
+/** Back-branch lightness offset (REQ-EV2-Z-02). */
+const BACK_BRANCH_LIGHTNESS_OFFSET = -3;
+
 function generateBranchQuadGroup(
 	branch: BranchSegment,
 	config: TreeConfig,
 	depth: number,
 	parentIndex: number | null = null,
+	zOrder?: 'front' | 'back',
 ): BranchGeometry {
 	const dirX = branch.x2 - branch.x1;
 	const dirY = branch.y2 - branch.y1;
 	const length = Math.sqrt(dirX * dirX + dirY * dirY);
+	const zOrderLayer = zOrder ? branchZOrderToLayer(zOrder) : undefined;
 	if (length === 0) {
 		return {
 			quads: [],
@@ -485,6 +498,7 @@ function generateBranchQuadGroup(
 			origin: { x: branch.x1, y: branch.y1 },
 			depth,
 			parentIndex,
+			zOrder: zOrderLayer,
 		};
 	}
 
@@ -502,6 +516,8 @@ function generateBranchQuadGroup(
 	const centerPerturbX = (branchRng() - 0.5) * CENTER_NORMAL_PERTURBATION_RANGE;
 	const centerPerturbY = (branchRng() - 0.5) * CENTER_NORMAL_PERTURBATION_RANGE;
 
+	const branchLightnessOffset = zOrder === 'back' ? BACK_BRANCH_LIGHTNESS_OFFSET : 0;
+
 	// REQ-EV2-B-02: L3+ uses single plain quad (no strip system)
 	if (depth >= 3) {
 		const halfStart = branch.widthStart / 2;
@@ -516,6 +532,7 @@ function generateBranchQuadGroup(
 			centerPerturbationX: centerPerturbX,
 			centerPerturbationY: centerPerturbY,
 			stripCount: 1,
+			lightnessOffset: branchLightnessOffset,
 		});
 		const quads: Quad[] = [
 			{
@@ -535,6 +552,7 @@ function generateBranchQuadGroup(
 			origin: { x: branch.x1, y: branch.y1 },
 			depth,
 			parentIndex,
+			zOrder: zOrderLayer,
 		};
 	}
 
@@ -561,6 +579,7 @@ function generateBranchQuadGroup(
 		centerPerturbationX: centerPerturbX,
 		centerPerturbationY: centerPerturbY,
 		stripCount,
+		lightnessOffset: branchLightnessOffset,
 	});
 
 	// Compute edge points at start and end using strip ratios
@@ -620,15 +639,23 @@ function generateBranchQuadGroup(
 		origin: { x: branch.x1, y: branch.y1 },
 		depth,
 		parentIndex,
+		zOrder: zOrderLayer,
 	};
 }
 
 function generateAllBranchQuads(
 	branches: readonly GeneratedBranch[],
 	config: TreeConfig,
+	branchZOrders?: readonly ('front' | 'back')[],
 ): BranchGeometry[] {
-	return branches.map((branch) =>
-		generateBranchQuadGroup(branch.segment, config, branch.depth, branch.parentIndex),
+	return branches.map((branch, i) =>
+		generateBranchQuadGroup(
+			branch.segment,
+			config,
+			branch.depth,
+			branch.parentIndex,
+			branchZOrders?.[i],
+		),
 	);
 }
 
@@ -1053,17 +1080,157 @@ function generateTreeCore(config: TreeConfig, flags: StageFlags): TreeGeometry {
 	const trunkResult = generateTrunkQuads(trunkJunctions, shapeDef, config, forkReductions);
 	const trunkQuads = trunkResult.quads;
 
-	// Generate branch quads (BR-3: same quad + centerline system)
-	const branchGroups = generateAllBranchQuads(allBranches, config);
+	// ---------------------------------------------------------------------------
+	// Z-Order Classification (REQ-EV2-Z-01, Z-03)
+	// ---------------------------------------------------------------------------
+
+	const hasBranchingCanopy = !isTiered && shapeDef.styleParameters !== undefined;
+	const trunkCenterX = sampleTrunkCenterX(
+		trunkJunctions,
+		(trunkJunctions[0]!.y + trunkJunctions[trunkJunctions.length - 1]!.y) / 2,
+	);
+
+	// Classify each branch as front/back (loop so parent z-orders are available for L2+)
+	const branchZOrders: ('front' | 'back')[] = [];
+	for (let i = 0; i < allBranches.length; i++) {
+		const branch = allBranches[i]!;
+		if (!hasBranchingCanopy) {
+			branchZOrders.push('front');
+			continue;
+		}
+
+		if (branch.depth === 1) {
+			branchZOrders.push(
+				classifyBranchZOrder(
+					branch.segment.x1,
+					trunkCenterX,
+					config.lightAngle,
+					config.seed,
+					i,
+				),
+			);
+			continue;
+		}
+		// L2+: inherit from parent with flip chance
+		if (branch.parentIndex !== null && branchZOrders[branch.parentIndex] !== undefined) {
+			branchZOrders.push(
+				classifyChildBranchZOrder(branchZOrders[branch.parentIndex]!, config.seed, i),
+			);
+			continue;
+		}
+		branchZOrders.push(
+			classifyBranchZOrder(
+				branch.segment.x1,
+				trunkCenterX,
+				config.lightAngle,
+				config.seed,
+				i,
+			),
+		);
+	}
+
+	// Generate branch quads with z-order (BR-3 + REQ-EV2-Z-02)
+	const branchGroups = generateAllBranchQuads(allBranches, config, branchZOrders);
+
+	// ---------------------------------------------------------------------------
+	// Canopy Generation — branching vs branchless (REQ-EV2-P-01, P-02)
+	// ---------------------------------------------------------------------------
 
 	const smoothAcuteAngles = SHAPES_WITH_ACUTE_SMOOTHING.has(config.shape);
-	const canopyBlobs = isTiered
-		? generateTierCanopy(rng, tiers, config.polygonsPerBlob, config)
-		: generateBlobCanopy(rng, blobs, config.polygonsPerBlob, smoothAcuteAngles, config);
+	let canopyBlobs: BlobGeometry[];
+
+	if (isTiered) {
+		// Branchless tiered shapes (pine, fir): unchanged
+		canopyBlobs = generateTierCanopy(rng, tiers, config.polygonsPerBlob, config);
+	} else if (hasBranchingCanopy && allBranches.length > 0) {
+		// Branch-driven canopy: cluster tips → generate blobs (REQ-EV2-BC-01)
+		const styleParams = shapeDef.styleParameters!;
+		const envDefaults = shapeDef.envelopeDefaults!;
+		const topJunctionForEnv = trunkJunctions[trunkJunctions.length - 1]!;
+
+		// Compute canopy envelope (REQ-EV2-CE-01)
+		const envelope = computeCanopyEnvelope(
+			{
+				canopyCenterX: topJunctionForEnv.x,
+				canopyCenterY: envDefaults.canopyCenterY + canopyDelta,
+				baseRadiusX: envDefaults.baseRadiusX,
+				baseRadiusY: envDefaults.baseRadiusY,
+			},
+			config.canopySize,
+			VIEWBOX_WIDTH,
+			VIEWBOX_HEIGHT,
+		);
+
+		// Build branch tip info with z-order
+		const tipInfos: BranchTipInfo[] = allBranches.map((b, i) => ({
+			position: { x: b.segment.x2, y: b.segment.y2 },
+			depth: b.depth,
+			widthEnd: b.segment.widthEnd,
+			zOrder: branchZOrders[i]!,
+		}));
+
+		// Cluster tips into blob groups (REQ-EV2-BC-01)
+		const trunkTipPoint = trunkJunctions[trunkJunctions.length - 1]!;
+		const clusters = clusterBranchTips(
+			tipInfos,
+			config.blobCount,
+			trunkTipPoint,
+			styleParams.trunkTipWeight,
+			config.seed,
+		);
+
+		// Convert clusters to blobs (REQ-EV2-BS-01)
+		const clusterRng = createPrng(config.seed + 4444);
+		const clusteredBlobs: Blob[] = [];
+		const clusterZOrders: ('front' | 'back')[] = [];
+		for (const cluster of clusters) {
+			const blob = computeClusterBlob(
+				cluster,
+				styleParams,
+				envelope,
+				config.blobSizeVariance,
+				clusterRng,
+			);
+			if (blob !== null) {
+				clusteredBlobs.push(blob);
+				clusterZOrders.push(cluster.zOrder);
+			}
+		}
+
+		// Update blobs for subsequent processing (anchors, etc.)
+		blobs = clusteredBlobs;
+
+		// Generate canopy triangles from clustered blobs
+		const clusteredBlobGeos = generateBlobCanopy(
+			rng,
+			clusteredBlobs,
+			config.polygonsPerBlob,
+			smoothAcuteAngles,
+			config,
+		);
+
+		// Apply z-order to canopy blobs (REQ-EV2-CZ-01)
+		canopyBlobs = clusteredBlobGeos.map((geo, i) => ({
+			...geo,
+			zOrder: canopyZOrderToLayer(clusterZOrders[i] ?? 'front'),
+		}));
+	} else {
+		// Non-tiered shapes without branches or without style params: use legacy blob generators
+		canopyBlobs = generateBlobCanopy(
+			rng,
+			blobs,
+			config.polygonsPerBlob,
+			smoothAcuteAngles,
+			config,
+		);
+	}
+
+	// Recompute canopy bounds from final blobs (clustering may have changed them)
+	const finalCanopyBounds = !isTiered && blobs.length > 0 ? getBlobsBounds(blobs) : canopyBounds;
 
 	const anchors = computeAnchors(
 		trunkJunctions,
-		canopyBounds,
+		finalCanopyBounds,
 		allBranches.map((b) => b.segment),
 		canopyBlobs,
 		blobs,
@@ -1107,6 +1274,6 @@ function generateTreeCore(config: TreeConfig, flags: StageFlags): TreeGeometry {
 		anchors: anchorsWithTipDepths,
 		viewBox: { width: VIEWBOX_WIDTH, height: VIEWBOX_HEIGHT },
 		junctionData,
-		envelopeBounds: canopyBounds,
+		envelopeBounds: finalCanopyBounds,
 	};
 }
