@@ -39,6 +39,7 @@ import {
 	buildTrunkPath,
 	sampleTrunkCenterX,
 	computeJunctionBisectors,
+	computeZoneSplit,
 	generateCustomBlobs,
 	CUSTOM_BLOB_CANOPY_CENTER_X,
 	CUSTOM_BLOB_CANOPY_CENTER_Y,
@@ -47,9 +48,10 @@ import {
 	type Blob,
 	type BranchSegment,
 	type GeneratedBranch,
+	type ForkReduction,
 } from './shapes.js';
 import { BOUNDARIES, BOUNDARY_KINDS, smoothAcuteBoundaryAngles } from './boundaries.js';
-import { computeCanopyColor, computeTriSplitColors, computeStripColors } from './lighting.js';
+import { computeCanopyColor, computeStripColors } from './lighting.js';
 
 // REQ-C-12: shapes whose circle-boundary blobs should have acute concavities
 // pulled back to the ellipse ring for a rounder silhouette.
@@ -205,43 +207,11 @@ const CENTER_NORMAL_PERTURBATION_RANGE = 0.3;
 /** Base randomness magnitude for junction strip ratios (REQ-EV2-S-02). */
 const BASE_RANDOMNESS_MAGNITUDE = 0.15;
 
+/** Gentle conical taper: trunk narrows by this fraction from base to tip (REQ-EV2-T-01). */
+const CONICAL_TAPER_FRACTION = 0.25;
+
 /** Seed offset for junction strip ratio computation. */
 const JUNCTION_STRIP_SEED_OFFSET = 900;
-
-// ---------------------------------------------------------------------------
-
-function computeTriSplitFaceWidths(
-	rng: () => number,
-	trunkTwist: number,
-): { leftWidth: number; centerWidth: number; rightWidth: number } {
-	const twistFraction = trunkTwist / 100;
-	const maxTwistDeg = twistFraction * 30;
-	const twistRad = ((rng() * 2 - 1) * maxTwistDeg * Math.PI) / 180;
-
-	// Hex-projection base widths
-	let leftWidth = Math.abs(Math.cos(twistRad - Math.PI / 3));
-	let centerWidth = Math.abs(Math.cos(twistRad));
-	let rightWidth = Math.abs(Math.cos(twistRad + Math.PI / 3));
-
-	// Per-face random scale (range interpolated by twist fraction)
-	leftWidth *= 1 + (rng() - 0.5) * twistFraction;
-	centerWidth *= 1 + (rng() - 0.5) * twistFraction;
-	rightWidth *= 1 + (rng() - 0.5) * twistFraction;
-
-	// Normalize to sum = 1
-	const total = leftWidth + centerWidth + rightWidth;
-	if (total > 0) {
-		leftWidth /= total;
-		centerWidth /= total;
-		rightWidth /= total;
-	} else {
-		leftWidth = 0.25;
-		centerWidth = 0.5;
-		rightWidth = 0.25;
-	}
-
-	return { leftWidth, centerWidth, rightWidth };
-}
 
 // ---------------------------------------------------------------------------
 // Engine v2: Junction-Based Strip Ratios (REQ-EV2-S-01, S-02, S-03)
@@ -285,7 +255,7 @@ export function computeJunctionStripRatios(
 			// Face normal angle relative to viewer (front = 0)
 			const faceAngle = cumulativeTwistAngle + (f - (stripCount - 1) / 2) * faceAngleStep;
 			const projectedWidth = Math.abs(Math.cos(faceAngle));
-			rawWidths.push(Math.max(0.01, projectedWidth));
+			rawWidths.push(Math.max(0, projectedWidth));
 		}
 
 		// Base randomness — organic variation even at twist=0 (REQ-EV2-S-02)
@@ -318,12 +288,10 @@ export function computeHybridTaper(
 	forkReductions: readonly { readonly junctionIndex: number; readonly reduction: number }[],
 ): number[] {
 	const widths: number[] = [];
-	// Gentle conical taper: ~25% narrowing from base to tip
-	const conicalTaperFraction = 0.25;
 
 	for (let j = 0; j < junctionCount; j++) {
 		const t = junctionCount > 1 ? j / (junctionCount - 1) : 0;
-		let width = baseWidth * (1 - conicalTaperFraction * t);
+		let width = baseWidth * (1 - CONICAL_TAPER_FRACTION * t);
 
 		// Apply discrete fork reductions
 		for (const fork of forkReductions) {
@@ -398,18 +366,26 @@ function generateTrunkQuads(
 	trunkJunctions: readonly Point2D[],
 	shapeDef: { readonly trunkBaseWidth: number; readonly trunkTopWidth: number },
 	config: TreeConfig,
+	forkReductions: readonly { readonly junctionIndex: number; readonly reduction: number }[] = [],
 ): {
 	quads: Quad[];
 	junctionEdgePoints: Point2D[][];
 	junctionWidths: number[];
 	stripRatios: number[][];
+	bisectors: readonly { perpX: number; perpY: number }[];
 } {
 	const thicknessScale = config.trunkThickness / 100;
 	const effectiveBaseWidth = shapeDef.trunkBaseWidth * thicknessScale;
 	const effectiveTopWidth = shapeDef.trunkTopWidth * thicknessScale;
 
 	if (trunkJunctions.length < 2) {
-		return { quads: [], junctionEdgePoints: [], junctionWidths: [], stripRatios: [] };
+		return {
+			quads: [],
+			junctionEdgePoints: [],
+			junctionWidths: [],
+			stripRatios: [],
+			bisectors: [],
+		};
 	}
 
 	const stripCount = config.trunkStripCount;
@@ -423,7 +399,7 @@ function generateTrunkQuads(
 		junctionCount,
 		effectiveBaseWidth,
 		effectiveTopWidth,
-		[],
+		forkReductions,
 	);
 
 	// Compute junction strip ratios (REQ-EV2-S-01)
@@ -454,12 +430,6 @@ function generateTrunkQuads(
 
 		// Per-segment PRNG for center perturbation
 		const segmentRng = createPrng(config.seed + i * 1000 + TRUNK_SEGMENT_SEED_OFFSET);
-		// Consume same number of RNG calls as old computeTriSplitFaceWidths for stability
-		segmentRng();
-		segmentRng();
-		segmentRng();
-		segmentRng();
-
 		const centerPerturbX = (segmentRng() - 0.5) * CENTER_NORMAL_PERTURBATION_RANGE;
 		const centerPerturbY = (segmentRng() - 0.5) * CENTER_NORMAL_PERTURBATION_RANGE;
 
@@ -489,12 +459,15 @@ function generateTrunkQuads(
 		}
 	}
 
-	return { quads, junctionEdgePoints, junctionWidths, stripRatios };
+	return { quads, junctionEdgePoints, junctionWidths, stripRatios, bisectors };
 }
 
 // ---------------------------------------------------------------------------
-// Branch quad generation (tri-split: 3 quads per segment)
+// Branch quad generation — Engine v2: variable strip count (REQ-EV2-B-01/02/03/04)
 // ---------------------------------------------------------------------------
+
+/** Twist attenuation per depth: L1=full, L2=50%, L3+=0% (REQ-EV2-B-03). */
+const TWIST_ATTENUATION_BY_DEPTH: Record<number, number> = { 1: 1.0, 2: 0.5 };
 
 function generateBranchQuadGroup(
 	branch: BranchSegment,
@@ -515,11 +488,8 @@ function generateBranchQuadGroup(
 		};
 	}
 
-	// Unit direction and perpendicular (screen-left = (uy, -ux) convention)
-	const ux = dirX / length;
-	const uy = dirY / length;
-	const perpX = -uy;
-	const perpY = ux;
+	const perpX = -dirY / length;
+	const perpY = dirX / length;
 
 	// Per-branch PRNG seeded from position to ensure determinism
 	const branchRng = createPrng(
@@ -529,12 +499,59 @@ function generateBranchQuadGroup(
 			BRANCH_SEED_OFFSET,
 	);
 
-	const { leftWidth, centerWidth } = computeTriSplitFaceWidths(branchRng, config.trunkTwist);
-
 	const centerPerturbX = (branchRng() - 0.5) * CENTER_NORMAL_PERTURBATION_RANGE;
 	const centerPerturbY = (branchRng() - 0.5) * CENTER_NORMAL_PERTURBATION_RANGE;
 
-	const { leftColor, centerColor, rightColor } = computeTriSplitColors({
+	// REQ-EV2-B-02: L3+ uses single plain quad (no strip system)
+	if (depth >= 3) {
+		const halfStart = branch.widthStart / 2;
+		const halfEnd = branch.widthEnd / 2;
+		const colors = computeStripColors({
+			segmentDirectionX: dirX,
+			segmentDirectionY: dirY,
+			lightAngle: config.lightAngle,
+			trunkHue: config.trunkHue,
+			trunkSaturation: config.trunkSaturation,
+			trunkLightness: config.trunkLightness,
+			centerPerturbationX: centerPerturbX,
+			centerPerturbationY: centerPerturbY,
+			stripCount: 1,
+		});
+		const quads: Quad[] = [
+			{
+				points: [
+					{ x: branch.x1 + perpX * halfStart, y: branch.y1 + perpY * halfStart },
+					{ x: branch.x1 - perpX * halfStart, y: branch.y1 - perpY * halfStart },
+					{ x: branch.x2 - perpX * halfEnd, y: branch.y2 - perpY * halfEnd },
+					{ x: branch.x2 + perpX * halfEnd, y: branch.y2 + perpY * halfEnd },
+				],
+				color: colors[0]!,
+				group: GEOMETRY_GROUPS.branch,
+			},
+		];
+		return {
+			quads,
+			junctionFills: [],
+			origin: { x: branch.x1, y: branch.y1 },
+			depth,
+			parentIndex,
+		};
+	}
+
+	// REQ-EV2-B-01: L1/L2 use variable strip count with junction continuity
+	const stripCount = config.trunkStripCount;
+	const twistAttenuation = TWIST_ATTENUATION_BY_DEPTH[depth] ?? 0;
+	const effectiveTwist = config.trunkTwist * twistAttenuation;
+
+	// Compute strip ratios for branch (2 junctions: start + end)
+	const branchStripRatios = computeJunctionStripRatios(
+		config.seed + Math.round(branch.x1 * 100) + Math.round(branch.y1 * 100),
+		2,
+		stripCount,
+		effectiveTwist,
+	);
+
+	const stripColors = computeStripColors({
 		segmentDirectionX: dirX,
 		segmentDirectionY: dirY,
 		lightAngle: config.lightAngle,
@@ -543,64 +560,63 @@ function generateBranchQuadGroup(
 		trunkLightness: config.trunkLightness,
 		centerPerturbationX: centerPerturbX,
 		centerPerturbationY: centerPerturbY,
+		stripCount,
 	});
 
-	// Split offsets along perpendicular (positive = left, negative = right)
-	const halfStart = branch.widthStart / 2;
-	const halfEnd = branch.widthEnd / 2;
-
-	function splitPoints(
-		cx: number,
-		cy: number,
-		half: number,
-	): [Point2D, Point2D, Point2D, Point2D] {
-		const leftEdgeOffset = half;
-		const leftSplitOffset = half * (1 - 2 * leftWidth);
-		const rightSplitOffset = half * (1 - 2 * (leftWidth + centerWidth));
-		const rightEdgeOffset = -half;
-		return [
-			{ x: cx + perpX * leftEdgeOffset, y: cy + perpY * leftEdgeOffset },
-			{ x: cx + perpX * leftSplitOffset, y: cy + perpY * leftSplitOffset },
-			{ x: cx + perpX * rightSplitOffset, y: cy + perpY * rightSplitOffset },
-			{ x: cx + perpX * rightEdgeOffset, y: cy + perpY * rightEdgeOffset },
-		];
+	// Compute edge points at start and end using strip ratios
+	function computeEdgePoints(cx: number, cy: number, half: number, ratios: number[]): Point2D[] {
+		const points: Point2D[] = [];
+		points.push({ x: cx + perpX * half, y: cy + perpY * half });
+		let accRatio = 0;
+		for (let s = 0; s < stripCount - 1; s++) {
+			accRatio += ratios[s]!;
+			const offset = half - accRatio * half * 2;
+			points.push({ x: cx + perpX * offset, y: cy + perpY * offset });
+		}
+		points.push({ x: cx - perpX * half, y: cy - perpY * half });
+		return points;
 	}
 
-	const [sLeftEdge, sLeftSplit, sRightSplit, sRightEdge] = splitPoints(
-		branch.x1,
-		branch.y1,
-		halfStart,
-	);
-	const [eLeftEdge, eLeftSplit, eRightSplit, eRightEdge] = splitPoints(
-		branch.x2,
-		branch.y2,
-		halfEnd,
-	);
+	const halfStart = branch.widthStart / 2;
+	const halfEnd = branch.widthEnd / 2;
+	const startPoints = computeEdgePoints(branch.x1, branch.y1, halfStart, branchStripRatios[0]!);
+	const endPoints = computeEdgePoints(branch.x2, branch.y2, halfEnd, branchStripRatios[1]!);
 
-	const quads: Quad[] = [
-		// Left face
-		{
-			points: [sLeftEdge, sLeftSplit, eLeftSplit, eLeftEdge],
-			color: leftColor,
+	const quads: Quad[] = [];
+	for (let s = 0; s < stripCount; s++) {
+		quads.push({
+			points: [startPoints[s]!, startPoints[s + 1]!, endPoints[s + 1]!, endPoints[s]!],
+			color: stripColors[s]!,
 			group: GEOMETRY_GROUPS.branch,
-		},
-		// Center face
-		{
-			points: [sLeftSplit, sRightSplit, eRightSplit, eLeftSplit],
-			color: centerColor,
+		});
+	}
+
+	// REQ-EV2-F-02: junction collar quad at fork point
+	// The collar bridges between the trunk edge and branch start, colored with the
+	// outermost strip color from the branch side (peel-off continuity).
+	const junctionFills: Quad[] = [];
+	const collarLength = Math.min(3, length * 0.15);
+	if (collarLength > 0.5) {
+		const collarColor = stripColors[0]!;
+		// Collar extends from branch origin slightly along the branch direction
+		const collarEndX = branch.x1 + (dirX / length) * collarLength;
+		const collarEndY = branch.y1 + (dirY / length) * collarLength;
+		const collarHalfEnd = halfStart * 0.85;
+		junctionFills.push({
+			points: [
+				{ x: branch.x1 + perpX * halfStart * 1.1, y: branch.y1 + perpY * halfStart * 1.1 },
+				{ x: branch.x1 - perpX * halfStart * 1.1, y: branch.y1 - perpY * halfStart * 1.1 },
+				{ x: collarEndX - perpX * collarHalfEnd, y: collarEndY - perpY * collarHalfEnd },
+				{ x: collarEndX + perpX * collarHalfEnd, y: collarEndY + perpY * collarHalfEnd },
+			],
+			color: collarColor,
 			group: GEOMETRY_GROUPS.branch,
-		},
-		// Right face
-		{
-			points: [sRightSplit, sRightEdge, eRightEdge, eRightSplit],
-			color: rightColor,
-			group: GEOMETRY_GROUPS.branch,
-		},
-	];
+		});
+	}
 
 	return {
 		quads,
-		junctionFills: [],
+		junctionFills,
 		origin: { x: branch.x1, y: branch.y1 },
 		depth,
 		parentIndex,
@@ -844,10 +860,21 @@ function generateTreeCore(config: TreeConfig, flags: StageFlags): TreeGeometry {
 	const canopyDelta = effectiveTrunkTop - shapeDef.defaultTrunkTop;
 	const trunkBottom = shapeDef.trunkBottom;
 
+	// REQ-EV2-TZ-02: enforce minimum trunk segments when branches are enabled
+	const maxL1 = config.branchesLevel1Range[1];
+	const hasBranches = config.branchDepth > 0 && maxL1 > 0;
+	const { lowerZoneSegments, upperZoneSegments } = computeZoneSplit(
+		config.trunkSegments,
+		hasBranches ? maxL1 : 0,
+	);
+	const effectiveTrunkSegments = hasBranches
+		? lowerZoneSegments + upperZoneSegments
+		: config.trunkSegments;
+
 	let trunkJunctions = buildTrunkPath(
 		rng,
 		config.trunkLean,
-		config.trunkSegments,
+		effectiveTrunkSegments,
 		config.trunkCrookedness,
 		effectiveTrunkTop,
 		trunkBottom,
@@ -923,18 +950,62 @@ function generateTreeCore(config: TreeConfig, flags: StageFlags): TreeGeometry {
 
 	// Branch generation: all shapes (including maple) use the generic system (BR-13)
 	let branches: GeneratedBranch[];
+	let forkReductions: ForkReduction[] = [];
 	if (isTiered) {
 		branches = [];
 	} else {
-		branches = generateBranches(
+		const thicknessScale = config.trunkThickness / 100;
+		const branchResult = generateBranches(
 			createPrng(config.seed + 7777),
 			trunkTop,
 			trunkBottom,
-			shapeDef.trunkTopWidth * (config.trunkThickness / 100),
+			shapeDef.trunkTopWidth * thicknessScale,
 			config,
 			trunkJunctions,
 			blobs,
+			shapeDef.trunkBaseWidth * thicknessScale,
 		);
+		branches = branchResult.branches;
+		forkReductions = branchResult.forkReductions;
+
+		// REQ-EV2-G-02: Trunk centerline displacement opposite to branch at fork junctions.
+		// For each L1 branch, shift all trunk junctions above the fork away from the branch.
+		if (branches.length > 0) {
+			const displaced = [...trunkJunctions];
+			for (const branch of branches) {
+				if (branch.depth !== 1) {
+					continue;
+				}
+				// Find the closest junction to the branch origin
+				let closestIdx = 0;
+				let closestDist = Infinity;
+				for (let j = 0; j < displaced.length; j++) {
+					const dist = Math.abs(displaced[j]!.y - branch.segment.y1);
+					if (dist < closestDist) {
+						closestDist = dist;
+						closestIdx = j;
+					}
+				}
+				// Branch direction: origin to tip
+				const branchDirX = branch.segment.x2 - branch.segment.x1;
+				// Displacement opposite to branch X direction, 2-5px proportional to width fraction
+				const thicknessScale = config.trunkThickness / 100;
+				const trunkWidthAtFork = shapeDef.trunkBaseWidth * thicknessScale;
+				const widthFraction =
+					trunkWidthAtFork > 0 ? branch.segment.widthStart / trunkWidthAtFork : 0;
+				const displacementPx = 2 + widthFraction * 3; // 2-5px range
+				const displacementDir = branchDirX > 0 ? -1 : 1;
+				// Shift all junctions above the fork point
+				for (let j = closestIdx; j < displaced.length; j++) {
+					const attenuation = j === closestIdx ? 0.5 : 1.0;
+					displaced[j] = {
+						x: displaced[j]!.x + displacementDir * displacementPx * attenuation,
+						y: displaced[j]!.y,
+					};
+				}
+			}
+			trunkJunctions = displaced;
+		}
 	}
 
 	const extraSegments = isTiered
@@ -962,7 +1033,6 @@ function generateTreeCore(config: TreeConfig, flags: StageFlags): TreeGeometry {
 	);
 	if (!tipInsideCanopy && !tipHasBranch && allBranches.length > 0) {
 		// Emergency: connect trunk tip to nearest canopy blob
-		const emergencyRng = createPrng(config.seed + 99999);
 		const targetX = blobs.length > 0 ? blobs[0]!.cx : topJunction.x;
 		const targetY = blobs.length > 0 ? blobs[0]!.cy : topJunction.y - 20;
 		allBranches.push({
@@ -977,12 +1047,10 @@ function generateTreeCore(config: TreeConfig, flags: StageFlags): TreeGeometry {
 			depth: 1,
 			parentIndex: null,
 		});
-		// Consume RNG for determinism
-		emergencyRng();
 	}
 
 	// Generate trunk quads — Engine v2: junction-based continuous strips
-	const trunkResult = generateTrunkQuads(trunkJunctions, shapeDef, config);
+	const trunkResult = generateTrunkQuads(trunkJunctions, shapeDef, config, forkReductions);
 	const trunkQuads = trunkResult.quads;
 
 	// Generate branch quads (BR-3: same quad + centerline system)
@@ -1018,12 +1086,12 @@ function generateTreeCore(config: TreeConfig, flags: StageFlags): TreeGeometry {
 	const flowerSlotsResult = flags.addFlowers ? anchorsWithTipDepths.fruitSlots : [];
 
 	// Cross-phase contract: junction data (REQ-EV2-C-01)
-	const contractBisectors = computeJunctionBisectors(trunkJunctions);
+	// Reuse bisectors computed in generateTrunkQuads (item #8: avoid duplicate call)
 	const junctionData: JunctionData[] = trunkJunctions.map((pos, i) => ({
 		position: pos,
 		width: trunkResult.junctionWidths[i] ?? 0,
 		stripRatios: trunkResult.stripRatios[i] ?? [],
-		bisectorAngle: Math.atan2(contractBisectors[i]!.perpY, contractBisectors[i]!.perpX),
+		bisectorAngle: Math.atan2(trunkResult.bisectors[i]!.perpY, trunkResult.bisectors[i]!.perpX),
 	}));
 
 	return {

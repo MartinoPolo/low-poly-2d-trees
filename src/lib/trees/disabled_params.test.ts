@@ -135,7 +135,7 @@ describe('isParamDisabled', () => {
 			expect(isParamDisabled('oak', 'branchWidthVariance', { branchDepth: 1 })).toBe(false);
 		});
 
-		it('does not disable branchWidthVariance when branchDepth is undefined', () => {
+		it('disables branchWidthVariance when branchDepth is undefined (defaults to 0)', () => {
 			expect(isParamDisabled('oak', 'branchWidthVariance', {})).toBe(true);
 		});
 	});
