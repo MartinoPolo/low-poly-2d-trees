@@ -1605,6 +1605,29 @@ describe('Fruit generation (SVG-based)', () => {
 		const geo = generateTree(makeConfig());
 		expect(geo.fruitSlots).toHaveLength(0);
 	});
+
+	it('fruit slots are far enough from canopy edge for 2x rendering', () => {
+		const geo = generateTree(
+			makeConfig({ stage: 'fruiting', fruitType: 'apple', fruitCount: 7, seed: 42 }),
+		);
+		// Canopy is blob-shaped so bounding-box margins understate interior clearance.
+		// Still, every slot must have at least 3px margin from the bounding box —
+		// this catches the worst edge-clipping cases from an overly loose inset factor.
+		const allCanopyVertices = geo.canopyBlobs.flatMap((b) =>
+			b.triangles.flatMap((t) => t.points),
+		);
+		const minX = Math.min(...allCanopyVertices.map((p) => p.x));
+		const maxX = Math.max(...allCanopyVertices.map((p) => p.x));
+		const minY = Math.min(...allCanopyVertices.map((p) => p.y));
+		const maxY = Math.max(...allCanopyVertices.map((p) => p.y));
+		const minimumBoundingBoxMargin = 3;
+		for (const slot of geo.fruitSlots) {
+			expect(slot.x).toBeGreaterThanOrEqual(minX + minimumBoundingBoxMargin);
+			expect(slot.x).toBeLessThanOrEqual(maxX - minimumBoundingBoxMargin);
+			expect(slot.y).toBeGreaterThanOrEqual(minY + minimumBoundingBoxMargin);
+			expect(slot.y).toBeLessThanOrEqual(maxY - minimumBoundingBoxMargin);
+		}
+	});
 });
 
 // ============================================================================

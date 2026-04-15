@@ -64,6 +64,6 @@ describe('TOOL_DEFINITIONS', () => {
 	});
 
 	it('woodpecker has correct snapOffset', () => {
-		expect(TOOL_DEFINITIONS.woodpecker.snapOffset).toEqual({ x: 0, y: 10 });
+		expect(TOOL_DEFINITIONS.woodpecker.snapOffset).toEqual({ x: 6, y: 10 });
 	});
 });

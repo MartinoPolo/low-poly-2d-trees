@@ -28,6 +28,8 @@
 	import { createPrng, randomInRange } from '$lib/trees/prng.js';
 	import { SvelteMap } from 'svelte/reactivity';
 
+	const FRUIT_RENDER_SCALE = 2;
+
 	interface Props {
 		config?: TreeConfig;
 		showCanopy?: boolean;
@@ -325,7 +327,7 @@
 			{@const FruitSvg = fruitComponent}
 			<g class="fruit">
 				{#each geometry.fruitSlots as slot (slot)}
-					<g transform="translate({slot.x},{slot.y})">
+					<g transform="translate({slot.x},{slot.y}) scale({FRUIT_RENDER_SCALE})">
 						<FruitSvg />
 					</g>
 				{/each}

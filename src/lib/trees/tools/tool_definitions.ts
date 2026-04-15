@@ -44,6 +44,6 @@ export const TOOL_DEFINITIONS = {
 	[TOOL_TYPES.woodpecker]: {
 		svgComponent: WoodpeckerSvg,
 		anchorTarget: 'trunkMiddle',
-		snapOffset: { x: 0, y: 10 },
+		snapOffset: { x: 6, y: 10 },
 	},
 } as const satisfies Record<ToolType, ToolDefinition>;
