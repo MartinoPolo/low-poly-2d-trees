@@ -120,7 +120,8 @@ function isTriangleInsideRegion(
 const ROOTS_DEPTH_PX = 15;
 const FRUIT_SLOTS_SEED_OFFSET = 54321;
 const FRUIT_COUNT_CAP = 7;
-const FRUIT_CONTAINMENT_INSET_FACTOR = 0.85;
+/** Calibrated for 2× fruit render scale (FRUIT_RENDER_SCALE in LowPolyTree.svelte). */
+const FRUIT_CONTAINMENT_INSET_FACTOR = 0.7;
 
 function buildCanopyContainmentTest(
 	blobs: readonly Blob[],

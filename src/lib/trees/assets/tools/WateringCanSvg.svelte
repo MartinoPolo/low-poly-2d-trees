@@ -2,8 +2,9 @@
 	Watering Can placeholder SVG — recognizable metal can with spout.
 	Flat design: dark charcoal grey metal body.
 	Snap point: spout tip at local (16, -8).
+	Static -20° tilt around spout tip for "as if pouring" resting pose.
 -->
-<g>
+<g transform="rotate(-20, 16, -8)">
 	<!-- Body (main container) -->
 	<path d="M-10,-4 L10,-4 L12,10 L-12,10 Z" fill="#5A6A7A" />
 	<!-- Body highlight -->
