@@ -171,6 +171,99 @@ export function sampleTrunkCenterX(junctions: readonly Point2D[], y: number): nu
 	return base.x;
 }
 
+// ---------------------------------------------------------------------------
+// Engine v2: Angle-Bisector Computation (REQ-EV2-J-01, J-03)
+// ---------------------------------------------------------------------------
+
+interface BisectorPerp {
+	readonly perpX: number;
+	readonly perpY: number;
+}
+
+/**
+ * Compute perpendicular bisector direction at each junction.
+ * At internal junctions, the boundary is perpendicular to the angle bisector
+ * of the incoming and outgoing segment directions. Base/tip use their single
+ * segment direction.
+ */
+export function computeJunctionBisectors(junctions: readonly Point2D[]): BisectorPerp[] {
+	if (junctions.length < 2) {
+		return [{ perpX: 1, perpY: 0 }];
+	}
+
+	const result: BisectorPerp[] = [];
+
+	for (let i = 0; i < junctions.length; i++) {
+		let dirX: number;
+		let dirY: number;
+
+		if (i === 0) {
+			// Base: use first segment direction
+			dirX = junctions[1]!.x - junctions[0]!.x;
+			dirY = junctions[1]!.y - junctions[0]!.y;
+		} else if (i === junctions.length - 1) {
+			// Tip: use last segment direction
+			dirX = junctions[i]!.x - junctions[i - 1]!.x;
+			dirY = junctions[i]!.y - junctions[i - 1]!.y;
+		} else {
+			// Internal: bisector of incoming and outgoing directions
+			const inDirX = junctions[i]!.x - junctions[i - 1]!.x;
+			const inDirY = junctions[i]!.y - junctions[i - 1]!.y;
+			const outDirX = junctions[i + 1]!.x - junctions[i]!.x;
+			const outDirY = junctions[i + 1]!.y - junctions[i]!.y;
+
+			// Normalize both
+			const inLen = Math.sqrt(inDirX * inDirX + inDirY * inDirY);
+			const outLen = Math.sqrt(outDirX * outDirX + outDirY * outDirY);
+			const inNx = inLen > 0 ? inDirX / inLen : 0;
+			const inNy = inLen > 0 ? inDirY / inLen : -1;
+			const outNx = outLen > 0 ? outDirX / outLen : 0;
+			const outNy = outLen > 0 ? outDirY / outLen : -1;
+
+			// Bisector = average of normalized directions
+			dirX = inNx + outNx;
+			dirY = inNy + outNy;
+
+			// Handle near-zero bisector (180° turn — fallback to incoming)
+			if (dirX * dirX + dirY * dirY < 1e-10) {
+				dirX = inNx;
+				dirY = inNy;
+			}
+		}
+
+		// Perpendicular to direction (screen-left convention)
+		const len = Math.sqrt(dirX * dirX + dirY * dirY);
+		const nx = len > 0 ? dirX / len : 0;
+		const ny = len > 0 ? dirY / len : -1;
+		// Perpendicular: rotate 90° CW → (ny, -nx) = screen-right perp
+		// We want screen-left = (-ny, nx) as positive direction
+		result.push({ perpX: -ny, perpY: nx });
+	}
+
+	return result;
+}
+
+// ---------------------------------------------------------------------------
+// Engine v2: Two-Zone Segment Distribution (REQ-EV2-TZ-01, TZ-02)
+// Phase 2 (#96) will use this for branch-zone-aware canopy clustering.
+// ---------------------------------------------------------------------------
+
+/** @public — exported for Phase 2 (#96) consumption */
+export function computeZoneSplit(
+	trunkSegments: number,
+	maxLevel1Branches: number,
+): { lowerZoneSegments: number; upperZoneSegments: number } {
+	const upperZoneSegments = Math.max(maxLevel1Branches, 2);
+	const minimumTrunkSegments = upperZoneSegments + 1;
+	const effectiveSegments = Math.max(trunkSegments, minimumTrunkSegments);
+	const lowerZoneSegments = Math.max(1, effectiveSegments - upperZoneSegments);
+
+	return {
+		lowerZoneSegments,
+		upperZoneSegments: effectiveSegments - lowerZoneSegments,
+	};
+}
+
 export function isPointInTrunkPath(
 	x: number,
 	y: number,

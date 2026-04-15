@@ -155,8 +155,15 @@
 		treeConfig.current.trunkHue = defaults.trunkHue;
 		treeConfig.current.trunkSaturation = defaults.trunkSaturation;
 		treeConfig.current.trunkLightness = defaults.trunkLightness;
+		treeConfig.current.trunkTwist = defaults.trunkTwist;
 		treeConfig.current.fruitType = defaults.fruitType;
 		treeConfig.current.fruitCount = defaults.fruitCount;
+		if ('trunkStripCount' in defaults) {
+			treeConfig.current.trunkStripCount = defaults.trunkStripCount as number;
+		}
+		if ('branchWidthVariance' in defaults) {
+			treeConfig.current.branchWidthVariance = defaults.branchWidthVariance as number;
+		}
 	}
 
 	function onBlobCountChange(value: number) {
@@ -277,10 +284,10 @@
 							bind:value={treeConfig.current.polygonsPerBlob}
 						/>
 						<LabeledSlider
-							label="Trunk Polygons"
-							min={10}
-							max={100}
-							bind:value={treeConfig.current.trunkPolygons}
+							label="Trunk Strips"
+							min={2}
+							max={4}
+							bind:value={treeConfig.current.trunkStripCount}
 						/>
 						<LabeledSlider
 							label="Blob Count"
@@ -404,7 +411,7 @@
 						<LabeledSlider
 							label="Trunk Segments"
 							min={1}
-							max={5}
+							max={10}
 							step={1}
 							bind:value={treeConfig.current.trunkSegments}
 						/>
@@ -504,6 +511,13 @@
 								step={5}
 								unit="%"
 								bind:value={treeConfig.current.branchDepthTaper}
+							/>
+							<LabeledSlider
+								label="Branch Width Variance"
+								min={0}
+								max={50}
+								step={5}
+								bind:value={treeConfig.current.branchWidthVariance}
 							/>
 							<LabeledSlider
 								label="Branch Length"

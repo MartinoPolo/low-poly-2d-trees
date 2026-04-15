@@ -28,12 +28,6 @@ const ANGLE_DIVERGENCE_MAX_DEG = 60;
 const CHILD_LENGTH_RATIO_MIN = 0.2;
 const CHILD_LENGTH_RATIO_MAX = 0.8;
 
-// Trunk-origin branch widths pre-scaled by 1.75.
-const TRUNK_BRANCH_WIDTH_START_MIN = 7;
-const TRUNK_BRANCH_WIDTH_START_MAX = 12.25;
-const TRUNK_BRANCH_WIDTH_END_MIN = 1.75;
-const TRUNK_BRANCH_WIDTH_END_MAX = 5.25;
-
 const BRANCH_RETRY_ATTEMPTS = 5;
 
 // Base length ranges for branches at branchLength=100 (proportional to viewport).
@@ -60,11 +54,58 @@ interface BranchContext {
 	readonly canopyBottom: number;
 	readonly trunkAxisAngle: number;
 	readonly branchThicknessScale: number;
+	readonly trunkBaseWidth: number;
+	readonly trunkTopWidth: number;
 }
+
+// ---------------------------------------------------------------------------
+// Fork width economics constants (REQ-EV2-F-04)
+// ---------------------------------------------------------------------------
+
+/** L1 branch width = this fraction of trunk width at fork point. */
+const FORK_WIDTH_FRACTION_MIN = 0.15;
+const FORK_WIDTH_FRACTION_MAX = 0.2;
+
+/** ±15° random angle variation around center branchAngle (REQ-EV2-V-01). */
+const BRANCH_ANGLE_VARIATION_DEG = 15;
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
+
+/**
+ * Compute trunk width at a given Y position via linear interpolation
+ * between base and top widths.
+ */
+function trunkWidthAtY(
+	y: number,
+	trunkTop: number,
+	trunkBottom: number,
+	trunkTopWidth: number,
+	trunkBaseWidth: number,
+): number {
+	const t = (y - trunkTop) / (trunkBottom - trunkTop);
+	const clamped = Math.max(0, Math.min(1, t));
+	return trunkTopWidth + clamped * (trunkBaseWidth - trunkTopWidth);
+}
+
+/**
+ * Compute L1 branch widthStart using fork width economics (REQ-EV2-F-04).
+ * Width = trunkWidthAtFork * (0.15-0.20 ± branchWidthVariance × random).
+ */
+function computeForkBranchWidth(
+	rng: () => number,
+	trunkWidth: number,
+	branchWidthVariance: number,
+	branchThicknessScale: number,
+): number {
+	const centerFraction = (FORK_WIDTH_FRACTION_MIN + FORK_WIDTH_FRACTION_MAX) / 2;
+	const varianceSpread =
+		(branchWidthVariance / 100) * (FORK_WIDTH_FRACTION_MAX - FORK_WIDTH_FRACTION_MIN) * 3;
+	const fraction = centerFraction + (rng() * 2 - 1) * varianceSpread;
+	const clampedFraction = Math.max(0.05, fraction);
+	return trunkWidth * clampedFraction * branchThicknessScale;
+}
 
 function blobsOverlap(a: Blob, b: Blob): boolean {
 	const dx = (a.cx - b.cx) / (a.rx + b.rx);
@@ -216,8 +257,11 @@ function generateTrunkBranches(ctx: BranchContext, branches: GeneratedBranch[]):
 			);
 			const length = randomInRange(rng, lenMin, lenMax);
 
-			// Generate branch angle within the mapped range
-			const upAngle = randomInRange(rng, angleRange.minRad, angleRange.maxRad);
+			// Generate branch angle within the mapped range + ±15° variation (REQ-EV2-V-01)
+			const baseUpAngle = randomInRange(rng, angleRange.minRad, angleRange.maxRad);
+			const angleVariationRad =
+				((rng() * 2 - 1) * BRANCH_ANGLE_VARIATION_DEG * Math.PI) / 180;
+			const upAngle = baseUpAngle + angleVariationRad;
 
 			// Check angle divergence from trunk axis (Rule E)
 			const candidateAngle = Math.atan2(
@@ -234,12 +278,21 @@ function generateTrunkBranches(ctx: BranchContext, branches: GeneratedBranch[]):
 			const rawEndY = startY - Math.sin(upAngle) * length;
 			const endX = reflectEndpointIfCrossing(startX, rawEndX, startX);
 
-			const widthStart =
-				randomInRange(rng, TRUNK_BRANCH_WIDTH_START_MIN, TRUNK_BRANCH_WIDTH_START_MAX) *
-				ctx.branchThicknessScale;
-			const widthEnd =
-				randomInRange(rng, TRUNK_BRANCH_WIDTH_END_MIN, TRUNK_BRANCH_WIDTH_END_MAX) *
-				ctx.branchThicknessScale;
+			// Fork width economics (REQ-EV2-F-04): branch width = fraction of trunk width at fork
+			const trunkWidthAtFork = trunkWidthAtY(
+				startY,
+				trunkTop,
+				ctx.trunkBottom,
+				ctx.trunkTopWidth,
+				ctx.trunkBaseWidth,
+			);
+			const widthStart = computeForkBranchWidth(
+				rng,
+				trunkWidthAtFork,
+				config.branchWidthVariance,
+				ctx.branchThicknessScale,
+			);
+			const widthEnd = Math.max(0.5, widthStart * 0.4);
 
 			const candidate: BranchSegment = {
 				x1: startX,
@@ -389,10 +442,11 @@ export function generateBranches(
 	rng: () => number,
 	trunkTop: number,
 	trunkBottom: number,
-	_trunkTopWidth: number,
+	trunkTopWidth: number,
 	config: TreeConfig,
 	trunkJunctions: readonly Point2D[],
 	blobs: readonly Blob[],
+	trunkBaseWidth: number = trunkTopWidth * 2,
 ): GeneratedBranch[] {
 	const branchDepth = config.branchDepth;
 	if (branchDepth <= 0) {
@@ -421,6 +475,8 @@ export function generateBranches(
 		canopyBottom,
 		trunkAxisAngle,
 		branchThicknessScale,
+		trunkBaseWidth,
+		trunkTopWidth,
 	};
 
 	const branches: GeneratedBranch[] = [];

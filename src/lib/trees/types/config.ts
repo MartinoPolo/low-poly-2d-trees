@@ -84,7 +84,6 @@ export interface TreeConfig {
 	readonly shape: TreeShape;
 	readonly seed: number;
 	readonly polygonsPerBlob: number;
-	readonly trunkPolygons: number;
 	/** Hex color used for fully-lit canopy faces (REQ-P-30, REQ-L-01). */
 	readonly canopyLightColor: string;
 	/** Hex color used for fully-shadowed canopy faces (REQ-P-31, REQ-L-01). */
@@ -126,6 +125,10 @@ export interface TreeConfig {
 	readonly branchAngle: number;
 	/** Trunk face-width variation (0-100%). Controls twist and per-face randomness. */
 	readonly trunkTwist: number;
+	/** Number of visible strip faces on trunk/branch cross-section (REQ-EV2-X-01). */
+	readonly trunkStripCount: number;
+	/** Spread around branchDepthTaper center ratio (0-50, REQ-EV2-V-02). */
+	readonly branchWidthVariance: number;
 	/**
 	 * Per-blob overrides for the `custom` tree shape. Only consulted when
 	 * `shape === 'custom'`. Grown lazily in UI state as the user raises the
@@ -142,7 +145,6 @@ export const DEFAULT_TREE_CONFIG: TreeConfig = {
 	shape: TREE_SHAPES.oak,
 	seed: 42,
 	polygonsPerBlob: 12,
-	trunkPolygons: 30,
 	canopyLightColor: '#a8d84e',
 	canopyDarkColor: '#1a472a',
 	trunkHue: 25,
@@ -171,7 +173,9 @@ export const DEFAULT_TREE_CONFIG: TreeConfig = {
 	branchCrookedness: 0,
 	branchDepthTaper: 55,
 	branchAngle: 50,
-	trunkTwist: 0,
+	trunkTwist: 10,
+	trunkStripCount: 3,
+	branchWidthVariance: 25,
 	fruitType: FRUIT_TYPES.none,
 	fruitCount: 0,
 } as const;
@@ -240,7 +244,7 @@ export const SHAPE_DEFAULTS = {
 		blobSizeVariance: 2.5,
 		blobCloseness: 35,
 		branchThickness: 80,
-		trunkSegments: 3,
+		trunkSegments: 4,
 		trunkCrookedness: 10,
 		crookednessMode: CROOKEDNESS_MODES.alternating,
 		branchLength: 100,
@@ -288,7 +292,7 @@ export const SHAPE_DEFAULTS = {
 		blobSizeVariance: 1.3,
 		blobCloseness: 40,
 		branchThickness: 100,
-		trunkSegments: 3,
+		trunkSegments: 7,
 		trunkCrookedness: 20,
 		crookednessMode: CROOKEDNESS_MODES.alternating,
 		branchLength: 100,
@@ -312,7 +316,7 @@ export const SHAPE_DEFAULTS = {
 		blobSizeVariance: 2.0,
 		blobCloseness: 35,
 		branchThickness: 80,
-		trunkSegments: 5,
+		trunkSegments: 7,
 		trunkCrookedness: 20,
 		crookednessMode: CROOKEDNESS_MODES.alternating,
 		branchLength: 100,
@@ -384,7 +388,7 @@ export const SHAPE_DEFAULTS = {
 		blobSizeVariance: 2.0,
 		blobCloseness: 40,
 		branchThickness: 100,
-		trunkSegments: 3,
+		trunkSegments: 6,
 		trunkCrookedness: 10,
 		crookednessMode: CROOKEDNESS_MODES.alternating,
 		branchLength: 120,
@@ -432,7 +436,7 @@ export const SHAPE_DEFAULTS = {
 		blobSizeVariance: 1.5,
 		blobCloseness: 60,
 		branchThickness: 100,
-		trunkSegments: 3,
+		trunkSegments: 5,
 		trunkCrookedness: 10,
 		crookednessMode: CROOKEDNESS_MODES.alternating,
 		branchLength: 60,
@@ -456,7 +460,7 @@ export const SHAPE_DEFAULTS = {
 		blobSizeVariance: 1.5,
 		blobCloseness: 30,
 		branchThickness: 100,
-		trunkSegments: 3,
+		trunkSegments: 5,
 		trunkCrookedness: 10,
 		crookednessMode: CROOKEDNESS_MODES.alternating,
 		branchLength: 100,
@@ -495,7 +499,8 @@ export const SHAPE_DEFAULTS = {
 		| 'trunkLightness'
 		| 'fruitType'
 		| 'fruitCount'
-	>
+	> &
+		Partial<Pick<TreeConfig, 'trunkStripCount' | 'branchWidthVariance'>>
 >;
 
 export const VIEWBOX_WIDTH = 300;

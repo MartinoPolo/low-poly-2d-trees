@@ -8,6 +8,7 @@ export {
 	type Tier,
 	type BlobGeometry,
 	type BranchGeometry,
+	type JunctionData,
 	type TreeGeometry,
 } from './types/core.js';
 

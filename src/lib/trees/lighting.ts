@@ -136,6 +136,81 @@ interface TriSplitColors {
 	readonly rightColor: string;
 }
 
+// ---------------------------------------------------------------------------
+// Engine v2: Variable strip count face colors (REQ-EV2-LT-01)
+// ---------------------------------------------------------------------------
+
+/** @public — exported for Phase 2 (#96) strip color computation */
+export interface StripColorInput {
+	readonly segmentDirectionX: number;
+	readonly segmentDirectionY: number;
+	readonly lightAngle: number;
+	readonly trunkHue: number;
+	readonly trunkSaturation: number;
+	readonly trunkLightness: number;
+	readonly centerPerturbationX: number;
+	readonly centerPerturbationY: number;
+	readonly stripCount: number;
+}
+
+/**
+ * Compute face colors for variable strip counts (2-4).
+ * Face normals derived from polygonal cross-section model:
+ * - 2 strips (square): 4 total faces, normals at PI/4 spacing
+ * - 3 strips (hex): 6 total faces, normals at PI/6 spacing (same as old tri-split)
+ * - 4 strips (octagonal): 8 total faces, normals at PI/8 spacing
+ */
+export function computeStripColors(input: StripColorInput): string[] {
+	const {
+		segmentDirectionX: dx,
+		segmentDirectionY: dy,
+		lightAngle,
+		trunkHue,
+		trunkSaturation,
+		trunkLightness,
+		centerPerturbationX,
+		centerPerturbationY,
+		stripCount,
+	} = input;
+
+	const len = Math.sqrt(dx * dx + dy * dy);
+	const ux = len > 0 ? dx / len : 0;
+	const uy = len > 0 ? dy / len : -1;
+
+	const totalFaces = 2 * stripCount;
+	const faceAngleStep = Math.PI / totalFaces;
+	const light = normalize3(lightDirection(lightAngle));
+
+	function faceColor(normal: { x: number; y: number; z: number }): string {
+		const d = dot3(normal, light);
+		const lightnessOffset = -10 + ((d + 1) / 2) * 22;
+		return hslToHex(trunkHue, trunkSaturation, trunkLightness + lightnessOffset);
+	}
+
+	const colors: string[] = [];
+
+	for (let f = 0; f < stripCount; f++) {
+		const faceOffset = f - (stripCount - 1) / 2;
+		const normalAngle = faceOffset * faceAngleStep;
+
+		const sinA = Math.sin(normalAngle);
+		const cosA = Math.cos(normalAngle);
+
+		// Rotate face normal: perpendicular component (uy, -ux) scaled by sinA, forward z by cosA
+		let normal: { x: number; y: number; z: number };
+		if (f === Math.floor(stripCount / 2) && stripCount % 2 === 1) {
+			// Center face: add perturbation for organic variety
+			normal = normalize3({ x: centerPerturbationX, y: centerPerturbationY, z: 1 });
+		} else {
+			normal = normalize3({ x: uy * sinA, y: -ux * sinA, z: cosA });
+		}
+
+		colors.push(faceColor(normal));
+	}
+
+	return colors;
+}
+
 /**
  * Compute tri-split trunk/branch face colors from 3 face normals.
  *

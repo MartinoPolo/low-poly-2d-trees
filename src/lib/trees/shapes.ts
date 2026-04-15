@@ -6,6 +6,8 @@ export {
 	buildTrunkPath,
 	sampleTrunkCenterX,
 	isPointInTrunkPath,
+	computeJunctionBisectors,
+	computeZoneSplit,
 } from './shapes/trunk.js';
 
 export { generateTiers, isPointInTier, getTiersBounds } from './shapes/tiers.js';

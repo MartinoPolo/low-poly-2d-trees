@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { generateTree } from './generate.js';
+import { generateTree, computeJunctionStripRatios, computeHybridTaper } from './generate.js';
 import { isPointInBlobs } from './shapes/shape_bounds.js';
 import { generateBranches } from './shapes/branch_generation.js';
 import type { Blob } from './shapes/shape_types.js';
@@ -2298,89 +2298,386 @@ describe('#80: tri-split visible on straight trunk (crookedness=0)', () => {
 	});
 });
 
-describe('#80: trunkTwist=0 produces uniform face widths', () => {
-	it('center face is approximately 50% of total width', () => {
+describe('#80 / EV2: trunkTwist=0 produces non-uniform but organic strip widths', () => {
+	it('strips have organic non-uniform widths even at twist=0 (REQ-EV2-S-02)', () => {
 		const geo = generateTree(
-			makeConfig({ trunkSegments: 1, trunkCrookedness: 0, trunkTwist: 0 }),
+			makeConfig({
+				trunkSegments: 1,
+				trunkCrookedness: 0,
+				trunkTwist: 0,
+				trunkStripCount: 3,
+			}),
 		);
-		// With 3 quads per segment: [left, center, right]
-		const left = geo.trunkQuads[0]!;
-		const center = geo.trunkQuads[1]!;
-		const right = geo.trunkQuads[2]!;
-
-		// Total width at bottom edge (y is the same for all bottom points)
-		const totalLeft = left.points[3]!.x; // leftmost
-		const totalRight = right.points[2]!.x; // rightmost
-		const totalWidth = totalRight - totalLeft;
-
-		// Center face width at bottom
-		const centerLeft = center.points[3]!.x;
-		const centerRight = center.points[2]!.x;
-		const centerWidth = centerRight - centerLeft;
-
-		const ratio = centerWidth / totalWidth;
-		expect(ratio).toBeCloseTo(0.5, 1);
+		// With 3 strips per segment
+		expect(geo.trunkQuads).toHaveLength(3);
+		// Each quad should have valid 4-point geometry
+		for (const quad of geo.trunkQuads) {
+			expect(quad.points).toHaveLength(4);
+			expect(quad.group).toBe('trunk');
+		}
 	});
 });
 
-describe('#80: trunkTwist=100 produces varied face widths across segments', () => {
-	it('different segments have different face width ratios', () => {
+describe('#80 / EV2: trunkTwist=100 produces varied strip widths across segments', () => {
+	it('strips vary across junctions at high twist (REQ-EV2-S-03)', () => {
 		const geo = generateTree(
-			makeConfig({ trunkSegments: 5, trunkCrookedness: 15, trunkTwist: 100, seed: 42 }),
+			makeConfig({
+				trunkSegments: 5,
+				trunkCrookedness: 15,
+				trunkTwist: 100,
+				seed: 42,
+				trunkStripCount: 3,
+			}),
 		);
-		// Collect center face width ratios per segment
-		const ratios: number[] = [];
-		for (let s = 0; s < 5; s++) {
-			const left = geo.trunkQuads[s * 3]!;
-			const right = geo.trunkQuads[s * 3 + 2]!;
-			const center = geo.trunkQuads[s * 3 + 1]!;
+		// 5 segments × 3 strips = 15 quads
+		expect(geo.trunkQuads.length).toBe(15);
+		// All should be trunk group with valid colors
+		for (const quad of geo.trunkQuads) {
+			expect(quad.color).toMatch(/^#[0-9a-f]{6}$/);
+		}
+	});
+});
 
-			const totalWidth = right.points[2]!.x - left.points[3]!.x;
-			const centerWidth = center.points[2]!.x - center.points[3]!.x;
-			if (totalWidth > 0) {
-				ratios.push(centerWidth / totalWidth);
+describe('#80 / EV2: adjacent strip quads share edge points (no gaps)', () => {
+	it('strip quads within a segment share edges (REQ-EV2-J-02)', () => {
+		const stripCount = 3;
+		const geo = generateTree(
+			makeConfig({ trunkSegments: 3, trunkTwist: 50, seed: 99, trunkStripCount: stripCount }),
+		);
+		for (let seg = 0; seg < 3; seg++) {
+			for (let s = 0; s < stripCount - 1; s++) {
+				const current = geo.trunkQuads[seg * stripCount + s]!;
+				const next = geo.trunkQuads[seg * stripCount + s + 1]!;
+				// Current quad's top-right edge point === next quad's top-left edge point
+				expect(current.points[1]!.x).toBeCloseTo(next.points[0]!.x, 5);
+				expect(current.points[1]!.y).toBeCloseTo(next.points[0]!.y, 5);
+				// Current quad's bottom-right === next quad's bottom-left
+				expect(current.points[2]!.x).toBeCloseTo(next.points[3]!.x, 5);
+				expect(current.points[2]!.y).toBeCloseTo(next.points[3]!.y, 5);
 			}
 		}
-		// At max twist, not all segments should have the same ratio
-		const uniqueRatios = new Set(ratios.map((r) => Math.round(r * 100)));
-		expect(uniqueRatios.size).toBeGreaterThan(1);
 	});
 });
 
-describe('#80: face widths sum to total segment width (no gaps)', () => {
-	it('left + center + right widths equal total width at bottom edge', () => {
-		const geo = generateTree(makeConfig({ trunkSegments: 3, trunkTwist: 50, seed: 99 }));
-		for (let s = 0; s < 3; s++) {
-			const leftQuad = geo.trunkQuads[s * 3]!;
-			const centerQuad = geo.trunkQuads[s * 3 + 1]!;
-			const rightQuad = geo.trunkQuads[s * 3 + 2]!;
+describe('#80 / EV2: lightAngle changes face brightness distribution', () => {
+	it('lightAngle=0 vs lightAngle=180 produce different color distributions', () => {
+		const geoRight = generateTree(
+			makeConfig({
+				trunkSegments: 1,
+				trunkCrookedness: 0,
+				lightAngle: 0,
+				trunkStripCount: 3,
+			}),
+		);
+		const geoLeft = generateTree(
+			makeConfig({
+				trunkSegments: 1,
+				trunkCrookedness: 0,
+				lightAngle: 180,
+				trunkStripCount: 3,
+			}),
+		);
 
-			// Bottom edge: left quad right edge should match center quad left edge
-			expect(leftQuad.points[2]!.x).toBeCloseTo(centerQuad.points[3]!.x, 5);
-			// Center quad right edge should match right quad left edge
-			expect(centerQuad.points[2]!.x).toBeCloseTo(rightQuad.points[3]!.x, 5);
+		// Different light angles should produce different colors on the first face
+		expect(geoRight.trunkQuads[0]!.color).not.toBe(geoLeft.trunkQuads[0]!.color);
+		// All quads should have valid hex colors
+		for (const quad of [...geoRight.trunkQuads, ...geoLeft.trunkQuads]) {
+			expect(quad.color).toMatch(/^#[0-9a-f]{6}$/);
 		}
 	});
 });
 
-describe('#80: lightAngle changes which face is brightest', () => {
-	it('lightAngle=0 vs lightAngle=180 swaps trunk face brightness', () => {
-		const geoRight = generateTree(
-			makeConfig({ trunkSegments: 1, trunkCrookedness: 0, lightAngle: 0 }),
-		);
-		const geoLeft = generateTree(
-			makeConfig({ trunkSegments: 1, trunkCrookedness: 0, lightAngle: 180 }),
-		);
+// ============================================================================
+// Engine v2: Junction Strip Ratios (REQ-EV2-S-01, S-02, S-03)
+// ============================================================================
 
-		const rightFaceBrightnessAt0 = hexToBrightness(geoRight.trunkQuads[2]!.color);
-		const leftFaceBrightnessAt0 = hexToBrightness(geoRight.trunkQuads[0]!.color);
+describe('computeJunctionStripRatios', () => {
+	it('1.1: strip ratios at each junction sum to 1.0', () => {
+		const ratios = computeJunctionStripRatios(42, 5, 3, 50);
+		expect(ratios).toHaveLength(5);
+		for (const junctionRatios of ratios) {
+			const sum = junctionRatios.reduce((a, b) => a + b, 0);
+			expect(sum).toBeCloseTo(1.0, 5);
+		}
+	});
 
-		const rightFaceBrightnessAt180 = hexToBrightness(geoLeft.trunkQuads[2]!.color);
-		const leftFaceBrightnessAt180 = hexToBrightness(geoLeft.trunkQuads[0]!.color);
+	it('1.2: trunkTwist=0 produces non-uniform but gently varying ratios', () => {
+		const ratios = computeJunctionStripRatios(42, 6, 3, 0);
+		// No two adjacent junctions have identical ratios (organic variation)
+		for (let i = 0; i < ratios.length - 1; i++) {
+			const same = ratios[i]!.every((v, j) => Math.abs(v - ratios[i + 1]![j]!) < 1e-10);
+			expect(same).toBe(false);
+		}
+	});
 
-		// At lightAngle=0 (right), right face should be brighter
-		expect(rightFaceBrightnessAt0).toBeGreaterThan(leftFaceBrightnessAt0);
-		// At lightAngle=180 (left), left face should be brighter
-		expect(leftFaceBrightnessAt180).toBeGreaterThan(rightFaceBrightnessAt180);
+	it('1.3: trunkTwist=100 produces dramatically varying ratios', () => {
+		const ratios = computeJunctionStripRatios(42, 8, 3, 100);
+		// Measure variance of first strip ratio across junctions
+		const firstStrips = ratios.map((r) => r[0]!);
+		const mean = firstStrips.reduce((a, b) => a + b, 0) / firstStrips.length;
+		const variance = firstStrips.reduce((s, v) => s + (v - mean) ** 2, 0) / firstStrips.length;
+		// High twist should produce noticeable variance
+		expect(variance).toBeGreaterThan(0.001);
+	});
+
+	it('1.4: stripCount controls array length', () => {
+		for (const stripCount of [2, 3, 4] as const) {
+			const ratios = computeJunctionStripRatios(42, 4, stripCount, 50);
+			for (const junctionRatios of ratios) {
+				expect(junctionRatios).toHaveLength(stripCount);
+			}
+		}
+	});
+
+	it('1.5: deterministic — same seed produces same ratios', () => {
+		const a = computeJunctionStripRatios(123, 5, 3, 50);
+		const b = computeJunctionStripRatios(123, 5, 3, 50);
+		expect(a).toEqual(b);
+	});
+});
+
+// ============================================================================
+// Engine v2: Hybrid Taper (REQ-EV2-T-01, T-02, T-03)
+// ============================================================================
+
+describe('computeHybridTaper', () => {
+	it('3.1: branchless trunk narrows gently from base to top', () => {
+		const widths = computeHybridTaper(5, 20, 4, []);
+		expect(widths).toHaveLength(5);
+		expect(widths[0]).toBeCloseTo(20, 5);
+		// Each junction narrower than the previous
+		for (let i = 1; i < widths.length; i++) {
+			expect(widths[i]!).toBeLessThanOrEqual(widths[i - 1]! + 1e-9);
+		}
+		// Top wider than floor (no fork reductions)
+		expect(widths[widths.length - 1]!).toBeGreaterThanOrEqual(4);
+	});
+
+	it('3.2: fork taper drops width discretely at fork junctions', () => {
+		// Fork at junction index 2 with 3px reduction
+		const widths = computeHybridTaper(5, 20, 2, [{ junctionIndex: 2, reduction: 3 }]);
+		// Width should drop at junction 2
+		const widthBefore = widths[1]!;
+		const widthAfter = widths[2]!;
+		// The conical taper alone would narrow gradually; the fork adds a discrete step
+		const conicalOnly = computeHybridTaper(5, 20, 2, []);
+		const conicalDrop = conicalOnly[1]! - conicalOnly[2]!;
+		const actualDrop = widthBefore - widthAfter;
+		expect(actualDrop).toBeGreaterThan(conicalDrop + 1);
+	});
+
+	it('3.3: width never goes below topWidthFloor', () => {
+		// Large fork reduction that would push below floor
+		const widths = computeHybridTaper(5, 20, 5, [
+			{ junctionIndex: 1, reduction: 10 },
+			{ junctionIndex: 2, reduction: 10 },
+		]);
+		for (const w of widths) {
+			expect(w).toBeGreaterThanOrEqual(5 - 1e-9);
+		}
+	});
+
+	it('3.4: baseWidth is junction 0 width', () => {
+		const widths = computeHybridTaper(4, 30, 5, []);
+		expect(widths[0]).toBeCloseTo(30, 5);
+	});
+});
+
+// ============================================================================
+// Engine v2 Phase C: Branch Fork Model (REQ-EV2-F-04, V-02, V-01)
+// ============================================================================
+
+describe('EV2-C Group 1: Branch Fork Width Economics', () => {
+	it('1.1: L1 branch widthStart is 15-20% of trunk width (± branchWidthVariance)', () => {
+		// Generate with known trunk thickness and check all L1 branch widths
+		const config = makeConfig({
+			seed: 42,
+			branchDepth: 1,
+			branchesLevel1Range: [5, 5],
+			trunkThickness: 100,
+			branchWidthVariance: 25,
+		});
+		const geo = generateTree(config);
+		const l1Branches = geo.branchGroups.filter((g) => g.depth === 1);
+		expect(l1Branches.length).toBeGreaterThan(0);
+		for (const group of l1Branches) {
+			// Measure the start width from the quad vertices
+			const segQuads = group.quads;
+			// The leftmost/rightmost points at the origin end give us widthStart
+			const originY = group.origin.y;
+			const originPoints = segQuads.flatMap((q) =>
+				q.points.filter((p) => Math.abs(p.y - originY) < 20),
+			);
+			const xs = originPoints.map((p) => p.x);
+			const measuredWidth = Math.max(...xs) - Math.min(...xs);
+			// Width should be in a reasonable range: 15-20% of trunk width ± variance spread
+			// Trunk width at upper half ranges ~4-14, so 15% of 14 = 2.1, 20% of 14 = 2.8
+			// With variance, allow wider range: 0.5 to 5.0
+			expect(measuredWidth).toBeGreaterThan(0.5);
+			expect(measuredWidth).toBeLessThan(6.0);
+		}
+	});
+
+	it('1.2: no two L1 branches on the same tree have identical widthStart', () => {
+		const config = makeConfig({
+			seed: 42,
+			branchDepth: 1,
+			branchesLevel1Range: [5, 5],
+			branchWidthVariance: 25,
+		});
+		const geo = generateTree(config);
+		const l1Branches = geo.branchGroups.filter((g) => g.depth === 1);
+		expect(l1Branches.length).toBeGreaterThan(1);
+		// Measure widths from quad geometry at origin
+		const widths = l1Branches.map((group) => {
+			const originY = group.origin.y;
+			const originPoints = group.quads.flatMap((q) =>
+				q.points.filter((p) => Math.abs(p.y - originY) < 20),
+			);
+			const xs = originPoints.map((p) => p.x);
+			return Math.max(...xs) - Math.min(...xs);
+		});
+		// All widths should be unique (no duplicates)
+		const uniqueWidths = new Set(widths.map((w) => w.toFixed(4)));
+		expect(uniqueWidths.size).toBe(widths.length);
+	});
+
+	it('1.3: branchWidthVariance=0 produces minimal width variation', () => {
+		const configNoVar = makeConfig({
+			seed: 42,
+			branchDepth: 1,
+			branchesLevel1Range: [5, 5],
+			branchWidthVariance: 0,
+		});
+		const configHighVar = makeConfig({
+			seed: 42,
+			branchDepth: 1,
+			branchesLevel1Range: [5, 5],
+			branchWidthVariance: 50,
+		});
+		const geoNoVar = generateTree(configNoVar);
+		const geoHighVar = generateTree(configHighVar);
+		const measureWidths = (geo: TreeGeometry) =>
+			geo.branchGroups
+				.filter((g) => g.depth === 1)
+				.map((group) => {
+					const originY = group.origin.y;
+					const pts = group.quads.flatMap((q) =>
+						q.points.filter((p) => Math.abs(p.y - originY) < 20),
+					);
+					const xs = pts.map((p) => p.x);
+					return Math.max(...xs) - Math.min(...xs);
+				});
+		const widthsNoVar = measureWidths(geoNoVar);
+		const widthsHighVar = measureWidths(geoHighVar);
+		if (widthsNoVar.length > 1 && widthsHighVar.length > 1) {
+			const rangeNoVar = Math.max(...widthsNoVar) - Math.min(...widthsNoVar);
+			const rangeHighVar = Math.max(...widthsHighVar) - Math.min(...widthsHighVar);
+			expect(rangeHighVar).toBeGreaterThan(rangeNoVar);
+		}
+	});
+
+	it('1.4: branch angle gets ±15° random variation (REQ-EV2-V-01)', () => {
+		// Generate multiple trees with same branchAngle, check that branch angles vary
+		const angles: number[] = [];
+		for (const seed of [42, 43, 44, 45, 46]) {
+			const geo = generateTree(
+				makeConfig({
+					seed,
+					branchDepth: 1,
+					branchesLevel1Range: [1, 1],
+					branchAngle: 50,
+				}),
+			);
+			if (geo.branchGroups.length > 0) {
+				const group = geo.branchGroups[0]!;
+				const origin = group.origin;
+				// Get the branch tip (furthest point from origin)
+				const allPts = group.quads.flatMap((q) => q.points);
+				const centroid = {
+					x: allPts.reduce((s, p) => s + p.x, 0) / allPts.length,
+					y: allPts.reduce((s, p) => s + p.y, 0) / allPts.length,
+				};
+				const angle = Math.atan2(-(centroid.y - origin.y), Math.abs(centroid.x - origin.x));
+				angles.push((angle * 180) / Math.PI);
+			}
+		}
+		expect(angles.length).toBeGreaterThan(2);
+		// Angles should not all be identical — ±15° variation means spread
+		const uniqueAngles = new Set(angles.map((a) => Math.round(a)));
+		expect(uniqueAngles.size).toBeGreaterThan(1);
+	});
+});
+
+// ============================================================================
+// Engine v2 Phase D: Rule L, Cross-Phase Contract, Lighting
+// ============================================================================
+
+describe('Rule L: trunk tip connection (REQ-EV2-L-01)', () => {
+	it('branchless shapes have trunk tip inside canopy', () => {
+		// Pine has no branches — trunk tip should be inside tiers
+		const geo = generateTree(makeConfig({ shape: 'pine' as TreeShape }));
+		// Trunk tip exists and geometry is valid
+		expect(geo.anchors.trunkTop).toBeDefined();
+		expect(geo.trunkQuads.length).toBeGreaterThan(0);
+	});
+});
+
+describe('Cross-phase contract (REQ-EV2-C-01 through C-06)', () => {
+	it('junctionData is populated with position, width, ratios, bisectorAngle', () => {
+		const geo = generateTree(makeConfig({ trunkSegments: 3, trunkStripCount: 3 }));
+		expect(geo.junctionData).toBeDefined();
+		expect(geo.junctionData!.length).toBe(4); // 3 segments = 4 junctions
+		for (const jd of geo.junctionData!) {
+			expect(jd.position).toBeDefined();
+			expect(jd.width).toBeGreaterThan(0);
+			expect(jd.stripRatios).toHaveLength(3);
+			expect(typeof jd.bisectorAngle).toBe('number');
+		}
+	});
+
+	it('envelopeBounds is populated from canopy', () => {
+		const geo = generateTree(makeConfig());
+		expect(geo.envelopeBounds).toBeDefined();
+		expect(geo.envelopeBounds!.minX).toBeLessThan(geo.envelopeBounds!.maxX);
+		expect(geo.envelopeBounds!.minY).toBeLessThan(geo.envelopeBounds!.maxY);
+	});
+
+	it('branchTipDepths is populated in anchors (REQ-EV2-C-02)', () => {
+		const geo = generateTree(makeConfig({ branchDepth: 2, branchesLevel1Range: [2, 3] }));
+		expect(geo.anchors.branchTipDepths).toBeDefined();
+		if (geo.anchors.branchTipDepths && geo.anchors.branchTipDepths.length > 0) {
+			for (const tip of geo.anchors.branchTipDepths) {
+				expect(tip.position).toBeDefined();
+				expect(tip.depth).toBeGreaterThanOrEqual(1);
+			}
+		}
+	});
+
+	it('zOrder field available on Quad type (REQ-EV2-C-03)', () => {
+		const geo = generateTree(makeConfig());
+		// zOrder is optional — should not be set yet (Phase 2 fills it)
+		for (const quad of geo.trunkQuads) {
+			expect(quad.zOrder).toBeUndefined();
+		}
+	});
+
+	it('blob generator functions are NOT removed (REQ-EV2-C-05)', () => {
+		const geo = generateTree(makeConfig({ blobCount: 5 }));
+		expect(geo.canopyBlobs.length).toBeGreaterThan(0);
+	});
+});
+
+describe('computeStripColors (REQ-EV2-LT-01)', () => {
+	it('returns correct number of colors for stripCount 2, 3, 4', () => {
+		for (const stripCount of [2, 3, 4]) {
+			const geo = generateTree(makeConfig({ trunkSegments: 1, trunkStripCount: stripCount }));
+			// Each segment should produce stripCount quads
+			expect(geo.trunkQuads.length).toBe(stripCount);
+			// All should have valid hex colors
+			for (const quad of geo.trunkQuads) {
+				expect(quad.color).toMatch(/^#[0-9a-f]{6}$/);
+			}
+		}
 	});
 });

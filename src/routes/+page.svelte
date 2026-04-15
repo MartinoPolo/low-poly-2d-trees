@@ -177,12 +177,12 @@
 						/>
 					</div>
 					<div class="space-y-2">
-						<Label>Trunk Polygons: {treeConfig.current.trunkPolygons}</Label>
+						<Label>Trunk Strips: {treeConfig.current.trunkStripCount}</Label>
 						<input
 							type="range"
-							min="10"
-							max="100"
-							bind:value={treeConfig.current.trunkPolygons}
+							min="2"
+							max="4"
+							bind:value={treeConfig.current.trunkStripCount}
 							class="w-full accent-primary"
 						/>
 					</div>
