@@ -1,12 +1,18 @@
 import { describe, it, expect } from 'vitest';
-import { computeAnimationDelay, computeBranchDuration, computeBranchDelay } from './animation.js';
+import {
+	computeAnimationDelay,
+	computeBranchDuration,
+	computeBranchDelay,
+	computeCanopyBottomY,
+} from './animation.js';
+import type { BlobGeometry } from './types/core.js';
 
 describe('Animation helpers', () => {
 	describe('computeAnimationDelay', () => {
-		it('returns a value in [0, 3]', () => {
+		it('returns a value in [0, 0.5]', () => {
 			const delay = computeAnimationDelay(42);
 			expect(delay).toBeGreaterThanOrEqual(0);
-			expect(delay).toBeLessThanOrEqual(3);
+			expect(delay).toBeLessThanOrEqual(0.5);
 		});
 
 		it('is deterministic (same seed same result)', () => {
@@ -51,6 +57,48 @@ describe('Animation helpers', () => {
 
 		it('different branch indices produce different values', () => {
 			expect(computeBranchDelay(42, 0)).not.toBe(computeBranchDelay(42, 1));
+		});
+	});
+
+	describe('computeCanopyBottomY', () => {
+		it('returns the max Y from all blob triangle points', () => {
+			const blobs: BlobGeometry[] = [
+				{
+					triangles: [
+						{
+							points: [
+								{ x: 0, y: 10 },
+								{ x: 5, y: 20 },
+								{ x: 10, y: 15 },
+							],
+							color: '#000',
+							group: 'canopy',
+						},
+					],
+					center: { x: 5, y: 15 },
+					depth: 0,
+				},
+				{
+					triangles: [
+						{
+							points: [
+								{ x: 0, y: 5 },
+								{ x: 5, y: 30 },
+								{ x: 10, y: 25 },
+							],
+							color: '#000',
+							group: 'canopy',
+						},
+					],
+					center: { x: 5, y: 20 },
+					depth: 0,
+				},
+			];
+			expect(computeCanopyBottomY(blobs)).toBe(30);
+		});
+
+		it('returns 0 for empty blobs', () => {
+			expect(computeCanopyBottomY([])).toBe(0);
 		});
 	});
 });

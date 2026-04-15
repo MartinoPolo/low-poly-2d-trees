@@ -32,7 +32,7 @@ export {
 	resolveBranchLengthRange,
 } from './shapes/geometry.js';
 
-export { generateBranches } from './shapes/branch_generation.js';
+export { generateBranches, type GeneratedBranch } from './shapes/branch_generation.js';
 
 export {
 	getShapeDefinition,

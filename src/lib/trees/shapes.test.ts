@@ -570,7 +570,7 @@ describe('generateBranches — visibility & crossing invariants', () => {
 		);
 		expect(branches.length).toBeGreaterThan(0);
 		for (const b of branches) {
-			const visible = computeVisibleBranchLength(b, blobs, []);
+			const visible = computeVisibleBranchLength(b.segment, blobs, []);
 			expect(visible).toBeGreaterThanOrEqual(5);
 		}
 	});
@@ -617,12 +617,12 @@ describe('generateBranches — visibility & crossing invariants', () => {
 			// A branch either stays on one side of the trunk axis or ends on the
 			// axis. Use the midpoint as the reference side (trunk-origin branches
 			// have startX === centerX so the start alone cannot tell us).
-			const midX = (b.x1 + b.x2) / 2;
-			const midY = (b.y1 + b.y2) / 2;
+			const midX = (b.segment.x1 + b.segment.x2) / 2;
+			const midY = (b.segment.y1 + b.segment.y2) / 2;
 			const centerAtMid = sampleTrunkCenterX(trunkJunctions, midY);
-			const centerAtEnd = sampleTrunkCenterX(trunkJunctions, b.y2);
+			const centerAtEnd = sampleTrunkCenterX(trunkJunctions, b.segment.y2);
 			const midSide = Math.sign(midX - centerAtMid);
-			const endSide = Math.sign(b.x2 - centerAtEnd);
+			const endSide = Math.sign(b.segment.x2 - centerAtEnd);
 			if (midSide !== 0) {
 				expect(endSide === 0 || endSide === midSide).toBe(true);
 			} else {
@@ -700,8 +700,8 @@ describe('generateBranches — visibility & crossing invariants', () => {
 			longInputs.blobs,
 		);
 		const branchLen = (b: BranchSegment): number => Math.hypot(b.x2 - b.x1, b.y2 - b.y1);
-		const maxShort = Math.max(...shortBranches.map(branchLen));
-		const maxLong = Math.max(...longBranches.map(branchLen));
+		const maxShort = Math.max(...shortBranches.map((b) => branchLen(b.segment)));
+		const maxLong = Math.max(...longBranches.map((b) => branchLen(b.segment)));
 		expect(maxLong).toBeGreaterThan(maxShort * 1.2);
 	});
 
