@@ -17,6 +17,8 @@
 		TREE_SHAPE_OPTIONS,
 		TREE_STAGE_OPTIONS,
 		SHAPE_DEFAULTS,
+		CROOKEDNESS_MODES,
+		CROOKEDNESS_MODE_OPTIONS,
 		FRUIT_TYPES,
 		FRUIT_TYPE_OPTIONS,
 		isTreeStage,
@@ -55,6 +57,11 @@
 
 	const trunkCrookednessDisabled = $derived(
 		isParamDisabled(treeConfig.current.shape, 'trunkCrookedness', {
+			trunkSegments: treeConfig.current.trunkSegments,
+		}),
+	);
+	const crookednessModeDisabled = $derived(
+		isParamDisabled(treeConfig.current.shape, 'crookednessMode', {
 			trunkSegments: treeConfig.current.trunkSegments,
 		}),
 	);
@@ -140,6 +147,7 @@
 		treeConfig.current.branchThickness = defaults.branchThickness;
 		treeConfig.current.trunkSegments = defaults.trunkSegments;
 		treeConfig.current.trunkCrookedness = defaults.trunkCrookedness;
+		treeConfig.current.crookednessMode = defaults.crookednessMode;
 		treeConfig.current.branchLength = defaults.branchLength;
 		treeConfig.current.branchLengthVariance = defaults.branchLengthVariance;
 		treeConfig.current.canopyLightColor = defaults.canopyLightColor;
@@ -461,6 +469,18 @@
 
 						<!-- Advanced controls (BR-14: toggle) -->
 						{#if showAdvancedControls}
+							<LabeledSelect
+								label="Crookedness Mode"
+								options={CROOKEDNESS_MODE_OPTIONS}
+								value={treeConfig.current.crookednessMode}
+								onValueChange={(v) => {
+									if (v in CROOKEDNESS_MODES) {
+										treeConfig.current.crookednessMode =
+											v as (typeof CROOKEDNESS_MODES)[keyof typeof CROOKEDNESS_MODES];
+									}
+								}}
+								disabled={crookednessModeDisabled}
+							/>
 							<LabeledSlider
 								label="Branch Segments"
 								min={1}

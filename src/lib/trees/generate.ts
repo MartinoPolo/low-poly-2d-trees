@@ -11,7 +11,13 @@ import type {
 	Tier,
 	TreeShape,
 } from './types.js';
-import { GEOMETRY_GROUPS, VIEWBOX_WIDTH, VIEWBOX_HEIGHT, TREE_SHAPES } from './types.js';
+import {
+	GEOMETRY_GROUPS,
+	VIEWBOX_WIDTH,
+	VIEWBOX_HEIGHT,
+	TREE_SHAPES,
+	FRUIT_TYPES,
+} from './types.js';
 import { applyStageModifiers, generateStakeTriangles } from './stages/index.js';
 import { createPrng, poissonSample } from './prng.js';
 import {
@@ -551,7 +557,12 @@ export function generateTree(config: TreeConfig): TreeGeometry {
 			addFallingLeaves: stageResult.addFallingLeaves,
 		});
 	}
-	return generateTreeCore(config, DEFAULT_STAGE_FLAGS);
+	// Custom shapes: derive addFruit from config (fruitType and fruitCount)
+	const customFlags: StageFlags = {
+		...DEFAULT_STAGE_FLAGS,
+		addFruit: config.fruitType !== FRUIT_TYPES.none && config.fruitCount > 0,
+	};
+	return generateTreeCore(config, customFlags);
 }
 
 function generateTreeCore(config: TreeConfig, flags: StageFlags): TreeGeometry {
@@ -571,6 +582,7 @@ function generateTreeCore(config: TreeConfig, flags: StageFlags): TreeGeometry {
 		config.trunkCrookedness,
 		effectiveTrunkTop,
 		trunkBottom,
+		config.crookednessMode,
 	);
 	const topJunctionInitial = trunkJunctions[trunkJunctions.length - 1]!;
 	const horizontalCanopyShift = topJunctionInitial.x - VIEWBOX_WIDTH / 2;

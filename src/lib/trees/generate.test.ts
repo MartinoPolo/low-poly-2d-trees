@@ -98,10 +98,10 @@ function allBranchQuads(geo: TreeGeometry): Quad[] {
 // ============================================================================
 
 describe('REQ-R: Rendering', () => {
-	describe('REQ-R-01: viewBox 200×300', () => {
-		it('produces a viewBox of 200×300', () => {
+	describe('REQ-R-01: viewBox 300×300', () => {
+		it('produces a viewBox of 300×300', () => {
 			const geo = generateTree(makeConfig());
-			expect(geo.viewBox.width).toBe(200);
+			expect(geo.viewBox.width).toBe(300);
 			expect(geo.viewBox.height).toBe(300);
 		});
 	});
@@ -814,7 +814,7 @@ describe('REQ-O: Output', () => {
 			expect(geo).toHaveProperty('canopyBlobs');
 			expect(geo).toHaveProperty('anchors');
 			expect(geo).toHaveProperty('viewBox');
-			expect(geo.viewBox).toEqual({ width: 200, height: 300 });
+			expect(geo.viewBox).toEqual({ width: 300, height: 300 });
 		});
 	});
 
@@ -1264,7 +1264,7 @@ describe('Issue #63: new tree shapes', () => {
 		for (const stage of stages) {
 			const geo = generateTree(makeConfig({ shape, stage, seed: 42 }));
 			expect(geo).toBeDefined();
-			expect(geo.viewBox.width).toBe(200);
+			expect(geo.viewBox.width).toBe(300);
 			expect(geo.viewBox.height).toBe(300);
 		}
 	});
@@ -1420,10 +1420,10 @@ describe('Issue #10: custom tree shape', () => {
 				) / tris.length
 			);
 		};
-		// Position delta is 0.5·spreadRadius (0.5 · 200·0.22 = 22).
+		// Position delta is 0.5·spreadRadius (0.5 · 300·0.22 = 33).
 		const delta = meanX(shifted) - meanX(centered);
-		expect(delta).toBeGreaterThan(15);
-		expect(delta).toBeLessThan(30);
+		expect(delta).toBeGreaterThan(25);
+		expect(delta).toBeLessThan(45);
 	});
 
 	it('custom blob with sizeScale=2.0 roughly doubles the bbox vs sizeScale=1.0', () => {
@@ -2021,7 +2021,7 @@ describe('VQ-1: trunk quads', () => {
 			expect(quad.points).toHaveLength(4);
 			for (const p of quad.points) {
 				expect(p.x).toBeGreaterThanOrEqual(0);
-				expect(p.x).toBeLessThanOrEqual(200);
+				expect(p.x).toBeLessThanOrEqual(300);
 				expect(p.y).toBeGreaterThanOrEqual(0);
 				expect(p.y).toBeLessThanOrEqual(300);
 			}

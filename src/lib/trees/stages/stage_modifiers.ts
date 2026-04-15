@@ -1,4 +1,4 @@
-import { TREE_STAGES, type TreeConfig, type TreeStage } from '../types.js';
+import { CROOKEDNESS_MODES, TREE_STAGES, type TreeConfig, type TreeStage } from '../types.js';
 import { generateSeedGeometry } from './seed_generator.js';
 import { generateSproutingGeometry } from './sprouting_generator.js';
 import { generateStumpGeometry } from './stump_generator.js';
@@ -128,6 +128,7 @@ const STAGE_HANDLERS = {
 			trunkHue: 0,
 			trunkSaturation: 5,
 			trunkLightness: 35,
+			crookednessMode: CROOKEDNESS_MODES.random,
 		}),
 		addStakes: false,
 		addFruit: false,

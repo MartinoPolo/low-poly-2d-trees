@@ -55,6 +55,7 @@ export const DISABLED_PARAMS_BY_SHAPE = {
 		'trunkLean',
 		'trunkSegments',
 		'trunkCrookedness',
+		'crookednessMode',
 	],
 	[TREE_SHAPES.baobab]: [],
 	[TREE_SHAPES.acacia]: [],
@@ -86,7 +87,10 @@ export function isParamDisabled(
 		return true;
 	}
 
-	if (param === 'trunkCrookedness' && config.trunkSegments === 1) {
+	if (
+		(param === 'trunkCrookedness' || param === 'crookednessMode') &&
+		config.trunkSegments === 1
+	) {
 		return true;
 	}
 

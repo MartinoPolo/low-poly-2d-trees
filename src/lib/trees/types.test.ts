@@ -39,6 +39,10 @@ describe('DEFAULT_TREE_CONFIG', () => {
 	it('uses lightAngle 130 (REQ-P-12)', () => {
 		expect(DEFAULT_TREE_CONFIG.lightAngle).toBe(130);
 	});
+
+	it('has crookednessMode "alternating" by default', () => {
+		expect(DEFAULT_TREE_CONFIG.crookednessMode).toBe('alternating');
+	});
 });
 
 describe('SHAPE_DEFAULTS §2.5', () => {
@@ -74,8 +78,9 @@ describe('SHAPE_DEFAULTS §2.5', () => {
 			blobSizeVariance: 2.5,
 			blobCloseness: 45,
 			branchThickness: 100,
-			trunkSegments: 1,
-			trunkCrookedness: 0,
+			trunkSegments: 5,
+			trunkCrookedness: 15,
+			crookednessMode: 'alternating',
 			branchLength: 100,
 			branchLengthVariance: 50,
 			canopyLightColor: '#a8d84e',
@@ -99,8 +104,9 @@ describe('SHAPE_DEFAULTS §2.5', () => {
 			blobSizeVariance: 2.0,
 			blobCloseness: 30,
 			branchThickness: 100,
-			trunkSegments: 1,
-			trunkCrookedness: 0,
+			trunkSegments: 3,
+			trunkCrookedness: 10,
+			crookednessMode: 'alternating',
 			branchLength: 100,
 			branchLengthVariance: 50,
 			canopyLightColor: '#4a9e5c',
@@ -124,8 +130,9 @@ describe('SHAPE_DEFAULTS §2.5', () => {
 			blobSizeVariance: 2.5,
 			blobCloseness: 35,
 			branchThickness: 80,
-			trunkSegments: 1,
-			trunkCrookedness: 0,
+			trunkSegments: 3,
+			trunkCrookedness: 10,
+			crookednessMode: 'alternating',
 			branchLength: 100,
 			branchLengthVariance: 50,
 			canopyLightColor: '#b8e065',
@@ -149,8 +156,9 @@ describe('SHAPE_DEFAULTS §2.5', () => {
 			blobSizeVariance: 2.5,
 			blobCloseness: 45,
 			branchThickness: 100,
-			trunkSegments: 1,
-			trunkCrookedness: 0,
+			trunkSegments: 3,
+			trunkCrookedness: 10,
+			crookednessMode: 'alternating',
 			branchLength: 100,
 			branchLengthVariance: 50,
 			canopyLightColor: '#3d8b50',
@@ -174,8 +182,9 @@ describe('SHAPE_DEFAULTS §2.5', () => {
 			blobSizeVariance: 1.3,
 			blobCloseness: 40,
 			branchThickness: 100,
-			trunkSegments: 2,
-			trunkCrookedness: 30,
+			trunkSegments: 3,
+			trunkCrookedness: 20,
+			crookednessMode: 'alternating',
 			branchLength: 100,
 			branchLengthVariance: 50,
 			canopyLightColor: '#e8a028',
@@ -188,7 +197,7 @@ describe('SHAPE_DEFAULTS §2.5', () => {
 		});
 	});
 
-	it('has willow defaults (drooping, 2 segments, 25% crookedness)', () => {
+	it('has willow defaults (5 segments, 20% crookedness, alternating)', () => {
 		expect(SHAPE_DEFAULTS.willow).toEqual({
 			blobCount: 6,
 			branchDepth: 2,
@@ -199,8 +208,9 @@ describe('SHAPE_DEFAULTS §2.5', () => {
 			blobSizeVariance: 2.0,
 			blobCloseness: 35,
 			branchThickness: 80,
-			trunkSegments: 2,
-			trunkCrookedness: 25,
+			trunkSegments: 5,
+			trunkCrookedness: 20,
+			crookednessMode: 'alternating',
 			branchLength: 100,
 			branchLengthVariance: 50,
 			canopyLightColor: '#7cc45a',
@@ -211,6 +221,15 @@ describe('SHAPE_DEFAULTS §2.5', () => {
 			fruitType: 'catkin_willow',
 			fruitCount: 3,
 		});
+	});
+
+	it('every shape entry has crookednessMode, trunkSegments >= 1, trunkCrookedness >= 0', () => {
+		for (const shape of nonCustomShapes) {
+			const entry = SHAPE_DEFAULTS[shape];
+			expect(entry.crookednessMode).toBe('alternating');
+			expect(entry.trunkSegments).toBeGreaterThanOrEqual(1);
+			expect(entry.trunkCrookedness).toBeGreaterThanOrEqual(0);
+		}
 	});
 
 	it('every shape entry has branchLength and branchLengthVariance (REQ-P-23/24)', () => {

@@ -67,6 +67,18 @@ export const TREE_SHAPE_OPTIONS: readonly { value: TreeShape; label: string }[] 
 	{ value: TREE_SHAPES.custom, label: 'Custom' },
 ] as const;
 
+export const CROOKEDNESS_MODES = {
+	alternating: 'alternating',
+	random: 'random',
+} as const;
+
+export type CrookednessMode = (typeof CROOKEDNESS_MODES)[keyof typeof CROOKEDNESS_MODES];
+
+export const CROOKEDNESS_MODE_OPTIONS: readonly { value: CrookednessMode; label: string }[] = [
+	{ value: CROOKEDNESS_MODES.alternating, label: 'Alternating' },
+	{ value: CROOKEDNESS_MODES.random, label: 'Random' },
+] as const;
+
 export interface TreeConfig {
 	readonly stage: TreeStage;
 	readonly shape: TreeShape;
@@ -92,6 +104,7 @@ export interface TreeConfig {
 	readonly trunkLean: number;
 	readonly trunkSegments: number;
 	readonly trunkCrookedness: number;
+	readonly crookednessMode: CrookednessMode;
 	readonly branchLength: number;
 	readonly branchLengthVariance: number;
 	/**
@@ -145,6 +158,7 @@ export const DEFAULT_TREE_CONFIG: TreeConfig = {
 	trunkLean: 0,
 	trunkSegments: 1,
 	trunkCrookedness: 0,
+	crookednessMode: CROOKEDNESS_MODES.alternating,
 	branchLength: 100,
 	branchLengthVariance: 50,
 	branchDepth: 2,
@@ -174,8 +188,9 @@ export const SHAPE_DEFAULTS = {
 		blobSizeVariance: 2.5,
 		blobCloseness: 45,
 		branchThickness: 100,
-		trunkSegments: 1,
-		trunkCrookedness: 0,
+		trunkSegments: 5,
+		trunkCrookedness: 15,
+		crookednessMode: CROOKEDNESS_MODES.alternating,
 		branchLength: 100,
 		branchLengthVariance: 50,
 		canopyLightColor: '#a8d84e',
@@ -196,8 +211,9 @@ export const SHAPE_DEFAULTS = {
 		blobSizeVariance: 2.0,
 		blobCloseness: 30,
 		branchThickness: 100,
-		trunkSegments: 1,
-		trunkCrookedness: 0,
+		trunkSegments: 3,
+		trunkCrookedness: 10,
+		crookednessMode: CROOKEDNESS_MODES.alternating,
 		branchLength: 100,
 		branchLengthVariance: 50,
 		canopyLightColor: '#4a9e5c',
@@ -218,8 +234,9 @@ export const SHAPE_DEFAULTS = {
 		blobSizeVariance: 2.5,
 		blobCloseness: 35,
 		branchThickness: 80,
-		trunkSegments: 1,
-		trunkCrookedness: 0,
+		trunkSegments: 3,
+		trunkCrookedness: 10,
+		crookednessMode: CROOKEDNESS_MODES.alternating,
 		branchLength: 100,
 		branchLengthVariance: 50,
 		canopyLightColor: '#b8e065',
@@ -240,8 +257,9 @@ export const SHAPE_DEFAULTS = {
 		blobSizeVariance: 2.5,
 		blobCloseness: 45,
 		branchThickness: 100,
-		trunkSegments: 1,
-		trunkCrookedness: 0,
+		trunkSegments: 3,
+		trunkCrookedness: 10,
+		crookednessMode: CROOKEDNESS_MODES.alternating,
 		branchLength: 100,
 		branchLengthVariance: 50,
 		canopyLightColor: '#3d8b50',
@@ -262,8 +280,9 @@ export const SHAPE_DEFAULTS = {
 		blobSizeVariance: 1.3,
 		blobCloseness: 40,
 		branchThickness: 100,
-		trunkSegments: 2,
-		trunkCrookedness: 30,
+		trunkSegments: 3,
+		trunkCrookedness: 20,
+		crookednessMode: CROOKEDNESS_MODES.alternating,
 		branchLength: 100,
 		branchLengthVariance: 50,
 		canopyLightColor: '#e8a028',
@@ -284,8 +303,9 @@ export const SHAPE_DEFAULTS = {
 		blobSizeVariance: 2.0,
 		blobCloseness: 35,
 		branchThickness: 80,
-		trunkSegments: 2,
-		trunkCrookedness: 25,
+		trunkSegments: 5,
+		trunkCrookedness: 20,
+		crookednessMode: CROOKEDNESS_MODES.alternating,
 		branchLength: 100,
 		branchLengthVariance: 50,
 		canopyLightColor: '#7cc45a',
@@ -306,8 +326,9 @@ export const SHAPE_DEFAULTS = {
 		blobSizeVariance: 1.0,
 		blobCloseness: 80,
 		branchThickness: 100,
-		trunkSegments: 1,
-		trunkCrookedness: 0,
+		trunkSegments: 3,
+		trunkCrookedness: 10,
+		crookednessMode: CROOKEDNESS_MODES.alternating,
 		branchLength: 100,
 		branchLengthVariance: 50,
 		canopyLightColor: '#2d5e3a',
@@ -328,8 +349,9 @@ export const SHAPE_DEFAULTS = {
 		blobSizeVariance: 2.0,
 		blobCloseness: 70,
 		branchThickness: 100,
-		trunkSegments: 1,
-		trunkCrookedness: 0,
+		trunkSegments: 3,
+		trunkCrookedness: 10,
+		crookednessMode: CROOKEDNESS_MODES.alternating,
 		branchLength: 100,
 		branchLengthVariance: 50,
 		canopyLightColor: '#6abf4b',
@@ -350,8 +372,9 @@ export const SHAPE_DEFAULTS = {
 		blobSizeVariance: 2.0,
 		blobCloseness: 40,
 		branchThickness: 100,
-		trunkSegments: 1,
-		trunkCrookedness: 0,
+		trunkSegments: 3,
+		trunkCrookedness: 10,
+		crookednessMode: CROOKEDNESS_MODES.alternating,
 		branchLength: 120,
 		branchLengthVariance: 50,
 		canopyLightColor: '#ffb7c5',
@@ -372,8 +395,9 @@ export const SHAPE_DEFAULTS = {
 		blobSizeVariance: 2.0,
 		blobCloseness: 60,
 		branchThickness: 100,
-		trunkSegments: 1,
-		trunkCrookedness: 0,
+		trunkSegments: 3,
+		trunkCrookedness: 10,
+		crookednessMode: CROOKEDNESS_MODES.alternating,
 		branchLength: 100,
 		branchLengthVariance: 50,
 		canopyLightColor: '#3d8b50',
@@ -394,8 +418,9 @@ export const SHAPE_DEFAULTS = {
 		blobSizeVariance: 1.5,
 		blobCloseness: 60,
 		branchThickness: 100,
-		trunkSegments: 1,
-		trunkCrookedness: 0,
+		trunkSegments: 3,
+		trunkCrookedness: 10,
+		crookednessMode: CROOKEDNESS_MODES.alternating,
 		branchLength: 60,
 		branchLengthVariance: 30,
 		canopyLightColor: '#7a9e6a',
@@ -416,8 +441,9 @@ export const SHAPE_DEFAULTS = {
 		blobSizeVariance: 1.5,
 		blobCloseness: 30,
 		branchThickness: 100,
-		trunkSegments: 1,
-		trunkCrookedness: 0,
+		trunkSegments: 3,
+		trunkCrookedness: 10,
+		crookednessMode: CROOKEDNESS_MODES.alternating,
 		branchLength: 100,
 		branchLengthVariance: 50,
 		canopyLightColor: '#8ba858',
@@ -443,6 +469,7 @@ export const SHAPE_DEFAULTS = {
 		| 'branchThickness'
 		| 'trunkSegments'
 		| 'trunkCrookedness'
+		| 'crookednessMode'
 		| 'branchLength'
 		| 'branchLengthVariance'
 		| 'canopyLightColor'
@@ -455,7 +482,7 @@ export const SHAPE_DEFAULTS = {
 	>
 >;
 
-export const VIEWBOX_WIDTH = 200;
+export const VIEWBOX_WIDTH = 300;
 export const VIEWBOX_HEIGHT = 300;
 
 export function isTreeStage(value: string): value is TreeStage {

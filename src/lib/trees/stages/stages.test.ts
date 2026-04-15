@@ -45,7 +45,7 @@ describe('stage generation — every stage produces valid TreeGeometry', () => {
 	for (const stage of allStages) {
 		it(`${stage}: produces valid geometry with anchors and viewBox`, () => {
 			const geo = generateTree(makeConfig({ stage }));
-			expect(geo.viewBox.width).toBe(200);
+			expect(geo.viewBox.width).toBe(300);
 			expect(geo.viewBox.height).toBe(300);
 			expect(hasValidAnchors(geo)).toBe(true);
 			expect(Array.isArray(geo.trunkQuads)).toBe(true);
@@ -276,7 +276,7 @@ describe('custom shape ignores stage', () => {
 		const config = makeConfig({ shape: 'custom', stage: TREE_STAGES.bare });
 		const geo = generateTree(config);
 		// Custom shape should not suppress canopy due to bare stage
-		expect(geo.viewBox.width).toBe(200);
+		expect(geo.viewBox.width).toBe(300);
 		expect(hasValidAnchors(geo)).toBe(true);
 	});
 });
