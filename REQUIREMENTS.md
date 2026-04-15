@@ -1,7 +1,8 @@
 # Low-Poly 2D Tree Generator — Requirements
 
-Extracted from grilling sessions (PLAN.md–PLAN3.md + Plan v4 grilling). Plan v4 supersedes
-all previous plans where they conflict. Intended as a stable basis for PRD and test authoring.
+Extracted from grilling sessions (PLAN.md–PLAN3.md + Plan v4 grilling + Engine v2 grilling 2026-04-15).
+Plan v4 supersedes all previous plans where they conflict. Engine v2 (§13–14) supersedes §4
+where they conflict. Intended as a stable basis for PRD and test authoring.
 
 ---
 
@@ -11,12 +12,15 @@ all previous plans where they conflict. Intended as a stable basis for PRD and t
 
 - [ ] **REQ-R-01** Each tree is rendered as a single `<svg>` element with a fixed viewBox of `200×300`.
       SVG overflow is hidden — content beyond the viewBox is clipped.
-- [ ] **REQ-R-02** The SVG contains exactly three top-level `<g>` layers rendered in painter's
-      order (back-to-front): `trunk`, `branches`, `canopy`.
+- [ ] **REQ-R-02** _(Superseded by REQ-EV2-Z-01 for branching shapes)_ The SVG contains exactly
+      three top-level `<g>` layers rendered in painter's order (back-to-front): `trunk`, `branches`,
+      `canopy`. Engine v2 introduces five z-order layers for branching shapes; branchless shapes
+      retain this 3-layer model.
 - [ ] **REQ-R-03** The `canopy` group contains one `<g>` child per blob/tier, ordered back-to-front
       by depth index (blobs rendered later appear in front).
-- [ ] **REQ-R-04** Each triangle in the output has a `color` expressed as a hex string (`#rrggbb`),
-      a `group` tag (`'canopy' | 'trunk' | 'branch'`), and exactly three `Point2D` vertices.
+- [ ] **REQ-R-04** Each polygon in the output has a `color` expressed as a hex string (`#rrggbb`),
+      a `group` tag (`'canopy' | 'trunk' | 'branch'`), and either three (`Triangle`) or four
+      (`Quad`) `Point2D` vertices. Engine v2 trunk/branch segments produce quads, not triangles.
 
 ### 1.2 Generation must be deterministic
 
@@ -31,33 +35,51 @@ All parameters are read-only. Defaults apply when a value is omitted.
 
 ### 2.1 Core parameters
 
-| ID       | Parameter          | Type                                                         | Default   | Range       | Step | UI display         |
-| -------- | ------------------ | ------------------------------------------------------------ | --------- | ----------- | ---- | ------------------ |
-| REQ-P-01 | `shape`            | `'oak'\|'pine'\|'birch'\|'fir'\|'maple'\|'willow'\|'custom'` | `'oak'`   | 7 options   | —    | Select dropdown    |
-| REQ-P-02 | `seed`             | `number`                                                     | `42`      | 0 – 999 999 | 1    | Number + Randomize |
-| REQ-P-03 | `canopyPolygons`   | `number`                                                     | `50`      | 10 – 150    | 1    | "50"               |
-| REQ-P-04 | `trunkPolygons`    | `number`                                                     | `30`      | 10 – 100    | 1    | "30"               |
-| REQ-P-12 | `lightAngle`       | `number`                                                     | `130`     | 0 – 360     | 1    | "130°"             |
-| REQ-P-13 | `blobCount`        | `number`                                                     | per-shape | 1 – 8       | 1    | "5"                |
-| REQ-P-14 | `branchCount`      | `number`                                                     | per-shape | 0 – 20      | 1    | "2"                |
-| REQ-P-15 | `depthVariance`    | `number`                                                     | `1.0`     | 0.0 – 2.0   | 0.1  | "1.0"              |
-| REQ-P-16 | `blobSizeVariance` | `number`                                                     | `3.0`     | 1.0 – 10.0  | 0.1  | "3.0x"             |
-| REQ-P-17 | `blobCloseness`    | `number`                                                     | `50`      | 20 – 80     | 1    | "50 %"             |
-| REQ-P-18 | `trunkThickness`   | `number`                                                     | `100`     | 25 – 400    | 5    | "100 %"            |
-| REQ-P-19 | `branchThickness`  | `number`                                                     | `100`     | 25 – 400    | 5    | "100 %"            |
-| REQ-P-20 | `canopySize`       | `number`                                                     | `100`     | 25 – 400    | 5    | "100 %"            |
-| REQ-P-21 | `trunkHeight`      | `number`                                                     | `100`     | 30 – 150    | 5    | "100 %"            |
-| REQ-P-22 | `trunkBranchRatio` | `number`                                                     | `70`      | 40 – 80     | 5    | "70 %"             |
+| ID       | Parameter           | Type                                                         | Default   | Range        | Step  | UI display              |
+| -------- | ------------------- | ------------------------------------------------------------ | --------- | ------------ | ----- | ----------------------- |
+| REQ-P-01 | `shape`             | `'oak'\|'pine'\|'birch'\|'fir'\|'maple'\|'willow'\|'custom'` | `'oak'`   | 7 options    | —     | Select dropdown         |
+| REQ-P-02 | `seed`              | `number`                                                     | `42`      | 0 – 999 999  | 1     | Number + Randomize      |
+| REQ-P-03 | `canopyPolygons`    | `number`                                                     | `50`      | 10 – 150     | 1     | "50"                    |
+| REQ-P-04 | ~~`trunkPolygons`~~ | ~~`number`~~                                                 | ~~`30`~~  | ~~10 – 100~~ | ~~1~~ | **REMOVED** (Engine v2) |
+| REQ-P-12 | `lightAngle`        | `number`                                                     | `130`     | 0 – 360      | 1     | "130°"                  |
+| REQ-P-13 | `blobCount`         | `number`                                                     | per-shape | 1 – 8        | 1     | "5"                     |
+| REQ-P-14 | `branchCount`       | `number`                                                     | per-shape | 0 – 20       | 1     | "2"                     |
+| REQ-P-15 | `depthVariance`     | `number`                                                     | `1.0`     | 0.0 – 2.0    | 0.1   | "1.0"                   |
+| REQ-P-16 | `blobSizeVariance`  | `number`                                                     | `3.0`     | 1.0 – 10.0   | 0.1   | "3.0x"                  |
+| REQ-P-17 | `blobCloseness`     | `number`                                                     | `50`      | 20 – 80      | 1     | "50 %"                  |
+| REQ-P-18 | `trunkThickness`    | `number`                                                     | `100`     | 25 – 400     | 5     | "100 %"                 |
+| REQ-P-19 | `branchThickness`   | `number`                                                     | `100`     | 25 – 400     | 5     | "100 %"                 |
+| REQ-P-20 | `canopySize`        | `number`                                                     | `100`     | 25 – 400     | 5     | "100 %"                 |
+| REQ-P-21 | `trunkHeight`       | `number`                                                     | `100`     | 30 – 150     | 5     | "100 %"                 |
+| REQ-P-22 | `trunkBranchRatio`  | `number`                                                     | `70`      | 40 – 80      | 5     | "70 %"                  |
 
 ### 2.2 New parameters (Plan v4)
 
-| ID       | Parameter              | Type     | Default   | Range    | Step | UI display |
-| -------- | ---------------------- | -------- | --------- | -------- | ---- | ---------- |
-| REQ-P-23 | `branchLength`         | `number` | `100`     | 25 – 400 | 5    | "100 %"    |
-| REQ-P-24 | `branchLengthVariance` | `number` | `50`      | 0 – 100  | 5    | "50 %"     |
-| REQ-P-25 | `trunkLean`            | `number` | `0`       | -45 – 45 | 1    | "0°"       |
-| REQ-P-26 | `trunkSegments`        | `number` | per-shape | 1 – 5    | 1    | "1"        |
-| REQ-P-27 | `trunkCrookedness`     | `number` | per-shape | 0 – 100  | 5    | "0 %"      |
+| ID       | Parameter              | Type     | Default   | Range             | Step | UI display |
+| -------- | ---------------------- | -------- | --------- | ----------------- | ---- | ---------- |
+| REQ-P-23 | `branchLength`         | `number` | `100`     | 25 – 400          | 5    | "100 %"    |
+| REQ-P-24 | `branchLengthVariance` | `number` | `50`      | 0 – 100           | 5    | "50 %"     |
+| REQ-P-25 | `trunkLean`            | `number` | `0`       | -45 – 45          | 1    | "0°"       |
+| REQ-P-26 | `trunkSegments`        | `number` | per-shape | min enforced – 10 | 1    | "5"        |
+| REQ-P-27 | `trunkCrookedness`     | `number` | per-shape | 0 – 100           | 5    | "0 %"      |
+
+### 2.2a New parameters (Engine v2 — 2026-04-15)
+
+| ID       | Parameter             | Type     | Default | Range   | Step | UI display     | Tier     |
+| -------- | --------------------- | -------- | ------- | ------- | ---- | -------------- | -------- |
+| REQ-P-40 | `trunkStripCount`     | `number` | `3`     | 2 – 4   | 1    | "Trunk Strips" | Advanced |
+| REQ-P-41 | `trunkTwist`          | `number` | `10`    | 0 – 100 | 5    | "10 %"         | Advanced |
+| REQ-P-42 | `branchWidthVariance` | `number` | `25`    | 0 – 50  | 5    | "25 %"         | Advanced |
+
+- **REQ-P-40** `trunkStripCount` — Number of visible strip faces on the trunk cross-section.
+  Total cross-section faces = `2 × trunkStripCount`. Default 3 (hexagonal). UI label: "Trunk Strips".
+- **REQ-P-41** `trunkTwist` — default changed from 0 to 10. Controls cumulative rotational
+  drift of strips along the trunk. At 100%, faces can fully rotate in/out of view.
+- **REQ-P-42** `branchWidthVariance` — Controls spread of individual branch widths around the
+  center ratio (`branchDepthTaper`). At 0%: all branches at same ratio. At 50%: ±50% random
+  spread. Disabled when `branchDepth === 0`.
+- **REQ-P-04-REMOVED** `trunkPolygons` removed — dead code from old Delaunay trunk triangulation.
+  Remove from `TreeConfig`, `DEFAULT_TREE_CONFIG`, `SHAPE_DEFAULTS`, UI, and all references.
 
 ### 2.3 Canopy color parameters (Plan v4 — replaces old HSL sliders)
 
@@ -246,7 +268,13 @@ Trunk color UI includes preset swatch buttons that set all three HSL sliders at 
 
 ---
 
-## 4. Trunk & Branch Generation
+## 4. Trunk & Branch Generation (Plan v4 — partially superseded by §13–14)
+
+> **Engine v2 supersedes:** REQ-T-01 (shared vertices now required at forks), REQ-T-02 (linear
+> taper replaced by hybrid taper), REQ-T-05 (z-ordering replaces fixed layer order),
+> REQ-T-08 (branch width now fork-derived), REQ-T-12 (segment distribution now two-zone).
+> Requirements below remain valid for context and for branchless shapes. For branching shapes,
+> see §13 (Phase 1) and §14 (Phase 2).
 
 ### 4.1 Trunk
 
@@ -675,3 +703,359 @@ Trunk color UI includes preset swatch buttons that set all three HSL sliders at 
     - `getSavedTree(id, userId)` — returns single row scoped to user (404 on mismatch)
     - `deleteSavedTree(id, userId)` — deletes with ownership check
     - `renameSavedTree(id, userId, name)` — updates name with ownership check
+
+---
+
+## 13. Trunk & Branch Engine v2 — Phase 1: Strip Engine + Fork Model
+
+> Origin: Grilling session 2026-04-15 on PR #94 visual issues. Supersedes issue #81
+> (branch-trunk shared vertices) and partially #82 (ratio controls). Updates PRD #77 Modules
+> 1, 2, 4.
+
+### 13.1 Strip Continuity — Junction-Based Ratios
+
+- [ ] **REQ-EV2-S-01** Strip width ratios are computed at each trunk junction point (not per
+      segment). For N trunk segments there are N+1 junction ratio sets. Each segment interpolates
+      linearly between its bottom and top junction ratios. This guarantees continuity — adjacent
+      segments share the same junction point data.
+
+- [ ] **REQ-EV2-S-02** Strip width at each junction has two independent variation sources that
+      accumulate: - **Base randomness** — always present. Even at `trunkTwist=0`, strip widths are non-uniform
+      (organic, not mechanical 25/50/25). Seeded per-junction. - **Twist** — cumulative rotational drift from base to tip, plus a per-junction random
+      perturbation. `trunkTwist` slider controls magnitude of both drift rate and perturbation.
+      At `trunkTwist=0` only base randomness applies. At `trunkTwist=100%` both are at maximum.
+
+- [ ] **REQ-EV2-S-03** The twist model is **hybrid cumulative**: a base angle starts at a seeded
+      random value and drifts at each junction by a small twist delta (proportional to
+      `trunkTwist`). On top of the cumulative drift, each junction gets an additional random
+      perturbation. This produces organic spirals rather than mechanical rotation.
+
+### 13.2 Cross-Section Model
+
+- [ ] **REQ-EV2-X-01** The trunk is modeled as a regular polygon cross-section projected onto the
+      screen plane. The number of visible (front-facing) strip faces = `trunkStripCount` (config
+      param REQ-P-40, range 2–4, default 3). The total number of cross-section faces =
+      `2 × trunkStripCount`.
+
+- [ ] **REQ-EV2-X-02** At maximum twist, strip faces can fully rotate out of view (width → 0) and
+      new faces can appear on the opposite side. Buffer strips on each side of the visible range
+      are maintained at 0 width by default and grow positive when another strip rotates out. This
+      is analogous to a cylinder rotating — faces cycle in and out of the viewer-facing hemisphere.
+
+- [ ] **REQ-EV2-X-03** `trunkTwist` default is **10%** (changed from 0). This gives all trees
+      subtle strip variation out of the box. Per-shape SHAPE_DEFAULTS override as appropriate.
+
+### 13.3 Junction Geometry — Angle Bisectors
+
+- [ ] **REQ-EV2-J-01** At each internal trunk junction, the segment boundary is perpendicular to
+      the **angle bisector** between the incoming and outgoing segment directions. This tilts the
+      boundary at crooked junctions, producing natural-looking bends instead of horizontal cuts. - Base junction (no incoming segment): boundary perpendicular to first segment direction. - Tip junction (no outgoing segment): boundary perpendicular to last segment direction.
+
+- [ ] **REQ-EV2-J-02** All junction points — outer edges AND internal strip split points — are
+      **shared** by both adjacent segments. Zero gaps guaranteed by construction. Both the segment
+      below and the segment above reference the exact same 4+ Point2D values at each junction.
+
+- [ ] **REQ-EV2-J-03** Trunk width at each junction is measured **perpendicular to the bisector
+      direction**, not horizontally. This prevents the trunk from appearing to pinch or bulge at
+      bends.
+
+### 13.4 Trunk Taper — Hybrid Model
+
+- [ ] **REQ-EV2-T-01** Trunk taper uses a **hybrid** model with two narrowing forces: - **Gentle base taper** — slow natural conical narrowing along the full trunk length,
+      present even on branchless trunks. Much less aggressive than the old linear taper. - **Fork taper** — discrete width reduction at each branch junction, proportional to
+      branch depth (see REQ-EV2-F-04).
+      Both compound. A branchless trunk narrows gently; a heavily-branched trunk narrows faster.
+
+- [ ] **REQ-EV2-T-02** The existing `trunkTopWidth` in shape definitions becomes the **minimum
+      floor**. The trunk can never narrow below this value regardless of how many forks occur.
+      The actual top width = result of base taper + accumulated fork reductions, clamped to floor.
+
+- [ ] **REQ-EV2-T-03** The `trunkThickness` slider continues to scale the base width. It does NOT
+      scale the fork reductions — only the starting width.
+
+### 13.5 Two-Zone Trunk Segments
+
+- [ ] **REQ-EV2-TZ-01** The trunk is divided into two zones: - **Upper zone (branch zone)** — contains junctions where L1 branches can spawn. Segment
+      count = `max(branchesLevel1Range[1], 2)` (enough junctions for max L1 branch count,
+      minimum 2). - **Lower zone (bare trunk)** — below the branch zone. Gets the remaining segments. Minimum
+      1 segment. Still has twist variation and crookedness.
+      The boundary between zones IS the branch zone boundary — branches can ONLY spawn at
+      upper-zone junctions.
+
+- [ ] **REQ-EV2-TZ-02** `trunkSegments` slider minimum is enforced:
+      `trunkSegments >= upperZoneSegments + 1`. The user can add more segments for visual detail
+      (more crookedness inflection points, more twist variation) but cannot go below the minimum.
+
+- [ ] **REQ-EV2-TZ-03** Updated SHAPE_DEFAULTS for `trunkSegments`:
+
+          | Shape   | Current | Max L1 | New Default | Zone Split (lower + upper) |
+          |---------|---------|--------|-------------|---------------------------|
+          | oak     | 5       | 3      | 5           | 1 + 4                     |
+          | maple   | 3       | 5      | 7           | 2 + 5                     |
+          | willow  | 5       | 5      | 7           | 2 + 5                     |
+          | cherry  | 3       | 4      | 6           | 1 + 5                     |
+          | birch   | 3       | 2      | 4           | 1 + 3                     |
+          | apple   | 3       | 2      | 3           | 1 + 2                     |
+          | baobab  | 3       | 3      | 5           | 1 + 4                     |
+          | acacia  | 3       | 3      | 5           | 1 + 4                     |
+          | pine    | 3       | 0      | 3           | unchanged (no branches)    |
+          | fir     | 3       | 0      | 3           | unchanged (no branches)    |
+          | cypress | 3       | 0      | 3           | unchanged (no branches)    |
+          | bush    | 3       | 0      | 3           | unchanged (no branches)    |
+
+### 13.6 Bottom-Up Sequential Generation
+
+- [ ] **REQ-EV2-G-01** The tree is built from base to tip in a **single bottom-up pass**: 1. Compute junction positions from crookedness + lean settings. 2. Starting from the base junction, process each junction upward. 3. At each upper-zone junction, determine if a branch spawns (pre-determined by seed). 4. If a branch spawns: compute fork width reduction, compute centerline displacement
+      (trunk leans away from branch), update remaining trunk width. 5. Continue to next junction with updated width and position.
+      This eliminates the circular dependency between trunk path and branch positions.
+
+- [ ] **REQ-EV2-G-02** **Trunk reaction to branching:** at each fork, the trunk centerline above
+      the fork displaces slightly **opposite** to the branch direction. Displacement is 2–5 px,
+      proportional to the branch width fraction. No new slider — this is automatic physics.
+      Alternating left-right branches (Rule I) naturally produce balanced trunks.
+
+- [ ] **REQ-EV2-G-03** Branches can **only** spawn at trunk junctions in the upper zone. They
+      cannot spawn at arbitrary positions along a segment. The number of potential L1 branch
+      positions = number of upper-zone junctions. This simplifies fork geometry — the fork point
+      IS a junction with fully computed shared vertices.
+
+### 13.7 Branch Fork Model — Peel-Off with Collar
+
+- [ ] **REQ-EV2-F-01** When a branch spawns, the **outermost trunk strip** on the branch side
+      peels off. A right-side branch takes the right strip; a left-side branch takes the left
+      strip. The branch then subdivides its inherited width into its own `trunkStripCount` faces
+      (the branch grows its own strip system from the peeled strip).
+
+- [ ] **REQ-EV2-F-02** A small **junction collar** (transitional polygon) fills the geometric gap
+      at the fork point where trunk surface meets branch surface at an angle. The collar is
+      colored with the **peeled strip's color** — providing smooth visual continuity:
+      trunk strip → collar → branch center strip.
+
+- [ ] **REQ-EV2-F-03** **Same-junction forks:** when two branches share a junction (e.g.,
+      alternating left+right from Rule I), they fork **sequentially** with a slight vertical
+      stagger (few pixels offset). First fork peels one side's strip, trunk adjusts, second fork
+      peels the other side from the already-adjusted trunk. No double-peel scenario.
+
+- [ ] **REQ-EV2-F-04** **Fork width economics — depth-dependent fraction:** - L1 branches take ~15–20% of trunk width at the fork point. - L2 branches take ~10–15% of their parent L1 branch width at the fork point. - Width calculation is **sequential**: branch N's width is derived from trunk width at its
+      attachment height, which already accounts for base taper + all forks below it. - Each branch gets randomness around the center fraction: `branchWidthVariance` (REQ-P-42)
+      controls the spread. Individual branch width =
+      `parentWidthAtForkPoint × (depthFraction ± branchWidthVariance × random)`.
+
+- [ ] **REQ-EV2-F-05** **Trunk tip behavior** is shape-dependent: - Shapes where trunk continues into canopy (oak, birch, maple, cherry, willow): trunk
+      continues above the last fork at its remaining width. - Shapes where trunk terminates at a fork (baobab, acacia): trunk ends at uppermost fork. - Determined by existing `defaultTrunkTop` in shape definitions — shapes with trunkTop
+      well inside canopy continue; shapes near canopy bottom terminate at fork zone.
+
+### 13.8 Branch Strip System
+
+- [ ] **REQ-EV2-B-01** **L1 and L2 branches** use the full fork model: strip inheritance, junction
+      collar, width reduction at sub-branch forks. They have their own junction-based strip
+      continuity (same as trunk segments).
+
+- [ ] **REQ-EV2-B-02** **L3 branches** use a simplified model: plain quads attached at the parent
+      branch's silhouette edge. No strip system, no fork geometry. L3 branches are too small for
+      strip detail to be perceptible.
+
+- [ ] **REQ-EV2-B-03** Branches inherit `trunkStripCount` from the trunk (same number of visible
+      faces). Twist is **attenuated per depth**: L1 gets full `trunkTwist`, L2 gets ~50% of
+      `trunkTwist`, L3 has no twist.
+
+- [ ] **REQ-EV2-B-04** `branchSegments` is **auto-reduced per depth**: L1 gets the slider value,
+      L2 gets `max(branchSegments - 1, 1)`, L3 always gets 1. Branch segment count minimum is
+      enforced by sub-branch count (same logic as trunk: need enough junctions for children).
+
+### 13.9 Branch Angle & Width Variability
+
+- [ ] **REQ-EV2-V-01** `branchAngle` slider controls the **center angle**. Each individual branch
+      gets **±15° random variation** around the center. This produces organic variety without a
+      new slider. Shape-specific defaults via SHAPE_DEFAULTS inheritance (e.g., willow=30% →
+      branches range ~15°–45° from horizontal).
+
+- [ ] **REQ-EV2-V-02** `branchDepthTaper` sets the center width ratio. `branchWidthVariance`
+      (REQ-P-42) controls spread. Individual branch widths are never identical — each gets seeded
+      randomness. No two L1 branches on the same tree have the same width.
+
+- [ ] **REQ-EV2-V-03** Branch width variance should produce visible but not extreme differences.
+      A branch at the center ratio ±50% (at max variance) should still look like a natural branch,
+      not a twig next to a log. The randomness is symmetric around the center ratio.
+
+### 13.10 Rule L — Trunk Tip Connection (from #81)
+
+- [ ] **REQ-EV2-L-01** **Rule L enforced:** trunk tip must always connect to a branch or canopy
+      blob. For branchDepth=0 shapes (bush, cypress, pine, fir), trunk tip connects to the
+      lowest/nearest canopy blob or tier.
+
+- [ ] **REQ-EV2-L-02** Rule L is implemented as a post-generation validation step in
+      `generateTree()`. If the trunk tip is exposed (no branch and not inside canopy), an
+      emergency branch or connection is generated. Complements existing Rule G (floating blob
+      fallback).
+
+### 13.11 Disabled Params Updates
+
+- [ ] **REQ-EV2-D-01** `trunkStripCount`: disabled for bush (bush disables all trunk controls).
+- [ ] **REQ-EV2-D-02** `branchWidthVariance`: disabled when `branchDepth === 0`. Added to
+      disabled lists for pine, fir, cypress, bush.
+- [ ] **REQ-EV2-D-03** `trunkPolygons`: removed entirely from config, UI, and disabled params.
+
+### 13.12 Lighting — Tri-Split Face Colors
+
+- [ ] **REQ-EV2-LT-01** Each trunk/branch segment's strip faces get independent colors computed
+      via dot-product lighting. Face normals are derived from the polygonal cross-section model
+      (hexagonal for 3-strip, octagonal for 4-strip, etc.). - Left/right normals: segment perpendicular at 60° from forward (for 3-strip hex model).
+      Adjusted for other strip counts. - Center normal: front-facing with seeded random ±0.15 xy-perturbation for organic variety. - Lightness offset formula: `−10 + ((dot + 1) / 2) × 22` maps dot product to [−10, +12].
+
+- [ ] **REQ-EV2-LT-02** Lighting is consistent across connected segments. Because strip ratios
+      are junction-based and continuous, the color computation for adjacent segments at a shared
+      junction produces consistent results. No visible color "seams" at segment boundaries.
+
+- [ ] **REQ-EV2-LT-03** Branch lighting uses the same face-normal model as the trunk. The branch's
+      segment direction determines the face normals. At a fork, the collar's color matches the
+      peeled strip, providing a smooth visual transition.
+
+### 13.13 Cross-Phase Contract (Phase 1 → Phase 2)
+
+Phase 1 must deliver these interfaces for Phase 2 to consume:
+
+- [ ] **REQ-EV2-C-01** Junction point data: Phase 1 must expose junction positions, widths, and
+      strip ratios at each junction via `TreeGeometry` or an intermediate data structure.
+- [ ] **REQ-EV2-C-02** Branch tip positions: Phase 1's fork model must output branch tip
+      coordinates and depths for Phase 2's clustering algorithm.
+- [ ] **REQ-EV2-C-03** Z-order infrastructure: Phase 1 should prepare a `zOrder` field on geometry
+      elements (defaulting to simple painter's order). Phase 2 fills in the actual values.
+- [ ] **REQ-EV2-C-04** Canopy envelope interface: Phase 1 shape definitions should begin exporting
+      envelope bounds (even if Phase 1 doesn't use them).
+- [ ] **REQ-EV2-C-05** Phase 1 must NOT remove blob generator functions — Phase 2 references
+      their spatial patterns for canopy envelope derivation.
+- [ ] **REQ-EV2-C-06** Phase 1 must NOT hardcode assumptions about blob placement being
+      independent of branches.
+
+---
+
+## 14. Trunk & Branch Engine v2 — Phase 2: Canopy-Branch Coupling + Z-Ordering
+
+> Depends on Phase 1 (§13) completing first. Builds on the fork model and junction data
+> structures established in Phase 1.
+
+### 14.1 Z-Ordering — Front/Back Branch Placement
+
+- [ ] **REQ-EV2-Z-01** Branches are classified as **front** (in front of trunk) or **back**
+      (behind trunk) using light-angle-biased randomness: - Branches on the **lit side** (facing `lightAngle`): 70% chance of front placement. - Branches on the **shadow side**: 30% chance of front placement. - Classification is seeded for determinism.
+
+- [ ] **REQ-EV2-Z-02** Back branches render **before** trunk quads in SVG order and receive a
+      **−3 lightness offset** (subtle darkness for depth cue). Front branches render after trunk
+      (current behavior, no offset).
+
+- [ ] **REQ-EV2-Z-03** L2 branches inherit their parent L1's front/back status by default, with
+      a small seeded chance (~20%) of flipping. The L2→L1 depth relationship mirrors the L1→trunk
+      relationship — consistent hierarchy.
+
+- [ ] **REQ-EV2-Z-04** Five z-order render layers for branching shapes (painter's order): 1. Back branches (behind trunk) 2. Trunk quads 3. Front branches (in front of trunk) 4. Back canopy blobs (connected to back branches) 5. Front canopy blobs (connected to front/trunk branches)
+      Branchless shapes retain the original 3-layer model (REQ-R-02).
+
+- [ ] **REQ-EV2-Z-05** Each geometry element (`Quad`, `Triangle`, `BranchGeometry`,
+      `BlobGeometry`) gains a `zOrder` field. The renderer sorts by z-order layer. This replaces
+      the fixed array-based render order.
+
+### 14.2 Revised Generation Pipeline
+
+- [ ] **REQ-EV2-P-01** For branching shapes, the generation pipeline is: 1. Build trunk path with two-zone segments (bottom-up, with fork reactions — from Phase 1) 2. Fork L1 branches from trunk at upper-zone junctions (Phase 1) 3. Fork L2 branches from L1 branches using same model (Phase 1) 4. Generate L3 branches (simplified, Phase 1) 5. **Cluster branch tips into blob groups** (new in Phase 2) 6. **Generate canopy blobs around cluster centroids** (new in Phase 2) 7. **Assign z-order to all geometry elements** (new in Phase 2)
+
+- [ ] **REQ-EV2-P-02** Branchless shapes (pine, fir, cypress, bush) keep their **current
+      generation system entirely**. Tier-based canopy for pine/fir, blob generators for
+      bush/cypress. No changes to branchless shape rendering.
+
+### 14.3 Branch-Driven Canopy Blob Placement
+
+- [ ] **REQ-EV2-BC-01** Given N branch tips (L1 + L2 + optional trunk tip), cluster them into M
+      groups where M = `blobCount` slider value. Use a clustering algorithm (e.g., k-means or
+      similar seeded algorithm). Each blob is centered on its cluster's centroid. - Tips close together share a blob (wide canopy supported by multiple branches). - Tips far apart get individual blobs. - `blobCount` slider meaning shifts from "number of ellipses" to "number of canopy
+      clusters" — more intuitive.
+
+- [ ] **REQ-EV2-BC-02** The trunk tip is included as a cluster point. For shapes like oak, the
+      trunk tip has **higher weight** in the clustering (attracts a blob to itself = central
+      crown). For shapes like maple, the trunk tip has low/zero weight (no central blob — maple's
+      trunk tip is a fork point, not a canopy anchor).
+
+- [ ] **REQ-EV2-BC-03** **Key visual requirement:** branches must go into the **middle** of their
+      blob. This is more important than strict geometric positioning rules. If a branch tip lands
+      at the edge of a blob, the blob should shift to center on the tip, not the other way around.
+
+- [ ] **REQ-EV2-BC-04** Weaker branches (higher depth levels) get **smaller blobs**. An L3 branch
+      tip should never anchor the biggest blob. Blob size correlates with the branch
+      level/thickness of its strongest contributing branch tip.
+
+### 14.4 Blob Sizing
+
+- [ ] **REQ-EV2-BS-01** Blob base radius is determined by two factors combined: - **Cluster size** — more branch tips in a cluster → larger blob radius. - **Branch thickness** — thicker branches (L1) produce larger blobs than thinner (L2, L3).
+      `blobSizeVariance` adds seeded randomness on top.
+
+- [ ] **REQ-EV2-BS-02** `canopySize` slider scales the **canopy envelope** smartly: - Does NOT simply multiply all radii — adapts cluster boundaries so branches remain visible. - Small `canopySize` → tight envelope, fewer tips covered, more bare branches visible
+      (good for sapling/young tree stages). - Large `canopySize` → wider envelope, more tips covered, lush canopy. - Branches should remain visible at all canopy sizes — the envelope grows to cover tips
+      further out, it doesn't inflate blobs to hide nearby branches.
+
+### 14.5 Canopy Envelope
+
+- [ ] **REQ-EV2-CE-01** Each shape defines a **canopy envelope** — a bounding region where blobs
+      should exist. Derived from the spatial patterns of current blob generators (making implicit
+      knowledge explicit).
+
+- [ ] **REQ-EV2-CE-02** `canopySize` scales the envelope from its center (grows outward/upward,
+      not downward into the trunk).
+
+- [ ] **REQ-EV2-CE-03** **Viewport clamp:** the canopy envelope cannot extend within **10 px** of
+      any viewport edge. This prevents canopy overflow regardless of `canopySize` value.
+
+- [ ] **REQ-EV2-CE-04** Branch tips **outside** the envelope: their blob is pulled back to the
+      envelope edge (smaller blob at boundary). Tips very far outside get no blob — just bare
+      branch poking out (looks realistic for some shapes). Tips near the envelope center get
+      larger blobs.
+
+- [ ] **REQ-EV2-CE-05** The envelope serves as the "recommended space" for blobs. It adapts to
+      `canopySize` and viewport, providing a smart boundary that prevents both overflow and
+      branch-hiding. This works well with stages like sapling (small canopySize = few small blobs)
+      and mature (large canopySize = full coverage).
+
+### 14.6 Shape Style Parameters
+
+- [ ] **REQ-EV2-SS-01** Each shape definition retains **style parameters** that control how
+      branch-tip-derived blobs look. These replace the absolute blob placement of current
+      generators while preserving each shape's visual identity: - `blobRxRyRatio`: controls blob shape (1.0 = round, 3.0+ = flat like acacia parasol). - `blobVerticalOffset`: shifts blobs relative to tip position (negative for willow droop). - `blobBoundary`: circle or teardrop (for cypress-style). - `blobClusterBehavior`: how aggressively nearby tips merge into shared blobs.
+
+- [ ] **REQ-EV2-SS-02** Shape-specific identity preserved via style parameters:
+
+          | Shape   | Key Characteristics                                                 |
+          |---------|---------------------------------------------------------------------|
+          | oak     | Round crown. Trunk tip high weight → central blob. Balanced rx/ry.  |
+          | maple   | Blobs on side branches. Trunk tip = fork, no blob. Medium blobs.    |
+          | willow  | Blobs offset downward (droop). Branches at low angle. Low canopy.   |
+          | birch   | Alternating-side blobs. Airy canopy. Thin trunk.                    |
+          | cherry  | Horizontal spread. Blobs in wide band. Pink coloring.               |
+          | baobab  | Small blobs at very top. Dominant trunk. Short branches.             |
+          | acacia  | Flat parasol. Very wide rx, tiny ry. Branches horizontal.           |
+          | apple   | Compact round canopy. Minimal branching. Large single blob.         |
+
+- [ ] **REQ-EV2-SS-03** Some branch tips will naturally not have blobs — those that fall outside
+      the canopy envelope. This is acceptable and realistic (bare branch poking out of canopy).
+
+### 14.7 Canopy Z-Ordering
+
+- [ ] **REQ-EV2-CZ-01** Each canopy blob inherits z-order from its cluster's branches: - Single-branch cluster: blob gets that branch's front/back status. - Multi-branch cluster with mixed front/back: blob defaults to front. - Trunk-tip blob (e.g., oak center): always front.
+
+- [ ] **REQ-EV2-CZ-02** Back canopy blobs render in layer 4, front canopy blobs in layer 5
+      (per REQ-EV2-Z-04). This creates visible depth — some canopy clusters appear behind the
+      trunk while others are in front.
+
+### 14.8 Impact on Existing Issues
+
+- [ ] **REQ-EV2-I-01** Issue #81 (Branch-trunk shared vertices + Rule L): **CLOSED — superseded.**
+      Shared vertices are handled by the fork model (REQ-EV2-F-01). Rule L is REQ-EV2-L-01.
+      Junction fills replaced by collar model (REQ-EV2-F-02).
+
+- [ ] **REQ-EV2-I-02** Issue #82 (Ratio-based branch controls + remove trunkPolygons):
+      **CLOSED — merged.** `trunkPolygons` removal in REQ-P-04-REMOVED. Branch thickness is now
+      fork-derived (REQ-EV2-F-04) rather than ratio-based. `branchLengthRatio` concept survives
+      (branch length as % of trunk length). `branchThicknessRatio` replaced by fork width
+      economics.
+
+- [ ] **REQ-EV2-I-03** PRD #77: Modules 1 (Tri-Split), 2 (Junction), 4 (Ratio Controls) require
+      major revision per this document. Module 1 → strip continuity + cross-section model.
+      Module 2 → fork model. Module 4 → fork-driven width + length ratio.
