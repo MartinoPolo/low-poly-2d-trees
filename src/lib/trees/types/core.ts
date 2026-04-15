@@ -30,6 +30,8 @@ export interface TreeAnchors {
 	readonly roots: Point2D;
 	readonly branchTips: readonly Point2D[];
 	readonly fruitSlots: readonly Point2D[];
+	/** Branch tip positions with depth info for Phase 2 clustering (REQ-EV2-C-02). */
+	readonly branchTipDepths?: readonly { readonly position: Point2D; readonly depth: number }[];
 }
 
 export interface Tier {
@@ -52,6 +54,8 @@ export interface Quad {
 	readonly points: readonly [Point2D, Point2D, Point2D, Point2D];
 	readonly color: string;
 	readonly group: GeometryGroup;
+	/** Z-ordering hint for Phase 2 (REQ-EV2-C-03). Undefined = painter's order. */
+	readonly zOrder?: number;
 }
 
 export interface BranchGeometry {
@@ -60,6 +64,14 @@ export interface BranchGeometry {
 	readonly origin: Point2D;
 	readonly depth: number;
 	readonly parentIndex: number | null;
+}
+
+/** Junction strip data exposed for Phase 2 (REQ-EV2-C-01). */
+export interface JunctionData {
+	readonly position: Point2D;
+	readonly width: number;
+	readonly stripRatios: readonly number[];
+	readonly bisectorAngle: number;
 }
 
 export interface TreeGeometry {
@@ -78,4 +90,13 @@ export interface TreeGeometry {
 	readonly showFallingLeaves: boolean;
 	readonly anchors: TreeAnchors;
 	readonly viewBox: { readonly width: number; readonly height: number };
+	/** Junction positions/widths/ratios for Phase 2 (REQ-EV2-C-01). */
+	readonly junctionData?: readonly JunctionData[];
+	/** Canopy envelope bounds for Phase 2 (REQ-EV2-C-04). */
+	readonly envelopeBounds?: {
+		readonly minX: number;
+		readonly minY: number;
+		readonly maxX: number;
+		readonly maxY: number;
+	};
 }

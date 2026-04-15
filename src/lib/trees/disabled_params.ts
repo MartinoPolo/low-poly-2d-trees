@@ -15,6 +15,7 @@ export const DISABLED_PARAMS_BY_SHAPE = {
 		'branchSegments',
 		'branchCrookedness',
 		'branchDepthTaper',
+		'branchWidthVariance',
 	],
 	[TREE_SHAPES.birch]: [],
 	[TREE_SHAPES.fir]: [
@@ -25,6 +26,7 @@ export const DISABLED_PARAMS_BY_SHAPE = {
 		'branchSegments',
 		'branchCrookedness',
 		'branchDepthTaper',
+		'branchWidthVariance',
 	],
 	[TREE_SHAPES.maple]: [],
 	[TREE_SHAPES.willow]: [],
@@ -36,6 +38,7 @@ export const DISABLED_PARAMS_BY_SHAPE = {
 		'branchSegments',
 		'branchCrookedness',
 		'branchDepthTaper',
+		'branchWidthVariance',
 	],
 	[TREE_SHAPES.apple]: [],
 	[TREE_SHAPES.cherry]: [],
@@ -50,6 +53,7 @@ export const DISABLED_PARAMS_BY_SHAPE = {
 		'branchLength',
 		'branchLengthVariance',
 		'branchThickness',
+		'branchWidthVariance',
 		'trunkThickness',
 		'trunkHeight',
 		'trunkLean',
@@ -57,6 +61,7 @@ export const DISABLED_PARAMS_BY_SHAPE = {
 		'trunkCrookedness',
 		'crookednessMode',
 		'trunkTwist',
+		'trunkStripCount',
 	],
 	[TREE_SHAPES.baobab]: [],
 	[TREE_SHAPES.acacia]: [],
@@ -96,6 +101,10 @@ export function isParamDisabled(
 	}
 
 	if (param === 'branchCrookedness' && (config.branchSegments ?? 1) === 1) {
+		return true;
+	}
+
+	if (param === 'branchWidthVariance' && (config.branchDepth ?? 0) === 0) {
 		return true;
 	}
 

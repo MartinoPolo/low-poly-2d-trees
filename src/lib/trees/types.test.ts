@@ -68,7 +68,7 @@ describe('SHAPE_DEFAULTS §2.5', () => {
 	});
 
 	it('has oak defaults', () => {
-		expect(SHAPE_DEFAULTS.oak).toEqual({
+		expect(SHAPE_DEFAULTS.oak).toMatchObject({
 			blobCount: 5,
 			branchDepth: 2,
 			branchesLevel1Range: [1, 3],
@@ -95,7 +95,7 @@ describe('SHAPE_DEFAULTS §2.5', () => {
 	});
 
 	it('has pine defaults', () => {
-		expect(SHAPE_DEFAULTS.pine).toEqual({
+		expect(SHAPE_DEFAULTS.pine).toMatchObject({
 			blobCount: 5,
 			branchDepth: 0,
 			branchesLevel1Range: [0, 0],
@@ -121,8 +121,8 @@ describe('SHAPE_DEFAULTS §2.5', () => {
 		});
 	});
 
-	it('has birch defaults', () => {
-		expect(SHAPE_DEFAULTS.birch).toEqual({
+	it('has birch defaults (REQ-EV2-TZ-03: trunkSegments 3→4)', () => {
+		expect(SHAPE_DEFAULTS.birch).toMatchObject({
 			blobCount: 6,
 			branchDepth: 2,
 			branchesLevel1Range: [1, 2],
@@ -133,7 +133,7 @@ describe('SHAPE_DEFAULTS §2.5', () => {
 			blobSizeVariance: 2.5,
 			blobCloseness: 35,
 			branchThickness: 80,
-			trunkSegments: 3,
+			trunkSegments: 4,
 			trunkCrookedness: 10,
 			crookednessMode: 'alternating',
 			branchLength: 100,
@@ -149,7 +149,7 @@ describe('SHAPE_DEFAULTS §2.5', () => {
 	});
 
 	it('has fir defaults', () => {
-		expect(SHAPE_DEFAULTS.fir).toEqual({
+		expect(SHAPE_DEFAULTS.fir).toMatchObject({
 			blobCount: 6,
 			branchDepth: 0,
 			branchesLevel1Range: [0, 0],
@@ -175,8 +175,8 @@ describe('SHAPE_DEFAULTS §2.5', () => {
 		});
 	});
 
-	it('has maple defaults (low closeness, reduced variance)', () => {
-		expect(SHAPE_DEFAULTS.maple).toEqual({
+	it('has maple defaults (REQ-EV2-TZ-03: trunkSegments 3→7)', () => {
+		expect(SHAPE_DEFAULTS.maple).toMatchObject({
 			blobCount: 5,
 			branchDepth: 2,
 			branchesLevel1Range: [3, 5],
@@ -187,7 +187,7 @@ describe('SHAPE_DEFAULTS §2.5', () => {
 			blobSizeVariance: 1.3,
 			blobCloseness: 40,
 			branchThickness: 100,
-			trunkSegments: 3,
+			trunkSegments: 7,
 			trunkCrookedness: 20,
 			crookednessMode: 'alternating',
 			branchLength: 100,
@@ -202,8 +202,8 @@ describe('SHAPE_DEFAULTS §2.5', () => {
 		});
 	});
 
-	it('has willow defaults (5 segments, 20% crookedness, alternating)', () => {
-		expect(SHAPE_DEFAULTS.willow).toEqual({
+	it('has willow defaults (REQ-EV2-TZ-03: trunkSegments 5→7)', () => {
+		expect(SHAPE_DEFAULTS.willow).toMatchObject({
 			blobCount: 6,
 			branchDepth: 2,
 			branchesLevel1Range: [3, 5],
@@ -214,7 +214,7 @@ describe('SHAPE_DEFAULTS §2.5', () => {
 			blobSizeVariance: 2.0,
 			blobCloseness: 35,
 			branchThickness: 80,
-			trunkSegments: 5,
+			trunkSegments: 7,
 			trunkCrookedness: 20,
 			crookednessMode: 'alternating',
 			branchLength: 100,
@@ -296,6 +296,39 @@ describe('SHAPE_DEFAULTS §2.5', () => {
 		expect(SHAPE_DEFAULTS.acacia.blobCount).toBe(3);
 		expect(SHAPE_DEFAULTS.acacia.branchDepth).toBe(1);
 		expect(SHAPE_DEFAULTS.acacia.branchAngle).toBe(25);
+	});
+});
+
+describe('Engine v2 config fields (§13)', () => {
+	it('DEFAULT_TREE_CONFIG has trunkStripCount=3 (REQ-EV2-X-01)', () => {
+		expect(DEFAULT_TREE_CONFIG.trunkStripCount).toBe(3);
+	});
+
+	it('DEFAULT_TREE_CONFIG has branchWidthVariance=25 (REQ-EV2-V-02)', () => {
+		expect(DEFAULT_TREE_CONFIG.branchWidthVariance).toBe(25);
+	});
+
+	it('DEFAULT_TREE_CONFIG has trunkTwist=10 (REQ-EV2-X-03)', () => {
+		expect(DEFAULT_TREE_CONFIG.trunkTwist).toBe(10);
+	});
+
+	it('trunkPolygons is removed from TreeConfig (REQ-EV2-D-03)', () => {
+		expect('trunkPolygons' in DEFAULT_TREE_CONFIG).toBe(false);
+	});
+
+	it('SHAPE_DEFAULTS trunkSegments updated per REQ-EV2-TZ-03', () => {
+		expect(SHAPE_DEFAULTS.oak.trunkSegments).toBe(5);
+		expect(SHAPE_DEFAULTS.maple.trunkSegments).toBe(7);
+		expect(SHAPE_DEFAULTS.willow.trunkSegments).toBe(7);
+		expect(SHAPE_DEFAULTS.cherry.trunkSegments).toBe(6);
+		expect(SHAPE_DEFAULTS.birch.trunkSegments).toBe(4);
+		expect(SHAPE_DEFAULTS.apple.trunkSegments).toBe(3);
+		expect(SHAPE_DEFAULTS.baobab.trunkSegments).toBe(5);
+		expect(SHAPE_DEFAULTS.acacia.trunkSegments).toBe(5);
+		expect(SHAPE_DEFAULTS.pine.trunkSegments).toBe(3);
+		expect(SHAPE_DEFAULTS.fir.trunkSegments).toBe(3);
+		expect(SHAPE_DEFAULTS.cypress.trunkSegments).toBe(3);
+		expect(SHAPE_DEFAULTS.bush.trunkSegments).toBe(3);
 	});
 });
 

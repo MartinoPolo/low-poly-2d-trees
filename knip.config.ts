@@ -16,6 +16,11 @@ const config: KnipConfig = {
 		'tw-animate-css',
 		'vitest-browser-svelte',
 	],
+	// Phase 1 (#95) cross-phase contract: exports consumed by Phase 2 (#96).
+	// TODO(#96): Remove these ignores when Phase 2 consumes the exports.
+	rules: {
+		exports: 'warn',
+	},
 };
 
 export default config;

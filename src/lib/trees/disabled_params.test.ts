@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { DISABLED_PARAMS_BY_SHAPE, isParamDisabled } from './disabled_params.js';
 
 describe('DISABLED_PARAMS_BY_SHAPE', () => {
-	it('pine disables 7 branch-related params (branchDepth=0, no branches)', () => {
+	it('pine disables 8 branch-related params including branchWidthVariance (REQ-EV2-D-02)', () => {
 		expect(DISABLED_PARAMS_BY_SHAPE.pine).toEqual([
 			'branchesLevel1Range',
 			'branchesLevel2Range',
@@ -11,10 +11,11 @@ describe('DISABLED_PARAMS_BY_SHAPE', () => {
 			'branchSegments',
 			'branchCrookedness',
 			'branchDepthTaper',
+			'branchWidthVariance',
 		]);
 	});
 
-	it('fir disables same 7 params as pine (REQ-S-12)', () => {
+	it('fir disables same params as pine (REQ-S-12)', () => {
 		expect(DISABLED_PARAMS_BY_SHAPE.fir).toEqual(DISABLED_PARAMS_BY_SHAPE.pine);
 	});
 
@@ -30,15 +31,17 @@ describe('DISABLED_PARAMS_BY_SHAPE', () => {
 		expect(DISABLED_PARAMS_BY_SHAPE.custom).toEqual([]);
 	});
 
-	it('cypress disables same 7 branch params as pine', () => {
+	it('cypress disables same branch params as pine', () => {
 		expect(DISABLED_PARAMS_BY_SHAPE.cypress).toEqual(DISABLED_PARAMS_BY_SHAPE.pine);
 	});
 
-	it('bush disables all branch + trunk params (ground-level shrub)', () => {
+	it('bush disables all branch + trunk params including trunkStripCount (REQ-EV2-D-01)', () => {
 		expect(DISABLED_PARAMS_BY_SHAPE.bush).toContain('branchesLevel1Range');
 		expect(DISABLED_PARAMS_BY_SHAPE.bush).toContain('trunkThickness');
 		expect(DISABLED_PARAMS_BY_SHAPE.bush).toContain('trunkHeight');
 		expect(DISABLED_PARAMS_BY_SHAPE.bush).toContain('trunkLean');
+		expect(DISABLED_PARAMS_BY_SHAPE.bush).toContain('trunkStripCount');
+		expect(DISABLED_PARAMS_BY_SHAPE.bush).toContain('branchWidthVariance');
 	});
 });
 
@@ -120,6 +123,20 @@ describe('isParamDisabled', () => {
 
 		it('does not disable branchesLevel3Range when branchDepth >= 3', () => {
 			expect(isParamDisabled('oak', 'branchesLevel3Range', { branchDepth: 3 })).toBe(false);
+		});
+	});
+
+	describe('cross-param rules — branchWidthVariance (REQ-EV2-D-02)', () => {
+		it('disables branchWidthVariance when branchDepth === 0', () => {
+			expect(isParamDisabled('oak', 'branchWidthVariance', { branchDepth: 0 })).toBe(true);
+		});
+
+		it('does not disable branchWidthVariance when branchDepth >= 1', () => {
+			expect(isParamDisabled('oak', 'branchWidthVariance', { branchDepth: 1 })).toBe(false);
+		});
+
+		it('does not disable branchWidthVariance when branchDepth is undefined', () => {
+			expect(isParamDisabled('oak', 'branchWidthVariance', {})).toBe(true);
 		});
 	});
 

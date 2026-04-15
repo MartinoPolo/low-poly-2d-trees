@@ -1,5 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { computeCanopyColor, computeTrunkColor, computeTriSplitColors } from './lighting.js';
+import {
+	computeCanopyColor,
+	computeTrunkColor,
+	computeTriSplitColors,
+	computeStripColors,
+} from './lighting.js';
 import { hexToHsl } from './color.js';
 import type { Point2D } from './types.js';
 
@@ -274,5 +279,52 @@ describe('computeTriSplitColors — deterministic', () => {
 		const a = computeTriSplitColors(triSplitBase);
 		const b = computeTriSplitColors(triSplitBase);
 		expect(a).toEqual(b);
+	});
+});
+
+describe('computeStripColors (REQ-EV2-LT-01)', () => {
+	const baseInput = {
+		segmentDirectionX: 0,
+		segmentDirectionY: -50,
+		lightAngle: 130,
+		trunkHue: 25,
+		trunkSaturation: 50,
+		trunkLightness: 25,
+		centerPerturbationX: 0,
+		centerPerturbationY: 0,
+	};
+
+	it('returns 2 colors for stripCount=2', () => {
+		const colors = computeStripColors({ ...baseInput, stripCount: 2 });
+		expect(colors).toHaveLength(2);
+		for (const c of colors) {
+			expect(c).toMatch(/^#[0-9a-f]{6}$/);
+		}
+	});
+
+	it('returns 3 colors for stripCount=3', () => {
+		const colors = computeStripColors({ ...baseInput, stripCount: 3 });
+		expect(colors).toHaveLength(3);
+	});
+
+	it('returns 4 colors for stripCount=4', () => {
+		const colors = computeStripColors({ ...baseInput, stripCount: 4 });
+		expect(colors).toHaveLength(4);
+	});
+
+	it('is deterministic', () => {
+		const a = computeStripColors({ ...baseInput, stripCount: 3 });
+		const b = computeStripColors({ ...baseInput, stripCount: 3 });
+		expect(a).toEqual(b);
+	});
+
+	it('light direction affects face colors', () => {
+		const colorsA = computeStripColors({ ...baseInput, lightAngle: 0, stripCount: 3 });
+		const colorsB = computeStripColors({ ...baseInput, lightAngle: 180, stripCount: 3 });
+
+		// Different light angles produce different color sets
+		expect(colorsA).not.toEqual(colorsB);
+		// Edge faces should differ between opposite light angles
+		expect(colorsA[0]).not.toBe(colorsB[0]);
 	});
 });
