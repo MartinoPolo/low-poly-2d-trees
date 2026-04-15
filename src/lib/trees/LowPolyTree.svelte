@@ -10,6 +10,7 @@
 		type TreeShape,
 		type BranchGeometry,
 	} from '$lib/trees/types.js';
+	import { Z_ORDER_LAYERS } from '$lib/trees/types/core.js';
 	import {
 		computeAnimationDelay,
 		computeBranchDuration,
@@ -95,6 +96,40 @@
 		return map;
 	});
 
+	// REQ-EV2-Z-04: Does this tree have 5-layer z-ordering?
+	const hasZOrdering = $derived(geometry.branchGroups.some((g) => g.zOrder !== undefined));
+
+	// Split root branches into back/front for 5-layer rendering
+	const backRootBranches = $derived(
+		hasZOrdering
+			? rootBranches.filter(({ group }) => group.zOrder === Z_ORDER_LAYERS.backBranches)
+			: [],
+	);
+	const frontRootBranches = $derived(
+		hasZOrdering
+			? rootBranches.filter(({ group }) => group.zOrder === Z_ORDER_LAYERS.frontBranches)
+			: rootBranches,
+	);
+
+	// Split canopy blobs into back/front for 5-layer rendering
+	const backCanopyBlobs = $derived(
+		hasZOrdering
+			? geometry.canopyBlobs
+					.map((blob, i) => ({ blob, index: i }))
+					.filter(({ blob }) => blob.zOrder === Z_ORDER_LAYERS.backCanopy)
+			: [],
+	);
+	const frontCanopyBlobs = $derived(
+		hasZOrdering
+			? geometry.canopyBlobs
+					.map((blob, i) => ({ blob, index: i }))
+					.filter(
+						({ blob }) =>
+							blob.zOrder === Z_ORDER_LAYERS.frontCanopy || blob.zOrder === undefined,
+					)
+			: geometry.canopyBlobs.map((blob, i) => ({ blob, index: i })),
+	);
+
 	const fruitComponent = $derived(
 		config.fruitType !== FRUIT_TYPES.none ? FRUIT_SVG_COMPONENTS[config.fruitType] : null,
 	);
@@ -156,32 +191,6 @@
 		style="--growth-origin-x: {geometry.anchors.trunkBase.x}px; --growth-origin-y: {geometry
 			.anchors.trunkBase.y}px; --growth-progress: {growthProgress};"
 	>
-		{#if showTrunk}
-			<g class="trunk">
-				<!-- Quad-based trunk (BR-1: stacked trapezoids) -->
-				{#each geometry.trunkQuads as quad (quad)}
-					<polygon
-						points="{quad.points[0].x},{quad.points[0].y} {quad.points[1].x},{quad
-							.points[1].y} {quad.points[2].x},{quad.points[2].y} {quad.points[3]
-							.x},{quad.points[3].y}"
-						fill={quad.color}
-						stroke={quad.color}
-						stroke-width="0.5"
-					/>
-				{/each}
-				<!-- Legacy triangles for simple stages (seed, sprouting, stump) -->
-				{#each geometry.trunkTriangles as tri (tri)}
-					<polygon
-						points="{tri.points[0].x},{tri.points[0].y} {tri.points[1].x},{tri.points[1]
-							.y} {tri.points[2].x},{tri.points[2].y}"
-						fill={tri.color}
-						stroke={tri.color}
-						stroke-width="0.5"
-					/>
-				{/each}
-			</g>
-		{/if}
-
 		{#snippet branchGroupSnippet(branchGroup: BranchGeometry, branchIndex: number)}
 			<g
 				class="branch-group"
@@ -217,34 +226,83 @@
 			</g>
 		{/snippet}
 
-		{#if showBranches}
-			<g class="branches">
-				{#each rootBranches as { group, index: groupIndex } (groupIndex)}
+		{#snippet canopyBlobSnippet(blob: (typeof geometry.canopyBlobs)[0], blobIndex: number)}
+			<g
+				class="canopy-blob"
+				class:animate-canopy-sway={animateCanopySway}
+				style="--sway-delay: {canopySwayDelay + blobIndex * 0.15}s; --sway-origin-x: {blob
+					.center.x}px; --sway-origin-y: {blob.center.y}px;"
+			>
+				{#each blob.triangles as tri (tri)}
+					<polygon
+						points="{tri.points[0].x},{tri.points[0].y} {tri.points[1].x},{tri.points[1]
+							.y} {tri.points[2].x},{tri.points[2].y}"
+						fill={tri.color}
+						stroke={tri.color}
+						stroke-width="0.5"
+					/>
+				{/each}
+			</g>
+		{/snippet}
+
+		<!-- REQ-EV2-Z-04: 5-layer rendering for branching shapes -->
+		<!-- Layer 1: Back branches (behind trunk) -->
+		{#if showBranches && backRootBranches.length > 0}
+			<g class="back-branches">
+				{#each backRootBranches as { group, index: groupIndex } (groupIndex)}
 					{@render branchGroupSnippet(group, groupIndex)}
 				{/each}
 			</g>
 		{/if}
 
+		<!-- Layer 2: Trunk -->
+		{#if showTrunk}
+			<g class="trunk">
+				{#each geometry.trunkQuads as quad (quad)}
+					<polygon
+						points="{quad.points[0].x},{quad.points[0].y} {quad.points[1].x},{quad
+							.points[1].y} {quad.points[2].x},{quad.points[2].y} {quad.points[3]
+							.x},{quad.points[3].y}"
+						fill={quad.color}
+						stroke={quad.color}
+						stroke-width="0.5"
+					/>
+				{/each}
+				{#each geometry.trunkTriangles as tri (tri)}
+					<polygon
+						points="{tri.points[0].x},{tri.points[0].y} {tri.points[1].x},{tri.points[1]
+							.y} {tri.points[2].x},{tri.points[2].y}"
+						fill={tri.color}
+						stroke={tri.color}
+						stroke-width="0.5"
+					/>
+				{/each}
+			</g>
+		{/if}
+
+		<!-- Layer 3: Front branches -->
+		{#if showBranches}
+			<g class="branches">
+				{#each frontRootBranches as { group, index: groupIndex } (groupIndex)}
+					{@render branchGroupSnippet(group, groupIndex)}
+				{/each}
+			</g>
+		{/if}
+
+		<!-- Layer 4: Back canopy blobs -->
+		{#if showCanopy && backCanopyBlobs.length > 0}
+			<g class="back-canopy">
+				{#each backCanopyBlobs as { blob, index: blobIndex } (blob)}
+					{@render canopyBlobSnippet(blob, blobIndex)}
+				{/each}
+			</g>
+		{/if}
+
+		<!-- Layer 5: Front canopy blobs -->
 		{#if showCanopy}
 			<g class="canopy">
-				{#each geometry.canopyBlobs as blob, blobIndex (blob)}
-					<g
-						class="canopy-blob"
-						class:animate-canopy-sway={animateCanopySway}
-						style="--sway-delay: {canopySwayDelay +
-							blobIndex * 0.15}s; --sway-origin-x: {blob.center
-							.x}px; --sway-origin-y: {blob.center.y}px;"
-					>
-						{#each blob.triangles as tri (tri)}
-							<polygon
-								points="{tri.points[0].x},{tri.points[0].y} {tri.points[1].x},{tri
-									.points[1].y} {tri.points[2].x},{tri.points[2].y}"
-								fill={tri.color}
-								stroke={tri.color}
-								stroke-width="0.5"
-							/>
-						{/each}
-					</g>
+				{#each frontCanopyBlobs as { blob, index: blobIndex } (blob)}
+					{@render canopyBlobSnippet(blob, blobIndex)}
 				{/each}
 			</g>
 		{/if}

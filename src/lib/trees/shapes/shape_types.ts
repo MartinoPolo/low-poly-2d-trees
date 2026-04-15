@@ -1,8 +1,11 @@
 import type { BoundaryKind } from '../boundaries.js';
+import type { ShapeStyleParameters } from '../canopy_clustering.js';
 
 // ---------------------------------------------------------------------------
 // Public interfaces
 // ---------------------------------------------------------------------------
+
+export type { ShapeStyleParameters };
 
 export interface Blob {
 	cx: number;
@@ -32,10 +35,21 @@ export interface BranchSegment {
 	readonly widthEnd: number;
 }
 
+/** Envelope config for canopy bounding region (REQ-EV2-CE-01). */
+interface ShapeEnvelopeDefaults {
+	readonly canopyCenterY: number;
+	readonly baseRadiusX: number;
+	readonly baseRadiusY: number;
+}
+
 export interface ShapeDefinition {
 	readonly trunkBaseWidth: number;
 	readonly trunkTopWidth: number;
 	readonly trunkBottom: number;
 	readonly defaultTrunkTop: number;
 	generateBlobs(rng: () => number, blobCount: number): Blob[];
+	/** Style parameters for branch-driven canopy (REQ-EV2-SS-01). Undefined for branchless shapes. */
+	readonly styleParameters?: ShapeStyleParameters;
+	/** Canopy envelope config (REQ-EV2-CE-01). Undefined for branchless/tiered shapes. */
+	readonly envelopeDefaults?: ShapeEnvelopeDefaults;
 }

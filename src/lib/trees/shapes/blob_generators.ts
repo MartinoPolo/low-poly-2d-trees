@@ -600,6 +600,18 @@ const shapeDefinitions: Record<TreeShape, ShapeDefinition> = {
 		trunkBottom: H * 0.95,
 		defaultTrunkTop: H * 0.45,
 		generateBlobs: generateOakBlobs,
+		styleParameters: {
+			blobRxRyRatio: 1.2,
+			blobVerticalOffset: 0,
+			blobBoundary: 'circle',
+			blobClusterBehavior: 0.5,
+			trunkTipWeight: 1.0,
+		},
+		envelopeDefaults: {
+			canopyCenterY: H * 0.3,
+			baseRadiusX: W * 0.32,
+			baseRadiusY: H * 0.22,
+		},
 	},
 	pine: {
 		trunkBaseWidth: 21,
@@ -616,6 +628,18 @@ const shapeDefinitions: Record<TreeShape, ShapeDefinition> = {
 		trunkBottom: H * 0.95,
 		defaultTrunkTop: H * 0.45,
 		generateBlobs: generateBirchBlobs,
+		styleParameters: {
+			blobRxRyRatio: 1.5,
+			blobVerticalOffset: 0,
+			blobBoundary: 'circle',
+			blobClusterBehavior: 0.4,
+			trunkTipWeight: 0.7,
+		},
+		envelopeDefaults: {
+			canopyCenterY: H * 0.25,
+			baseRadiusX: W * 0.28,
+			baseRadiusY: H * 0.28,
+		},
 	},
 	fir: {
 		trunkBaseWidth: 19,
@@ -632,6 +656,18 @@ const shapeDefinitions: Record<TreeShape, ShapeDefinition> = {
 		trunkBottom: H * 0.95,
 		defaultTrunkTop: H * 0.45,
 		generateBlobs: generateMapleBlobs,
+		styleParameters: {
+			blobRxRyRatio: 1.1,
+			blobVerticalOffset: 0,
+			blobBoundary: 'circle',
+			blobClusterBehavior: 0.4,
+			trunkTipWeight: 0.0,
+		},
+		envelopeDefaults: {
+			canopyCenterY: H * 0.3,
+			baseRadiusX: W * 0.3,
+			baseRadiusY: H * 0.2,
+		},
 	},
 	willow: {
 		trunkBaseWidth: 28,
@@ -639,6 +675,18 @@ const shapeDefinitions: Record<TreeShape, ShapeDefinition> = {
 		trunkBottom: H * 0.95,
 		defaultTrunkTop: H * 0.45,
 		generateBlobs: generateWillowBlobs,
+		styleParameters: {
+			blobRxRyRatio: 1.3,
+			blobVerticalOffset: 15,
+			blobBoundary: 'circle',
+			blobClusterBehavior: 0.3,
+			trunkTipWeight: 0.5,
+		},
+		envelopeDefaults: {
+			canopyCenterY: H * 0.38,
+			baseRadiusX: W * 0.32,
+			baseRadiusY: H * 0.2,
+		},
 	},
 	cypress: {
 		trunkBaseWidth: 14,
@@ -653,6 +701,18 @@ const shapeDefinitions: Record<TreeShape, ShapeDefinition> = {
 		trunkBottom: H * 0.95,
 		defaultTrunkTop: H * 0.55,
 		generateBlobs: generateAppleBlobs,
+		styleParameters: {
+			blobRxRyRatio: 1.0,
+			blobVerticalOffset: 0,
+			blobBoundary: 'circle',
+			blobClusterBehavior: 0.6,
+			trunkTipWeight: 0.8,
+		},
+		envelopeDefaults: {
+			canopyCenterY: H * 0.32,
+			baseRadiusX: W * 0.28,
+			baseRadiusY: H * 0.22,
+		},
 	},
 	cherry: {
 		trunkBaseWidth: 22,
@@ -660,6 +720,18 @@ const shapeDefinitions: Record<TreeShape, ShapeDefinition> = {
 		trunkBottom: H * 0.95,
 		defaultTrunkTop: H * 0.45,
 		generateBlobs: generateCherryBlobs,
+		styleParameters: {
+			blobRxRyRatio: 1.8,
+			blobVerticalOffset: 0,
+			blobBoundary: 'circle',
+			blobClusterBehavior: 0.3,
+			trunkTipWeight: 0.5,
+		},
+		envelopeDefaults: {
+			canopyCenterY: H * 0.32,
+			baseRadiusX: W * 0.4,
+			baseRadiusY: H * 0.16,
+		},
 	},
 	bush: {
 		trunkBaseWidth: 10,
@@ -674,6 +746,18 @@ const shapeDefinitions: Record<TreeShape, ShapeDefinition> = {
 		trunkBottom: H * 0.95,
 		defaultTrunkTop: H * 0.25,
 		generateBlobs: generateBaobabBlobs,
+		styleParameters: {
+			blobRxRyRatio: 1.2,
+			blobVerticalOffset: 0,
+			blobBoundary: 'circle',
+			blobClusterBehavior: 0.6,
+			trunkTipWeight: 0.8,
+		},
+		envelopeDefaults: {
+			canopyCenterY: H * 0.15,
+			baseRadiusX: W * 0.22,
+			baseRadiusY: H * 0.12,
+		},
 	},
 	acacia: {
 		trunkBaseWidth: 16,
@@ -681,6 +765,18 @@ const shapeDefinitions: Record<TreeShape, ShapeDefinition> = {
 		trunkBottom: H * 0.95,
 		defaultTrunkTop: H * 0.35,
 		generateBlobs: generateAcaciaBlobs,
+		styleParameters: {
+			blobRxRyRatio: 3.5,
+			blobVerticalOffset: 0,
+			blobBoundary: 'circle',
+			blobClusterBehavior: 0.7,
+			trunkTipWeight: 0.5,
+		},
+		envelopeDefaults: {
+			canopyCenterY: H * 0.2,
+			baseRadiusX: W * 0.42,
+			baseRadiusY: H * 0.1,
+		},
 	},
 	custom: {
 		trunkBaseWidth: 28,

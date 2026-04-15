@@ -1,3 +1,18 @@
+// ---------------------------------------------------------------------------
+// Z-Order Layers (REQ-EV2-Z-04)
+// ---------------------------------------------------------------------------
+
+/** Five render layers for branching shapes (painter's order). */
+export const Z_ORDER_LAYERS = {
+	backBranches: 1,
+	trunk: 2,
+	frontBranches: 3,
+	backCanopy: 4,
+	frontCanopy: 5,
+} as const;
+
+export type ZOrderLayer = (typeof Z_ORDER_LAYERS)[keyof typeof Z_ORDER_LAYERS];
+
 export const GEOMETRY_GROUPS = {
 	canopy: 'canopy',
 	trunk: 'trunk',
@@ -47,6 +62,8 @@ export interface BlobGeometry {
 	readonly triangles: readonly Triangle[];
 	readonly center: Point2D;
 	readonly depth: number;
+	/** Z-order layer for 5-layer rendering (REQ-EV2-Z-05). Undefined for branchless shapes. */
+	readonly zOrder?: ZOrderLayer;
 }
 
 export interface Quad {
@@ -64,6 +81,8 @@ export interface BranchGeometry {
 	readonly origin: Point2D;
 	readonly depth: number;
 	readonly parentIndex: number | null;
+	/** Front/back classification for 5-layer rendering (REQ-EV2-Z-05). */
+	readonly zOrder?: ZOrderLayer;
 }
 
 /** Junction strip data exposed for Phase 2 (REQ-EV2-C-01). */
