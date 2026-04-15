@@ -119,41 +119,68 @@ export function computeTrunkColor(
 	return hslToHex(hue, sat, lightness);
 }
 
-/**
- * Compute two-tone trunk/branch colors (BR-2).
- * Returns light and dark hex colors. Light side flips with lightAngle.
- */
-export function computeTwoToneColors(config: LightConfig): {
-	lightColor: string;
-	darkColor: string;
-} {
-	const lightOffset = 12;
-	const darkOffset = -8;
+interface TriSplitColorInput {
+	readonly segmentDirectionX: number;
+	readonly segmentDirectionY: number;
+	readonly lightAngle: number;
+	readonly trunkHue: number;
+	readonly trunkSaturation: number;
+	readonly trunkLightness: number;
+	readonly centerPerturbationX: number;
+	readonly centerPerturbationY: number;
+}
 
-	const lightColor = hslToHex(
-		config.trunkHue,
-		config.trunkSaturation,
-		config.trunkLightness + lightOffset,
-	);
-	const darkColor = hslToHex(
-		config.trunkHue,
-		config.trunkSaturation,
-		config.trunkLightness + darkOffset,
-	);
-
-	return { lightColor, darkColor };
+interface TriSplitColors {
+	readonly leftColor: string;
+	readonly centerColor: string;
+	readonly rightColor: string;
 }
 
 /**
- * Determine if the "left" side of a quad (relative to its direction) is the
- * light side based on lightAngle. For trunk (vertical), left = screen-left.
- * For branches, left is perpendicular-left relative to branch direction.
+ * Compute tri-split trunk/branch face colors from 3 face normals.
+ *
+ * Left/right normals are derived from the segment direction's perpendicular
+ * at 60° from forward (hex cross-section). Center normal is front-facing
+ * with seeded random xy-perturbation. Each face's lightness offset is
+ * computed via `dot(faceNormal, lightDirection)` mapped to [-10, +12].
  */
-export function isLeftSideLight(lightAngle: number, directionAngleRad: number): boolean {
+export function computeTriSplitColors(input: TriSplitColorInput): TriSplitColors {
+	const {
+		segmentDirectionX: dx,
+		segmentDirectionY: dy,
+		lightAngle,
+		trunkHue,
+		trunkSaturation,
+		trunkLightness,
+		centerPerturbationX,
+		centerPerturbationY,
+	} = input;
+
+	const len = Math.sqrt(dx * dx + dy * dy);
+	// Unit direction; default to pointing up if zero-length
+	const ux = len > 0 ? dx / len : 0;
+	const uy = len > 0 ? dy / len : -1;
+
+	// Hexagonal cross-section face normals at 60° from forward.
+	// Screen-left perpendicular of (ux, uy) is (uy, -ux).
+	const sin60 = Math.sin(Math.PI / 3);
+	const cos60 = Math.cos(Math.PI / 3);
+
+	const leftNormal = normalize3({ x: uy * sin60, y: -ux * sin60, z: cos60 });
+	const centerNormal = normalize3({ x: centerPerturbationX, y: centerPerturbationY, z: 1 });
+	const rightNormal = normalize3({ x: -uy * sin60, y: ux * sin60, z: cos60 });
+
 	const light = normalize3(lightDirection(lightAngle));
-	// Perpendicular left normal of the branch direction
-	const perpX = -Math.sin(directionAngleRad);
-	const perpY = Math.cos(directionAngleRad);
-	// Dot product with light direction — positive means light hits left side
-	return light.x * perpX + light.y * perpY > 0;
+
+	function faceColor(normal: { x: number; y: number; z: number }): string {
+		const d = dot3(normal, light);
+		const lightnessOffset = -10 + ((d + 1) / 2) * 22;
+		return hslToHex(trunkHue, trunkSaturation, trunkLightness + lightnessOffset);
+	}
+
+	return {
+		leftColor: faceColor(leftNormal),
+		centerColor: faceColor(centerNormal),
+		rightColor: faceColor(rightNormal),
+	};
 }

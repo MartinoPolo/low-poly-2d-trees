@@ -124,6 +124,8 @@ export interface TreeConfig {
 	readonly branchDepthTaper: number;
 	/** Branch angle slider (0-100%). 0% = wide spread, 100% = vertical. */
 	readonly branchAngle: number;
+	/** Trunk face-width variation (0-100%). Controls twist and per-face randomness. */
+	readonly trunkTwist: number;
 	/**
 	 * Per-blob overrides for the `custom` tree shape. Only consulted when
 	 * `shape === 'custom'`. Grown lazily in UI state as the user raises the
@@ -169,6 +171,7 @@ export const DEFAULT_TREE_CONFIG: TreeConfig = {
 	branchCrookedness: 0,
 	branchDepthTaper: 55,
 	branchAngle: 50,
+	trunkTwist: 0,
 	fruitType: FRUIT_TYPES.none,
 	fruitCount: 0,
 } as const;
@@ -185,6 +188,7 @@ export const SHAPE_DEFAULTS = {
 		branchesLevel2Range: [1, 2] as readonly [number, number],
 		branchesLevel3Range: [0, 1] as readonly [number, number],
 		branchAngle: 50,
+		trunkTwist: 35,
 		blobSizeVariance: 2.5,
 		blobCloseness: 45,
 		branchThickness: 100,
@@ -208,6 +212,7 @@ export const SHAPE_DEFAULTS = {
 		branchesLevel2Range: [0, 0] as readonly [number, number],
 		branchesLevel3Range: [0, 0] as readonly [number, number],
 		branchAngle: 50,
+		trunkTwist: 20,
 		blobSizeVariance: 2.0,
 		blobCloseness: 30,
 		branchThickness: 100,
@@ -231,6 +236,7 @@ export const SHAPE_DEFAULTS = {
 		branchesLevel2Range: [1, 2] as readonly [number, number],
 		branchesLevel3Range: [0, 1] as readonly [number, number],
 		branchAngle: 60,
+		trunkTwist: 25,
 		blobSizeVariance: 2.5,
 		blobCloseness: 35,
 		branchThickness: 80,
@@ -254,6 +260,7 @@ export const SHAPE_DEFAULTS = {
 		branchesLevel2Range: [0, 0] as readonly [number, number],
 		branchesLevel3Range: [0, 0] as readonly [number, number],
 		branchAngle: 50,
+		trunkTwist: 20,
 		blobSizeVariance: 2.5,
 		blobCloseness: 45,
 		branchThickness: 100,
@@ -277,6 +284,7 @@ export const SHAPE_DEFAULTS = {
 		branchesLevel2Range: [1, 2] as readonly [number, number],
 		branchesLevel3Range: [0, 1] as readonly [number, number],
 		branchAngle: 40,
+		trunkTwist: 30,
 		blobSizeVariance: 1.3,
 		blobCloseness: 40,
 		branchThickness: 100,
@@ -300,6 +308,7 @@ export const SHAPE_DEFAULTS = {
 		branchesLevel2Range: [1, 2] as readonly [number, number],
 		branchesLevel3Range: [0, 1] as readonly [number, number],
 		branchAngle: 30,
+		trunkTwist: 35,
 		blobSizeVariance: 2.0,
 		blobCloseness: 35,
 		branchThickness: 80,
@@ -323,6 +332,7 @@ export const SHAPE_DEFAULTS = {
 		branchesLevel2Range: [0, 0] as readonly [number, number],
 		branchesLevel3Range: [0, 0] as readonly [number, number],
 		branchAngle: 50,
+		trunkTwist: 20,
 		blobSizeVariance: 1.0,
 		blobCloseness: 80,
 		branchThickness: 100,
@@ -346,6 +356,7 @@ export const SHAPE_DEFAULTS = {
 		branchesLevel2Range: [0, 0] as readonly [number, number],
 		branchesLevel3Range: [0, 0] as readonly [number, number],
 		branchAngle: 50,
+		trunkTwist: 25,
 		blobSizeVariance: 2.0,
 		blobCloseness: 70,
 		branchThickness: 100,
@@ -369,6 +380,7 @@ export const SHAPE_DEFAULTS = {
 		branchesLevel2Range: [1, 2] as readonly [number, number],
 		branchesLevel3Range: [0, 0] as readonly [number, number],
 		branchAngle: 35,
+		trunkTwist: 25,
 		blobSizeVariance: 2.0,
 		blobCloseness: 40,
 		branchThickness: 100,
@@ -392,6 +404,7 @@ export const SHAPE_DEFAULTS = {
 		branchesLevel2Range: [0, 0] as readonly [number, number],
 		branchesLevel3Range: [0, 0] as readonly [number, number],
 		branchAngle: 50,
+		trunkTwist: 30,
 		blobSizeVariance: 2.0,
 		blobCloseness: 60,
 		branchThickness: 100,
@@ -415,6 +428,7 @@ export const SHAPE_DEFAULTS = {
 		branchesLevel2Range: [0, 0] as readonly [number, number],
 		branchesLevel3Range: [0, 0] as readonly [number, number],
 		branchAngle: 40,
+		trunkTwist: 40,
 		blobSizeVariance: 1.5,
 		blobCloseness: 60,
 		branchThickness: 100,
@@ -438,6 +452,7 @@ export const SHAPE_DEFAULTS = {
 		branchesLevel2Range: [0, 0] as readonly [number, number],
 		branchesLevel3Range: [0, 0] as readonly [number, number],
 		branchAngle: 25,
+		trunkTwist: 30,
 		blobSizeVariance: 1.5,
 		blobCloseness: 30,
 		branchThickness: 100,
@@ -464,6 +479,7 @@ export const SHAPE_DEFAULTS = {
 		| 'branchesLevel2Range'
 		| 'branchesLevel3Range'
 		| 'branchAngle'
+		| 'trunkTwist'
 		| 'blobSizeVariance'
 		| 'blobCloseness'
 		| 'branchThickness'

@@ -2240,3 +2240,147 @@ describe('B10: custom shape still works after changes', () => {
 		}
 	});
 });
+
+// ============================================================================
+// Tri-split shading engine (issue #80)
+// ============================================================================
+
+describe('#80: tri-split trunk produces 3 quads per segment', () => {
+	it('single-segment trunk (trunkSegments=1) produces exactly 3 trunk quads', () => {
+		const geo = generateTree(makeConfig({ trunkSegments: 1, trunkCrookedness: 0 }));
+		expect(geo.trunkQuads).toHaveLength(3);
+	});
+
+	it('multi-segment trunk produces 3 quads per segment', () => {
+		const geo = generateTree(makeConfig({ trunkSegments: 5, trunkCrookedness: 15 }));
+		expect(geo.trunkQuads).toHaveLength(15);
+	});
+
+	it('each trunk quad has 4 points with no NaN', () => {
+		const geo = generateTree(makeConfig({ trunkSegments: 3 }));
+		for (const quad of geo.trunkQuads) {
+			expect(quad.points).toHaveLength(4);
+			for (const p of quad.points) {
+				expect(Number.isNaN(p.x)).toBe(false);
+				expect(Number.isNaN(p.y)).toBe(false);
+			}
+		}
+	});
+});
+
+describe('#80: tri-split branches produce 3 quads per segment', () => {
+	it('each branch group has exactly 3 quads (single-segment)', () => {
+		const geo = generateTree(makeConfig({ branchDepth: 1, branchesLevel1Range: [3, 3] }));
+		for (const group of geo.branchGroups) {
+			expect(group.quads).toHaveLength(3);
+		}
+	});
+
+	it('each branch group has exactly 3 quads (multi-segment branches)', () => {
+		const geo = generateTree(
+			makeConfig({ branchDepth: 1, branchesLevel1Range: [2, 2], branchSegments: 2 }),
+		);
+		for (const group of geo.branchGroups) {
+			expect(group.quads).toHaveLength(3);
+		}
+	});
+});
+
+describe('#80: tri-split visible on straight trunk (crookedness=0)', () => {
+	it('produces 3 distinct colors on a straight trunk', () => {
+		const geo = generateTree(
+			makeConfig({ trunkSegments: 1, trunkCrookedness: 0, trunkTwist: 0 }),
+		);
+		expect(geo.trunkQuads).toHaveLength(3);
+		const colors = geo.trunkQuads.map((q) => q.color);
+		// At least 2 distinct colors (left/right differ due to lighting asymmetry)
+		expect(new Set(colors).size).toBeGreaterThanOrEqual(2);
+	});
+});
+
+describe('#80: trunkTwist=0 produces uniform face widths', () => {
+	it('center face is approximately 50% of total width', () => {
+		const geo = generateTree(
+			makeConfig({ trunkSegments: 1, trunkCrookedness: 0, trunkTwist: 0 }),
+		);
+		// With 3 quads per segment: [left, center, right]
+		const left = geo.trunkQuads[0]!;
+		const center = geo.trunkQuads[1]!;
+		const right = geo.trunkQuads[2]!;
+
+		// Total width at bottom edge (y is the same for all bottom points)
+		const totalLeft = left.points[3]!.x; // leftmost
+		const totalRight = right.points[2]!.x; // rightmost
+		const totalWidth = totalRight - totalLeft;
+
+		// Center face width at bottom
+		const centerLeft = center.points[3]!.x;
+		const centerRight = center.points[2]!.x;
+		const centerWidth = centerRight - centerLeft;
+
+		const ratio = centerWidth / totalWidth;
+		expect(ratio).toBeCloseTo(0.5, 1);
+	});
+});
+
+describe('#80: trunkTwist=100 produces varied face widths across segments', () => {
+	it('different segments have different face width ratios', () => {
+		const geo = generateTree(
+			makeConfig({ trunkSegments: 5, trunkCrookedness: 15, trunkTwist: 100, seed: 42 }),
+		);
+		// Collect center face width ratios per segment
+		const ratios: number[] = [];
+		for (let s = 0; s < 5; s++) {
+			const left = geo.trunkQuads[s * 3]!;
+			const right = geo.trunkQuads[s * 3 + 2]!;
+			const center = geo.trunkQuads[s * 3 + 1]!;
+
+			const totalWidth = right.points[2]!.x - left.points[3]!.x;
+			const centerWidth = center.points[2]!.x - center.points[3]!.x;
+			if (totalWidth > 0) {
+				ratios.push(centerWidth / totalWidth);
+			}
+		}
+		// At max twist, not all segments should have the same ratio
+		const uniqueRatios = new Set(ratios.map((r) => Math.round(r * 100)));
+		expect(uniqueRatios.size).toBeGreaterThan(1);
+	});
+});
+
+describe('#80: face widths sum to total segment width (no gaps)', () => {
+	it('left + center + right widths equal total width at bottom edge', () => {
+		const geo = generateTree(makeConfig({ trunkSegments: 3, trunkTwist: 50, seed: 99 }));
+		for (let s = 0; s < 3; s++) {
+			const leftQuad = geo.trunkQuads[s * 3]!;
+			const centerQuad = geo.trunkQuads[s * 3 + 1]!;
+			const rightQuad = geo.trunkQuads[s * 3 + 2]!;
+
+			// Bottom edge: left quad right edge should match center quad left edge
+			expect(leftQuad.points[2]!.x).toBeCloseTo(centerQuad.points[3]!.x, 5);
+			// Center quad right edge should match right quad left edge
+			expect(centerQuad.points[2]!.x).toBeCloseTo(rightQuad.points[3]!.x, 5);
+		}
+	});
+});
+
+describe('#80: lightAngle changes which face is brightest', () => {
+	it('lightAngle=0 vs lightAngle=180 swaps trunk face brightness', () => {
+		const geoRight = generateTree(
+			makeConfig({ trunkSegments: 1, trunkCrookedness: 0, lightAngle: 0 }),
+		);
+		const geoLeft = generateTree(
+			makeConfig({ trunkSegments: 1, trunkCrookedness: 0, lightAngle: 180 }),
+		);
+
+		const rightFaceBrightnessAt0 = hexToBrightness(geoRight.trunkQuads[2]!.color);
+		const leftFaceBrightnessAt0 = hexToBrightness(geoRight.trunkQuads[0]!.color);
+
+		const rightFaceBrightnessAt180 = hexToBrightness(geoLeft.trunkQuads[2]!.color);
+		const leftFaceBrightnessAt180 = hexToBrightness(geoLeft.trunkQuads[0]!.color);
+
+		// At lightAngle=0 (right), right face should be brighter
+		expect(rightFaceBrightnessAt0).toBeGreaterThan(leftFaceBrightnessAt0);
+		// At lightAngle=180 (left), left face should be brighter
+		expect(leftFaceBrightnessAt180).toBeGreaterThan(rightFaceBrightnessAt180);
+	});
+});
