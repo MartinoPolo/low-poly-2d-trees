@@ -1,7 +1,7 @@
 import type { TreeConfig, Point2D } from '../types.js';
 import { VIEWBOX_WIDTH } from '../types.js';
 import { randomInRange } from '../prng.js';
-import { sampleTrunkCenterX } from './trunk.js';
+import { sampleTrunkCenterX, computeZoneSplit } from './trunk.js';
 import { isPointInSingleBlob, getBlobsBounds } from './shape_bounds.js';
 import {
 	computeVisibleBranchLength,
@@ -66,8 +66,15 @@ interface BranchContext {
 const FORK_WIDTH_FRACTION_MIN = 0.15;
 const FORK_WIDTH_FRACTION_MAX = 0.2;
 
+/** L2 branch width = this fraction of parent L1 width at fork point (REQ-EV2-F-04). */
+const L2_FORK_WIDTH_FRACTION_MIN = 0.1;
+const L2_FORK_WIDTH_FRACTION_MAX = 0.15;
+
 /** ±15° random angle variation around center branchAngle (REQ-EV2-V-01). */
 const BRANCH_ANGLE_VARIATION_DEG = 15;
+
+/** Multiplier for variance spread around the fork width center fraction (REQ-EV2-F-04). */
+const FORK_WIDTH_VARIANCE_SPREAD_MULTIPLIER = 3;
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -101,7 +108,9 @@ function computeForkBranchWidth(
 ): number {
 	const centerFraction = (FORK_WIDTH_FRACTION_MIN + FORK_WIDTH_FRACTION_MAX) / 2;
 	const varianceSpread =
-		(branchWidthVariance / 100) * (FORK_WIDTH_FRACTION_MAX - FORK_WIDTH_FRACTION_MIN) * 3;
+		(branchWidthVariance / 100) *
+		(FORK_WIDTH_FRACTION_MAX - FORK_WIDTH_FRACTION_MIN) *
+		FORK_WIDTH_VARIANCE_SPREAD_MULTIPLIER;
 	const fraction = centerFraction + (rng() * 2 - 1) * varianceSpread;
 	const clampedFraction = Math.max(0.05, fraction);
 	return trunkWidth * clampedFraction * branchThicknessScale;
@@ -222,10 +231,24 @@ function overlapsAnySameDepth(
 
 function generateTrunkBranches(ctx: BranchContext, branches: GeneratedBranch[]): void {
 	const { rng, config, trunkJunctions, blobs, trunkTop, trunkAxisAngle } = ctx;
-	const trunkHeight = ctx.trunkBottom - trunkTop;
 	const count = sampleBranchCountForLevel(rng, config, 1);
 	if (count <= 0) {
 		return;
+	}
+
+	// REQ-EV2-TZ-01, G-03: L1 branches only at upper-zone junctions
+	const maxL1 = config.branchesLevel1Range[1];
+	const { lowerZoneSegments } = computeZoneSplit(config.trunkSegments, maxL1);
+	// Upper-zone junctions: start at index `lowerZoneSegments`, exclude tip (last junction).
+	// Clamp to actual junction count in case trunkSegments < minimum enforced by zone split.
+	const effectiveLowerSegments = Math.min(lowerZoneSegments, trunkJunctions.length - 2);
+	const upperZoneJunctionIndices: number[] = [];
+	for (let j = Math.max(1, effectiveLowerSegments); j < trunkJunctions.length - 1; j++) {
+		upperZoneJunctionIndices.push(j);
+	}
+	// Fallback: if no upper-zone junctions available, use middle junction
+	if (upperZoneJunctionIndices.length === 0 && trunkJunctions.length >= 2) {
+		upperZoneJunctionIndices.push(Math.floor(trunkJunctions.length / 2));
 	}
 
 	const angleRange = mapBranchAngleRange(config.branchAngle);
@@ -233,7 +256,6 @@ function generateTrunkBranches(ctx: BranchContext, branches: GeneratedBranch[]):
 	// Rule I: L1 alternates left/right with random start
 	const startSide = rng() < 0.5 ? 0 : 1;
 
-	// Rule H: L1 branches from upper half only (t = 0.0 to 0.5 where 0 = top)
 	for (let i = 0; i < count; i++) {
 		if (branches.length >= MAX_TOTAL_BRANCHES) {
 			return;
@@ -243,10 +265,12 @@ function generateTrunkBranches(ctx: BranchContext, branches: GeneratedBranch[]):
 		let accepted: BranchSegment | null = null;
 
 		for (let attempt = 0; attempt < BRANCH_RETRY_ATTEMPTS; attempt++) {
-			// Upper half placement (Rule H): t ranges from 0.05 to 0.5
-			const branchT = randomInRange(rng, 0.05, 0.5);
-			const startY = trunkTop + trunkHeight * branchT;
-			const startX = sampleTrunkCenterX(trunkJunctions, startY);
+			// REQ-EV2-G-03: pick a random upper-zone junction
+			const junctionIdx =
+				upperZoneJunctionIndices[Math.floor(rng() * upperZoneJunctionIndices.length)]!;
+			const junction = trunkJunctions[junctionIdx]!;
+			const startY = junction.y;
+			const startX = junction.x;
 
 			const { min: lenMin, max: lenMax } = resolveBranchLengthRange(
 				TRUNK_BRANCH_BASE_MIN,
@@ -398,9 +422,19 @@ function generateSubBranches(
 				const endX = originX + Math.cos(childAngle) * childLength;
 				const endY = originY + Math.sin(childAngle) * childLength;
 
-				// BR-7: depth taper
-				const taperRatio = config.branchDepthTaper / 100;
-				const widthStart = parent.widthEnd * taperRatio;
+				// REQ-EV2-F-04: L2+ fork width = 10-15% of parent L1 width at fork
+				const l2CenterFraction =
+					(L2_FORK_WIDTH_FRACTION_MIN + L2_FORK_WIDTH_FRACTION_MAX) / 2;
+				const l2VarianceSpread =
+					(config.branchWidthVariance / 100) *
+					(L2_FORK_WIDTH_FRACTION_MAX - L2_FORK_WIDTH_FRACTION_MIN) *
+					FORK_WIDTH_VARIANCE_SPREAD_MULTIPLIER;
+				const l2Fraction = Math.max(
+					0.05,
+					l2CenterFraction + (rng() * 2 - 1) * l2VarianceSpread,
+				);
+				// Parent widthStart already includes thickness scaling from L1 fork economics
+				const widthStart = parent.widthStart * l2Fraction;
 				const widthEnd = Math.max(0.5, widthStart * 0.55);
 
 				const candidate: BranchSegment = {
@@ -438,6 +472,17 @@ function generateSubBranches(
 // Public API
 // ---------------------------------------------------------------------------
 
+/** Fork reduction data for hybrid taper (REQ-EV2-T-01). */
+export interface ForkReduction {
+	readonly junctionIndex: number;
+	readonly reduction: number;
+}
+
+interface BranchGenerationResult {
+	readonly branches: GeneratedBranch[];
+	readonly forkReductions: ForkReduction[];
+}
+
 export function generateBranches(
 	rng: () => number,
 	trunkTop: number,
@@ -447,10 +492,10 @@ export function generateBranches(
 	trunkJunctions: readonly Point2D[],
 	blobs: readonly Blob[],
 	trunkBaseWidth: number = trunkTopWidth * 2,
-): GeneratedBranch[] {
+): BranchGenerationResult {
 	const branchDepth = config.branchDepth;
 	if (branchDepth <= 0) {
-		return [];
+		return { branches: [], forkReductions: [] };
 	}
 
 	const branchThicknessScale = config.branchThickness / 100;
@@ -517,5 +562,28 @@ export function generateBranches(
 		});
 	}
 
-	return branches;
+	// Compute fork reductions for L1 branches (REQ-EV2-T-01)
+	// Each L1 branch removes its widthStart from the trunk at its junction
+	const forkReductions: ForkReduction[] = [];
+	for (const branch of branches) {
+		if (branch.depth !== 1) {
+			continue;
+		}
+		// Find closest junction index by Y position
+		let closestJunctionIdx = 0;
+		let closestDist = Infinity;
+		for (let j = 0; j < trunkJunctions.length; j++) {
+			const dist = Math.abs(trunkJunctions[j]!.y - branch.segment.y1);
+			if (dist < closestDist) {
+				closestDist = dist;
+				closestJunctionIdx = j;
+			}
+		}
+		forkReductions.push({
+			junctionIndex: closestJunctionIdx,
+			reduction: branch.segment.widthStart,
+		});
+	}
+
+	return { branches, forkReductions };
 }

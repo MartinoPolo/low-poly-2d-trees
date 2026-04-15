@@ -43,6 +43,26 @@ function dot3(
 	return a.x * b.x + a.y * b.y + a.z * b.z;
 }
 
+/** Lightness offset range: shadow end (-10) and lit end (+12). */
+const FACE_SHADOW_OFFSET = -10;
+const FACE_LIT_RANGE = 22;
+
+/**
+ * Compute trunk/branch face HSL color from a surface normal and light direction.
+ * Shared by both variable-strip and legacy tri-split color functions.
+ */
+function computeFaceLightnessColor(
+	normal: { x: number; y: number; z: number },
+	light: { x: number; y: number; z: number },
+	trunkHue: number,
+	trunkSaturation: number,
+	trunkLightness: number,
+): string {
+	const d = dot3(normal, light);
+	const lightnessOffset = FACE_SHADOW_OFFSET + ((d + 1) / 2) * FACE_LIT_RANGE;
+	return hslToHex(trunkHue, trunkSaturation, trunkLightness + lightnessOffset);
+}
+
 function triangleCentroid(points: readonly [Point2D, Point2D, Point2D]): Point2D {
 	return {
 		x: (points[0].x + points[1].x + points[2].x) / 3,
@@ -181,12 +201,6 @@ export function computeStripColors(input: StripColorInput): string[] {
 	const faceAngleStep = Math.PI / totalFaces;
 	const light = normalize3(lightDirection(lightAngle));
 
-	function faceColor(normal: { x: number; y: number; z: number }): string {
-		const d = dot3(normal, light);
-		const lightnessOffset = -10 + ((d + 1) / 2) * 22;
-		return hslToHex(trunkHue, trunkSaturation, trunkLightness + lightnessOffset);
-	}
-
 	const colors: string[] = [];
 
 	for (let f = 0; f < stripCount; f++) {
@@ -205,7 +219,9 @@ export function computeStripColors(input: StripColorInput): string[] {
 			normal = normalize3({ x: uy * sinA, y: -ux * sinA, z: cosA });
 		}
 
-		colors.push(faceColor(normal));
+		colors.push(
+			computeFaceLightnessColor(normal, light, trunkHue, trunkSaturation, trunkLightness),
+		);
 	}
 
 	return colors;
@@ -247,15 +263,27 @@ export function computeTriSplitColors(input: TriSplitColorInput): TriSplitColors
 
 	const light = normalize3(lightDirection(lightAngle));
 
-	function faceColor(normal: { x: number; y: number; z: number }): string {
-		const d = dot3(normal, light);
-		const lightnessOffset = -10 + ((d + 1) / 2) * 22;
-		return hslToHex(trunkHue, trunkSaturation, trunkLightness + lightnessOffset);
-	}
-
 	return {
-		leftColor: faceColor(leftNormal),
-		centerColor: faceColor(centerNormal),
-		rightColor: faceColor(rightNormal),
+		leftColor: computeFaceLightnessColor(
+			leftNormal,
+			light,
+			trunkHue,
+			trunkSaturation,
+			trunkLightness,
+		),
+		centerColor: computeFaceLightnessColor(
+			centerNormal,
+			light,
+			trunkHue,
+			trunkSaturation,
+			trunkLightness,
+		),
+		rightColor: computeFaceLightnessColor(
+			rightNormal,
+			light,
+			trunkHue,
+			trunkSaturation,
+			trunkLightness,
+		),
 	};
 }

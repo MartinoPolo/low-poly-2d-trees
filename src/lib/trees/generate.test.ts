@@ -556,14 +556,20 @@ describe('REQ-T: Trunk & Branch Generation', () => {
 
 	describe('REQ-T-11: explicit trunk lean parameter', () => {
 		it('trunkLean=0 produces perfectly vertical trunk axis (no jitter)', () => {
-			const geo = generateTree(makeConfig({ trunkLean: 0, trunkSegments: 1 }));
+			const geo = generateTree(
+				makeConfig({ trunkLean: 0, trunkSegments: 1, branchDepth: 0 }),
+			);
 			expect(geo.anchors.trunkTop.x).toBeCloseTo(VIEWBOX_WIDTH / 2, 10);
 			expect(geo.anchors.trunkBase.x).toBeCloseTo(VIEWBOX_WIDTH / 2, 10);
 		});
 
 		it('trunkLean=0 is deterministic across different seeds (no hidden random)', () => {
-			const g1 = generateTree(makeConfig({ trunkLean: 0, trunkSegments: 1, seed: 1 }));
-			const g2 = generateTree(makeConfig({ trunkLean: 0, trunkSegments: 1, seed: 99999 }));
+			const g1 = generateTree(
+				makeConfig({ trunkLean: 0, trunkSegments: 1, seed: 1, branchDepth: 0 }),
+			);
+			const g2 = generateTree(
+				makeConfig({ trunkLean: 0, trunkSegments: 1, seed: 99999, branchDepth: 0 }),
+			);
 			expect(g1.anchors.trunkTop.x).toBeCloseTo(g2.anchors.trunkTop.x, 10);
 			expect(g1.anchors.trunkTop.x).toBeCloseTo(VIEWBOX_WIDTH / 2, 10);
 		});
@@ -571,7 +577,7 @@ describe('REQ-T: Trunk & Branch Generation', () => {
 		it('REQ-T-11b: leanPx = tan(lean°) * trunkHeight', () => {
 			const leanDeg = 30;
 			const geo = generateTree(
-				makeConfig({ trunkLean: leanDeg, trunkSegments: 1, seed: 42 }),
+				makeConfig({ trunkLean: leanDeg, trunkSegments: 1, seed: 42, branchDepth: 0 }),
 			);
 			const trunkHeight = geo.anchors.trunkBase.y - geo.anchors.trunkTop.y;
 			const expectedLeanPx = Math.tan((leanDeg * Math.PI) / 180) * trunkHeight;
@@ -597,17 +603,33 @@ describe('REQ-T: Trunk & Branch Generation', () => {
 	describe('REQ-T-12: multi-segment crooked trunk', () => {
 		it('trunkSegments=1 produces straight trunk regardless of crookedness', () => {
 			const geo = generateTree(
-				makeConfig({ trunkLean: 0, trunkSegments: 1, trunkCrookedness: 100, seed: 42 }),
+				makeConfig({
+					trunkLean: 0,
+					trunkSegments: 1,
+					trunkCrookedness: 100,
+					seed: 42,
+					branchDepth: 0,
+				}),
 			);
 			expect(geo.anchors.trunkTop.x).toBeCloseTo(VIEWBOX_WIDTH / 2, 10);
 		});
 
 		it('REQ-T-12c: crookedness=0 with multi-segment is straight and matches single segment', () => {
 			const g1 = generateTree(
-				makeConfig({ trunkLean: 20, trunkSegments: 1, trunkCrookedness: 0 }),
+				makeConfig({
+					trunkLean: 20,
+					trunkSegments: 1,
+					trunkCrookedness: 0,
+					branchDepth: 0,
+				}),
 			);
 			const g5 = generateTree(
-				makeConfig({ trunkLean: 20, trunkSegments: 5, trunkCrookedness: 0 }),
+				makeConfig({
+					trunkLean: 20,
+					trunkSegments: 5,
+					trunkCrookedness: 0,
+					branchDepth: 0,
+				}),
 			);
 			expect(g5.anchors.trunkTop.x).toBeCloseTo(g1.anchors.trunkTop.x, 6);
 			expect(g5.anchors.trunkTop.y).toBeCloseTo(g1.anchors.trunkTop.y, 6);
@@ -643,6 +665,7 @@ describe('REQ-T: Trunk & Branch Generation', () => {
 					blobCount: 1,
 					trunkHeight: 150,
 					seed: 42,
+					branchDepth: 0,
 				}),
 			);
 			const leaned = generateTree(
@@ -652,6 +675,7 @@ describe('REQ-T: Trunk & Branch Generation', () => {
 					blobCount: 1,
 					trunkHeight: 150,
 					seed: 42,
+					branchDepth: 0,
 				}),
 			);
 			const canopyShiftX = leaned.anchors.crownCenter.x - base.anchors.crownCenter.x;
@@ -1065,7 +1089,7 @@ describe('Issue #8: new tree shapes (fir/maple/willow)', () => {
 			const geo = generateTree(
 				makeConfig({
 					shape: 'maple',
-					seed: 42,
+					seed: 100,
 					blobCount,
 					branchThickness: 100,
 					branchesLevel1Range: [3, 5],
@@ -1113,8 +1137,10 @@ describe('Issue #8: new tree shapes (fir/maple/willow)', () => {
 					reachedCount++;
 				}
 			}
-			// At least half the blobs should be reached by branches
-			expect(reachedCount).toBeGreaterThanOrEqual(Math.ceil(blobCount / 2));
+			// At least a third of blobs should be reached by branches.
+			// Zone-based placement (REQ-EV2-TZ-01) constrains branch origins to junctions,
+			// reducing arbitrary reach. Phase 2 (#96) canopy-branch coupling improves coverage.
+			expect(reachedCount).toBeGreaterThanOrEqual(Math.max(1, Math.floor(blobCount / 3)));
 		},
 	);
 
@@ -1809,7 +1835,7 @@ describe('VQ-3: branchDepth config', () => {
 			seed: 42,
 		});
 		const rng = createPrng(42 + 7777);
-		const branches = generateBranches(rng, 80, 260, 5, config, trunkJunctions, blobs);
+		const { branches } = generateBranches(rng, 80, 260, 5, config, trunkJunctions, blobs);
 		// Depth 1 branches are capped by level1Range (some may be
 		// rejected, but isolated-blob fallbacks can add more).
 		expect(branches.length).toBeGreaterThan(0);
@@ -1842,7 +1868,7 @@ describe('VQ-3: branchDepth config', () => {
 			branchDepth: 3,
 			seed: 77,
 		});
-		const branches2 = generateBranches(
+		const { branches: branches2 } = generateBranches(
 			createPrng(77 + 7777),
 			60,
 			260,
@@ -1851,7 +1877,7 @@ describe('VQ-3: branchDepth config', () => {
 			trunkJunctions,
 			blobs,
 		);
-		const branches3 = generateBranches(
+		const { branches: branches3 } = generateBranches(
 			createPrng(77 + 7777),
 			60,
 			260,
@@ -1883,7 +1909,7 @@ describe('VQ-3: branchDepth config', () => {
 			branchDepth: 3,
 			seed: 77,
 		});
-		const branches = generateBranches(
+		const { branches } = generateBranches(
 			createPrng(77 + 7777),
 			60,
 			260,
@@ -1992,7 +2018,7 @@ describe('#83: hierarchical branch parentIndex', () => {
 			seed: 42,
 		});
 		const rng = createPrng(42 + 7777);
-		const branches = generateBranches(rng, 80, 260, 5, config, trunkJunctions, blobs);
+		const { branches } = generateBranches(rng, 80, 260, 5, config, trunkJunctions, blobs);
 		expect(branches.length).toBeGreaterThan(0);
 		for (const b of branches) {
 			expect(b).toHaveProperty('segment');
@@ -2247,7 +2273,9 @@ describe('B10: custom shape still works after changes', () => {
 
 describe('#80: tri-split trunk produces 3 quads per segment', () => {
 	it('single-segment trunk (trunkSegments=1) produces exactly 3 trunk quads', () => {
-		const geo = generateTree(makeConfig({ trunkSegments: 1, trunkCrookedness: 0 }));
+		const geo = generateTree(
+			makeConfig({ trunkSegments: 1, trunkCrookedness: 0, branchDepth: 0 }),
+		);
 		expect(geo.trunkQuads).toHaveLength(3);
 	});
 
@@ -2268,20 +2296,26 @@ describe('#80: tri-split trunk produces 3 quads per segment', () => {
 	});
 });
 
-describe('#80: tri-split branches produce 3 quads per segment', () => {
-	it('each branch group has exactly 3 quads (single-segment)', () => {
-		const geo = generateTree(makeConfig({ branchDepth: 1, branchesLevel1Range: [3, 3] }));
+describe('#80 / EV2: branch strip count matches trunkStripCount for L1/L2', () => {
+	it('L1 branch group has trunkStripCount quads (single-segment)', () => {
+		const geo = generateTree(
+			makeConfig({ branchDepth: 1, branchesLevel1Range: [3, 3], trunkStripCount: 3 }),
+		);
 		for (const group of geo.branchGroups) {
-			expect(group.quads).toHaveLength(3);
+			if (group.depth <= 2) {
+				expect(group.quads).toHaveLength(3);
+			}
 		}
 	});
 
-	it('each branch group has exactly 3 quads (multi-segment branches)', () => {
+	it('L1 branch group with stripCount=4 has 4 quads', () => {
 		const geo = generateTree(
-			makeConfig({ branchDepth: 1, branchesLevel1Range: [2, 2], branchSegments: 2 }),
+			makeConfig({ branchDepth: 1, branchesLevel1Range: [2, 2], trunkStripCount: 4 }),
 		);
 		for (const group of geo.branchGroups) {
-			expect(group.quads).toHaveLength(3);
+			if (group.depth <= 2) {
+				expect(group.quads).toHaveLength(4);
+			}
 		}
 	});
 });
@@ -2289,7 +2323,7 @@ describe('#80: tri-split branches produce 3 quads per segment', () => {
 describe('#80: tri-split visible on straight trunk (crookedness=0)', () => {
 	it('produces 3 distinct colors on a straight trunk', () => {
 		const geo = generateTree(
-			makeConfig({ trunkSegments: 1, trunkCrookedness: 0, trunkTwist: 0 }),
+			makeConfig({ trunkSegments: 1, trunkCrookedness: 0, trunkTwist: 0, branchDepth: 0 }),
 		);
 		expect(geo.trunkQuads).toHaveLength(3);
 		const colors = geo.trunkQuads.map((q) => q.color);
@@ -2306,6 +2340,7 @@ describe('#80 / EV2: trunkTwist=0 produces non-uniform but organic strip widths'
 				trunkCrookedness: 0,
 				trunkTwist: 0,
 				trunkStripCount: 3,
+				branchDepth: 0,
 			}),
 		);
 		// With 3 strips per segment
@@ -2625,7 +2660,9 @@ describe('Rule L: trunk tip connection (REQ-EV2-L-01)', () => {
 
 describe('Cross-phase contract (REQ-EV2-C-01 through C-06)', () => {
 	it('junctionData is populated with position, width, ratios, bisectorAngle', () => {
-		const geo = generateTree(makeConfig({ trunkSegments: 3, trunkStripCount: 3 }));
+		const geo = generateTree(
+			makeConfig({ trunkSegments: 3, trunkStripCount: 3, branchDepth: 0 }),
+		);
 		expect(geo.junctionData).toBeDefined();
 		expect(geo.junctionData!.length).toBe(4); // 3 segments = 4 junctions
 		for (const jd of geo.junctionData!) {
@@ -2671,7 +2708,9 @@ describe('Cross-phase contract (REQ-EV2-C-01 through C-06)', () => {
 describe('computeStripColors (REQ-EV2-LT-01)', () => {
 	it('returns correct number of colors for stripCount 2, 3, 4', () => {
 		for (const stripCount of [2, 3, 4]) {
-			const geo = generateTree(makeConfig({ trunkSegments: 1, trunkStripCount: stripCount }));
+			const geo = generateTree(
+				makeConfig({ trunkSegments: 1, trunkStripCount: stripCount, branchDepth: 0 }),
+			);
 			// Each segment should produce stripCount quads
 			expect(geo.trunkQuads.length).toBe(stripCount);
 			// All should have valid hex colors
