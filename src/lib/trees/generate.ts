@@ -47,7 +47,7 @@ import {
 	type GeneratedBranch,
 } from './shapes.js';
 import { BOUNDARIES, BOUNDARY_KINDS, smoothAcuteBoundaryAngles } from './boundaries.js';
-import { computeCanopyColor, computeTwoToneColors, isLeftSideLight } from './lighting.js';
+import { computeCanopyColor, computeTriSplitColors } from './lighting.js';
 
 // REQ-C-12: shapes whose circle-boundary blobs should have acute concavities
 // pulled back to the ellipse ring for a rounder silhouette.
@@ -192,7 +192,51 @@ function computeAnchors(
 }
 
 // ---------------------------------------------------------------------------
-// Trunk quad generation (BR-1: stacked trapezoids with centerline)
+// Tri-split constants and face width computation
+// ---------------------------------------------------------------------------
+
+const TRUNK_SEGMENT_SEED_OFFSET = 500;
+const BRANCH_SEED_OFFSET = 700;
+/** Center normal xy-perturbation: (rng - 0.5) * this = ±0.15 range. */
+const CENTER_NORMAL_PERTURBATION_RANGE = 0.3;
+
+// ---------------------------------------------------------------------------
+
+function computeTriSplitFaceWidths(
+	rng: () => number,
+	trunkTwist: number,
+): { leftWidth: number; centerWidth: number; rightWidth: number } {
+	const twistFraction = trunkTwist / 100;
+	const maxTwistDeg = twistFraction * 30;
+	const twistRad = ((rng() * 2 - 1) * maxTwistDeg * Math.PI) / 180;
+
+	// Hex-projection base widths
+	let leftWidth = Math.abs(Math.cos(twistRad - Math.PI / 3));
+	let centerWidth = Math.abs(Math.cos(twistRad));
+	let rightWidth = Math.abs(Math.cos(twistRad + Math.PI / 3));
+
+	// Per-face random scale (range interpolated by twist fraction)
+	leftWidth *= 1 + (rng() - 0.5) * twistFraction;
+	centerWidth *= 1 + (rng() - 0.5) * twistFraction;
+	rightWidth *= 1 + (rng() - 0.5) * twistFraction;
+
+	// Normalize to sum = 1
+	const total = leftWidth + centerWidth + rightWidth;
+	if (total > 0) {
+		leftWidth /= total;
+		centerWidth /= total;
+		rightWidth /= total;
+	} else {
+		leftWidth = 0.25;
+		centerWidth = 0.5;
+		rightWidth = 0.25;
+	}
+
+	return { leftWidth, centerWidth, rightWidth };
+}
+
+// ---------------------------------------------------------------------------
+// Trunk quad generation (tri-split: 3 quads per segment)
 // ---------------------------------------------------------------------------
 
 function generateTrunkQuads(
@@ -211,17 +255,8 @@ function generateTrunkQuads(
 		return [];
 	}
 
-	const { lightColor, darkColor } = computeTwoToneColors(config);
-	// For trunk (vertical direction), angle is ~-PI/2 (pointing up)
-	const trunkDirectionAngle = Math.atan2(
-		trunkJunctions[trunkJunctions.length - 1]!.y - trunkJunctions[0]!.y,
-		trunkJunctions[trunkJunctions.length - 1]!.x - trunkJunctions[0]!.x,
-	);
-	const leftIsLight = isLeftSideLight(config.lightAngle, trunkDirectionAngle);
-
 	const quads: Quad[] = [];
 
-	// Build one quad per trunk segment (between adjacent junctions)
 	for (let i = 0; i < trunkJunctions.length - 1; i++) {
 		const bottom = trunkJunctions[i]!;
 		const top = trunkJunctions[i + 1]!;
@@ -231,27 +266,70 @@ function generateTrunkQuads(
 		const widthBottom = effectiveTopWidth + tBottom * (effectiveBaseWidth - effectiveTopWidth);
 		const widthTop = effectiveTopWidth + tTop * (effectiveBaseWidth - effectiveTopWidth);
 
-		// Left half quad (from left edge to centerline)
-		const leftColor = leftIsLight ? lightColor : darkColor;
+		// Per-segment PRNG for twist, face widths, and center perturbation
+		const segmentRng = createPrng(config.seed + i * 1000 + TRUNK_SEGMENT_SEED_OFFSET);
+
+		const { leftWidth, centerWidth } = computeTriSplitFaceWidths(segmentRng, config.trunkTwist);
+
+		const centerPerturbX = (segmentRng() - 0.5) * CENTER_NORMAL_PERTURBATION_RANGE;
+		const centerPerturbY = (segmentRng() - 0.5) * CENTER_NORMAL_PERTURBATION_RANGE;
+
+		const dirX = top.x - bottom.x;
+		const dirY = top.y - bottom.y;
+
+		const { leftColor, centerColor, rightColor } = computeTriSplitColors({
+			segmentDirectionX: dirX,
+			segmentDirectionY: dirY,
+			lightAngle: config.lightAngle,
+			trunkHue: config.trunkHue,
+			trunkSaturation: config.trunkSaturation,
+			trunkLightness: config.trunkLightness,
+			centerPerturbationX: centerPerturbX,
+			centerPerturbationY: centerPerturbY,
+		});
+
+		// Split positions along the width at bottom and top
+		const bLeft = bottom.x - widthBottom / 2;
+		const bLeftSplit = bLeft + leftWidth * widthBottom;
+		const bRightSplit = bLeft + (leftWidth + centerWidth) * widthBottom;
+		const bRight = bottom.x + widthBottom / 2;
+
+		const tLeft = top.x - widthTop / 2;
+		const tLeftSplit = tLeft + leftWidth * widthTop;
+		const tRightSplit = tLeft + (leftWidth + centerWidth) * widthTop;
+		const tRight = top.x + widthTop / 2;
+
+		// Left face
 		quads.push({
 			points: [
-				{ x: top.x - widthTop / 2, y: top.y },
-				{ x: top.x, y: top.y },
-				{ x: bottom.x, y: bottom.y },
-				{ x: bottom.x - widthBottom / 2, y: bottom.y },
+				{ x: tLeft, y: top.y },
+				{ x: tLeftSplit, y: top.y },
+				{ x: bLeftSplit, y: bottom.y },
+				{ x: bLeft, y: bottom.y },
 			],
 			color: leftColor,
 			group: GEOMETRY_GROUPS.trunk,
 		});
 
-		// Right half quad (from centerline to right edge)
-		const rightColor = leftIsLight ? darkColor : lightColor;
+		// Center face
 		quads.push({
 			points: [
-				{ x: top.x, y: top.y },
-				{ x: top.x + widthTop / 2, y: top.y },
-				{ x: bottom.x + widthBottom / 2, y: bottom.y },
-				{ x: bottom.x, y: bottom.y },
+				{ x: tLeftSplit, y: top.y },
+				{ x: tRightSplit, y: top.y },
+				{ x: bRightSplit, y: bottom.y },
+				{ x: bLeftSplit, y: bottom.y },
+			],
+			color: centerColor,
+			group: GEOMETRY_GROUPS.trunk,
+		});
+
+		// Right face
+		quads.push({
+			points: [
+				{ x: tRightSplit, y: top.y },
+				{ x: tRight, y: top.y },
+				{ x: bRight, y: bottom.y },
+				{ x: bRightSplit, y: bottom.y },
 			],
 			color: rightColor,
 			group: GEOMETRY_GROUPS.trunk,
@@ -262,7 +340,7 @@ function generateTrunkQuads(
 }
 
 // ---------------------------------------------------------------------------
-// Branch quad generation (BR-3: same quad + centerline system as trunk)
+// Branch quad generation (tri-split: 3 quads per segment)
 // ---------------------------------------------------------------------------
 
 function generateBranchQuadGroup(
@@ -271,8 +349,6 @@ function generateBranchQuadGroup(
 	depth: number,
 	parentIndex: number | null = null,
 ): BranchGeometry {
-	const { lightColor, darkColor } = computeTwoToneColors(config);
-
 	const dirX = branch.x2 - branch.x1;
 	const dirY = branch.y2 - branch.y1;
 	const length = Math.sqrt(dirX * dirX + dirY * dirY);
@@ -286,44 +362,84 @@ function generateBranchQuadGroup(
 		};
 	}
 
-	// Unit direction and perpendicular
+	// Unit direction and perpendicular (screen-left = (uy, -ux) convention)
 	const ux = dirX / length;
 	const uy = dirY / length;
 	const perpX = -uy;
 	const perpY = ux;
 
-	const branchAngle = Math.atan2(dirY, dirX);
-	const leftIsLight = isLeftSideLight(config.lightAngle, branchAngle);
-	const leftColor = leftIsLight ? lightColor : darkColor;
-	const rightColor = leftIsLight ? darkColor : lightColor;
+	// Per-branch PRNG seeded from position to ensure determinism
+	const branchRng = createPrng(
+		config.seed +
+			Math.round(branch.x1 * 100) +
+			Math.round(branch.y1 * 100) +
+			BRANCH_SEED_OFFSET,
+	);
 
-	// Single segment: one quad pair (left half + right half)
+	const { leftWidth, centerWidth } = computeTriSplitFaceWidths(branchRng, config.trunkTwist);
+
+	const centerPerturbX = (branchRng() - 0.5) * CENTER_NORMAL_PERTURBATION_RANGE;
+	const centerPerturbY = (branchRng() - 0.5) * CENTER_NORMAL_PERTURBATION_RANGE;
+
+	const { leftColor, centerColor, rightColor } = computeTriSplitColors({
+		segmentDirectionX: dirX,
+		segmentDirectionY: dirY,
+		lightAngle: config.lightAngle,
+		trunkHue: config.trunkHue,
+		trunkSaturation: config.trunkSaturation,
+		trunkLightness: config.trunkLightness,
+		centerPerturbationX: centerPerturbX,
+		centerPerturbationY: centerPerturbY,
+	});
+
+	// Split offsets along perpendicular (positive = left, negative = right)
 	const halfStart = branch.widthStart / 2;
 	const halfEnd = branch.widthEnd / 2;
 
-	const startLeft: Point2D = {
-		x: branch.x1 + perpX * halfStart,
-		y: branch.y1 + perpY * halfStart,
-	};
-	const startCenter: Point2D = { x: branch.x1, y: branch.y1 };
-	const startRight: Point2D = {
-		x: branch.x1 - perpX * halfStart,
-		y: branch.y1 - perpY * halfStart,
-	};
-	const endLeft: Point2D = { x: branch.x2 + perpX * halfEnd, y: branch.y2 + perpY * halfEnd };
-	const endCenter: Point2D = { x: branch.x2, y: branch.y2 };
-	const endRight: Point2D = { x: branch.x2 - perpX * halfEnd, y: branch.y2 - perpY * halfEnd };
+	function splitPoints(
+		cx: number,
+		cy: number,
+		half: number,
+	): [Point2D, Point2D, Point2D, Point2D] {
+		const leftEdgeOffset = half;
+		const leftSplitOffset = half * (1 - 2 * leftWidth);
+		const rightSplitOffset = half * (1 - 2 * (leftWidth + centerWidth));
+		const rightEdgeOffset = -half;
+		return [
+			{ x: cx + perpX * leftEdgeOffset, y: cy + perpY * leftEdgeOffset },
+			{ x: cx + perpX * leftSplitOffset, y: cy + perpY * leftSplitOffset },
+			{ x: cx + perpX * rightSplitOffset, y: cy + perpY * rightSplitOffset },
+			{ x: cx + perpX * rightEdgeOffset, y: cy + perpY * rightEdgeOffset },
+		];
+	}
+
+	const [sLeftEdge, sLeftSplit, sRightSplit, sRightEdge] = splitPoints(
+		branch.x1,
+		branch.y1,
+		halfStart,
+	);
+	const [eLeftEdge, eLeftSplit, eRightSplit, eRightEdge] = splitPoints(
+		branch.x2,
+		branch.y2,
+		halfEnd,
+	);
 
 	const quads: Quad[] = [
-		// Left half
+		// Left face
 		{
-			points: [startLeft, startCenter, endCenter, endLeft],
+			points: [sLeftEdge, sLeftSplit, eLeftSplit, eLeftEdge],
 			color: leftColor,
 			group: GEOMETRY_GROUPS.branch,
 		},
-		// Right half
+		// Center face
 		{
-			points: [startCenter, startRight, endRight, endCenter],
+			points: [sLeftSplit, sRightSplit, eRightSplit, eLeftSplit],
+			color: centerColor,
+			group: GEOMETRY_GROUPS.branch,
+		},
+		// Right face
+		{
+			points: [sRightSplit, sRightEdge, eRightEdge, eRightSplit],
 			color: rightColor,
 			group: GEOMETRY_GROUPS.branch,
 		},

@@ -56,6 +56,7 @@ export const DISABLED_PARAMS_BY_SHAPE = {
 		'trunkSegments',
 		'trunkCrookedness',
 		'crookednessMode',
+		'trunkTwist',
 	],
 	[TREE_SHAPES.baobab]: [],
 	[TREE_SHAPES.acacia]: [],

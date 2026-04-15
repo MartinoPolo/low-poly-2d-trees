@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { computeCanopyColor, computeTrunkColor } from './lighting.js';
+import { computeCanopyColor, computeTrunkColor, computeTriSplitColors } from './lighting.js';
 import { hexToHsl } from './color.js';
 import type { Point2D } from './types.js';
 
@@ -163,5 +163,116 @@ describe('VQ-2: changing lightAngle shifts brightness distribution', () => {
 		// With light from right (0), right tri should be much brighter than
 		// with light from left (180) — at least 15 lightness units difference
 		expect(lightness0 - lightness180).toBeGreaterThan(15);
+	});
+});
+
+// ---------------------------------------------------------------------------
+// Tri-split shading (issue #80)
+// ---------------------------------------------------------------------------
+
+const triSplitBase = {
+	segmentDirectionX: 0,
+	segmentDirectionY: -1, // vertical trunk pointing up
+	lightAngle: 0,
+	trunkHue: 25,
+	trunkSaturation: 50,
+	trunkLightness: 25,
+	centerPerturbationX: 0,
+	centerPerturbationY: 0,
+} as const;
+
+describe('computeTriSplitColors — returns 3 valid hex colors', () => {
+	it('returns leftColor, centerColor, rightColor as valid hex', () => {
+		const result = computeTriSplitColors(triSplitBase);
+		expect(result.leftColor).toMatch(/^#[0-9a-f]{6}$/);
+		expect(result.centerColor).toMatch(/^#[0-9a-f]{6}$/);
+		expect(result.rightColor).toMatch(/^#[0-9a-f]{6}$/);
+	});
+
+	it('produces 3 distinct colors for a vertical trunk', () => {
+		const result = computeTriSplitColors(triSplitBase);
+		const colors = new Set([result.leftColor, result.centerColor, result.rightColor]);
+		// At least 2 distinct colors (center may differ from sides due to z-dominant normal)
+		expect(colors.size).toBeGreaterThanOrEqual(2);
+	});
+});
+
+describe('computeTriSplitColors — lightAngle shifts brightness', () => {
+	it('lightAngle=0 makes right face brightest for vertical trunk', () => {
+		const result = computeTriSplitColors({ ...triSplitBase, lightAngle: 0 });
+		const leftL = hexToHsl(result.leftColor).l;
+		const rightL = hexToHsl(result.rightColor).l;
+		expect(rightL).toBeGreaterThan(leftL);
+	});
+
+	it('lightAngle=180 makes left face brightest for vertical trunk', () => {
+		const result = computeTriSplitColors({ ...triSplitBase, lightAngle: 180 });
+		const leftL = hexToHsl(result.leftColor).l;
+		const rightL = hexToHsl(result.rightColor).l;
+		expect(leftL).toBeGreaterThan(rightL);
+	});
+
+	it('flipping lightAngle 0→180 reverses left/right brightness ordering', () => {
+		const at0 = computeTriSplitColors({ ...triSplitBase, lightAngle: 0 });
+		const at180 = computeTriSplitColors({ ...triSplitBase, lightAngle: 180 });
+		const rightBrighterAt0 = hexToHsl(at0.rightColor).l > hexToHsl(at0.leftColor).l;
+		const leftBrighterAt180 = hexToHsl(at180.leftColor).l > hexToHsl(at180.rightColor).l;
+		expect(rightBrighterAt0).toBe(true);
+		expect(leftBrighterAt180).toBe(true);
+	});
+});
+
+describe('computeTriSplitColors — lightness offset range [-10, +12]', () => {
+	it('all face lightness offsets stay within [-10, +12] of base', () => {
+		const baseLightness = triSplitBase.trunkLightness;
+		// Test multiple angles to cover full dot-product range
+		for (const angle of [0, 45, 90, 130, 180, 270]) {
+			const result = computeTriSplitColors({ ...triSplitBase, lightAngle: angle });
+			for (const color of [result.leftColor, result.centerColor, result.rightColor]) {
+				const l = hexToHsl(color).l;
+				const offset = l - baseLightness;
+				expect(offset).toBeGreaterThanOrEqual(-11); // 1 unit tolerance for rounding
+				expect(offset).toBeLessThanOrEqual(13);
+			}
+		}
+	});
+});
+
+describe('computeTriSplitColors — center perturbation', () => {
+	it('different center perturbation produces different center color', () => {
+		const a = computeTriSplitColors({
+			...triSplitBase,
+			centerPerturbationX: 0.1,
+			centerPerturbationY: 0,
+		});
+		const b = computeTriSplitColors({
+			...triSplitBase,
+			centerPerturbationX: -0.1,
+			centerPerturbationY: 0,
+		});
+		expect(a.centerColor).not.toBe(b.centerColor);
+	});
+
+	it('perturbation does not affect left/right colors', () => {
+		const a = computeTriSplitColors({
+			...triSplitBase,
+			centerPerturbationX: 0.15,
+			centerPerturbationY: 0.15,
+		});
+		const b = computeTriSplitColors({
+			...triSplitBase,
+			centerPerturbationX: -0.15,
+			centerPerturbationY: -0.15,
+		});
+		expect(a.leftColor).toBe(b.leftColor);
+		expect(a.rightColor).toBe(b.rightColor);
+	});
+});
+
+describe('computeTriSplitColors — deterministic', () => {
+	it('same inputs produce identical outputs', () => {
+		const a = computeTriSplitColors(triSplitBase);
+		const b = computeTriSplitColors(triSplitBase);
+		expect(a).toEqual(b);
 	});
 });

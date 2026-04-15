@@ -521,6 +521,19 @@
 								unit="%"
 								bind:value={treeConfig.current.branchLengthVariance}
 							/>
+							<LabeledSlider
+								label="Trunk Twist"
+								min={0}
+								max={100}
+								step={5}
+								unit="%"
+								bind:value={treeConfig.current.trunkTwist}
+								disabled={isParamDisabled(
+									treeConfig.current.shape,
+									'trunkTwist',
+									treeConfig.current,
+								)}
+							/>
 						{/if}
 					</Card.Content>
 				</Card.Root>
