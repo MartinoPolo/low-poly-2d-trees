@@ -788,20 +788,20 @@ Trunk color UI includes preset swatch buttons that set all three HSL sliders at 
 
 - [ ] **REQ-EV2-TZ-03** Updated SHAPE_DEFAULTS for `trunkSegments`:
 
-          | Shape   | Current | Max L1 | New Default | Zone Split (lower + upper) |
-          |---------|---------|--------|-------------|---------------------------|
-          | oak     | 5       | 3      | 5           | 1 + 4                     |
-          | maple   | 3       | 5      | 7           | 2 + 5                     |
-          | willow  | 5       | 5      | 7           | 2 + 5                     |
-          | cherry  | 3       | 4      | 6           | 1 + 5                     |
-          | birch   | 3       | 2      | 4           | 1 + 3                     |
-          | apple   | 3       | 2      | 3           | 1 + 2                     |
-          | baobab  | 3       | 3      | 5           | 1 + 4                     |
-          | acacia  | 3       | 3      | 5           | 1 + 4                     |
-          | pine    | 3       | 0      | 3           | unchanged (no branches)    |
-          | fir     | 3       | 0      | 3           | unchanged (no branches)    |
-          | cypress | 3       | 0      | 3           | unchanged (no branches)    |
-          | bush    | 3       | 0      | 3           | unchanged (no branches)    |
+                                                                  | Shape   | Current | Max L1 | New Default | Zone Split (lower + upper) |
+                                                                  |---------|---------|--------|-------------|---------------------------|
+                                                                  | oak     | 5       | 3      | 5           | 1 + 4                     |
+                                                                  | maple   | 3       | 5      | 7           | 2 + 5                     |
+                                                                  | willow  | 5       | 5      | 7           | 2 + 5                     |
+                                                                  | cherry  | 3       | 4      | 6           | 1 + 5                     |
+                                                                  | birch   | 3       | 2      | 4           | 1 + 3                     |
+                                                                  | apple   | 3       | 2      | 3           | 1 + 2                     |
+                                                                  | baobab  | 3       | 3      | 5           | 1 + 4                     |
+                                                                  | acacia  | 3       | 3      | 5           | 1 + 4                     |
+                                                                  | pine    | 3       | 0      | 3           | unchanged (no branches)    |
+                                                                  | fir     | 3       | 0      | 3           | unchanged (no branches)    |
+                                                                  | cypress | 3       | 0      | 3           | unchanged (no branches)    |
+                                                                  | bush    | 3       | 0      | 3           | unchanged (no branches)    |
 
 ### 13.6 Bottom-Up Sequential Generation
 
@@ -937,110 +937,113 @@ Phase 1 must deliver these interfaces for Phase 2 to consume:
 
 ### 14.1 Z-Ordering — Front/Back Branch Placement
 
-- [ ] **REQ-EV2-Z-01** Branches are classified as **front** (in front of trunk) or **back**
+- [x] **REQ-EV2-Z-01** Branches are classified as **front** (in front of trunk) or **back**
       (behind trunk) using light-angle-biased randomness: - Branches on the **lit side** (facing `lightAngle`): 70% chance of front placement. - Branches on the **shadow side**: 30% chance of front placement. - Classification is seeded for determinism.
 
-- [ ] **REQ-EV2-Z-02** Back branches render **before** trunk quads in SVG order and receive a
+- [x] **REQ-EV2-Z-02** Back branches render **before** trunk quads in SVG order and receive a
       **−3 lightness offset** (subtle darkness for depth cue). Front branches render after trunk
       (current behavior, no offset).
 
-- [ ] **REQ-EV2-Z-03** L2 branches inherit their parent L1's front/back status by default, with
+- [x] **REQ-EV2-Z-03** L2 branches inherit their parent L1's front/back status by default, with
       a small seeded chance (~20%) of flipping. The L2→L1 depth relationship mirrors the L1→trunk
       relationship — consistent hierarchy.
 
-- [ ] **REQ-EV2-Z-04** Five z-order render layers for branching shapes (painter's order): 1. Back branches (behind trunk) 2. Trunk quads 3. Front branches (in front of trunk) 4. Back canopy blobs (connected to back branches) 5. Front canopy blobs (connected to front/trunk branches)
+- [x] **REQ-EV2-Z-04** Five z-order render layers for branching shapes (painter's order): 1. Back branches (behind trunk) 2. Trunk quads 3. Front branches (in front of trunk) 4. Back canopy blobs (connected to back branches) 5. Front canopy blobs (connected to front/trunk branches)
       Branchless shapes retain the original 3-layer model (REQ-R-02).
 
-- [ ] **REQ-EV2-Z-05** Each geometry element (`Quad`, `Triangle`, `BranchGeometry`,
+- [x] **REQ-EV2-Z-05** Each container geometry element (`Quad`, `BranchGeometry`,
       `BlobGeometry`) gains a `zOrder` field. The renderer sorts by z-order layer. This replaces
-      the fixed array-based render order.
+      the fixed array-based render order. **`Triangle` is explicitly waived** — triangles always
+      inherit ordering from their parent `BlobGeometry` (whose `zOrder` governs the whole blob),
+      or render in fixed pipeline slots (trunk/fruit/flower/stake). Per-triangle z-order has no
+      consumer in the renderer and would add dead state on every triangle.
 
 ### 14.2 Revised Generation Pipeline
 
-- [ ] **REQ-EV2-P-01** For branching shapes, the generation pipeline is: 1. Build trunk path with two-zone segments (bottom-up, with fork reactions — from Phase 1) 2. Fork L1 branches from trunk at upper-zone junctions (Phase 1) 3. Fork L2 branches from L1 branches using same model (Phase 1) 4. Generate L3 branches (simplified, Phase 1) 5. **Cluster branch tips into blob groups** (new in Phase 2) 6. **Generate canopy blobs around cluster centroids** (new in Phase 2) 7. **Assign z-order to all geometry elements** (new in Phase 2)
+- [x] **REQ-EV2-P-01** For branching shapes, the generation pipeline is: 1. Build trunk path with two-zone segments (bottom-up, with fork reactions — from Phase 1) 2. Fork L1 branches from trunk at upper-zone junctions (Phase 1) 3. Fork L2 branches from L1 branches using same model (Phase 1) 4. Generate L3 branches (simplified, Phase 1) 5. **Cluster branch tips into blob groups** (new in Phase 2) 6. **Generate canopy blobs around cluster centroids** (new in Phase 2) 7. **Assign z-order to all geometry elements** (new in Phase 2)
 
-- [ ] **REQ-EV2-P-02** Branchless shapes (pine, fir, cypress, bush) keep their **current
+- [x] **REQ-EV2-P-02** Branchless shapes (pine, fir, cypress, bush) keep their **current
       generation system entirely**. Tier-based canopy for pine/fir, blob generators for
       bush/cypress. No changes to branchless shape rendering.
 
 ### 14.3 Branch-Driven Canopy Blob Placement
 
-- [ ] **REQ-EV2-BC-01** Given N branch tips (L1 + L2 + optional trunk tip), cluster them into M
+- [x] **REQ-EV2-BC-01** Given N branch tips (L1 + L2 + optional trunk tip), cluster them into M
       groups where M = `blobCount` slider value. Use a clustering algorithm (e.g., k-means or
       similar seeded algorithm). Each blob is centered on its cluster's centroid. - Tips close together share a blob (wide canopy supported by multiple branches). - Tips far apart get individual blobs. - `blobCount` slider meaning shifts from "number of ellipses" to "number of canopy
       clusters" — more intuitive.
 
-- [ ] **REQ-EV2-BC-02** The trunk tip is included as a cluster point. For shapes like oak, the
+- [x] **REQ-EV2-BC-02** The trunk tip is included as a cluster point. For shapes like oak, the
       trunk tip has **higher weight** in the clustering (attracts a blob to itself = central
       crown). For shapes like maple, the trunk tip has low/zero weight (no central blob — maple's
       trunk tip is a fork point, not a canopy anchor).
 
-- [ ] **REQ-EV2-BC-03** **Key visual requirement:** branches must go into the **middle** of their
+- [x] **REQ-EV2-BC-03** **Key visual requirement:** branches must go into the **middle** of their
       blob. This is more important than strict geometric positioning rules. If a branch tip lands
       at the edge of a blob, the blob should shift to center on the tip, not the other way around.
 
-- [ ] **REQ-EV2-BC-04** Weaker branches (higher depth levels) get **smaller blobs**. An L3 branch
+- [x] **REQ-EV2-BC-04** Weaker branches (higher depth levels) get **smaller blobs**. An L3 branch
       tip should never anchor the biggest blob. Blob size correlates with the branch
       level/thickness of its strongest contributing branch tip.
 
 ### 14.4 Blob Sizing
 
-- [ ] **REQ-EV2-BS-01** Blob base radius is determined by two factors combined: - **Cluster size** — more branch tips in a cluster → larger blob radius. - **Branch thickness** — thicker branches (L1) produce larger blobs than thinner (L2, L3).
+- [x] **REQ-EV2-BS-01** Blob base radius is determined by two factors combined: - **Cluster size** — more branch tips in a cluster → larger blob radius. - **Branch thickness** — thicker branches (L1) produce larger blobs than thinner (L2, L3).
       `blobSizeVariance` adds seeded randomness on top.
 
-- [ ] **REQ-EV2-BS-02** `canopySize` slider scales the **canopy envelope** smartly: - Does NOT simply multiply all radii — adapts cluster boundaries so branches remain visible. - Small `canopySize` → tight envelope, fewer tips covered, more bare branches visible
+- [x] **REQ-EV2-BS-02** `canopySize` slider scales the **canopy envelope** smartly: - Does NOT simply multiply all radii — adapts cluster boundaries so branches remain visible. - Small `canopySize` → tight envelope, fewer tips covered, more bare branches visible
       (good for sapling/young tree stages). - Large `canopySize` → wider envelope, more tips covered, lush canopy. - Branches should remain visible at all canopy sizes — the envelope grows to cover tips
       further out, it doesn't inflate blobs to hide nearby branches.
 
 ### 14.5 Canopy Envelope
 
-- [ ] **REQ-EV2-CE-01** Each shape defines a **canopy envelope** — a bounding region where blobs
+- [x] **REQ-EV2-CE-01** Each shape defines a **canopy envelope** — a bounding region where blobs
       should exist. Derived from the spatial patterns of current blob generators (making implicit
       knowledge explicit).
 
-- [ ] **REQ-EV2-CE-02** `canopySize` scales the envelope from its center (grows outward/upward,
+- [x] **REQ-EV2-CE-02** `canopySize` scales the envelope from its center (grows outward/upward,
       not downward into the trunk).
 
-- [ ] **REQ-EV2-CE-03** **Viewport clamp:** the canopy envelope cannot extend within **10 px** of
+- [x] **REQ-EV2-CE-03** **Viewport clamp:** the canopy envelope cannot extend within **10 px** of
       any viewport edge. This prevents canopy overflow regardless of `canopySize` value.
 
-- [ ] **REQ-EV2-CE-04** Branch tips **outside** the envelope: their blob is pulled back to the
+- [x] **REQ-EV2-CE-04** Branch tips **outside** the envelope: their blob is pulled back to the
       envelope edge (smaller blob at boundary). Tips very far outside get no blob — just bare
       branch poking out (looks realistic for some shapes). Tips near the envelope center get
       larger blobs.
 
-- [ ] **REQ-EV2-CE-05** The envelope serves as the "recommended space" for blobs. It adapts to
+- [x] **REQ-EV2-CE-05** The envelope serves as the "recommended space" for blobs. It adapts to
       `canopySize` and viewport, providing a smart boundary that prevents both overflow and
       branch-hiding. This works well with stages like sapling (small canopySize = few small blobs)
       and mature (large canopySize = full coverage).
 
 ### 14.6 Shape Style Parameters
 
-- [ ] **REQ-EV2-SS-01** Each shape definition retains **style parameters** that control how
+- [x] **REQ-EV2-SS-01** Each shape definition retains **style parameters** that control how
       branch-tip-derived blobs look. These replace the absolute blob placement of current
-      generators while preserving each shape's visual identity: - `blobRxRyRatio`: controls blob shape (1.0 = round, 3.0+ = flat like acacia parasol). - `blobVerticalOffset`: shifts blobs relative to tip position (negative for willow droop). - `blobBoundary`: circle or teardrop (for cypress-style). - `blobClusterBehavior`: how aggressively nearby tips merge into shared blobs.
+      generators while preserving each shape's visual identity: - `blobRxRyRatio`: controls blob shape (1.0 = round, 3.0+ = flat like acacia parasol). - `blobVerticalOffset`: shifts blobs relative to tip position (positive = droop downward, since SVG Y increases downward — used by willow). - `blobBoundary`: circle or teardrop (for cypress-style). - `blobClusterBehavior`: how aggressively nearby tips merge into shared blobs.
 
-- [ ] **REQ-EV2-SS-02** Shape-specific identity preserved via style parameters:
+- [x] **REQ-EV2-SS-02** Shape-specific identity preserved via style parameters:
 
-          | Shape   | Key Characteristics                                                 |
-          |---------|---------------------------------------------------------------------|
-          | oak     | Round crown. Trunk tip high weight → central blob. Balanced rx/ry.  |
-          | maple   | Blobs on side branches. Trunk tip = fork, no blob. Medium blobs.    |
-          | willow  | Blobs offset downward (droop). Branches at low angle. Low canopy.   |
-          | birch   | Alternating-side blobs. Airy canopy. Thin trunk.                    |
-          | cherry  | Horizontal spread. Blobs in wide band. Pink coloring.               |
-          | baobab  | Small blobs at very top. Dominant trunk. Short branches.             |
-          | acacia  | Flat parasol. Very wide rx, tiny ry. Branches horizontal.           |
-          | apple   | Compact round canopy. Minimal branching. Large single blob.         |
+                                                                  | Shape   | Key Characteristics                                                 |
+                                                                  |---------|---------------------------------------------------------------------|
+                                                                  | oak     | Round crown. Trunk tip high weight → central blob. Balanced rx/ry.  |
+                                                                  | maple   | Blobs on side branches. Trunk tip = fork, no blob. Medium blobs.    |
+                                                                  | willow  | Blobs offset downward (droop). Branches at low angle. Low canopy.   |
+                                                                  | birch   | Alternating-side blobs. Airy canopy. Thin trunk.                    |
+                                                                  | cherry  | Horizontal spread. Blobs in wide band. Pink coloring.               |
+                                                                  | baobab  | Small blobs at very top. Dominant trunk. Short branches.             |
+                                                                  | acacia  | Flat parasol. Very wide rx, tiny ry. Branches horizontal.           |
+                                                                  | apple   | Compact round canopy. Minimal branching. Large single blob.         |
 
-- [ ] **REQ-EV2-SS-03** Some branch tips will naturally not have blobs — those that fall outside
+- [x] **REQ-EV2-SS-03** Some branch tips will naturally not have blobs — those that fall outside
       the canopy envelope. This is acceptable and realistic (bare branch poking out of canopy).
 
 ### 14.7 Canopy Z-Ordering
 
-- [ ] **REQ-EV2-CZ-01** Each canopy blob inherits z-order from its cluster's branches: - Single-branch cluster: blob gets that branch's front/back status. - Multi-branch cluster with mixed front/back: blob defaults to front. - Trunk-tip blob (e.g., oak center): always front.
+- [x] **REQ-EV2-CZ-01** Each canopy blob inherits z-order from its cluster's branches: - Single-branch cluster: blob gets that branch's front/back status. - Multi-branch cluster with mixed front/back: blob defaults to front. - Trunk-tip blob (e.g., oak center): always front.
 
-- [ ] **REQ-EV2-CZ-02** Back canopy blobs render in layer 4, front canopy blobs in layer 5
+- [x] **REQ-EV2-CZ-02** Back canopy blobs render in layer 4, front canopy blobs in layer 5
       (per REQ-EV2-Z-04). This creates visible depth — some canopy clusters appear behind the
       trunk while others are in front.
 

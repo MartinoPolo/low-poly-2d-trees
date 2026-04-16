@@ -283,6 +283,13 @@ describe('REQ-C: Canopy Generation', () => {
 	});
 
 	describe('REQ-C-03b: canopySize effect', () => {
+		const getCanopyWidth = (geo: TreeGeometry) => {
+			const xs = geo.canopyBlobs.flatMap((b) =>
+				b.triangles.flatMap((t) => t.points.map((p) => p.x)),
+			);
+			return Math.max(...xs) - Math.min(...xs);
+		};
+
 		it('canopySize 200 produces larger canopy than 50', () => {
 			// canopySize directly controls blob sizing for branchless shapes; use cypress.
 			const geoLarge = generateTree(
@@ -291,12 +298,33 @@ describe('REQ-C: Canopy Generation', () => {
 			const geoSmall = generateTree(
 				makeConfig({ shape: 'cypress', canopySize: 50, seed: 42 }),
 			);
-			const getCanopyWidth = (geo: TreeGeometry) => {
-				const xs = geo.canopyBlobs.flatMap((b) =>
-					b.triangles.flatMap((t) => t.points.map((p) => p.x)),
-				);
-				return Math.max(...xs) - Math.min(...xs);
-			};
+			expect(getCanopyWidth(geoLarge)).toBeGreaterThan(getCanopyWidth(geoSmall));
+		});
+
+		it('canopySize scales branching-shape canopy via envelope (oak, Phase 2 path)', () => {
+			// Oak exercises the envelope-based scaling path (REQ-EV2-CE-01..05);
+			// cypress does not. This pins that the branching pipeline also responds
+			// to canopySize, not just the branchless pipeline.
+			const geoLarge = generateTree(
+				makeConfig({
+					shape: 'oak',
+					canopySize: 200,
+					seed: 42,
+					blobCount: 4,
+					branchDepth: 2,
+				}),
+			);
+			const geoSmall = generateTree(
+				makeConfig({
+					shape: 'oak',
+					canopySize: 50,
+					seed: 42,
+					blobCount: 4,
+					branchDepth: 2,
+				}),
+			);
+			expect(geoLarge.canopyBlobs.length).toBeGreaterThan(0);
+			expect(geoSmall.canopyBlobs.length).toBeGreaterThan(0);
 			expect(getCanopyWidth(geoLarge)).toBeGreaterThan(getCanopyWidth(geoSmall));
 		});
 	});
@@ -2914,17 +2942,28 @@ describe('REQ-EV2-BC: Branch-Driven Canopy', () => {
 		}
 	});
 
-	it('canopy envelope stays within 10px of viewport edges', () => {
+	it('canopy envelope stays within 10px of viewport edges (REQ-EV2-CE-03)', () => {
 		const geo = generateTree(
 			makeConfig({ shape: 'oak', seed: 42, blobCount: 5, canopySize: 200 }),
 		);
+		// Strict: blob centers are clamped to the envelope (which is itself 10px inset).
+		// Allow a ~2px jitter for centroid-before-clamping edge cases.
+		const centerMargin = 8;
+		for (const blob of geo.canopyBlobs) {
+			expect(blob.center.x).toBeGreaterThanOrEqual(centerMargin);
+			expect(blob.center.x).toBeLessThanOrEqual(300 - centerMargin);
+			expect(blob.center.y).toBeGreaterThanOrEqual(centerMargin);
+			expect(blob.center.y).toBeLessThanOrEqual(300 - centerMargin);
+		}
+		// Vertices can extend by blob.rx/ry around the clamped center — but must stay
+		// within the viewport. This is the meaningful drawable-area check.
 		for (const blob of geo.canopyBlobs) {
 			for (const tri of blob.triangles) {
 				for (const p of tri.points) {
-					expect(p.x).toBeGreaterThanOrEqual(-5); // small tolerance for triangulation
-					expect(p.x).toBeLessThanOrEqual(305);
-					expect(p.y).toBeGreaterThanOrEqual(-5);
-					expect(p.y).toBeLessThanOrEqual(305);
+					expect(p.x).toBeGreaterThanOrEqual(0);
+					expect(p.x).toBeLessThanOrEqual(300);
+					expect(p.y).toBeGreaterThanOrEqual(0);
+					expect(p.y).toBeLessThanOrEqual(300);
 				}
 			}
 		}

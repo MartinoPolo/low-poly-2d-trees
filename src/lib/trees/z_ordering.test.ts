@@ -127,6 +127,11 @@ describe('classifyCanopyBlobZOrder', () => {
 		expect(classifyCanopyBlobZOrder([], true)).toBe('front');
 	});
 
+	it('trunk-tip cluster with mixed branches → always front (spec override)', () => {
+		expect(classifyCanopyBlobZOrder(['back', 'back', 'back'], true)).toBe('front');
+		expect(classifyCanopyBlobZOrder(['back'], true)).toBe('front');
+	});
+
 	it('empty non-trunk cluster → front (fallback)', () => {
 		expect(classifyCanopyBlobZOrder([], false)).toBe('front');
 	});

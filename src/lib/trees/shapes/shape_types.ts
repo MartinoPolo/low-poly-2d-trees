@@ -1,11 +1,22 @@
 import type { BoundaryKind } from '../boundaries.js';
-import type { ShapeStyleParameters } from '../canopy_clustering.js';
 
 // ---------------------------------------------------------------------------
 // Public interfaces
 // ---------------------------------------------------------------------------
 
-export type { ShapeStyleParameters };
+/** Per-shape style knobs that drive branch-driven canopy rendering (REQ-EV2-SS-01). */
+export interface ShapeStyleParameters {
+	/** Blob rx/ry ratio: 1.0 = round, 3.0+ = flat (REQ-EV2-SS-01). */
+	readonly blobRxRyRatio: number;
+	/** Vertical offset from tip position: positive = droop downward (SVG Y increases downward) (REQ-EV2-SS-01). */
+	readonly blobVerticalOffset: number;
+	/** Boundary shape: 'circle' or 'teardrop' (REQ-EV2-SS-01). */
+	readonly blobBoundary: 'circle' | 'teardrop';
+	/** How aggressively nearby tips merge: 0 = spread, 1 = tight (REQ-EV2-SS-01). */
+	readonly blobClusterBehavior: number;
+	/** Trunk tip weight in clustering: 0 = ignore, 1 = strong anchor (REQ-EV2-BC-02). */
+	readonly trunkTipWeight: number;
+}
 
 export interface Blob {
 	cx: number;

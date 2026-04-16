@@ -1,9 +1,10 @@
 import type { Point2D } from './types/core.js';
 import type { CanopyEnvelope } from './canopy_envelope.js';
 import { clampToEnvelope, computeEnvelopeScaleFactor } from './canopy_envelope.js';
-import type { Blob } from './shapes/shape_types.js';
+import type { Blob, ShapeStyleParameters } from './shapes/shape_types.js';
 import { BOUNDARY_KINDS } from './boundaries.js';
 import { createPrng } from './prng.js';
+import { classifyCanopyBlobZOrder } from './z_ordering.js';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -29,19 +30,6 @@ interface BlobCluster {
 	readonly hasTrunkTip: boolean;
 	/** Aggregate z-order for the cluster. */
 	readonly zOrder: 'front' | 'back';
-}
-
-export interface ShapeStyleParameters {
-	/** Blob rx/ry ratio: 1.0 = round, 3.0+ = flat (REQ-EV2-SS-01). */
-	readonly blobRxRyRatio: number;
-	/** Vertical offset from tip position: negative = droop (REQ-EV2-SS-01). */
-	readonly blobVerticalOffset: number;
-	/** Boundary shape: 'circle' or 'teardrop' (REQ-EV2-SS-01). */
-	readonly blobBoundary: 'circle' | 'teardrop';
-	/** How aggressively nearby tips merge: 0 = spread, 1 = tight (REQ-EV2-SS-01). */
-	readonly blobClusterBehavior: number;
-	/** Trunk tip weight in clustering: 0 = ignore, 1 = strong anchor (REQ-EV2-BC-02). */
-	readonly trunkTipWeight: number;
 }
 
 // ---------------------------------------------------------------------------
@@ -230,11 +218,7 @@ export function clusterBranchTips(
 		}
 
 		// Z-order: trunk-tip clusters always front, else majority wins (REQ-EV2-CZ-01)
-		let zOrder: 'front' | 'back' = 'front';
-		if (!hasTrunkTip && zOrders.length > 0) {
-			const allBack = zOrders.every((z) => z === 'back');
-			zOrder = allBack ? 'back' : 'front';
-		}
+		const zOrder = classifyCanopyBlobZOrder(zOrders, hasTrunkTip);
 
 		if (strongestDepth === Infinity) {
 			strongestDepth = 1;

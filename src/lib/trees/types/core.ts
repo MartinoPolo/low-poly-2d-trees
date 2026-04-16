@@ -30,6 +30,14 @@ export interface Point2D {
 	readonly y: number;
 }
 
+/**
+ * Low-level triangle primitive.
+ *
+ * REQ-EV2-Z-05 note: `Triangle` intentionally has no `zOrder` field. Triangles
+ * always inherit ordering from their containing `BlobGeometry` (whose `zOrder`
+ * governs the whole blob) or render in fixed pipeline slots (trunk/fruit/flower/
+ * stake). Per-triangle ordering has no consumer in `LowPolyTree.svelte`.
+ */
 export interface Triangle {
 	readonly points: readonly [Point2D, Point2D, Point2D];
 	readonly color: string;
