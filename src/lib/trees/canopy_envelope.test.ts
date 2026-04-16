@@ -123,4 +123,14 @@ describe('computeEnvelopeScaleFactor', () => {
 		expect(factor).toBeGreaterThan(0);
 		expect(factor).toBeLessThan(0.3);
 	});
+
+	it('point exactly on envelope edge returns ENVELOPE_EDGE_SCALE (0.3)', () => {
+		// Edge: centerX + radiusX = 150 + 80 = 230 → normalizedDistance = 1.0
+		expect(computeEnvelopeScaleFactor(230, 90, envelope)).toBeCloseTo(0.3);
+	});
+
+	it('point at the cutoff distance (1.3× radiusX) returns 0', () => {
+		// 150 + 80 * 1.3 = 254 → normalizedDistance just above 1.3 → 0
+		expect(computeEnvelopeScaleFactor(254.01, 90, envelope)).toBe(0);
+	});
 });

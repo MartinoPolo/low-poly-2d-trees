@@ -1,10 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import {
-	clusterBranchTips,
-	computeClusterBlob,
-	type BranchTipInfo,
-	type ShapeStyleParameters,
-} from './canopy_clustering.js';
+import { clusterBranchTips, computeClusterBlob, type BranchTipInfo } from './canopy_clustering.js';
+import type { ShapeStyleParameters } from './shapes/shape_types.js';
 import { computeCanopyEnvelope } from './canopy_envelope.js';
 import { createPrng } from './prng.js';
 

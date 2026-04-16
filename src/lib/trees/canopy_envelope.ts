@@ -7,6 +7,21 @@ import { VIEWBOX_WIDTH, VIEWBOX_HEIGHT } from './types/config.js';
 /** Minimum distance from canopy envelope to viewport edge (REQ-EV2-CE-03). */
 const VIEWPORT_MARGIN_PX = 10;
 
+/**
+ * Maximum normalised distance (1.0 = on envelope edge) beyond which a tip gets
+ * no blob — returning scale factor 0 (REQ-EV2-CE-04, bare branch).
+ */
+const ENVELOPE_CUTOFF_DISTANCE = 1.3;
+
+/** Scale factor at the envelope edge — blobs shrink from 1.0 at center to this at edge. */
+const ENVELOPE_EDGE_SCALE = 0.3;
+
+/** Range for the inside-envelope linear ramp: 1.0 (center) → ENVELOPE_EDGE_SCALE (edge). */
+const ENVELOPE_INSIDE_LERP_RANGE = 1.0 - ENVELOPE_EDGE_SCALE;
+
+/** Range for the outside-envelope fade: ENVELOPE_EDGE_SCALE → 0 over (cutoff - 1.0). */
+const ENVELOPE_OUTSIDE_FADE_RANGE = ENVELOPE_CUTOFF_DISTANCE - 1.0;
+
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
@@ -146,16 +161,16 @@ export function computeEnvelopeScaleFactor(x: number, y: number, envelope: Canop
 	const dy = (y - envelope.centerY) / envelope.radiusY;
 	const normalizedDistance = Math.sqrt(dx * dx + dy * dy);
 
-	if (normalizedDistance > 1.3) {
+	if (normalizedDistance > ENVELOPE_CUTOFF_DISTANCE) {
 		// Very far outside — no blob
 		return 0;
 	}
 
 	if (normalizedDistance > 1.0) {
-		// Outside but close — small blob pulled to edge
-		return 0.3 * (1 - (normalizedDistance - 1.0) / 0.3);
+		// Outside but close — small blob pulled to edge, fading from EDGE_SCALE → 0
+		return ENVELOPE_EDGE_SCALE * (1 - (normalizedDistance - 1.0) / ENVELOPE_OUTSIDE_FADE_RANGE);
 	}
 
-	// Inside: linear interpolation from 1.0 (center) to 0.3 (edge)
-	return 1.0 - normalizedDistance * 0.7;
+	// Inside: linear interpolation from 1.0 (center) to ENVELOPE_EDGE_SCALE (edge)
+	return 1.0 - normalizedDistance * ENVELOPE_INSIDE_LERP_RANGE;
 }

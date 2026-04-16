@@ -73,17 +73,18 @@ export function classifyChildBranchZOrder(
 // ---------------------------------------------------------------------------
 
 /**
- * Classify a canopy blob based on its cluster's branch z-orders.
+ * Classify a canopy blob based on its cluster's branch z-orders (REQ-EV2-CZ-01).
  *
+ * - Trunk-tip cluster: always front (regardless of branch contents).
  * - Single branch: inherit that branch's status.
- * - Mixed front/back: default to front.
- * - Trunk-tip only (isTrunkTipCluster): always front.
+ * - All-back multi-branch: back.
+ * - Mixed / empty non-trunk: front.
  */
 export function classifyCanopyBlobZOrder(
 	branchZOrders: readonly ('front' | 'back')[],
 	isTrunkTipCluster: boolean,
 ): 'front' | 'back' {
-	if (isTrunkTipCluster && branchZOrders.length === 0) {
+	if (isTrunkTipCluster) {
 		return 'front';
 	}
 
