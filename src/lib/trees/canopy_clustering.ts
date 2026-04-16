@@ -1,6 +1,6 @@
 import type { Point2D } from './types/core.js';
 import type { CanopyEnvelope } from './canopy_envelope.js';
-import { clampToEnvelope, computeEnvelopeScaleFactor } from './canopy_envelope.js';
+import { clampToEnvelope, computeEnvelopeScaleFactor, getEnvelopeArea } from './canopy_envelope.js';
 import type { Blob, ShapeStyleParameters } from './shapes/shape_types.js';
 import { BOUNDARY_KINDS } from './boundaries.js';
 import { createPrng } from './prng.js';
@@ -39,14 +39,17 @@ interface BlobCluster {
 const CLUSTERING_SEED_OFFSET = 6666;
 const KMEANS_MAX_ITERATIONS = 15;
 
-/** Base blob radius scaling factor relative to branch width. */
-const BASE_BLOB_RADIUS_FACTOR = 3.5;
+/** Floor on cluster-size tip bonus contribution (0.25 when clusters are singletons). */
+const CLUSTER_SIZE_BONUS_FLOOR = 0.25;
 
-/** Minimum blob radius to prevent invisible blobs. */
-const MIN_BLOB_RADIUS = 8;
+/** Branch widthEnd (in px) that saturates the width bonus to 1.0. */
+const WIDTH_BONUS_SATURATION_PX = 4;
 
-/** Cluster size contribution to blob radius. */
-const CLUSTER_SIZE_RADIUS_BONUS = 4;
+/** Base multiplier applied to envelope-budget radius before cluster modulation. */
+const SIZE_MODULATION_BASE = 0.6;
+
+/** Additional range on top of SIZE_MODULATION_BASE that cluster strength can add. */
+const SIZE_MODULATION_RANGE = 0.4;
 
 // ---------------------------------------------------------------------------
 // K-Means Clustering (REQ-EV2-BC-01)
@@ -227,8 +230,15 @@ export function clusterBranchTips(
 			strongestWidth = 2;
 		}
 
+		// REQ-EV2-BC-02: the trunk tip "attracts a blob to itself" — snap the
+		// trunk-tip cluster's centroid to the actual trunk tip so the central
+		// crown blob sits on the trunk, not at the weighted k-means midpoint
+		// (which gets pulled upward by branch tips on tall branches).
+		const centroid =
+			hasTrunkTip && trunkTip !== null ? { x: trunkTip.x, y: trunkTip.y } : centroids[c]!;
+
 		clusters.push({
-			centroid: centroids[c]!,
+			centroid,
 			tips: clusterTips,
 			strongestDepth,
 			strongestWidth,
@@ -248,14 +258,19 @@ export function clusterBranchTips(
  * Convert a cluster into a render-ready Blob, applying shape style parameters,
  * envelope clamping, and size scaling.
  *
+ * Size is anchored to the envelope budget: each blob starts from a "fair share"
+ * of the envelope area (`sqrt(envelopeArea / blobCount / π)`) and is modulated
+ * down by cluster strength and depth per REQ-EV2-BS-01 / REQ-EV2-BC-04.
+ * `blobSizeVariance` is NOT applied here — it is applied after all clusters are
+ * built (ratio semantics per REQ-C-02) via `applyBlobSizeVariance`.
+ *
  * Returns null if the cluster's centroid is too far outside the envelope (bare branch).
  */
 export function computeClusterBlob(
 	cluster: BlobCluster,
 	styleParams: ShapeStyleParameters,
 	envelope: CanopyEnvelope,
-	blobSizeVariance: number,
-	rng: () => number,
+	blobCount: number,
 ): Blob | null {
 	// Check envelope coverage — tips very far outside get no blob (REQ-EV2-CE-04)
 	const envelopeFactor = computeEnvelopeScaleFactor(
@@ -271,22 +286,27 @@ export function computeClusterBlob(
 	// Clamp centroid to envelope if outside (REQ-EV2-CE-04)
 	const clampedCenter = clampToEnvelope(cluster.centroid.x, cluster.centroid.y, envelope);
 
-	// Blob size from cluster size + branch thickness (REQ-EV2-BS-01)
-	const clusterSizeBonus = Math.min(cluster.tips.length, 4) * CLUSTER_SIZE_RADIUS_BONUS;
-	const baseRadius = cluster.strongestWidth * BASE_BLOB_RADIUS_FACTOR + clusterSizeBonus;
+	// Envelope-budget radius: each blob's fair share of the canopy region (REQ-EV2-BS-01).
+	const envelopeArea = getEnvelopeArea(envelope);
+	const targetRadius = Math.sqrt(envelopeArea / Math.max(1, blobCount) / Math.PI);
 
-	// Weaker branches → smaller blobs (REQ-EV2-BC-04)
+	// Cluster-strength modulation: more tips + thicker branches → bigger blob (REQ-EV2-BS-01).
+	// Trunk-tip clusters represent the "central crown" (REQ-EV2-BC-02) and get full modulation
+	// regardless of attached branch tips — they must penetrate the trunk top visibly.
+	const tipBonus = cluster.hasTrunkTip
+		? 1
+		: Math.max(CLUSTER_SIZE_BONUS_FLOOR, Math.min(cluster.tips.length, 4) / 4);
+	const widthBonus = Math.min(cluster.strongestWidth / WIDTH_BONUS_SATURATION_PX, 1);
+	const sizeModulation =
+		SIZE_MODULATION_BASE + SIZE_MODULATION_RANGE * (0.5 * tipBonus + 0.5 * widthBonus);
+
+	// Weaker branches → smaller blobs (REQ-EV2-BC-04).
 	const depthScale =
-		cluster.strongestDepth === 1 ? 1.0 : cluster.strongestDepth === 2 ? 0.7 : 0.5;
+		cluster.strongestDepth === 1 ? 1.0 : cluster.strongestDepth === 2 ? 0.8 : 0.6;
 
-	// Apply envelope scale factor (center = larger, edge = smaller)
-	const effectiveRadius = Math.max(MIN_BLOB_RADIUS, baseRadius * depthScale * envelopeFactor);
+	const finalRadius = targetRadius * sizeModulation * depthScale * envelopeFactor;
 
-	// Apply blobSizeVariance
-	const varianceFactor = 1 + (rng() * 2 - 1) * (blobSizeVariance / 100) * 0.3;
-	const finalRadius = effectiveRadius * varianceFactor;
-
-	// Shape style: rx/ry ratio and vertical offset
+	// Shape style: rx/ry ratio and vertical offset.
 	const rx = finalRadius * Math.sqrt(styleParams.blobRxRyRatio);
 	const ry = finalRadius / Math.sqrt(styleParams.blobRxRyRatio);
 

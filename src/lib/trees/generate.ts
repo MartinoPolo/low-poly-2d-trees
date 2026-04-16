@@ -175,9 +175,16 @@ function computeAnchors(
 
 	const fruitRng = createPrng(seed + FRUIT_SLOTS_SEED_OFFSET);
 	const fruitCount = 5 + Math.floor(fruitRng() * 3);
-	const boundsArea =
-		(canopyBounds.maxX - canopyBounds.minX) * (canopyBounds.maxY - canopyBounds.minY);
-	const minDistance = Math.max(3, Math.sqrt(boundsArea / fruitCount) * 0.6);
+	// Base minDistance on actual blob-coverage area rather than canopyBounds, so
+	// widely-spread clustered canopies (Engine v2) still fit the requested number
+	// of fruit slots instead of letting bounds-area inflation push minDistance up.
+	// Fall back to bounds area when no blobs (tiered shapes use their own path).
+	const blobsCoverageArea = blobs.reduce((sum, b) => sum + Math.PI * b.rx * b.ry, 0);
+	const coverageArea =
+		blobsCoverageArea > 0
+			? blobsCoverageArea
+			: (canopyBounds.maxX - canopyBounds.minX) * (canopyBounds.maxY - canopyBounds.minY);
+	const minDistance = Math.max(3, Math.sqrt(coverageArea / fruitCount) * 0.6);
 
 	const containmentTest = buildCanopyContainmentTest(blobs, tiers);
 
@@ -1180,21 +1187,41 @@ function generateTreeCore(config: TreeConfig, flags: StageFlags): TreeGeometry {
 			config.seed,
 		);
 
-		// Convert clusters to blobs (REQ-EV2-BS-01)
-		const clusterRng = createPrng(config.seed + 4444);
-		const clusteredBlobs: Blob[] = [];
-		const clusterZOrders: ('front' | 'back')[] = [];
+		// Blob sizing uses config.blobCount (target) not live cluster count, so
+		// per-blob area stays stable as clusters drop out (REQ-EV2-CE-04 bare
+		// branches). Growing survivors would break the polygons-per-blob contract
+		// and inflate already-visible blobs over nearby branches.
+		const clusteredBlobsWithZ: { blob: Blob; zOrder: 'front' | 'back' }[] = [];
 		for (const cluster of clusters) {
-			const blob = computeClusterBlob(
-				cluster,
-				styleParams,
-				envelope,
-				config.blobSizeVariance,
-				clusterRng,
-			);
+			const blob = computeClusterBlob(cluster, styleParams, envelope, config.blobCount);
 			if (blob !== null) {
-				clusteredBlobs.push(blob);
-				clusterZOrders.push(cluster.zOrder);
+				clusteredBlobsWithZ.push({ blob, zOrder: cluster.zOrder });
+			}
+		}
+
+		// Sort largest → smallest so applyBlobSizeVariance (which lerps by index
+		// from 1.0 at [0] down to 1/variance at [n-1]) shrinks the smallest
+		// blobs, not arbitrary ones. Matches legacy pipeline semantics (REQ-C-02).
+		clusteredBlobsWithZ.sort((a, b) => b.blob.rx * b.blob.ry - a.blob.rx * a.blob.ry);
+
+		const clusteredBlobs: Blob[] = clusteredBlobsWithZ.map((x) => x.blob);
+		const clusterZOrders: ('front' | 'back')[] = clusteredBlobsWithZ.map((x) => x.zOrder);
+
+		// Apply blobSizeVariance (REQ-C-02: max/min ratio) only if the cluster's
+		// natural size spread is less than the target. Clustered blobs already
+		// vary naturally (envelopeFactor + cluster-strength modulation) — applying
+		// the full legacy ratio lerp on top would squash the smallest blob below
+		// visibility.
+		if (clusteredBlobs.length >= 2) {
+			const areas = clusteredBlobs.map((b) => b.rx * b.ry);
+			const maxArea = Math.max(...areas);
+			const minArea = Math.min(...areas);
+			const naturalRatio = Math.sqrt(maxArea / Math.max(0.01, minArea));
+			if (naturalRatio < config.blobSizeVariance) {
+				// Natural spread is below the user's target — top it up, but scale
+				// by the REMAINING ratio, not the full one.
+				const remainingRatio = config.blobSizeVariance / naturalRatio;
+				applyBlobSizeVariance(clusteredBlobs, remainingRatio);
 			}
 		}
 

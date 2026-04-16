@@ -4,6 +4,7 @@ import {
 	isInsideEnvelope,
 	clampToEnvelope,
 	computeEnvelopeScaleFactor,
+	ENVELOPE_EDGE_SCALE,
 } from './canopy_envelope.js';
 
 describe('computeCanopyEnvelope', () => {
@@ -109,8 +110,8 @@ describe('computeEnvelopeScaleFactor', () => {
 
 	it('edge point has reduced scale factor', () => {
 		const factor = computeEnvelopeScaleFactor(230, 90, envelope);
-		expect(factor).toBeGreaterThan(0.2);
-		expect(factor).toBeLessThan(0.5);
+		expect(factor).toBeGreaterThan(0.4);
+		expect(factor).toBeLessThan(0.7);
 	});
 
 	it('point very far outside has 0 scale factor', () => {
@@ -121,12 +122,12 @@ describe('computeEnvelopeScaleFactor', () => {
 		// Just outside the envelope
 		const factor = computeEnvelopeScaleFactor(240, 90, envelope);
 		expect(factor).toBeGreaterThan(0);
-		expect(factor).toBeLessThan(0.3);
+		expect(factor).toBeLessThan(ENVELOPE_EDGE_SCALE);
 	});
 
-	it('point exactly on envelope edge returns ENVELOPE_EDGE_SCALE (0.3)', () => {
+	it('point exactly on envelope edge returns ENVELOPE_EDGE_SCALE', () => {
 		// Edge: centerX + radiusX = 150 + 80 = 230 → normalizedDistance = 1.0
-		expect(computeEnvelopeScaleFactor(230, 90, envelope)).toBeCloseTo(0.3);
+		expect(computeEnvelopeScaleFactor(230, 90, envelope)).toBeCloseTo(ENVELOPE_EDGE_SCALE);
 	});
 
 	it('point at the cutoff distance (1.3× radiusX) returns 0', () => {

@@ -253,6 +253,11 @@ export function computeZoneSplit(
 	trunkSegments: number,
 	maxLevel1Branches: number,
 ): { lowerZoneSegments: number; upperZoneSegments: number } {
+	// Upper zone = the top few trunk junctions where L1 branches can reach the
+	// canopy envelope. Keep it narrow — branches originating further down the
+	// trunk would only produce bare branches (tips below the canopy). The
+	// high-trunkSegments "no visible branches" bug is fixed in branch_generation.ts
+	// by passing the actual junction count here rather than the raw config value.
 	const upperZoneSegments = Math.max(maxLevel1Branches, 2);
 	const minimumTrunkSegments = upperZoneSegments + 1;
 	const effectiveSegments = Math.max(trunkSegments, minimumTrunkSegments);

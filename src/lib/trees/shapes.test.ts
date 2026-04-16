@@ -11,6 +11,7 @@ import {
 	generateBranches,
 	getShapeDefinition,
 	computeEffectiveTrunkTop,
+	computeZoneSplit,
 	generateCustomBlobs,
 	growCustomBlobs,
 	CUSTOM_BLOB_CANOPY_CENTER_X,
@@ -247,6 +248,35 @@ describe('buildTrunkPath', () => {
 			'alternating',
 		);
 		expect(withDefault).toEqual(withExplicit);
+	});
+});
+
+describe('computeZoneSplit', () => {
+	it('default oak (5 segments, maxL1=3): upper zone = 3, lower = 2', () => {
+		const { lowerZoneSegments, upperZoneSegments } = computeZoneSplit(5, 3);
+		expect(upperZoneSegments).toBe(3);
+		expect(lowerZoneSegments).toBe(2);
+	});
+
+	it('small maxL1 clamps upper zone to minimum 2', () => {
+		const { upperZoneSegments } = computeZoneSplit(5, 1);
+		expect(upperZoneSegments).toBe(2);
+	});
+
+	it('tiny trunk below minimum — pads up to upper + 1', () => {
+		const { lowerZoneSegments, upperZoneSegments } = computeZoneSplit(1, 3);
+		// upper = max(3, 2) = 3 → effective = 4 → lower = 1
+		expect(upperZoneSegments).toBe(3);
+		expect(lowerZoneSegments).toBe(1);
+	});
+
+	it('branch_generation.ts clamps lowerZoneSegments to actual junction count', () => {
+		// With trunkSegments=30 from config but buildCrookedPath capping at 5
+		// segments, branch_generation.ts passes actual junction count (6-1=5),
+		// so this call receives trunkSegments=5, not 30.
+		const { upperZoneSegments, lowerZoneSegments } = computeZoneSplit(5, 3);
+		expect(upperZoneSegments).toBe(3);
+		expect(lowerZoneSegments).toBe(2);
 	});
 });
 

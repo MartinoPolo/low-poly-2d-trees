@@ -28,7 +28,10 @@ const ANGLE_DIVERGENCE_MAX_DEG = 60;
 const CHILD_LENGTH_RATIO_MIN = 0.2;
 const CHILD_LENGTH_RATIO_MAX = 0.8;
 
-const BRANCH_RETRY_ATTEMPTS = 5;
+// Bumped from 5 — with the upper zone now scaling with trunkSegments (see
+// computeZoneSplit), adjacent L1 candidate origins can share junctions and
+// repeatedly fail overlap checks. A higher retry budget recovers these.
+const BRANCH_RETRY_ATTEMPTS = 15;
 
 // Base length ranges for branches at branchLength=100 (proportional to viewport).
 const TRUNK_BRANCH_BASE_MIN = VIEWBOX_WIDTH * 0.2;
@@ -236,9 +239,16 @@ function generateTrunkBranches(ctx: BranchContext, branches: GeneratedBranch[]):
 		return;
 	}
 
-	// REQ-EV2-TZ-01, G-03: L1 branches only at upper-zone junctions
+	// REQ-EV2-TZ-01, G-03: L1 branches only at upper-zone junctions.
+	// Pass the ACTUAL segment count (trunkJunctions.length - 1) rather than
+	// config.trunkSegments — buildCrookedPath caps segmentCount at 5, so
+	// config values above that would make the effective lower-zone computation
+	// overshoot and leave zero eligible upper-zone junctions (fallback to a
+	// single middle junction, which forces every L1 branch to the same origin
+	// and triggers the overlap-rejection cascade).
 	const maxL1 = config.branchesLevel1Range[1];
-	const { lowerZoneSegments } = computeZoneSplit(config.trunkSegments, maxL1);
+	const actualSegments = Math.max(1, trunkJunctions.length - 1);
+	const { lowerZoneSegments } = computeZoneSplit(actualSegments, maxL1);
 	// Upper-zone junctions: start at index `lowerZoneSegments`, exclude tip (last junction).
 	// Clamp to actual junction count in case trunkSegments < minimum enforced by zone split.
 	const effectiveLowerSegments = Math.min(lowerZoneSegments, trunkJunctions.length - 2);

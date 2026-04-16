@@ -2,7 +2,6 @@ import { describe, it, expect } from 'vitest';
 import { clusterBranchTips, computeClusterBlob, type BranchTipInfo } from './canopy_clustering.js';
 import type { ShapeStyleParameters } from './shapes/shape_types.js';
 import { computeCanopyEnvelope } from './canopy_envelope.js';
-import { createPrng } from './prng.js';
 
 const defaultStyleParams: ShapeStyleParameters = {
 	blobRxRyRatio: 1.0,
@@ -18,6 +17,8 @@ const defaultEnvelope = computeCanopyEnvelope(
 	300,
 	300,
 );
+
+const DEFAULT_BLOB_COUNT = 5;
 
 function makeTip(
 	x: number,
@@ -166,8 +167,12 @@ describe('computeClusterBlob', () => {
 			hasTrunkTip: false,
 			zOrder: 'front' as const,
 		};
-		const rng = createPrng(42);
-		const blob = computeClusterBlob(cluster, defaultStyleParams, defaultEnvelope, 0, rng);
+		const blob = computeClusterBlob(
+			cluster,
+			defaultStyleParams,
+			defaultEnvelope,
+			DEFAULT_BLOB_COUNT,
+		);
 		expect(blob).not.toBeNull();
 		expect(blob!.cx).toBeCloseTo(150, 0);
 		expect(blob!.cy).toBeCloseTo(80, 0);
@@ -190,21 +195,17 @@ describe('computeClusterBlob', () => {
 			hasTrunkTip: false,
 			zOrder: 'front' as const,
 		};
-		const rng1 = createPrng(42);
-		const rng2 = createPrng(42);
 		const strongBlob = computeClusterBlob(
 			strongCluster,
 			defaultStyleParams,
 			defaultEnvelope,
-			0,
-			rng1,
+			DEFAULT_BLOB_COUNT,
 		);
 		const weakBlob = computeClusterBlob(
 			weakCluster,
 			defaultStyleParams,
 			defaultEnvelope,
-			0,
-			rng2,
+			DEFAULT_BLOB_COUNT,
 		);
 		expect(strongBlob).not.toBeNull();
 		expect(weakBlob).not.toBeNull();
@@ -222,8 +223,12 @@ describe('computeClusterBlob', () => {
 			hasTrunkTip: false,
 			zOrder: 'front' as const,
 		};
-		const rng = createPrng(42);
-		const blob = computeClusterBlob(cluster, defaultStyleParams, defaultEnvelope, 0, rng);
+		const blob = computeClusterBlob(
+			cluster,
+			defaultStyleParams,
+			defaultEnvelope,
+			DEFAULT_BLOB_COUNT,
+		);
 		expect(blob).toBeNull();
 	});
 
@@ -237,8 +242,7 @@ describe('computeClusterBlob', () => {
 			zOrder: 'front' as const,
 		};
 		const flatParams: ShapeStyleParameters = { ...defaultStyleParams, blobRxRyRatio: 4.0 };
-		const rng = createPrng(42);
-		const blob = computeClusterBlob(cluster, flatParams, defaultEnvelope, 0, rng);
+		const blob = computeClusterBlob(cluster, flatParams, defaultEnvelope, DEFAULT_BLOB_COUNT);
 		expect(blob).not.toBeNull();
 		// rx should be much larger than ry for flat shapes like acacia
 		expect(blob!.rx / blob!.ry).toBeCloseTo(4.0, 0);
@@ -254,9 +258,30 @@ describe('computeClusterBlob', () => {
 			zOrder: 'front' as const,
 		};
 		const droopParams: ShapeStyleParameters = { ...defaultStyleParams, blobVerticalOffset: 15 };
-		const rng = createPrng(42);
-		const blob = computeClusterBlob(cluster, droopParams, defaultEnvelope, 0, rng);
+		const blob = computeClusterBlob(cluster, droopParams, defaultEnvelope, DEFAULT_BLOB_COUNT);
 		expect(blob).not.toBeNull();
 		expect(blob!.cy).toBeCloseTo(95, 0); // 80 + 15
+	});
+
+	it('blob radius scales with envelope area — default oak-like envelope produces substantial blobs (REQ-EV2-BS-01)', () => {
+		// Mimics default oak: 96 x 66 envelope, 5 blobs, thin branch tips (~1.5 px).
+		const oakEnvelope = computeCanopyEnvelope(
+			{ canopyCenterX: 150, canopyCenterY: 90, baseRadiusX: 96, baseRadiusY: 66 },
+			100,
+			300,
+			300,
+		);
+		const thinCluster = {
+			centroid: { x: 150, y: 90 },
+			tips: [makeTip(150, 90, 1, 1.5)],
+			strongestDepth: 1,
+			strongestWidth: 1.5,
+			hasTrunkTip: false,
+			zOrder: 'front' as const,
+		};
+		const blob = computeClusterBlob(thinCluster, defaultStyleParams, oakEnvelope, 5);
+		expect(blob).not.toBeNull();
+		// Guards the pre-fix regression where thin branch tips produced ~8 px blobs.
+		expect(Math.min(blob!.rx, blob!.ry)).toBeGreaterThan(15);
 	});
 });

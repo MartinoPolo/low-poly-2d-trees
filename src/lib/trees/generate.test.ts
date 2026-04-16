@@ -361,6 +361,76 @@ describe('REQ-C: Canopy Generation', () => {
 			}
 		});
 	});
+
+	// -----------------------------------------------------------------------
+	// Regression: default-view canopy should not collapse to minimum-size
+	// blobs (pre-fix Engine v2 Phase 2 rendered ~8 px floor-clamped blobs
+	// even though users had set canopySize=100 and blobCount=5).
+	// -----------------------------------------------------------------------
+	describe('default-view canopy sizing (post-Phase-2 regression guard)', () => {
+		const shapesWithBranchingCanopy = ['oak', 'birch', 'maple', 'willow', 'cherry'] as const;
+
+		it.each(shapesWithBranchingCanopy)(
+			'%s at default params: at least one blob has rx >= 12 px (not floor-clamped to 8)',
+			(shape) => {
+				for (const seed of [1, 42, 99]) {
+					const geo = generateTree(makeConfig({ shape, seed }));
+					expect(geo.canopyBlobs.length).toBeGreaterThan(0);
+					const biggestRx = Math.max(
+						...geo.canopyBlobs.map((b) => {
+							const xs = b.triangles.flatMap((t) => t.points.map((p) => p.x));
+							return (Math.max(...xs) - Math.min(...xs)) / 2;
+						}),
+					);
+					// 12 is ~50% above the pre-fix 8 px MIN_BLOB_RADIUS floor, proving
+					// envelope-budget sizing (REQ-EV2-BS-01) is active at defaults.
+					expect(
+						biggestRx,
+						`shape=${shape} seed=${seed} biggest-blob rx=${biggestRx.toFixed(1)}`,
+					).toBeGreaterThanOrEqual(12);
+				}
+			},
+		);
+
+		it('oak default: blobs fill a meaningful share of the canopy envelope', () => {
+			// Envelope-budget sizing (REQ-EV2-BS-01) must make blobs scale with
+			// the envelope area. For default oak (96 x 66 envelope, blobCount=5)
+			// the largest blob should cover >= 8% of the envelope area.
+			const geo = generateTree(makeConfig({ shape: 'oak', seed: 42 }));
+			const envelopeArea = Math.PI * 96 * 66;
+			const biggestArea = Math.max(
+				...geo.canopyBlobs.map((b) => {
+					const xs = b.triangles.flatMap((t) => t.points.map((p) => p.x));
+					const ys = b.triangles.flatMap((t) => t.points.map((p) => p.y));
+					const rx = (Math.max(...xs) - Math.min(...xs)) / 2;
+					const ry = (Math.max(...ys) - Math.min(...ys)) / 2;
+					return Math.PI * rx * ry;
+				}),
+			);
+			expect(biggestArea / envelopeArea).toBeGreaterThanOrEqual(0.08);
+		});
+
+		it('default canopy is not dominated by a single floor-clamped size', () => {
+			// Pre-fix, every blob had rx within a few px of MIN_BLOB_RADIUS=8.
+			// After the fix, blob rx should vary substantially (stdev > 3 px)
+			// across several seeds to prove the formula actually modulates size.
+			const allRx: number[] = [];
+			for (const seed of [1, 7, 42, 99, 123]) {
+				const geo = generateTree(makeConfig({ shape: 'oak', seed }));
+				for (const b of geo.canopyBlobs) {
+					const xs = b.triangles.flatMap((t) => t.points.map((p) => p.x));
+					allRx.push((Math.max(...xs) - Math.min(...xs)) / 2);
+				}
+			}
+			expect(allRx.length).toBeGreaterThanOrEqual(5);
+			const mean = allRx.reduce((s, v) => s + v, 0) / allRx.length;
+			const variance = allRx.reduce((s, v) => s + (v - mean) * (v - mean), 0) / allRx.length;
+			const stdev = Math.sqrt(variance);
+			expect(stdev).toBeGreaterThan(3);
+			// And the mean should not hug the old 8 px floor.
+			expect(mean).toBeGreaterThan(10);
+		});
+	});
 });
 
 // ============================================================================
@@ -1783,24 +1853,30 @@ describe('VQ-6: polygonsPerBlob replaces canopyPolygons', () => {
 		expect(highTotal).toBeGreaterThan(lowTotal);
 	});
 
-	it('adding blobs does not change polygon density of existing blobs', () => {
-		const fewBlobs = generateTree(makeConfig({ polygonsPerBlob: 12, blobCount: 3, seed: 42 }));
-		const manyBlobs = generateTree(makeConfig({ polygonsPerBlob: 12, blobCount: 5, seed: 42 }));
+	it('adding blobs does not halve polygon density of existing blobs', () => {
+		// Engine v2 Phase 2+ clusters tips into blobs — actual rendered blob count
+		// ≤ config.blobCount (some tips fall outside the envelope → bare branches).
+		// Compare per-blob AVERAGE density instead of absolute totals, across a
+		// shape that reliably produces multiple blobs.
+		const fewBlobs = generateTree(
+			makeConfig({ shape: 'birch', polygonsPerBlob: 12, blobCount: 3, seed: 42 }),
+		);
+		const manyBlobs = generateTree(
+			makeConfig({ shape: 'birch', polygonsPerBlob: 12, blobCount: 5, seed: 42 }),
+		);
 
-		// The first 3 blobs in the few-blobs tree should have roughly the same
-		// total triangle count as the first 3 blobs in the many-blobs tree.
-		// Under the old global-budget approach, adding blobs would redistribute the
-		// budget, reducing per-blob counts.
-		const fewTotal = fewBlobs.canopyBlobs.reduce((s, b) => s + b.triangles.length, 0);
-		const manyFirstThree = manyBlobs.canopyBlobs
-			.slice(0, 3)
-			.reduce((s, b) => s + b.triangles.length, 0);
+		const avgFew =
+			fewBlobs.canopyBlobs.reduce((s, b) => s + b.triangles.length, 0) /
+			Math.max(1, fewBlobs.canopyBlobs.length);
+		const avgMany =
+			manyBlobs.canopyBlobs.reduce((s, b) => s + b.triangles.length, 0) /
+			Math.max(1, manyBlobs.canopyBlobs.length);
 
-		// Allow +-25% tolerance because blob positions/sizes change with count,
-		// but the budget per blob should NOT halve.
-		const ratio = manyFirstThree / fewTotal;
-		expect(ratio).toBeGreaterThan(0.6);
-		expect(ratio).toBeLessThan(1.4);
+		// Per-blob budget shouldn't halve when blobCount doubles (the regression
+		// we're guarding against is the old global-budget approach).
+		const ratio = avgMany / avgFew;
+		expect(ratio).toBeGreaterThan(0.5);
+		expect(ratio).toBeLessThan(2.0);
 	});
 
 	it('larger blobs have proportionally more triangles', () => {

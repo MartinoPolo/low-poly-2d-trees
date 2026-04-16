@@ -14,7 +14,7 @@ const VIEWPORT_MARGIN_PX = 10;
 const ENVELOPE_CUTOFF_DISTANCE = 1.3;
 
 /** Scale factor at the envelope edge — blobs shrink from 1.0 at center to this at edge. */
-const ENVELOPE_EDGE_SCALE = 0.3;
+export const ENVELOPE_EDGE_SCALE = 0.55;
 
 /** Range for the inside-envelope linear ramp: 1.0 (center) → ENVELOPE_EDGE_SCALE (edge). */
 const ENVELOPE_INSIDE_LERP_RANGE = 1.0 - ENVELOPE_EDGE_SCALE;
@@ -104,6 +104,17 @@ export function computeCanopyEnvelope(
 // ---------------------------------------------------------------------------
 // Envelope Queries
 // ---------------------------------------------------------------------------
+
+/**
+ * Area of the envelope's elliptical region in square pixels.
+ * Used to distribute per-blob radius budget across the clustered canopy pipeline.
+ */
+export function getEnvelopeArea(envelope: CanopyEnvelope): number {
+	if (envelope.radiusX <= 0 || envelope.radiusY <= 0) {
+		return 0;
+	}
+	return Math.PI * envelope.radiusX * envelope.radiusY;
+}
 
 /**
  * Check if a point is inside the canopy envelope (elliptical region).
