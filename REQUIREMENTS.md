@@ -788,20 +788,20 @@ Trunk color UI includes preset swatch buttons that set all three HSL sliders at 
 
 - [ ] **REQ-EV2-TZ-03** Updated SHAPE_DEFAULTS for `trunkSegments`:
 
-                                                                  | Shape   | Current | Max L1 | New Default | Zone Split (lower + upper) |
-                                                                  |---------|---------|--------|-------------|---------------------------|
-                                                                  | oak     | 5       | 3      | 5           | 1 + 4                     |
-                                                                  | maple   | 3       | 5      | 7           | 2 + 5                     |
-                                                                  | willow  | 5       | 5      | 7           | 2 + 5                     |
-                                                                  | cherry  | 3       | 4      | 6           | 1 + 5                     |
-                                                                  | birch   | 3       | 2      | 4           | 1 + 3                     |
-                                                                  | apple   | 3       | 2      | 3           | 1 + 2                     |
-                                                                  | baobab  | 3       | 3      | 5           | 1 + 4                     |
-                                                                  | acacia  | 3       | 3      | 5           | 1 + 4                     |
-                                                                  | pine    | 3       | 0      | 3           | unchanged (no branches)    |
-                                                                  | fir     | 3       | 0      | 3           | unchanged (no branches)    |
-                                                                  | cypress | 3       | 0      | 3           | unchanged (no branches)    |
-                                                                  | bush    | 3       | 0      | 3           | unchanged (no branches)    |
+                                                                                    | Shape   | Current | Max L1 | New Default | Zone Split (lower + upper) |
+                                                                                    |---------|---------|--------|-------------|---------------------------|
+                                                                                    | oak     | 5       | 3      | 5           | 1 + 4                     |
+                                                                                    | maple   | 3       | 5      | 7           | 2 + 5                     |
+                                                                                    | willow  | 5       | 5      | 7           | 2 + 5                     |
+                                                                                    | cherry  | 3       | 4      | 6           | 1 + 5                     |
+                                                                                    | birch   | 3       | 2      | 4           | 1 + 3                     |
+                                                                                    | apple   | 3       | 2      | 3           | 1 + 2                     |
+                                                                                    | baobab  | 3       | 3      | 5           | 1 + 4                     |
+                                                                                    | acacia  | 3       | 3      | 5           | 1 + 4                     |
+                                                                                    | pine    | 3       | 0      | 3           | unchanged (no branches)    |
+                                                                                    | fir     | 3       | 0      | 3           | unchanged (no branches)    |
+                                                                                    | cypress | 3       | 0      | 3           | unchanged (no branches)    |
+                                                                                    | bush    | 3       | 0      | 3           | unchanged (no branches)    |
 
 ### 13.6 Bottom-Up Sequential Generation
 
@@ -819,22 +819,34 @@ Trunk color UI includes preset swatch buttons that set all three HSL sliders at 
       positions = number of upper-zone junctions. This simplifies fork geometry — the fork point
       IS a junction with fully computed shared vertices.
 
-### 13.7 Branch Fork Model — Peel-Off with Collar
+### 13.7 Branch Fork Model — Shared-Vertex Fork (C2)
 
-- [ ] **REQ-EV2-F-01** When a branch spawns, the **outermost trunk strip** on the branch side
-      peels off. A right-side branch takes the right strip; a left-side branch takes the left
-      strip. The branch then subdivides its inherited width into its own `trunkStripCount` faces
-      (the branch grows its own strip system from the peeled strip).
+> **Supersedes the earlier peel-off + collar model (Q14/Q29 from the 2026-04-15 grilling).**
+> Shipped collar (`generate.ts:621-642`, colored with `stripColors[0]`) produced a visible dark
+> square at every fork because the peeled strip is the darkest face on the shadow side. Peel-off
+> (C1) was also considered but rejected: incompatible with `trunkStripCount=2` and with shapes
+> that spawn ≥4 one-side branches (oak, maple, willow), and ambiguous under twist where strip
+> order rotates. The chosen model is the **Fork / River Split (C2)**.
 
-- [ ] **REQ-EV2-F-02** A small **junction collar** (transitional polygon) fills the geometric gap
-      at the fork point where trunk surface meets branch surface at an angle. The collar is
-      colored with the **peeled strip's color** — providing smooth visual continuity:
-      trunk strip → collar → branch center strip.
+- [ ] **REQ-EV2-F-01** When a branch spawns, it emerges from the trunk via a **shared-vertex
+      fork**. The branch's base quad outer corners coincide exactly with the trunk edge vertices
+      at the fork height. Trunk strip count is preserved above the junction (no strip peels off).
+      The branch generates its own independent `trunkStripCount`-face strip system starting from
+      the attachment.
+
+- [ ] **REQ-EV2-F-02** **No junction collar by default.** The shared-vertex construction closes
+      the junction without a transitional polygon. `junctionFills` remains part of the
+      `BranchGeometry` type but is emitted empty for ordinary forks. The previous "dark peeled
+      strip color" rule is removed. If, in a follow-up, a visible V-wedge appears at wide-angle
+      forks, a single interpolated fill triangle MAY be inserted with color
+      `lerp(trunkStripColorAtForkHeight, branchStripColorAtBase, 0.5)` — **never** a single
+      strip's color. Ship without the fill first and only reintroduce it if the wedge is visible.
 
 - [ ] **REQ-EV2-F-03** **Same-junction forks:** when two branches share a junction (e.g.,
       alternating left+right from Rule I), they fork **sequentially** with a slight vertical
-      stagger (few pixels offset). First fork peels one side's strip, trunk adjusts, second fork
-      peels the other side from the already-adjusted trunk. No double-peel scenario.
+      stagger (few pixels offset). Each shared-vertex fork uses the trunk edge vertices at its
+      own staggered height; the trunk-width reduction from the first fork is applied before the
+      second fork reads the trunk edge.
 
 - [ ] **REQ-EV2-F-04** **Fork width economics — depth-dependent fraction:** - L1 branches take ~15–20% of trunk width at the fork point. - L2 branches take ~10–15% of their parent L1 branch width at the fork point. - Width calculation is **sequential**: branch N's width is derived from trunk width at its
       attachment height, which already accounts for base taper + all forks below it. - Each branch gets randomness around the center fraction: `branchWidthVariance` (REQ-P-42)
@@ -847,9 +859,10 @@ Trunk color UI includes preset swatch buttons that set all three HSL sliders at 
 
 ### 13.8 Branch Strip System
 
-- [ ] **REQ-EV2-B-01** **L1 and L2 branches** use the full fork model: strip inheritance, junction
-      collar, width reduction at sub-branch forks. They have their own junction-based strip
-      continuity (same as trunk segments).
+- [ ] **REQ-EV2-B-01** **L1 and L2 branches** use the full shared-vertex fork model (REQ-EV2-F-01):
+      trunk/parent strip count preserved across the fork, branch starts an independent strip
+      system at the attachment, width reduction applied at sub-branch forks. They have their own
+      junction-based strip continuity (same as trunk segments).
 
 - [ ] **REQ-EV2-B-02** **L3 branches** use a simplified model: plain quads attached at the parent
       branch's silhouette edge. No strip system, no fork geometry. L3 branches are too small for
@@ -908,8 +921,10 @@ Trunk color UI includes preset swatch buttons that set all three HSL sliders at 
       junction produces consistent results. No visible color "seams" at segment boundaries.
 
 - [ ] **REQ-EV2-LT-03** Branch lighting uses the same face-normal model as the trunk. The branch's
-      segment direction determines the face normals. At a fork, the collar's color matches the
-      peeled strip, providing a smooth visual transition.
+      segment direction determines the face normals. At a fork the shared-vertex construction
+      joins trunk and branch without a tinted transition polygon; any optional fill added later
+      (REQ-EV2-F-02) must be colored by interpolation between trunk and branch strip colors,
+      never by a single strip's color.
 
 ### 13.13 Cross-Phase Contract (Phase 1 → Phase 2)
 
@@ -1025,16 +1040,16 @@ Phase 1 must deliver these interfaces for Phase 2 to consume:
 
 - [x] **REQ-EV2-SS-02** Shape-specific identity preserved via style parameters:
 
-                                                                  | Shape   | Key Characteristics                                                 |
-                                                                  |---------|---------------------------------------------------------------------|
-                                                                  | oak     | Round crown. Trunk tip high weight → central blob. Balanced rx/ry.  |
-                                                                  | maple   | Blobs on side branches. Trunk tip = fork, no blob. Medium blobs.    |
-                                                                  | willow  | Blobs offset downward (droop). Branches at low angle. Low canopy.   |
-                                                                  | birch   | Alternating-side blobs. Airy canopy. Thin trunk.                    |
-                                                                  | cherry  | Horizontal spread. Blobs in wide band. Pink coloring.               |
-                                                                  | baobab  | Small blobs at very top. Dominant trunk. Short branches.             |
-                                                                  | acacia  | Flat parasol. Very wide rx, tiny ry. Branches horizontal.           |
-                                                                  | apple   | Compact round canopy. Minimal branching. Large single blob.         |
+                                                                                    | Shape   | Key Characteristics                                                 |
+                                                                                    |---------|---------------------------------------------------------------------|
+                                                                                    | oak     | Round crown. Trunk tip high weight → central blob. Balanced rx/ry.  |
+                                                                                    | maple   | Blobs on side branches. Trunk tip = fork, no blob. Medium blobs.    |
+                                                                                    | willow  | Blobs offset downward (droop). Branches at low angle. Low canopy.   |
+                                                                                    | birch   | Alternating-side blobs. Airy canopy. Thin trunk.                    |
+                                                                                    | cherry  | Horizontal spread. Blobs in wide band. Pink coloring.               |
+                                                                                    | baobab  | Small blobs at very top. Dominant trunk. Short branches.             |
+                                                                                    | acacia  | Flat parasol. Very wide rx, tiny ry. Branches horizontal.           |
+                                                                                    | apple   | Compact round canopy. Minimal branching. Large single blob.         |
 
 - [x] **REQ-EV2-SS-03** Some branch tips will naturally not have blobs — those that fall outside
       the canopy envelope. This is acceptable and realistic (bare branch poking out of canopy).
@@ -1050,8 +1065,9 @@ Phase 1 must deliver these interfaces for Phase 2 to consume:
 ### 14.8 Impact on Existing Issues
 
 - [ ] **REQ-EV2-I-01** Issue #81 (Branch-trunk shared vertices + Rule L): **CLOSED — superseded.**
-      Shared vertices are handled by the fork model (REQ-EV2-F-01). Rule L is REQ-EV2-L-01.
-      Junction fills replaced by collar model (REQ-EV2-F-02).
+      Shared vertices are handled by the shared-vertex fork model (REQ-EV2-F-01). Rule L is
+      REQ-EV2-L-01. Junction fills are empty by default (REQ-EV2-F-02); an optional interpolated
+      fill may be reintroduced if a wedge becomes visible.
 
 - [ ] **REQ-EV2-I-02** Issue #82 (Ratio-based branch controls + remove trunkPolygons):
       **CLOSED — merged.** `trunkPolygons` removal in REQ-P-04-REMOVED. Branch thickness is now
