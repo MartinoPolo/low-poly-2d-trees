@@ -2668,9 +2668,33 @@ describe('computeHybridTaper', () => {
 // Engine v2 Phase C: Branch Fork Model (REQ-EV2-F-04, V-02, V-01)
 // ============================================================================
 
+/**
+ * Measure branch tip width from quads. With shared-vertex fork (REQ-EV2-F-01)
+ * the base corners coincide with trunk edges, so base width reflects trunk
+ * width, not branch widthStart. The tip remains `widthEnd = 0.4 * widthStart`
+ * for L1, so tip width is a stable proxy for widthStart.
+ */
+function measureBranchTipWidth(group: { quads: readonly Quad[] }): number {
+	const stripCount = 3;
+	const totalQuads = group.quads.length;
+	if (totalQuads === 0 || totalQuads < stripCount) {
+		return 0;
+	}
+	// With multi-junction branches, quads are ordered [seg0_strip0..N, seg1_strip0..N, ...].
+	// Tip = "top" edge of the LAST segment's quads (last stripCount quads in array).
+	// Quad point order: [topLeft, topRight, bottomRight, bottomLeft].
+	const tipFirstStrip = group.quads[totalQuads - stripCount]!;
+	const tipLastStrip = group.quads[totalQuads - 1]!;
+	const tipLeft = tipFirstStrip.points[0]!;
+	const tipRight = tipLastStrip.points[1]!;
+	const dx = tipRight.x - tipLeft.x;
+	const dy = tipRight.y - tipLeft.y;
+	return Math.sqrt(dx * dx + dy * dy);
+}
+
 describe('EV2-C Group 1: Branch Fork Width Economics', () => {
-	it('1.1: L1 branch widthStart is 15-20% of trunk width (± branchWidthVariance)', () => {
-		// Generate with known trunk thickness and check all L1 branch widths
+	it('1.1: L1 branch tip width reflects widthStart (15-20% of trunk × 0.4)', () => {
+		// Shared-vertex fork: measure tip width (= 0.4 × widthStart) as proxy.
 		const config = makeConfig({
 			seed: 42,
 			branchDepth: 1,
@@ -2682,20 +2706,10 @@ describe('EV2-C Group 1: Branch Fork Width Economics', () => {
 		const l1Branches = geo.branchGroups.filter((g) => g.depth === 1);
 		expect(l1Branches.length).toBeGreaterThan(0);
 		for (const group of l1Branches) {
-			// Measure the start width from the quad vertices
-			const segQuads = group.quads;
-			// The leftmost/rightmost points at the origin end give us widthStart
-			const originY = group.origin.y;
-			const originPoints = segQuads.flatMap((q) =>
-				q.points.filter((p) => Math.abs(p.y - originY) < 20),
-			);
-			const xs = originPoints.map((p) => p.x);
-			const measuredWidth = Math.max(...xs) - Math.min(...xs);
-			// Width should be in a reasonable range: 15-20% of trunk width ± variance spread
-			// Trunk width at upper half ranges ~4-14, so 15% of 14 = 2.1, 20% of 14 = 2.8
-			// With variance, allow wider range: 0.5 to 5.0
-			expect(measuredWidth).toBeGreaterThan(0.5);
-			expect(measuredWidth).toBeLessThan(6.0);
+			const tipWidth = measureBranchTipWidth(group);
+			// widthStart in 0.5-5.0 → widthEnd in 0.2-2.0, clamped min 0.5
+			expect(tipWidth).toBeGreaterThanOrEqual(0.5);
+			expect(tipWidth).toBeLessThan(3.0);
 		}
 	});
 
@@ -2709,16 +2723,12 @@ describe('EV2-C Group 1: Branch Fork Width Economics', () => {
 		const geo = generateTree(config);
 		const l1Branches = geo.branchGroups.filter((g) => g.depth === 1);
 		expect(l1Branches.length).toBeGreaterThan(1);
-		// Measure widths from quad geometry at origin
-		const widths = l1Branches.map((group) => {
-			const originY = group.origin.y;
-			const originPoints = group.quads.flatMap((q) =>
-				q.points.filter((p) => Math.abs(p.y - originY) < 20),
-			);
-			const xs = originPoints.map((p) => p.x);
-			return Math.max(...xs) - Math.min(...xs);
-		});
-		// All widths should be unique (no duplicates)
+		// Tip widths track widthStart (widthEnd clamps to 0.5 min). Exclude clamped.
+		const widths = l1Branches.map(measureBranchTipWidth).filter((w) => w > 0.5 + 1e-4);
+		// Guard against vacuous pass when every branch clamps to the floor.
+		expect(widths.length).toBeGreaterThan(1);
+		// All widths should be unique (no duplicates). With clamping filtered out,
+		// each remaining width reflects its branch's seeded widthStart uniquely.
 		const uniqueWidths = new Set(widths.map((w) => w.toFixed(4)));
 		expect(uniqueWidths.size).toBe(widths.length);
 	});
@@ -2739,16 +2749,7 @@ describe('EV2-C Group 1: Branch Fork Width Economics', () => {
 		const geoNoVar = generateTree(configNoVar);
 		const geoHighVar = generateTree(configHighVar);
 		const measureWidths = (geo: TreeGeometry) =>
-			geo.branchGroups
-				.filter((g) => g.depth === 1)
-				.map((group) => {
-					const originY = group.origin.y;
-					const pts = group.quads.flatMap((q) =>
-						q.points.filter((p) => Math.abs(p.y - originY) < 20),
-					);
-					const xs = pts.map((p) => p.x);
-					return Math.max(...xs) - Math.min(...xs);
-				});
+			geo.branchGroups.filter((g) => g.depth === 1).map(measureBranchTipWidth);
 		const widthsNoVar = measureWidths(geoNoVar);
 		const widthsHighVar = measureWidths(geoHighVar);
 		if (widthsNoVar.length > 1 && widthsHighVar.length > 1) {
@@ -2787,6 +2788,110 @@ describe('EV2-C Group 1: Branch Fork Width Economics', () => {
 		// Angles should not all be identical — ±15° variation means spread
 		const uniqueAngles = new Set(angles.map((a) => Math.round(a)));
 		expect(uniqueAngles.size).toBeGreaterThan(1);
+	});
+});
+
+// ============================================================================
+// Shared-Vertex Fork (C2) — Issue #104 / REQ-EV2-F-01, F-02
+// ============================================================================
+
+describe('Shared-vertex fork (REQ-EV2-F-01, F-02)', () => {
+	it('F-02: junctionFills is empty for every branch across all branching shapes', () => {
+		const branchingShapes: TreeShape[] = [
+			'oak',
+			'birch',
+			'maple',
+			'willow',
+			'cherry',
+			'apple',
+			'baobab',
+			'acacia',
+		];
+		for (const shape of branchingShapes) {
+			const geo = generateTree(makeConfig({ shape, seed: 42, branchDepth: 2 }));
+			for (const group of geo.branchGroups) {
+				expect(group.junctionFills).toHaveLength(0);
+			}
+		}
+	});
+
+	it('F-02: junctionFills stays empty across all trunkStripCount values (2, 3, 4)', () => {
+		for (const stripCount of [2, 3, 4] as const) {
+			const geo = generateTree(
+				makeConfig({
+					shape: 'oak',
+					seed: 42,
+					branchDepth: 2,
+					trunkStripCount: stripCount,
+				}),
+			);
+			for (const group of geo.branchGroups) {
+				expect(group.junctionFills).toHaveLength(0);
+			}
+		}
+	});
+
+	it('F-01: L1 branch base outer corners coincide with trunk edge vertices at fork height', () => {
+		const geo = generateTree(
+			makeConfig({
+				shape: 'oak',
+				seed: 42,
+				branchDepth: 1,
+				branchesLevel1Range: [3, 3],
+				trunkStripCount: 3,
+			}),
+		);
+		expect(geo.junctionData).toBeDefined();
+		const l1Branches = geo.branchGroups.filter((g) => g.depth === 1);
+		expect(l1Branches.length).toBeGreaterThan(0);
+
+		// Compute trunk edge vertices at each junction from junctionData
+		const trunkEdges = geo.junctionData!.map((jd) => {
+			const perpX = Math.cos(jd.bisectorAngle);
+			const perpY = Math.sin(jd.bisectorAngle);
+			const half = jd.width / 2;
+			return {
+				y: jd.position.y,
+				left: { x: jd.position.x + perpX * half, y: jd.position.y + perpY * half },
+				right: { x: jd.position.x - perpX * half, y: jd.position.y - perpY * half },
+			};
+		});
+
+		const EPS = 1e-6;
+		for (const group of l1Branches) {
+			// L1 branch attaches exactly at a trunk junction y (displacement only
+			// shifts x, not y). Find the matching junction.
+			const match = trunkEdges.find((e) => Math.abs(e.y - group.origin.y) < EPS);
+			expect(match).toBeDefined();
+			expect(group.quads.length).toBeGreaterThan(0);
+			// Assert: at least one quad vertex equals match.left and another equals match.right.
+			const allPoints = group.quads.flatMap((q) => q.points);
+			const hasLeftEdge = allPoints.some(
+				(p) => Math.abs(p.x - match!.left.x) < EPS && Math.abs(p.y - match!.left.y) < EPS,
+			);
+			const hasRightEdge = allPoints.some(
+				(p) => Math.abs(p.x - match!.right.x) < EPS && Math.abs(p.y - match!.right.y) < EPS,
+			);
+			expect(hasLeftEdge).toBe(true);
+			expect(hasRightEdge).toBe(true);
+		}
+	});
+
+	it('F-01: trunk strip count above a fork is unchanged from below (no peel-off)', () => {
+		const geo = generateTree(
+			makeConfig({
+				shape: 'oak',
+				seed: 42,
+				branchDepth: 1,
+				branchesLevel1Range: [2, 2],
+				trunkStripCount: 3,
+				trunkSegments: 4,
+			}),
+		);
+		// Quads per trunk segment: should be exactly trunkStripCount for every segment
+		const junctionCount = geo.junctionData!.length;
+		const segmentCount = junctionCount - 1;
+		expect(geo.trunkQuads.length).toBe(segmentCount * 3);
 	});
 });
 
