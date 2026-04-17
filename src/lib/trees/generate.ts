@@ -502,6 +502,7 @@ interface ForkBasePoints {
 
 function generateBranchQuadGroup(
 	branch: BranchSegment,
+	path: readonly Point2D[],
 	config: TreeConfig,
 	depth: number,
 	parentIndex: number | null = null,
@@ -523,9 +524,6 @@ function generateBranchQuadGroup(
 		};
 	}
 
-	const perpX = -dirY / length;
-	const perpY = dirX / length;
-
 	// Per-branch PRNG seeded from position to ensure determinism
 	const branchRng = createPrng(
 		config.seed +
@@ -541,6 +539,8 @@ function generateBranchQuadGroup(
 
 	// REQ-EV2-B-02: L3+ uses single plain quad (no strip system)
 	if (depth >= 3) {
+		const perpX = -dirY / length;
+		const perpY = dirX / length;
 		const halfStart = branch.widthStart / 2;
 		const halfEnd = branch.widthEnd / 2;
 		const colors = computeStripColors({
@@ -581,82 +581,88 @@ function generateBranchQuadGroup(
 	const stripCount = config.trunkStripCount;
 	const twistAttenuation = TWIST_ATTENUATION_BY_DEPTH[depth] ?? 0;
 	const effectiveTwist = config.trunkTwist * twistAttenuation;
+	const junctionCount = path.length;
 
-	// Compute strip ratios for branch (2 junctions: start + end)
+	// Compute strip ratios for all junctions (reuses trunk strip ratio model)
 	const branchStripRatios = computeJunctionStripRatios(
 		config.seed + Math.round(branch.x1 * 100) + Math.round(branch.y1 * 100),
-		2,
+		junctionCount,
 		stripCount,
 		effectiveTwist,
 	);
 
-	const stripColors = computeStripColors({
-		segmentDirectionX: dirX,
-		segmentDirectionY: dirY,
-		lightAngle: config.lightAngle,
-		trunkHue: config.trunkHue,
-		trunkSaturation: config.trunkSaturation,
-		trunkLightness: config.trunkLightness,
-		centerPerturbationX: centerPerturbX,
-		centerPerturbationY: centerPerturbY,
-		stripCount,
-		lightnessOffset: branchLightnessOffset,
-	});
+	// Compute bisector perpendicular directions at each junction
+	const bisectors = computeJunctionBisectors(path);
 
-	// Compute edge points at a single cross-section using strip ratios, offset
-	// along a given perpendicular direction.
-	function computePerpEdgePoints(
-		cx: number,
-		cy: number,
-		half: number,
-		ratios: readonly number[],
-	): Point2D[] {
-		const points: Point2D[] = [];
-		points.push({ x: cx + perpX * half, y: cy + perpY * half });
-		let accRatio = 0;
-		for (let s = 0; s < stripCount - 1; s++) {
-			accRatio += ratios[s]!;
-			const offset = half - accRatio * half * 2;
-			points.push({ x: cx + perpX * offset, y: cy + perpY * offset });
-		}
-		points.push({ x: cx - perpX * half, y: cy - perpY * half });
-		return points;
+	// Compute widths at each junction (linear taper from widthStart to widthEnd)
+	const junctionWidths: number[] = [];
+	for (let j = 0; j < junctionCount; j++) {
+		const t = junctionCount > 1 ? j / (junctionCount - 1) : 0;
+		junctionWidths.push(branch.widthStart + t * (branch.widthEnd - branch.widthStart));
 	}
 
-	// REQ-EV2-F-01: shared-vertex fork. Base outer corners coincide with the
-	// parent silhouette's edge vertices at the fork height; inner strip splits
-	// interpolate along the base line using the branch's own strip ratios.
-	function computeSharedBaseEdgePoints(
-		base: ForkBasePoints,
-		ratios: readonly number[],
-	): Point2D[] {
-		const points: Point2D[] = [base.left];
+	// Compute shared junction edge points (same model as trunk — REQ-EV2-J-02)
+	const branchJunctionEdgePoints = computeJunctionEdgePoints(
+		path,
+		bisectors,
+		junctionWidths,
+		branchStripRatios,
+		stripCount,
+	);
+
+	// REQ-EV2-F-01: shared-vertex fork at base junction. If forkBasePoints are
+	// provided (L1 branch snapped to trunk), override junction[0]'s edge points
+	// with the parent silhouette's vertices, interpolating inner strip splits
+	// along the base line using the branch's own strip ratios.
+	if (forkBasePoints) {
+		const sharedBase: Point2D[] = [forkBasePoints.left];
 		let accRatio = 0;
 		for (let s = 0; s < stripCount - 1; s++) {
-			accRatio += ratios[s]!;
-			points.push({
-				x: base.left.x + (base.right.x - base.left.x) * accRatio,
-				y: base.left.y + (base.right.y - base.left.y) * accRatio,
+			accRatio += branchStripRatios[0]![s]!;
+			sharedBase.push({
+				x:
+					forkBasePoints.left.x +
+					(forkBasePoints.right.x - forkBasePoints.left.x) * accRatio,
+				y:
+					forkBasePoints.left.y +
+					(forkBasePoints.right.y - forkBasePoints.left.y) * accRatio,
 			});
 		}
-		points.push(base.right);
-		return points;
+		sharedBase.push(forkBasePoints.right);
+		branchJunctionEdgePoints[0] = sharedBase;
 	}
 
-	const halfStart = branch.widthStart / 2;
-	const halfEnd = branch.widthEnd / 2;
-	const startPoints = forkBasePoints
-		? computeSharedBaseEdgePoints(forkBasePoints, branchStripRatios[0]!)
-		: computePerpEdgePoints(branch.x1, branch.y1, halfStart, branchStripRatios[0]!);
-	const endPoints = computePerpEdgePoints(branch.x2, branch.y2, halfEnd, branchStripRatios[1]!);
-
 	const quads: Quad[] = [];
-	for (let s = 0; s < stripCount; s++) {
-		quads.push({
-			points: [startPoints[s]!, startPoints[s + 1]!, endPoints[s + 1]!, endPoints[s]!],
-			color: stripColors[s]!,
-			group: GEOMETRY_GROUPS.branch,
+
+	// Build quads between adjacent junctions, iterating like trunk
+	for (let i = 0; i < junctionCount - 1; i++) {
+		const bottomPoints = branchJunctionEdgePoints[i]!;
+		const topPoints = branchJunctionEdgePoints[i + 1]!;
+
+		const segDirX = path[i + 1]!.x - path[i]!.x;
+		const segDirY = path[i + 1]!.y - path[i]!.y;
+
+		// Per-segment strip colors (consistent lighting per segment)
+		const stripColors = computeStripColors({
+			segmentDirectionX: segDirX,
+			segmentDirectionY: segDirY,
+			lightAngle: config.lightAngle,
+			trunkHue: config.trunkHue,
+			trunkSaturation: config.trunkSaturation,
+			trunkLightness: config.trunkLightness,
+			centerPerturbationX: centerPerturbX,
+			centerPerturbationY: centerPerturbY,
+			stripCount,
+			lightnessOffset: branchLightnessOffset,
 		});
+
+		for (let s = 0; s < stripCount; s++) {
+			quads.push({
+				points: [topPoints[s]!, topPoints[s + 1]!, bottomPoints[s + 1]!, bottomPoints[s]!],
+				color: stripColors[s]!,
+				group: GEOMETRY_GROUPS.branch,
+			});
+		}
 	}
 
 	// REQ-EV2-F-02 (updated, Issue #104): no collar by default. Shared-vertex
@@ -723,6 +729,7 @@ function generateAllBranchQuads(
 	return branches.map((branch, i) =>
 		generateBranchQuadGroup(
 			branch.segment,
+			branch.path,
 			config,
 			branch.depth,
 			branch.parentIndex,
@@ -1116,6 +1123,10 @@ function generateTreeCore(config: TreeConfig, flags: StageFlags): TreeGeometry {
 			);
 	const extraBranches: GeneratedBranch[] = extraSegments.map((seg) => ({
 		segment: seg,
+		path: [
+			{ x: seg.x1, y: seg.y1 },
+			{ x: seg.x2, y: seg.y2 },
+		],
 		depth: 1,
 		parentIndex: null,
 	}));
@@ -1144,6 +1155,10 @@ function generateTreeCore(config: TreeConfig, flags: StageFlags): TreeGeometry {
 				widthStart: 3 * (config.branchThickness / 100),
 				widthEnd: 1,
 			},
+			path: [
+				{ x: topJunction.x, y: topJunction.y },
+				{ x: targetX, y: targetY },
+			],
 			depth: 1,
 			parentIndex: null,
 		});

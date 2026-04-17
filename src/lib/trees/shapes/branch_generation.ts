@@ -1,5 +1,5 @@
-import type { TreeConfig, Point2D } from '../types.js';
-import { VIEWBOX_WIDTH } from '../types.js';
+import type { TreeConfig, Point2D, CrookednessMode } from '../types.js';
+import { CROOKEDNESS_MODES, VIEWBOX_WIDTH } from '../types.js';
 import { randomInRange } from '../prng.js';
 import { sampleTrunkCenterX, computeZoneSplit } from './trunk.js';
 import { isPointInSingleBlob, getBlobsBounds } from './shape_bounds.js';
@@ -9,6 +9,189 @@ import {
 	resolveBranchLengthRange,
 } from './geometry.js';
 import type { Blob, BranchSegment } from './shape_types.js';
+
+// ---------------------------------------------------------------------------
+// Utilities
+// ---------------------------------------------------------------------------
+
+function lerp(a: number, b: number, t: number): number {
+	return a + (b - a) * t;
+}
+
+// ---------------------------------------------------------------------------
+// Branch path building (issue #105 — multi-junction branches)
+// ---------------------------------------------------------------------------
+
+/** Maximum absolute angle from branch axis (degrees) to prevent self-intersection. */
+const MAX_BRANCH_ABSOLUTE_ANGLE_DEG = 85;
+
+/**
+ * Compute effective branch segments per depth (REQ-EV2-B-04):
+ * L1 = config, L2 = max(config-1, 1), L3+ = 1.
+ */
+export function computeEffectiveBranchSegments(configSegments: number, depth: number): number {
+	if (depth >= 3) {
+		return 1;
+	}
+	if (depth === 2) {
+		return Math.max(configSegments - 1, 1);
+	}
+	return configSegments;
+}
+
+/**
+ * Build a crooked polyline path for a branch. Analogous to trunk's
+ * `buildCrookedPath` but works in the branch's local coordinate frame
+ * (arbitrary direction, not just vertical).
+ *
+ * Uses the same jitter model as the trunk: cumulative angle from branch
+ * axis, per-junction jitter reduction, segment length variation, and
+ * alternating/random mode.
+ */
+export function buildBranchPath(
+	rng: () => number,
+	startX: number,
+	startY: number,
+	endX: number,
+	endY: number,
+	segments: number,
+	crookedness: number,
+	crookednessMode: CrookednessMode,
+): Point2D[] {
+	const segmentCount = Math.max(1, Math.min(5, Math.round(segments)));
+	const clampedCrookedness = Math.max(0, Math.min(100, crookedness));
+
+	const totalDx = endX - startX;
+	const totalDy = endY - startY;
+	const totalLength = Math.sqrt(totalDx * totalDx + totalDy * totalDy);
+
+	if (totalLength === 0) {
+		return [
+			{ x: startX, y: startY },
+			{ x: endX, y: endY },
+		];
+	}
+
+	// Unit vectors along branch axis and perpendicular
+	const axisX = totalDx / totalLength;
+	const axisY = totalDy / totalLength;
+	const perpX = -axisY;
+	const perpY = axisX;
+
+	const baseSegmentLen = totalLength / segmentCount;
+
+	// Segment length variation: only when crookedness > 0 (same as trunk)
+	let segmentMultipliers: number[] | null = null;
+	let normalizeScale = 1;
+	if (clampedCrookedness > 0) {
+		segmentMultipliers = [];
+		let multiplierSum = 0;
+		for (let i = 0; i < segmentCount; i++) {
+			const mult = 0.7 + rng() * 0.6; // 0.7-1.3 range (+/-30%)
+			segmentMultipliers.push(mult);
+			multiplierSum += mult;
+		}
+		normalizeScale = segmentCount / multiplierSum;
+	}
+
+	const junctions: Point2D[] = [{ x: startX, y: startY }];
+
+	const maxJitterDeg = lerp(0, 90, clampedCrookedness / 100);
+	const maxAbsoluteRad = (MAX_BRANCH_ABSOLUTE_ANGLE_DEG * Math.PI) / 180;
+
+	let currentAngleRad = 0; // Angle relative to branch axis
+	let alternatingSign = clampedCrookedness > 0 ? (rng() < 0.5 ? -1 : 1) : 1;
+	let cumulativeAxisLen = 0;
+	let cumulativePerpOffset = 0;
+
+	for (let i = 1; i <= segmentCount; i++) {
+		const segmentLen =
+			segmentMultipliers !== null
+				? baseSegmentLen * segmentMultipliers[i - 1]! * normalizeScale
+				: baseSegmentLen;
+
+		if (i > 1 && clampedCrookedness > 0) {
+			// Per-junction jitter reduction: up to 50% of max
+			const jitterReduction = 0.5 + rng() * 0.5; // 0.5-1.0 multiplier
+			const effectiveMaxJitter = maxJitterDeg * jitterReduction;
+
+			let jitterSign: number;
+			if (crookednessMode === CROOKEDNESS_MODES.alternating) {
+				alternatingSign *= -1;
+				jitterSign = alternatingSign;
+			} else {
+				jitterSign = rng() < 0.5 ? -1 : 1;
+			}
+
+			const jitterDeg =
+				randomInRange(rng, effectiveMaxJitter * 0.3, effectiveMaxJitter) * jitterSign;
+			currentAngleRad += (jitterDeg * Math.PI) / 180;
+			currentAngleRad = Math.max(-maxAbsoluteRad, Math.min(maxAbsoluteRad, currentAngleRad));
+		}
+
+		cumulativeAxisLen += segmentLen;
+		cumulativePerpOffset += segmentLen * Math.tan(currentAngleRad);
+
+		junctions.push({
+			x: startX + axisX * cumulativeAxisLen + perpX * cumulativePerpOffset,
+			y: startY + axisY * cumulativeAxisLen + perpY * cumulativePerpOffset,
+		});
+	}
+
+	return junctions;
+}
+
+/**
+ * Sample a point along a polyline path at parametric position t ∈ [0,1].
+ * Piecewise-linear interpolation: t=0 → first junction, t=1 → last junction.
+ */
+export function samplePointAlongPath(path: readonly Point2D[], t: number): Point2D {
+	if (path.length < 2) {
+		return path[0]!;
+	}
+
+	// Fast-path exact endpoints to avoid float-accumulation drift
+	if (t <= 0) {
+		return path[0]!;
+	}
+	if (t >= 1) {
+		return path[path.length - 1]!;
+	}
+
+	const clampedT = t;
+
+	// Compute cumulative segment lengths
+	let totalLength = 0;
+	const segmentLengths: number[] = [];
+	for (let i = 0; i < path.length - 1; i++) {
+		const dx = path[i + 1]!.x - path[i]!.x;
+		const dy = path[i + 1]!.y - path[i]!.y;
+		const len = Math.sqrt(dx * dx + dy * dy);
+		segmentLengths.push(len);
+		totalLength += len;
+	}
+
+	if (totalLength === 0) {
+		return path[0]!;
+	}
+
+	const targetDistance = clampedT * totalLength;
+	let accumulated = 0;
+
+	for (let i = 0; i < segmentLengths.length; i++) {
+		const segLen = segmentLengths[i]!;
+		if (accumulated + segLen >= targetDistance || i === segmentLengths.length - 1) {
+			const localT = segLen > 0 ? (targetDistance - accumulated) / segLen : 0;
+			return {
+				x: path[i]!.x + localT * (path[i + 1]!.x - path[i]!.x),
+				y: path[i]!.y + localT * (path[i + 1]!.y - path[i]!.y),
+			};
+		}
+		accumulated += segLen;
+	}
+
+	return path[path.length - 1]!;
+}
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -43,6 +226,8 @@ const TRUNK_BRANCH_BASE_MAX = VIEWBOX_WIDTH * 0.4;
 
 export interface GeneratedBranch {
 	readonly segment: BranchSegment;
+	/** Ordered junction list: path[0] = branch origin, path[last] = tip. */
+	readonly path: readonly Point2D[];
 	readonly depth: number;
 	readonly parentIndex: number | null;
 }
@@ -353,7 +538,24 @@ function generateTrunkBranches(ctx: BranchContext, branches: GeneratedBranch[]):
 		}
 
 		if (accepted !== null) {
-			branches.push({ segment: accepted, depth: 1, parentIndex: null });
+			const effectiveSegments = computeEffectiveBranchSegments(config.branchSegments, 1);
+			const path = buildBranchPath(
+				rng,
+				accepted.x1,
+				accepted.y1,
+				accepted.x2,
+				accepted.y2,
+				effectiveSegments,
+				config.branchCrookedness,
+				config.crookednessMode,
+			);
+			const tip = path[path.length - 1]!;
+			const segmentWithCrookedTip: BranchSegment = {
+				...accepted,
+				x2: tip.x,
+				y2: tip.y,
+			};
+			branches.push({ segment: segmentWithCrookedTip, path, depth: 1, parentIndex: null });
 		}
 	}
 }
@@ -386,16 +588,25 @@ function generateSubBranches(
 			return;
 		}
 
-		const parent = branches[parentIndex]!.segment;
+		const parentBranch = branches[parentIndex]!;
+		const parent = parentBranch.segment;
+		const parentPath = parentBranch.path;
 		const childCount = sampleBranchCountForLevel(rng, config, targetDepth);
 		if (childCount <= 0) {
 			continue;
 		}
 
 		// BR-5: Children originate from upper 50-100% of parent length
+		// Compute parent length from the crooked path (piecewise sum)
+		let parentLength = 0;
+		for (let s = 0; s < parentPath.length - 1; s++) {
+			const dx = parentPath[s + 1]!.x - parentPath[s]!.x;
+			const dy = parentPath[s + 1]!.y - parentPath[s]!.y;
+			parentLength += Math.sqrt(dx * dx + dy * dy);
+		}
+		// Overall parent direction (start to tip) for angle divergence
 		const parentDirX = parent.x2 - parent.x1;
 		const parentDirY = parent.y2 - parent.y1;
-		const parentLength = Math.sqrt(parentDirX * parentDirX + parentDirY * parentDirY);
 		const parentAngle = Math.atan2(parentDirY, parentDirX);
 
 		for (let c = 0; c < childCount; c++) {
@@ -406,10 +617,11 @@ function generateSubBranches(
 			let accepted: BranchSegment | null = null;
 
 			for (let attempt = 0; attempt < BRANCH_RETRY_ATTEMPTS; attempt++) {
-				// Origin along upper 50-100% of parent
+				// Origin along upper 50-100% of parent — sample the crooked path
 				const originT = randomInRange(rng, 0.5, 1.0);
-				const originX = parent.x1 + parentDirX * originT;
-				const originY = parent.y1 + parentDirY * originT;
+				const origin = samplePointAlongPath(parentPath, originT);
+				const originX = origin.x;
+				const originY = origin.y;
 
 				// Rule K: child length 20-80% of parent
 				const lengthRatio = randomInRange(
@@ -472,7 +684,32 @@ function generateSubBranches(
 			}
 
 			if (accepted !== null) {
-				branches.push({ segment: accepted, depth: targetDepth, parentIndex });
+				const effectiveSegments = computeEffectiveBranchSegments(
+					config.branchSegments,
+					targetDepth,
+				);
+				const childPath = buildBranchPath(
+					rng,
+					accepted.x1,
+					accepted.y1,
+					accepted.x2,
+					accepted.y2,
+					effectiveSegments,
+					config.branchCrookedness,
+					config.crookednessMode,
+				);
+				const tip = childPath[childPath.length - 1]!;
+				const segmentWithCrookedTip: BranchSegment = {
+					...accepted,
+					x2: tip.x,
+					y2: tip.y,
+				};
+				branches.push({
+					segment: segmentWithCrookedTip,
+					path: childPath,
+					depth: targetDepth,
+					parentIndex,
+				});
 			}
 		}
 	}
@@ -558,15 +795,21 @@ export function generateBranches(
 		const originY = trunkTop + trunkHeight * branchT;
 		const originX = sampleTrunkCenterX(trunkJunctions, originY);
 
+		const fallbackSegment: BranchSegment = {
+			x1: originX,
+			y1: originY,
+			x2: blob.cx,
+			y2: blob.cy,
+			widthStart: randomInRange(rng, 5.25, 8.75) * branchThicknessScale,
+			widthEnd: randomInRange(rng, 1.75, 3.5) * branchThicknessScale,
+		};
+		// Fallback branches are straight (no crookedness) — emergency connectors
 		branches.push({
-			segment: {
-				x1: originX,
-				y1: originY,
-				x2: blob.cx,
-				y2: blob.cy,
-				widthStart: randomInRange(rng, 5.25, 8.75) * branchThicknessScale,
-				widthEnd: randomInRange(rng, 1.75, 3.5) * branchThicknessScale,
-			},
+			segment: fallbackSegment,
+			path: [
+				{ x: originX, y: originY },
+				{ x: blob.cx, y: blob.cy },
+			],
 			depth: 1,
 			parentIndex: null,
 		});

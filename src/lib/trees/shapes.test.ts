@@ -14,6 +14,9 @@ import {
 	computeZoneSplit,
 	generateCustomBlobs,
 	growCustomBlobs,
+	buildBranchPath,
+	computeEffectiveBranchSegments,
+	samplePointAlongPath,
 	CUSTOM_BLOB_CANOPY_CENTER_X,
 	CUSTOM_BLOB_CANOPY_CENTER_Y,
 	CUSTOM_BLOB_SPREAD_RADIUS,
@@ -771,6 +774,249 @@ describe('generateBranches — visibility & crossing invariants', () => {
 });
 
 // ============================================================================
+// Issue #105: multi-junction branch path integration
+// ============================================================================
+
+describe('generateBranches — multi-junction paths (issue #105)', () => {
+	it('branchSegments=3 L1 branches have path.length === 4', () => {
+		const config = makeConfig({
+			shape: 'oak',
+			branchesLevel1Range: [3, 3],
+			branchSegments: 3,
+			branchCrookedness: 50,
+			branchDepth: 1,
+			seed: 42,
+			trunkSegments: 5,
+		});
+		const { rng, trunkTop, trunkBottom, trunkTopWidth, trunkJunctions, blobs } =
+			setupOakBranchInputs(config);
+		const { branches } = generateBranches(
+			rng,
+			trunkTop,
+			trunkBottom,
+			trunkTopWidth,
+			config,
+			trunkJunctions,
+			blobs,
+		);
+		expect(branches.length).toBeGreaterThan(0);
+		for (const b of branches) {
+			expect(b.path).toHaveLength(4); // 3 segments + 1
+		}
+	});
+
+	it('branchSegments=3 L2 branches have path.length === 3', () => {
+		const config = makeConfig({
+			shape: 'oak',
+			branchesLevel1Range: [3, 3],
+			branchesLevel2Range: [2, 3],
+			branchSegments: 3,
+			branchCrookedness: 50,
+			branchDepth: 2,
+			seed: 42,
+			trunkSegments: 5,
+		});
+		const { rng, trunkTop, trunkBottom, trunkTopWidth, trunkJunctions, blobs } =
+			setupOakBranchInputs(config);
+		const { branches } = generateBranches(
+			rng,
+			trunkTop,
+			trunkBottom,
+			trunkTopWidth,
+			config,
+			trunkJunctions,
+			blobs,
+		);
+		const l2Branches = branches.filter((b) => b.depth === 2);
+		expect(l2Branches.length).toBeGreaterThan(0);
+		for (const b of l2Branches) {
+			expect(b.path).toHaveLength(3); // max(3-1,1)=2 segments + 1
+		}
+	});
+
+	it('branchSegments=3 L3 branches have path.length === 2 (always straight)', () => {
+		const config = makeConfig({
+			shape: 'oak',
+			branchesLevel1Range: [3, 3],
+			branchesLevel2Range: [2, 2],
+			branchesLevel3Range: [1, 2],
+			branchSegments: 3,
+			branchCrookedness: 50,
+			branchDepth: 3,
+			seed: 42,
+			trunkSegments: 5,
+		});
+		const { rng, trunkTop, trunkBottom, trunkTopWidth, trunkJunctions, blobs } =
+			setupOakBranchInputs(config);
+		const { branches } = generateBranches(
+			rng,
+			trunkTop,
+			trunkBottom,
+			trunkTopWidth,
+			config,
+			trunkJunctions,
+			blobs,
+		);
+		const l3Branches = branches.filter((b) => b.depth === 3);
+		if (l3Branches.length > 0) {
+			for (const b of l3Branches) {
+				expect(b.path).toHaveLength(2); // 1 segment + 1
+			}
+		}
+	});
+
+	it('branchSegments=1 produces path.length === 2 (backwards compatible)', () => {
+		const config = makeConfig({
+			shape: 'oak',
+			branchesLevel1Range: [3, 3],
+			branchSegments: 1,
+			branchCrookedness: 50,
+			branchDepth: 1,
+			seed: 42,
+			trunkSegments: 5,
+		});
+		const { rng, trunkTop, trunkBottom, trunkTopWidth, trunkJunctions, blobs } =
+			setupOakBranchInputs(config);
+		const { branches } = generateBranches(
+			rng,
+			trunkTop,
+			trunkBottom,
+			trunkTopWidth,
+			config,
+			trunkJunctions,
+			blobs,
+		);
+		expect(branches.length).toBeGreaterThan(0);
+		for (const b of branches) {
+			expect(b.path).toHaveLength(2);
+		}
+	});
+
+	it('branchCrookedness=0 produces collinear path junctions', () => {
+		const config = makeConfig({
+			shape: 'oak',
+			branchesLevel1Range: [3, 3],
+			branchSegments: 3,
+			branchCrookedness: 0,
+			branchDepth: 1,
+			seed: 42,
+			trunkSegments: 5,
+		});
+		const { rng, trunkTop, trunkBottom, trunkTopWidth, trunkJunctions, blobs } =
+			setupOakBranchInputs(config);
+		const { branches } = generateBranches(
+			rng,
+			trunkTop,
+			trunkBottom,
+			trunkTopWidth,
+			config,
+			trunkJunctions,
+			blobs,
+		);
+		expect(branches.length).toBeGreaterThan(0);
+		for (const b of branches) {
+			const first = b.path[0]!;
+			const last = b.path[b.path.length - 1]!;
+			const dx = last.x - first.x;
+			const dy = last.y - first.y;
+			const len = Math.sqrt(dx * dx + dy * dy);
+			for (const junction of b.path) {
+				const cross =
+					Math.abs((junction.x - first.x) * dy - (junction.y - first.y) * dx) / len;
+				expect(cross).toBeLessThan(1e-6);
+			}
+		}
+	});
+
+	it('path[0] matches segment start, path[last] matches segment end', () => {
+		const config = makeConfig({
+			shape: 'oak',
+			branchesLevel1Range: [3, 3],
+			branchSegments: 3,
+			branchCrookedness: 50,
+			branchDepth: 1,
+			seed: 42,
+			trunkSegments: 5,
+		});
+		const { rng, trunkTop, trunkBottom, trunkTopWidth, trunkJunctions, blobs } =
+			setupOakBranchInputs(config);
+		const { branches } = generateBranches(
+			rng,
+			trunkTop,
+			trunkBottom,
+			trunkTopWidth,
+			config,
+			trunkJunctions,
+			blobs,
+		);
+		for (const b of branches) {
+			expect(b.path[0]!.x).toBeCloseTo(b.segment.x1, 6);
+			expect(b.path[0]!.y).toBeCloseTo(b.segment.y1, 6);
+			expect(b.path[b.path.length - 1]!.x).toBeCloseTo(b.segment.x2, 6);
+			expect(b.path[b.path.length - 1]!.y).toBeCloseTo(b.segment.y2, 6);
+		}
+	});
+
+	it('L2 origin lies on parent crooked path (distance < 1px)', () => {
+		const config = makeConfig({
+			shape: 'oak',
+			branchesLevel1Range: [3, 3],
+			branchesLevel2Range: [2, 3],
+			branchSegments: 3,
+			branchCrookedness: 50,
+			branchDepth: 2,
+			seed: 42,
+			trunkSegments: 5,
+		});
+		const { rng, trunkTop, trunkBottom, trunkTopWidth, trunkJunctions, blobs } =
+			setupOakBranchInputs(config);
+		const { branches } = generateBranches(
+			rng,
+			trunkTop,
+			trunkBottom,
+			trunkTopWidth,
+			config,
+			trunkJunctions,
+			blobs,
+		);
+		const l2Branches = branches.filter((b) => b.depth === 2);
+		expect(l2Branches.length).toBeGreaterThan(0);
+		for (const child of l2Branches) {
+			const parent = branches[child.parentIndex!]!;
+			// Compute min distance from child origin to any sub-segment of parent path
+			let minDist = Infinity;
+			for (let s = 0; s < parent.path.length - 1; s++) {
+				const ax = parent.path[s]!.x;
+				const ay = parent.path[s]!.y;
+				const bx = parent.path[s + 1]!.x;
+				const by = parent.path[s + 1]!.y;
+				const dx = bx - ax;
+				const dy = by - ay;
+				const lenSq = dx * dx + dy * dy;
+				const t =
+					lenSq > 0
+						? Math.max(
+								0,
+								Math.min(
+									1,
+									((child.segment.x1 - ax) * dx + (child.segment.y1 - ay) * dy) /
+										lenSq,
+								),
+							)
+						: 0;
+				const projX = ax + t * dx;
+				const projY = ay + t * dy;
+				const dist = Math.sqrt(
+					(child.segment.x1 - projX) ** 2 + (child.segment.y1 - projY) ** 2,
+				);
+				minDist = Math.min(minDist, dist);
+			}
+			expect(minDist).toBeLessThan(1);
+		}
+	});
+});
+
+// ============================================================================
 // REQ-C-18: oak non-primary blobs distributed radially (full 360°)
 // ============================================================================
 
@@ -1347,5 +1593,179 @@ describe('B7: willow redesign', () => {
 		const willowMeanCy = willowBlobs.reduce((s, b) => s + b.cy, 0) / willowBlobs.length;
 		const oakMeanCy = oakBlobs.reduce((s, b) => s + b.cy, 0) / oakBlobs.length;
 		expect(willowMeanCy).toBeGreaterThan(oakMeanCy);
+	});
+});
+
+// ============================================================================
+// Issue #105: buildBranchPath — multi-junction crooked branch paths
+// ============================================================================
+
+describe('buildBranchPath', () => {
+	it('segments=1 returns 2-point path (straight)', () => {
+		const path = buildBranchPath(createPrng(42), 100, 200, 150, 150, 1, 50, 'alternating');
+		expect(path).toHaveLength(2);
+		expect(path[0]).toEqual({ x: 100, y: 200 });
+	});
+
+	it('segments=3 returns 4 junctions', () => {
+		const path = buildBranchPath(createPrng(42), 100, 200, 200, 100, 3, 50, 'alternating');
+		expect(path).toHaveLength(4);
+	});
+
+	it('crookedness=0 produces collinear junctions at any segment count', () => {
+		const path = buildBranchPath(createPrng(42), 100, 200, 200, 100, 3, 0, 'alternating');
+		expect(path).toHaveLength(4);
+		// All junctions should lie on the line from start to end
+		const dx = 200 - 100;
+		const dy = 100 - 200;
+		for (const junction of path) {
+			// Cross product of (junction - start) × (end - start) should be ~0
+			const cross = (junction.x - 100) * dy - (junction.y - 200) * dx;
+			expect(Math.abs(cross)).toBeLessThan(1e-6);
+		}
+	});
+
+	it('crookedness=50 produces non-collinear junctions with segments>1', () => {
+		const path = buildBranchPath(createPrng(42), 100, 200, 200, 100, 3, 50, 'alternating');
+		// At least one internal junction should deviate from the straight line
+		const dx = 200 - 100;
+		const dy = 100 - 200;
+		const len = Math.sqrt(dx * dx + dy * dy);
+		let maxDeviation = 0;
+		for (let i = 1; i < path.length - 1; i++) {
+			const cross = Math.abs((path[i]!.x - 100) * dy - (path[i]!.y - 200) * dx) / len;
+			maxDeviation = Math.max(maxDeviation, cross);
+		}
+		expect(maxDeviation).toBeGreaterThan(0.1);
+	});
+
+	it('first junction is always at start point', () => {
+		const path = buildBranchPath(createPrng(42), 50, 80, 200, 30, 3, 70, 'random');
+		expect(path[0]).toEqual({ x: 50, y: 80 });
+	});
+
+	it('same seed + config produces identical paths', () => {
+		const p1 = buildBranchPath(createPrng(42), 100, 200, 200, 100, 3, 50, 'alternating');
+		const p2 = buildBranchPath(createPrng(42), 100, 200, 200, 100, 3, 50, 'alternating');
+		expect(p1).toEqual(p2);
+	});
+
+	it('segments clamped to [1, 5]', () => {
+		const p0 = buildBranchPath(createPrng(42), 0, 0, 100, 0, 0, 50, 'alternating');
+		expect(p0).toHaveLength(2);
+		const p9 = buildBranchPath(createPrng(42), 0, 0, 100, 0, 9, 50, 'alternating');
+		expect(p9).toHaveLength(6);
+	});
+
+	it('works for horizontal branches', () => {
+		const path = buildBranchPath(createPrng(42), 100, 150, 200, 150, 3, 50, 'alternating');
+		expect(path).toHaveLength(4);
+		expect(path[0]).toEqual({ x: 100, y: 150 });
+	});
+
+	it('works for vertical branches', () => {
+		const path = buildBranchPath(createPrng(42), 100, 200, 100, 100, 3, 50, 'alternating');
+		expect(path).toHaveLength(4);
+		expect(path[0]).toEqual({ x: 100, y: 200 });
+	});
+
+	it('zero-length branch returns 2 identical junctions', () => {
+		const path = buildBranchPath(createPrng(42), 100, 200, 100, 200, 3, 50, 'alternating');
+		expect(path).toHaveLength(2);
+		expect(path[0]).toEqual(path[1]);
+	});
+});
+
+// ============================================================================
+// Issue #105: computeEffectiveBranchSegments — per-depth reduction
+// ============================================================================
+
+describe('computeEffectiveBranchSegments', () => {
+	it('L1 (depth 1) returns config value', () => {
+		expect(computeEffectiveBranchSegments(3, 1)).toBe(3);
+	});
+
+	it('L2 (depth 2) returns max(config - 1, 1)', () => {
+		expect(computeEffectiveBranchSegments(3, 2)).toBe(2);
+		expect(computeEffectiveBranchSegments(1, 2)).toBe(1);
+	});
+
+	it('L3 (depth 3) always returns 1', () => {
+		expect(computeEffectiveBranchSegments(3, 3)).toBe(1);
+		expect(computeEffectiveBranchSegments(5, 3)).toBe(1);
+	});
+
+	it('depth > 3 always returns 1', () => {
+		expect(computeEffectiveBranchSegments(3, 4)).toBe(1);
+	});
+});
+
+// ============================================================================
+// Issue #105: samplePointAlongPath — piecewise linear sampling
+// ============================================================================
+
+describe('samplePointAlongPath', () => {
+	it('t=0 returns first junction', () => {
+		const path = [
+			{ x: 0, y: 0 },
+			{ x: 100, y: 0 },
+		];
+		const p = samplePointAlongPath(path, 0);
+		expect(p.x).toBeCloseTo(0, 10);
+		expect(p.y).toBeCloseTo(0, 10);
+	});
+
+	it('t=1 returns last junction', () => {
+		const path = [
+			{ x: 0, y: 0 },
+			{ x: 100, y: 0 },
+		];
+		const p = samplePointAlongPath(path, 1);
+		expect(p.x).toBeCloseTo(100, 10);
+		expect(p.y).toBeCloseTo(0, 10);
+	});
+
+	it('t=0.5 on 2-point path returns midpoint', () => {
+		const path = [
+			{ x: 0, y: 0 },
+			{ x: 100, y: 0 },
+		];
+		const p = samplePointAlongPath(path, 0.5);
+		expect(p.x).toBeCloseTo(50, 10);
+		expect(p.y).toBeCloseTo(0, 10);
+	});
+
+	it('correctly interpolates multi-segment path', () => {
+		// 3-segment path: (0,0)→(100,0)→(100,100)→(200,100), each segment length=100
+		// Total length = 300, t=0.5 → distance 150 → midpoint of second segment → (100,50)
+		const path = [
+			{ x: 0, y: 0 },
+			{ x: 100, y: 0 },
+			{ x: 100, y: 100 },
+			{ x: 200, y: 100 },
+		];
+		const p = samplePointAlongPath(path, 0.5);
+		expect(p.x).toBeCloseTo(100, 6);
+		expect(p.y).toBeCloseTo(50, 6);
+	});
+
+	it('clamps t < 0 to first junction', () => {
+		const path = [
+			{ x: 10, y: 20 },
+			{ x: 110, y: 20 },
+		];
+		const p = samplePointAlongPath(path, -0.5);
+		expect(p.x).toBeCloseTo(10, 10);
+		expect(p.y).toBeCloseTo(20, 10);
+	});
+
+	it('clamps t > 1 to last junction', () => {
+		const path = [
+			{ x: 10, y: 20 },
+			{ x: 110, y: 20 },
+		];
+		const p = samplePointAlongPath(path, 1.5);
+		expect(p.x).toBeCloseTo(110, 10);
+		expect(p.y).toBeCloseTo(20, 10);
 	});
 });

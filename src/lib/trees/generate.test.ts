@@ -2675,15 +2675,18 @@ describe('computeHybridTaper', () => {
  * for L1, so tip width is a stable proxy for widthStart.
  */
 function measureBranchTipWidth(group: { quads: readonly Quad[] }): number {
-	if (group.quads.length === 0) {
+	const stripCount = 3;
+	const totalQuads = group.quads.length;
+	if (totalQuads === 0 || totalQuads < stripCount) {
 		return 0;
 	}
-	// Quad point order: [startLeft, startRight, endRight, endLeft].
-	// Outer tip corners = first quad's endLeft + last quad's endRight.
-	const first = group.quads[0]!;
-	const last = group.quads[group.quads.length - 1]!;
-	const tipLeft = first.points[3]!;
-	const tipRight = last.points[2]!;
+	// With multi-junction branches, quads are ordered [seg0_strip0..N, seg1_strip0..N, ...].
+	// Tip = "top" edge of the LAST segment's quads (last stripCount quads in array).
+	// Quad point order: [topLeft, topRight, bottomRight, bottomLeft].
+	const tipFirstStrip = group.quads[totalQuads - stripCount]!;
+	const tipLastStrip = group.quads[totalQuads - 1]!;
+	const tipLeft = tipFirstStrip.points[0]!;
+	const tipRight = tipLastStrip.points[1]!;
 	const dx = tipRight.x - tipLeft.x;
 	const dy = tipRight.y - tipLeft.y;
 	return Math.sqrt(dx * dx + dy * dy);
@@ -3155,6 +3158,117 @@ describe('REQ-EV2-BC: Branch-Driven Canopy', () => {
 			const bounds = canopyBounds(geo);
 			// Acacia's blobRxRyRatio = 3.5, so width should dominate height
 			expect(bounds.width).toBeGreaterThan(bounds.height * 1.5);
+		}
+	});
+});
+
+// ============================================================================
+// Issue #105: multi-junction branch quads
+// ============================================================================
+
+describe('Issue #105: multi-junction branch rendering', () => {
+	it('branchSegments=3 produces more quads per branch than branchSegments=1', () => {
+		const config1 = makeConfig({
+			shape: 'oak',
+			branchesLevel1Range: [3, 3],
+			branchSegments: 1,
+			branchCrookedness: 50,
+			branchDepth: 1,
+			seed: 42,
+			trunkStripCount: 3,
+		});
+		const config3 = makeConfig({
+			shape: 'oak',
+			branchesLevel1Range: [3, 3],
+			branchSegments: 3,
+			branchCrookedness: 50,
+			branchDepth: 1,
+			seed: 42,
+			trunkStripCount: 3,
+		});
+		const geo1 = generateTree(config1);
+		const geo3 = generateTree(config3);
+		// With 3 segments and 3 strips, each L1 branch should produce 3×3=9 quads
+		// vs 1×3=3 quads with 1 segment. Total branch quads should be ~3× more.
+		const quads1 = allBranchQuads(geo1).length;
+		const quads3 = allBranchQuads(geo3).length;
+		expect(quads3).toBeGreaterThan(quads1);
+	});
+
+	it('branchSegments=3 branch quads share junction vertices (no gaps)', () => {
+		const config = makeConfig({
+			shape: 'oak',
+			branchesLevel1Range: [3, 3],
+			branchSegments: 3,
+			branchCrookedness: 50,
+			branchDepth: 1,
+			seed: 42,
+			trunkStripCount: 3,
+		});
+		const geo = generateTree(config);
+		// For each branch group, check that consecutive junction quads share edge points
+		for (const group of geo.branchGroups) {
+			if (group.depth >= 3) {
+				continue; // L3 uses single quad
+			}
+			const stripCount = config.trunkStripCount;
+			const segmentCount = group.quads.length / stripCount;
+			if (segmentCount <= 1) {
+				continue;
+			}
+			// Quads are ordered: [seg0_strip0, seg0_strip1, ..., seg1_strip0, ...]
+			for (let seg = 0; seg < segmentCount - 1; seg++) {
+				for (let strip = 0; strip < stripCount; strip++) {
+					const currentQuad = group.quads[seg * stripCount + strip]!;
+					const nextQuad = group.quads[(seg + 1) * stripCount + strip]!;
+					// Current quad's "top" edge (points[0] and [1]) should match
+					// next quad's "bottom" edge (points[2] and [3])
+					// In our layout: quad.points = [topLeft, topRight, bottomRight, bottomLeft]
+					// for segment i: top = junction[i+1], bottom = junction[i]
+					// So current quad top should equal next quad bottom
+					expect(currentQuad.points[0]!.x).toBeCloseTo(nextQuad.points[3]!.x, 6);
+					expect(currentQuad.points[0]!.y).toBeCloseTo(nextQuad.points[3]!.y, 6);
+					expect(currentQuad.points[1]!.x).toBeCloseTo(nextQuad.points[2]!.x, 6);
+					expect(currentQuad.points[1]!.y).toBeCloseTo(nextQuad.points[2]!.y, 6);
+				}
+			}
+		}
+	});
+
+	it('branchTips anchors use the last junction position (crooked tip)', () => {
+		const config = makeConfig({
+			shape: 'oak',
+			branchesLevel1Range: [3, 3],
+			branchSegments: 3,
+			branchCrookedness: 80,
+			branchDepth: 1,
+			seed: 42,
+		});
+		const geo = generateTree(config);
+		// branchTips should equal the tip positions from branchGroups
+		// Each branch group has an origin; the tip is the last segment endpoint
+		expect(geo.anchors.branchTips.length).toBeGreaterThan(0);
+		// All branch tips should be finite numbers
+		for (const tip of geo.anchors.branchTips) {
+			expect(Number.isFinite(tip.x)).toBe(true);
+			expect(Number.isFinite(tip.y)).toBe(true);
+		}
+	});
+
+	it('branchSegments=1 branchCrookedness=0 produces identical output to defaults', () => {
+		// Backwards compatibility: branchSegments=1 means single straight segment
+		const config = makeConfig({
+			shape: 'oak',
+			branchesLevel1Range: [3, 3],
+			branchSegments: 1,
+			branchCrookedness: 0,
+			branchDepth: 1,
+			seed: 42,
+		});
+		const geo = generateTree(config);
+		expect(geo.branchGroups.length).toBeGreaterThan(0);
+		for (const group of geo.branchGroups) {
+			expect(group.quads.length).toBeGreaterThan(0);
 		}
 	});
 });

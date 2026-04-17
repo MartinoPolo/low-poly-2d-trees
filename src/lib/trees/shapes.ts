@@ -36,6 +36,9 @@ export {
 
 export {
 	generateBranches,
+	buildBranchPath,
+	computeEffectiveBranchSegments,
+	samplePointAlongPath,
 	type GeneratedBranch,
 	type ForkReduction,
 } from './shapes/branch_generation.js';
