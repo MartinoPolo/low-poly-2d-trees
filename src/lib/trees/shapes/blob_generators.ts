@@ -609,8 +609,8 @@ const shapeDefinitions: Record<TreeShape, ShapeDefinition> = {
 		},
 		envelopeDefaults: {
 			canopyCenterY: H * 0.3,
-			baseRadiusX: W * 0.32,
-			baseRadiusY: H * 0.22,
+			baseRadiusX: W * 0.576,
+			baseRadiusY: H * 0.396,
 		},
 	},
 	pine: {
@@ -637,8 +637,8 @@ const shapeDefinitions: Record<TreeShape, ShapeDefinition> = {
 		},
 		envelopeDefaults: {
 			canopyCenterY: H * 0.25,
-			baseRadiusX: W * 0.28,
-			baseRadiusY: H * 0.28,
+			baseRadiusX: W * 0.504,
+			baseRadiusY: H * 0.504,
 		},
 	},
 	fir: {
@@ -665,8 +665,8 @@ const shapeDefinitions: Record<TreeShape, ShapeDefinition> = {
 		},
 		envelopeDefaults: {
 			canopyCenterY: H * 0.3,
-			baseRadiusX: W * 0.3,
-			baseRadiusY: H * 0.2,
+			baseRadiusX: W * 0.54,
+			baseRadiusY: H * 0.36,
 		},
 	},
 	willow: {
@@ -684,8 +684,8 @@ const shapeDefinitions: Record<TreeShape, ShapeDefinition> = {
 		},
 		envelopeDefaults: {
 			canopyCenterY: H * 0.38,
-			baseRadiusX: W * 0.32,
-			baseRadiusY: H * 0.2,
+			baseRadiusX: W * 0.576,
+			baseRadiusY: H * 0.36,
 		},
 	},
 	cypress: {
@@ -710,8 +710,8 @@ const shapeDefinitions: Record<TreeShape, ShapeDefinition> = {
 		},
 		envelopeDefaults: {
 			canopyCenterY: H * 0.32,
-			baseRadiusX: W * 0.28,
-			baseRadiusY: H * 0.22,
+			baseRadiusX: W * 0.504,
+			baseRadiusY: H * 0.396,
 		},
 	},
 	cherry: {
@@ -729,8 +729,8 @@ const shapeDefinitions: Record<TreeShape, ShapeDefinition> = {
 		},
 		envelopeDefaults: {
 			canopyCenterY: H * 0.32,
-			baseRadiusX: W * 0.4,
-			baseRadiusY: H * 0.16,
+			baseRadiusX: W * 0.72,
+			baseRadiusY: H * 0.288,
 		},
 	},
 	bush: {
@@ -755,8 +755,8 @@ const shapeDefinitions: Record<TreeShape, ShapeDefinition> = {
 		},
 		envelopeDefaults: {
 			canopyCenterY: H * 0.15,
-			baseRadiusX: W * 0.22,
-			baseRadiusY: H * 0.12,
+			baseRadiusX: W * 0.396,
+			baseRadiusY: H * 0.216,
 		},
 	},
 	acacia: {
@@ -774,8 +774,8 @@ const shapeDefinitions: Record<TreeShape, ShapeDefinition> = {
 		},
 		envelopeDefaults: {
 			canopyCenterY: H * 0.2,
-			baseRadiusX: W * 0.42,
-			baseRadiusY: H * 0.1,
+			baseRadiusX: W * 0.756,
+			baseRadiusY: H * 0.18,
 		},
 	},
 	custom: {

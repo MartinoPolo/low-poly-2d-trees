@@ -315,3 +315,25 @@ describe('computeClusterBlob', () => {
 		expect(Math.min(blob!.rx, blob!.ry)).toBeGreaterThan(15);
 	});
 });
+
+describe('Issue #110: Minimum visible blob radius', () => {
+	it('computeClusterBlob enforces min radius >= 8 even with tiny envelope', () => {
+		// Use a very small envelope to force tiny blobs — the clamp at 8px ensures visibility.
+		const tinyEnvelope = computeCanopyEnvelope(
+			{ canopyCenterX: 150, canopyCenterY: 90, baseRadiusX: 15, baseRadiusY: 10 },
+			100,
+		);
+		const cluster = {
+			centroid: { x: 150, y: 90 },
+			tips: [makeTip(150, 90, 3, 0.5)],
+			strongestDepth: 3,
+			strongestWidth: 0.5,
+			hasTrunkTip: false,
+			zOrder: 'front' as const,
+		};
+		const blob = computeClusterBlob(cluster, defaultStyleParams, tinyEnvelope, 25);
+		expect(blob).not.toBeNull();
+		expect(blob!.rx).toBeGreaterThanOrEqual(8);
+		expect(blob!.ry).toBeGreaterThanOrEqual(8);
+	});
+});

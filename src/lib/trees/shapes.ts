@@ -23,6 +23,7 @@ export {
 	getBlobsBounds,
 	isPointInBlobs,
 	sampleTierBoundary,
+	repositionIsolatedBlobs,
 	validateNoFloatingBlobs,
 } from './shapes/shape_bounds.js';
 
@@ -39,6 +40,7 @@ export {
 	buildBranchPath,
 	computeEffectiveBranchSegments,
 	samplePointAlongPath,
+	trimBranchTipsToBlobs,
 	type GeneratedBranch,
 	type ForkReduction,
 } from './shapes/branch_generation.js';

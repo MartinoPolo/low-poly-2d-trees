@@ -56,6 +56,9 @@ const SIZE_MODULATION_BASE = 0.85;
 /** Additional range on top of SIZE_MODULATION_BASE that cluster strength can add. */
 const SIZE_MODULATION_RANGE = 0.4;
 
+/** Minimum blob radius in px so blobs remain visible at high counts (issue #110). */
+const MIN_VISIBLE_BLOB_RADIUS = 8;
+
 // ---------------------------------------------------------------------------
 // K-Means Clustering (REQ-EV2-BC-01)
 // ---------------------------------------------------------------------------
@@ -319,8 +322,15 @@ export function computeClusterBlob(
 	const finalRadius = targetRadius * sizeModulation * depthScale * envelopeFactor;
 
 	// Shape style: rx/ry ratio and vertical offset.
-	const rx = finalRadius * Math.sqrt(styleParams.blobRxRyRatio);
-	const ry = finalRadius / Math.sqrt(styleParams.blobRxRyRatio);
+	// Enforce minimum visible blob radius so blobs don't vanish at high counts (issue #110).
+	const rx = Math.max(
+		MIN_VISIBLE_BLOB_RADIUS,
+		finalRadius * Math.sqrt(styleParams.blobRxRyRatio),
+	);
+	const ry = Math.max(
+		MIN_VISIBLE_BLOB_RADIUS,
+		finalRadius / Math.sqrt(styleParams.blobRxRyRatio),
+	);
 
 	return {
 		cx: clampedCenter.x,

@@ -147,6 +147,69 @@ function findIsolatedBlobs(blobs: readonly Blob[]): number[] {
 	return isolated;
 }
 
+/**
+ * Move isolated blobs (no ellipse overlap with any neighbor) toward their
+ * nearest non-isolated neighbor. Mutates blobs in-place. Used for
+ * branching-canopy shapes to prevent floating blobs (issue #110).
+ */
+export function repositionIsolatedBlobs(blobs: Blob[]): void {
+	if (blobs.length <= 1) {
+		return;
+	}
+
+	const isolatedIndices = findIsolatedBlobs(blobs);
+	if (isolatedIndices.length === 0) {
+		return;
+	}
+
+	const isolatedSet = new Set(isolatedIndices);
+
+	for (const idx of isolatedIndices) {
+		const blob = blobs[idx]!;
+
+		// Find nearest non-isolated blob
+		let nearestIdx = -1;
+		let nearestDist = Infinity;
+		for (let j = 0; j < blobs.length; j++) {
+			if (j === idx || isolatedSet.has(j)) {
+				continue;
+			}
+			const dx = blobs[j]!.cx - blob.cx;
+			const dy = blobs[j]!.cy - blob.cy;
+			const dist = Math.sqrt(dx * dx + dy * dy);
+			if (dist < nearestDist) {
+				nearestDist = dist;
+				nearestIdx = j;
+			}
+		}
+
+		// Fallback: if all blobs are isolated, use the closest blob overall
+		if (nearestIdx === -1) {
+			for (let j = 0; j < blobs.length; j++) {
+				if (j === idx) {
+					continue;
+				}
+				const dx = blobs[j]!.cx - blob.cx;
+				const dy = blobs[j]!.cy - blob.cy;
+				const dist = Math.sqrt(dx * dx + dy * dy);
+				if (dist < nearestDist) {
+					nearestDist = dist;
+					nearestIdx = j;
+				}
+			}
+		}
+
+		if (nearestIdx === -1) {
+			continue;
+		}
+
+		const target = blobs[nearestIdx]!;
+		// Move 60% of the way toward the target center
+		blob.cx = blob.cx + (target.cx - blob.cx) * 0.6;
+		blob.cy = blob.cy + (target.cy - blob.cy) * 0.6;
+	}
+}
+
 export function validateNoFloatingBlobs(
 	blobs: readonly Blob[],
 	branches: BranchSegment[],

@@ -3,7 +3,11 @@ import { BRANCH_MIRRORING, CROOKEDNESS_MODES, VIEWBOX_WIDTH } from '../types.js'
 import { randomInRange } from '../prng.js';
 import { sampleTrunkCenterX, computeZoneSplit } from './trunk.js';
 import { isPointInSingleBlob, getBlobsBounds } from './shape_bounds.js';
-import { branchesOverlap, resolveBranchLengthRange } from './geometry.js';
+import {
+	branchesOverlap,
+	resolveBranchLengthRange,
+	raySegmentEllipseIntersection,
+} from './geometry.js';
 import type { Blob, BranchSegment } from './shape_types.js';
 
 // ---------------------------------------------------------------------------
@@ -202,7 +206,7 @@ const ANGLE_DIVERGENCE_MAX_DEG = 60;
 
 /** Child length ratio (Rule K): 20-80% of parent, default center 50%. */
 const CHILD_LENGTH_RATIO_MIN = 0.2;
-const CHILD_LENGTH_RATIO_MAX = 0.8;
+const CHILD_LENGTH_RATIO_MAX = 0.68;
 
 // Bumped from 5 — with the upper zone now scaling with trunkSegments (see
 // computeZoneSplit), adjacent L1 candidate origins can share junctions and
@@ -771,7 +775,13 @@ function generateSubBranches(
 						CHILD_LENGTH_RATIO_MIN,
 						CHILD_LENGTH_RATIO_MAX,
 					);
-					const childLength = Math.max(8, parentLength * lengthRatio);
+					// Deeper branches are progressively shorter stubs (issue #110).
+					const depthLengthMultiplier =
+						targetDepth === 3 ? 0.35 : targetDepth === 2 ? 0.85 : 1.0;
+					const childLength = Math.max(
+						8,
+						parentLength * lengthRatio * depthLengthMultiplier,
+					);
 
 					const divergenceDeg = randomInRange(
 						rng,
@@ -974,4 +984,81 @@ export function generateBranches(
 	}
 
 	return { branches, forkReductions };
+}
+
+// ---------------------------------------------------------------------------
+// Branch tip trimming to blob boundaries (issue #110)
+// ---------------------------------------------------------------------------
+
+/**
+ * Trim branch tips that extend past their closest canopy blob ellipse.
+ * Mutates the `segment` of each branch in-place.
+ */
+export function trimBranchTipsToBlobs(branches: GeneratedBranch[], blobs: readonly Blob[]): void {
+	if (blobs.length === 0) {
+		return;
+	}
+
+	for (const branch of branches) {
+		const seg = branch.segment;
+		const tipX = seg.x2;
+		const tipY = seg.y2;
+
+		// Find blob whose center is closest to the branch tip
+		let closestIdx = 0;
+		let closestDist = Infinity;
+		for (let i = 0; i < blobs.length; i++) {
+			const dx = blobs[i]!.cx - tipX;
+			const dy = blobs[i]!.cy - tipY;
+			const dist = dx * dx + dy * dy;
+			if (dist < closestDist) {
+				closestDist = dist;
+				closestIdx = i;
+			}
+		}
+
+		const blob = blobs[closestIdx]!;
+
+		// Check if tip is outside the blob ellipse
+		const ndx = (tipX - blob.cx) / blob.rx;
+		const ndy = (tipY - blob.cy) / blob.ry;
+		if (ndx * ndx + ndy * ndy <= 1) {
+			continue; // inside — no trimming
+		}
+
+		// Try to find where the branch segment intersects the blob boundary
+		const intersection = raySegmentEllipseIntersection(
+			seg.x1,
+			seg.y1,
+			seg.x2,
+			seg.y2,
+			blob.cx,
+			blob.cy,
+			blob.rx,
+			blob.ry,
+		);
+
+		const mutableSeg = seg as { x2: number; y2: number };
+		if (intersection !== null) {
+			// Use the exit point — where the branch exits the blob
+			const [, tExit] = intersection;
+			mutableSeg.x2 = seg.x1 + tExit * (seg.x2 - seg.x1);
+			mutableSeg.y2 = seg.y1 + tExit * (seg.y2 - seg.y1);
+		} else {
+			// Branch misses the blob — project tip onto the blob ellipse boundary
+			// along the direction from blob center to the current tip.
+			const dirX = tipX - blob.cx;
+			const dirY = tipY - blob.cy;
+			const dirLen = Math.sqrt(dirX * dirX + dirY * dirY);
+			if (dirLen > 0) {
+				// Point on ellipse boundary in the direction of the tip
+				const nx = dirX / dirLen;
+				const ny = dirY / dirLen;
+				// Parametric ellipse: scale = 1 / sqrt((nx/rx)^2 + (ny/ry)^2)
+				const scale = 1 / Math.sqrt((nx / blob.rx) ** 2 + (ny / blob.ry) ** 2);
+				mutableSeg.x2 = blob.cx + nx * scale;
+				mutableSeg.y2 = blob.cy + ny * scale;
+			}
+		}
+	}
 }
