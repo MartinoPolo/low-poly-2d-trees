@@ -1,6 +1,11 @@
 import type { Point2D } from './types/core.js';
 import type { CanopyEnvelope } from './canopy_envelope.js';
-import { clampToEnvelope, computeEnvelopeScaleFactor, getEnvelopeArea } from './canopy_envelope.js';
+import {
+	ENVELOPE_EDGE_SCALE,
+	clampToEnvelope,
+	computeEnvelopeScaleFactor,
+	getEnvelopeArea,
+} from './canopy_envelope.js';
 import type { Blob, ShapeStyleParameters } from './shapes/shape_types.js';
 import { BOUNDARY_KINDS } from './boundaries.js';
 import { createPrng } from './prng.js';
@@ -39,14 +44,14 @@ interface BlobCluster {
 const CLUSTERING_SEED_OFFSET = 6666;
 const KMEANS_MAX_ITERATIONS = 15;
 
-/** Floor on cluster-size tip bonus contribution (0.25 when clusters are singletons). */
-const CLUSTER_SIZE_BONUS_FLOOR = 0.25;
+/** Floor on cluster-size tip bonus contribution (0.5 when clusters are singletons). */
+const CLUSTER_SIZE_BONUS_FLOOR = 0.5;
 
 /** Branch widthEnd (in px) that saturates the width bonus to 1.0. */
 const WIDTH_BONUS_SATURATION_PX = 4;
 
 /** Base multiplier applied to envelope-budget radius before cluster modulation. */
-const SIZE_MODULATION_BASE = 0.6;
+const SIZE_MODULATION_BASE = 0.85;
 
 /** Additional range on top of SIZE_MODULATION_BASE that cluster strength can add. */
 const SIZE_MODULATION_RANGE = 0.4;
@@ -273,11 +278,16 @@ export function computeClusterBlob(
 	blobCount: number,
 ): Blob | null {
 	// Check envelope coverage — tips very far outside get no blob (REQ-EV2-CE-04)
-	const envelopeFactor = computeEnvelopeScaleFactor(
+	const rawEnvelopeFactor = computeEnvelopeScaleFactor(
 		cluster.centroid.x,
 		cluster.centroid.y,
 		envelope,
 	);
+
+	// Trunk-tip clusters always produce a blob (core canopy guarantee)
+	const envelopeFactor = cluster.hasTrunkTip
+		? Math.max(ENVELOPE_EDGE_SCALE, rawEnvelopeFactor)
+		: rawEnvelopeFactor;
 
 	if (envelopeFactor <= 0) {
 		return null; // Bare branch — outside envelope
@@ -297,8 +307,10 @@ export function computeClusterBlob(
 		? 1
 		: Math.max(CLUSTER_SIZE_BONUS_FLOOR, Math.min(cluster.tips.length, 4) / 4);
 	const widthBonus = Math.min(cluster.strongestWidth / WIDTH_BONUS_SATURATION_PX, 1);
-	const sizeModulation =
-		SIZE_MODULATION_BASE + SIZE_MODULATION_RANGE * (0.5 * tipBonus + 0.5 * widthBonus);
+	const sizeModulation = Math.min(
+		1.1,
+		SIZE_MODULATION_BASE + SIZE_MODULATION_RANGE * (0.5 * tipBonus + 0.5 * widthBonus),
+	);
 
 	// Weaker branches → smaller blobs (REQ-EV2-BC-04).
 	const depthScale =

@@ -126,4 +126,11 @@ export interface TreeGeometry {
 		readonly maxX: number;
 		readonly maxY: number;
 	};
+	/** Canopy envelope ellipse for debug overlay (centerX/Y ± radiusX/Y). */
+	readonly canopyEnvelope?: {
+		readonly centerX: number;
+		readonly centerY: number;
+		readonly radiusX: number;
+		readonly radiusY: number;
+	};
 }

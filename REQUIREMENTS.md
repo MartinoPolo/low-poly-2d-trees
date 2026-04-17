@@ -49,7 +49,7 @@ All parameters are read-only. Defaults apply when a value is omitted.
 | REQ-P-17 | `blobCloseness`     | `number`                                                     | `50`      | 20 – 80      | 1     | "50 %"                  |
 | REQ-P-18 | `trunkThickness`    | `number`                                                     | `100`     | 25 – 400     | 5     | "100 %"                 |
 | REQ-P-19 | `branchThickness`   | `number`                                                     | `100`     | 25 – 400     | 5     | "100 %"                 |
-| REQ-P-20 | `canopySize`        | `number`                                                     | `100`     | 25 – 400     | 5     | "100 %"                 |
+| REQ-P-20 | `canopySize`        | `number`                                                     | `100`     | 25 – 200     | 5     | "100 %"                 |
 | REQ-P-21 | `trunkHeight`       | `number`                                                     | `100`     | 30 – 150     | 5     | "100 %"                 |
 | REQ-P-22 | `trunkBranchRatio`  | `number`                                                     | `70`      | 40 – 80      | 5     | "70 %"                  |
 
@@ -503,6 +503,8 @@ Trunk color UI includes preset swatch buttons that set all three HSL sliders at 
     - Fir: `branchCount` disabled (always 0)
     - Pine/Fir: `trunkBranchRatio` disabled
     - `trunkCrookedness` disabled when `trunkSegments = 1`
+    - `blobCloseness` disabled for branching shapes (oak, birch, maple, willow, apple, cherry,
+      baobab, acacia) — closeness is moot when blob positions are driven by branch-tip clusters
 
 ### 8.6 Color picker UI
 
@@ -788,20 +790,20 @@ Trunk color UI includes preset swatch buttons that set all three HSL sliders at 
 
 - [ ] **REQ-EV2-TZ-03** Updated SHAPE_DEFAULTS for `trunkSegments`:
 
-                                                                                                    | Shape   | Current | Max L1 | New Default | Zone Split (lower + upper) |
-                                                                                                    |---------|---------|--------|-------------|---------------------------|
-                                                                                                    | oak     | 5       | 3      | 5           | 1 + 4                     |
-                                                                                                    | maple   | 3       | 5      | 7           | 2 + 5                     |
-                                                                                                    | willow  | 5       | 5      | 7           | 2 + 5                     |
-                                                                                                    | cherry  | 3       | 4      | 6           | 1 + 5                     |
-                                                                                                    | birch   | 3       | 2      | 4           | 1 + 3                     |
-                                                                                                    | apple   | 3       | 2      | 3           | 1 + 2                     |
-                                                                                                    | baobab  | 3       | 3      | 5           | 1 + 4                     |
-                                                                                                    | acacia  | 3       | 3      | 5           | 1 + 4                     |
-                                                                                                    | pine    | 3       | 0      | 3           | unchanged (no branches)    |
-                                                                                                    | fir     | 3       | 0      | 3           | unchanged (no branches)    |
-                                                                                                    | cypress | 3       | 0      | 3           | unchanged (no branches)    |
-                                                                                                    | bush    | 3       | 0      | 3           | unchanged (no branches)    |
+                                                                                                                    | Shape   | Current | Max L1 | New Default | Zone Split (lower + upper) |
+                                                                                                                    |---------|---------|--------|-------------|---------------------------|
+                                                                                                                    | oak     | 5       | 3      | 5           | 1 + 4                     |
+                                                                                                                    | maple   | 3       | 5      | 7           | 2 + 5                     |
+                                                                                                                    | willow  | 5       | 5      | 7           | 2 + 5                     |
+                                                                                                                    | cherry  | 3       | 4      | 6           | 1 + 5                     |
+                                                                                                                    | birch   | 3       | 2      | 4           | 1 + 3                     |
+                                                                                                                    | apple   | 3       | 2      | 3           | 1 + 2                     |
+                                                                                                                    | baobab  | 3       | 3      | 5           | 1 + 4                     |
+                                                                                                                    | acacia  | 3       | 3      | 5           | 1 + 4                     |
+                                                                                                                    | pine    | 3       | 0      | 3           | unchanged (no branches)    |
+                                                                                                                    | fir     | 3       | 0      | 3           | unchanged (no branches)    |
+                                                                                                                    | cypress | 3       | 0      | 3           | unchanged (no branches)    |
+                                                                                                                    | bush    | 3       | 0      | 3           | unchanged (no branches)    |
 
 ### 13.6 Bottom-Up Sequential Generation
 
@@ -1019,8 +1021,9 @@ Phase 1 must deliver these interfaces for Phase 2 to consume:
 - [x] **REQ-EV2-CE-02** `canopySize` scales the envelope from its center (grows outward/upward,
       not downward into the trunk).
 
-- [x] **REQ-EV2-CE-03** **Viewport clamp:** the canopy envelope cannot extend within **10 px** of
-      any viewport edge. This prevents canopy overflow regardless of `canopySize` value.
+- [x] **REQ-EV2-CE-03** ~~**Viewport clamp**~~ Removed (issue #106). The canopy envelope grows
+      freely with `canopySize`. SVG overflow clipping (REQ-R-01) handles viewport bounds.
+      `canopySize` slider capped at 200% to limit overflow.
 
 - [x] **REQ-EV2-CE-04** Branch tips **outside** the envelope: their blob is pulled back to the
       envelope edge (smaller blob at boundary). Tips very far outside get no blob — just bare
@@ -1040,16 +1043,16 @@ Phase 1 must deliver these interfaces for Phase 2 to consume:
 
 - [x] **REQ-EV2-SS-02** Shape-specific identity preserved via style parameters:
 
-                                                                                                    | Shape   | Key Characteristics                                                 |
-                                                                                                    |---------|---------------------------------------------------------------------|
-                                                                                                    | oak     | Round crown. Trunk tip high weight → central blob. Balanced rx/ry.  |
-                                                                                                    | maple   | Blobs on side branches. Trunk tip = fork, no blob. Medium blobs.    |
-                                                                                                    | willow  | Blobs offset downward (droop). Branches at low angle. Low canopy.   |
-                                                                                                    | birch   | Alternating-side blobs. Airy canopy. Thin trunk.                    |
-                                                                                                    | cherry  | Horizontal spread. Blobs in wide band. Pink coloring.               |
-                                                                                                    | baobab  | Small blobs at very top. Dominant trunk. Short branches.             |
-                                                                                                    | acacia  | Flat parasol. Very wide rx, tiny ry. Branches horizontal.           |
-                                                                                                    | apple   | Compact round canopy. Minimal branching. Large single blob.         |
+                                                                                                                    | Shape   | Key Characteristics                                                 |
+                                                                                                                    |---------|---------------------------------------------------------------------|
+                                                                                                                    | oak     | Round crown. Trunk tip high weight → central blob. Balanced rx/ry.  |
+                                                                                                                    | maple   | Blobs on side branches. Trunk tip = fork, no blob. Medium blobs.    |
+                                                                                                                    | willow  | Blobs offset downward (droop). Branches at low angle. Low canopy.   |
+                                                                                                                    | birch   | Alternating-side blobs. Airy canopy. Thin trunk.                    |
+                                                                                                                    | cherry  | Horizontal spread. Blobs in wide band. Pink coloring.               |
+                                                                                                                    | baobab  | Small blobs at very top. Dominant trunk. Short branches.             |
+                                                                                                                    | acacia  | Flat parasol. Very wide rx, tiny ry. Branches horizontal.           |
+                                                                                                                    | apple   | Compact round canopy. Minimal branching. Large single blob.         |
 
 - [x] **REQ-EV2-SS-03** Some branch tips will naturally not have blobs — those that fall outside
       the canopy envelope. This is acceptable and realistic (bare branch poking out of canopy).

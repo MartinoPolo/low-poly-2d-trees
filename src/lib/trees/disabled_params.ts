@@ -6,7 +6,7 @@ import { TREE_SHAPES, FRUIT_TYPES, type TreeShape, type FruitType } from './type
  * `fir` and `pine` have no branches (branchDepth forced to 0).
  */
 export const DISABLED_PARAMS_BY_SHAPE = {
-	[TREE_SHAPES.oak]: [],
+	[TREE_SHAPES.oak]: ['blobCloseness'],
 	[TREE_SHAPES.pine]: [
 		'branchesLevel1Range',
 		'branchesLevel2Range',
@@ -17,7 +17,7 @@ export const DISABLED_PARAMS_BY_SHAPE = {
 		'branchDepthTaper',
 		'branchWidthVariance',
 	],
-	[TREE_SHAPES.birch]: [],
+	[TREE_SHAPES.birch]: ['blobCloseness'],
 	[TREE_SHAPES.fir]: [
 		'branchesLevel1Range',
 		'branchesLevel2Range',
@@ -28,8 +28,8 @@ export const DISABLED_PARAMS_BY_SHAPE = {
 		'branchDepthTaper',
 		'branchWidthVariance',
 	],
-	[TREE_SHAPES.maple]: [],
-	[TREE_SHAPES.willow]: [],
+	[TREE_SHAPES.maple]: ['blobCloseness'],
+	[TREE_SHAPES.willow]: ['blobCloseness'],
 	[TREE_SHAPES.cypress]: [
 		'branchesLevel1Range',
 		'branchesLevel2Range',
@@ -40,8 +40,8 @@ export const DISABLED_PARAMS_BY_SHAPE = {
 		'branchDepthTaper',
 		'branchWidthVariance',
 	],
-	[TREE_SHAPES.apple]: [],
-	[TREE_SHAPES.cherry]: [],
+	[TREE_SHAPES.apple]: ['blobCloseness'],
+	[TREE_SHAPES.cherry]: ['blobCloseness'],
 	[TREE_SHAPES.bush]: [
 		'branchesLevel1Range',
 		'branchesLevel2Range',
@@ -63,8 +63,8 @@ export const DISABLED_PARAMS_BY_SHAPE = {
 		'trunkTwist',
 		'trunkStripCount',
 	],
-	[TREE_SHAPES.baobab]: [],
-	[TREE_SHAPES.acacia]: [],
+	[TREE_SHAPES.baobab]: ['blobCloseness'],
+	[TREE_SHAPES.acacia]: ['blobCloseness'],
 	[TREE_SHAPES.custom]: [],
 } as const satisfies Record<TreeShape, readonly string[]>;
 

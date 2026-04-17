@@ -14,8 +14,6 @@ const defaultStyleParams: ShapeStyleParameters = {
 const defaultEnvelope = computeCanopyEnvelope(
 	{ canopyCenterX: 150, canopyCenterY: 90, baseRadiusX: 80, baseRadiusY: 60 },
 	100,
-	300,
-	300,
 );
 
 const DEFAULT_BLOB_COUNT = 5;
@@ -263,13 +261,45 @@ describe('computeClusterBlob', () => {
 		expect(blob!.cy).toBeCloseTo(95, 0); // 80 + 15
 	});
 
+	it('live-cluster-count budgeting: 2 surviving clusters share envelope area 50/50, not 5-way', () => {
+		const cluster = {
+			centroid: { x: 150, y: 80 },
+			tips: [makeTip(150, 80, 1, 5)],
+			strongestDepth: 1,
+			strongestWidth: 5,
+			hasTrunkTip: false,
+			zOrder: 'front' as const,
+		};
+		const blobWith5 = computeClusterBlob(cluster, defaultStyleParams, defaultEnvelope, 5);
+		const blobWith2 = computeClusterBlob(cluster, defaultStyleParams, defaultEnvelope, 2);
+		expect(blobWith5).not.toBeNull();
+		expect(blobWith2).not.toBeNull();
+		expect(blobWith2!.rx).toBeGreaterThan(blobWith5!.rx * 1.3);
+	});
+
+	it('singleton-branch-tip cluster produces rx >= 25 px', () => {
+		const oakEnvelope = computeCanopyEnvelope(
+			{ canopyCenterX: 150, canopyCenterY: 90, baseRadiusX: 96, baseRadiusY: 66 },
+			100,
+		);
+		const singletonCluster = {
+			centroid: { x: 150, y: 90 },
+			tips: [makeTip(150, 90, 1, 1.5)],
+			strongestDepth: 1,
+			strongestWidth: 1.5,
+			hasTrunkTip: false,
+			zOrder: 'front' as const,
+		};
+		const blob = computeClusterBlob(singletonCluster, defaultStyleParams, oakEnvelope, 3);
+		expect(blob).not.toBeNull();
+		expect(blob!.rx).toBeGreaterThanOrEqual(25);
+	});
+
 	it('blob radius scales with envelope area — default oak-like envelope produces substantial blobs (REQ-EV2-BS-01)', () => {
 		// Mimics default oak: 96 x 66 envelope, 5 blobs, thin branch tips (~1.5 px).
 		const oakEnvelope = computeCanopyEnvelope(
 			{ canopyCenterX: 150, canopyCenterY: 90, baseRadiusX: 96, baseRadiusY: 66 },
 			100,
-			300,
-			300,
 		);
 		const thinCluster = {
 			centroid: { x: 150, y: 90 },

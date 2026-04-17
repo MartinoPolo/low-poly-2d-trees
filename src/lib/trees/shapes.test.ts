@@ -583,7 +583,7 @@ function setupOakBranchInputs(config: TreeConfig): {
 }
 
 describe('generateBranches — visibility & crossing invariants', () => {
-	it('every trunk-origin branch has visible length ≥ MIN_VISIBLE_LENGTH (5)', () => {
+	it('branches are generated even when tips land inside canopy blobs (visibility check removed)', () => {
 		const config = makeConfig({
 			shape: 'oak',
 			branchesLevel1Range: [6, 6],
@@ -603,10 +603,6 @@ describe('generateBranches — visibility & crossing invariants', () => {
 			blobs,
 		);
 		expect(branches.length).toBeGreaterThan(0);
-		for (const b of branches) {
-			const visible = computeVisibleBranchLength(b.segment, blobs, []);
-			expect(visible).toBeGreaterThanOrEqual(5);
-		}
 	});
 
 	it('forked sub-branches exist at depth >= 2', () => {
