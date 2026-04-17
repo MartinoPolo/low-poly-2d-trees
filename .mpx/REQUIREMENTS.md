@@ -600,6 +600,116 @@ Reusable SVG overlays. Visual shapes only — consumer applies semantics.
 
 ---
 
+## Canopy & Defaults Retuning
+
+> Fix default canopy sizing across all tree species so trees look rich and full out of the box. Address floating blobs, branches poking through canopy, and pine-specific tuning.
+
+### Per-Species Canopy Envelope Retuning
+
+- Increase envelope base radii (`baseRadiusX`, `baseRadiusY`) to 1.8× current values for all leafy/branching-canopy trees: oak, birch, maple, willow, apple, cherry, baobab, acacia
+- Pine/fir: reduce tier width constants to produce canopy equivalent to previous 80% `canopySize` — adjust the `baseHalfWidth` formula coefficients in `tiers.ts`, NOT just the default `canopySize` slider value
+- The `canopySize` slider default stays at 100% for all species — the underlying generation constants change so 100% produces the correct canopy
+- Ensure default envelope radii do not cause canopy blobs to overflow the 300×300 viewbox; users can push past bounds via the slider
+- **Acceptance:** oak/maple at default 100% canopySize look as rich as the previous 200%; pine at default 100% looks like previous ~80%; no default configuration causes viewbox overflow
+
+### Floating Blob Repositioning
+
+- Enable floating blob detection for branching-canopy shapes (oak, birch, maple, willow, apple, cherry, baobab, acacia) — currently `validateNoFloatingBlobs()` is skipped for these
+- Instead of creating emergency fallback branches, reposition isolated blobs toward their nearest overlapping neighbor blob until they overlap
+- A blob is "isolated" if it doesn't overlap any other blob AND no branch tip reaches it
+- **Acceptance:** no canopy blob floats disconnected from the rest of the canopy mass at any seed with default settings
+
+### Branch Tip Trimming to Canopy Boundary
+
+- After clustering, trim branch tip endpoints that extend past their associated canopy blob boundary
+- Project the tip back onto the blob ellipse along the branch direction
+- Branches visually "go into" the canopy but never poke out the other side
+- **Acceptance:** no branch segment visibly extends past its canopy blob boundary at default settings
+
+### L2/L3 Branch Length Reduction
+
+- Reduce L2 branch length by 15% (change `CHILD_LENGTH_RATIO_MAX` from 0.8 → ~0.68 or apply a 0.85 multiplier)
+- Reduce L3 branch length by 30-40% — L3 branches should be noticeably short stubs
+- Ensure the reduction doesn't conflict with existing `branchLength` and `branchLengthVariance` slider ranges
+- **Acceptance:** L2 branches are visibly shorter than current; L3 branches are very short stubs; sliders still function correctly at all values
+
+### Pine-Specific Tuning
+
+- Increase pine default `blobCloseness` from 30 → 60 for better tier overlap
+- Slightly increase tier `ry` (vertical thickness) so tiers visually overlap without gaps
+- Tier width reduction via `baseHalfWidth` constants (see envelope retuning above)
+- Pine trunk height bug remains tracked in issue #85 as a separate fix
+- **Acceptance:** pine tiers always visually overlap (no gaps); pine silhouette is narrower than current default
+
+### Blob Count Slider Expansion
+
+- Increase blob count slider max from 8 → 25 for all species
+- The existing inverse-sqrt scaling (`targetRadius = sqrt(envelopeArea / blobCount / π)`) already handles sizing
+- Enforce a minimum blob radius so blobs remain visible at high counts (not invisible dots)
+- Keep per-species default blob counts unchanged (oak=5, birch=6, etc.)
+- **Acceptance:** slider goes to 25; at 20+ blobs, each blob is small but visible; tree renders correctly
+
+### Reset to Defaults Button
+
+- Add a "Reset to [Species] defaults" button below the Tree Type dropdown in the Shape card
+- Label updates dynamically based on current species (e.g., "Reset to Oak defaults")
+- Resets all parameters (geometry, colors, branch config, fruit) to `SHAPE_DEFAULTS` for the current species
+- Does NOT change the species itself or the seed
+- **Acceptance:** clicking reset restores all parameters to the species' preset values; seed and species are preserved
+
+---
+
+## Branch Symmetry & Trunk Fork
+
+> Add natural-looking symmetry options for branch placement and trunk forking. Some trees (acacia, cherry) benefit from mirrored branching and Y-fork trunk splits.
+
+### Branch Mirror Symmetry Dropdown
+
+- Add a 3-state dropdown "Branch Mirroring" to the branch controls section:
+    - **Off** — current behavior: L1 branches alternate left/right, random junctions, overlap rejection as-is
+    - **Allowed** — relaxes same-junction overlap rejection for branches on opposite sides: same-point pairs more likely but not forced
+    - **Preferred** — actively generates L1 branches in pairs from the same trunk junction: one left, one right. Angle and length differ slightly between the pair (controlled by existing `branchAngle` and `branchLengthVariance` sliders — no new variance parameters)
+- When "Preferred": L1 branch count minimum becomes 2; if `branchesLevel1Range` min is < 2, treat as 2
+- When "Preferred" on L1 branches: L2 sub-branches also generate in pairs from L1 tips (branch-level forking), with L2 count minimum of 2
+- Must not conflict with existing branch count sliders — if user sets L1 range to [1,1] and symmetry is "Preferred," the minimum is bumped to 2 transparently
+- Per-species defaults:
+
+| Species | Branch Mirroring Default |
+| ------- | ------------------------ |
+| Oak     | Off                      |
+| Birch   | Off                      |
+| Maple   | Off                      |
+| Willow  | Off                      |
+| Cherry  | Preferred                |
+| Acacia  | Preferred                |
+| Apple   | Off                      |
+| Baobab  | Off                      |
+
+- **Acceptance:** "Off" produces current behavior; "Allowed" allows more same-junction pairs; "Preferred" produces visibly paired branches with natural variation; all combinations with existing sliders work without errors
+
+### Trunk Fork (Y-Split)
+
+- Add a "Trunk Fork" checkbox to the branch controls section
+- When enabled:
+    - Trunk flares (widens) at the last 1-2 segments — width increases by ~30-50% at the top
+    - Two L1 branches are forced from the topmost trunk junction, diverging symmetrically (with natural variance from existing `branchAngle` slider)
+    - Each fork arm has `widthStart ≈ trunkTopWidth × 0.6-0.7` (combined width > trunk width at split point)
+    - Fork arms are standard L1 branches — they support L2/L3 sub-branches, canopy blob clustering, everything downstream
+    - L1 branch count minimum becomes 2 (fork arms count as L1 branches)
+- When combined with "Preferred" mirror symmetry: fork arms are the primary mirror pair; additional L1 branches (if any from slider) also mirror
+- Branch-level forking: when mirror symmetry is "Preferred," L1 branch tips also fork into paired L2s with the same flare + thick-pair logic
+- Per-species defaults:
+
+| Species    | Trunk Fork Default |
+| ---------- | ------------------ |
+| Acacia     | On                 |
+| All others | Off                |
+
+- Must work correctly with `branchAngle` slider (shifting fork angle up/down), `branchDepth` (fork arms respect depth limits), and all branch count sliders
+- **Acceptance:** trunk visually thickens and splits into two substantial arms; fork arms support sub-branches and canopy; toggling trunk fork on/off produces visually distinct results; acacia default shows characteristic Y-fork umbrella shape
+
+---
+
 ## SVG Accessories & Fruit
 
 ### Watering Can Tilt
