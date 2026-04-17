@@ -418,6 +418,17 @@ function generateTrunkQuads(
 		forkReductions,
 	);
 
+	// Trunk fork flare: widen top 1-2 junctions by 30-50%
+	if (config.trunkFork && junctionCount >= 2) {
+		const flareCount = Math.min(2, junctionCount - 1);
+		for (let f = 0; f < flareCount; f++) {
+			const idx = junctionCount - 2 - f;
+			const flareMultiplier =
+				1.3 + (0.2 * (flareCount - 1 - f)) / Math.max(1, flareCount - 1);
+			junctionWidths[idx] = junctionWidths[idx]! * flareMultiplier;
+		}
+	}
+
 	// Compute junction strip ratios (REQ-EV2-S-01)
 	const stripRatios = computeJunctionStripRatios(
 		config.seed,

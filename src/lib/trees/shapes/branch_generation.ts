@@ -1,5 +1,5 @@
 import type { TreeConfig, Point2D, CrookednessMode } from '../types.js';
-import { CROOKEDNESS_MODES, VIEWBOX_WIDTH } from '../types.js';
+import { BRANCH_MIRRORING, CROOKEDNESS_MODES, VIEWBOX_WIDTH } from '../types.js';
 import { randomInRange } from '../prng.js';
 import { sampleTrunkCenterX, computeZoneSplit } from './trunk.js';
 import { isPointInSingleBlob, getBlobsBounds } from './shape_bounds.js';
@@ -376,7 +376,22 @@ function sampleBranchCountForLevel(rng: () => number, config: TreeConfig, depth:
 		range = config.branchesLevel3Range;
 	}
 
-	const [min, max] = range;
+	let [min, max] = range;
+
+	// Preferred mirroring or trunkFork: L1 minimum = 2 (need at least one pair)
+	if (
+		depth === 1 &&
+		(config.branchMirroring === BRANCH_MIRRORING.preferred || config.trunkFork)
+	) {
+		min = Math.max(min, 2);
+		max = Math.max(max, min);
+	}
+	// Preferred mirroring: L2 minimum = 2 (paired sub-branches)
+	if (depth === 2 && config.branchMirroring === BRANCH_MIRRORING.preferred) {
+		min = Math.max(min, 2);
+		max = Math.max(max, min);
+	}
+
 	if (min === max) {
 		return min;
 	}
@@ -385,19 +400,29 @@ function sampleBranchCountForLevel(rng: () => number, config: TreeConfig, depth:
 
 /**
  * Check overlap only against branches at the same depth (Rule F).
+ * When `relaxOppositeOverlap` is true, skip overlap checks against branches
+ * on the opposite side of the trunk (for branchMirroring=allowed).
  */
 function overlapsAnySameDepth(
 	candidate: BranchSegment,
 	branches: readonly GeneratedBranch[],
 	depth: number,
 	excludeParentSegment?: BranchSegment,
+	relaxOppositeOverlap?: boolean,
 ): boolean {
+	const candidateSide = Math.sign(candidate.x2 - candidate.x1);
 	for (const other of branches) {
 		if (other.depth !== depth) {
 			continue;
 		}
 		if (excludeParentSegment !== undefined && other.segment === excludeParentSegment) {
 			continue;
+		}
+		if (relaxOppositeOverlap === true) {
+			const otherSide = Math.sign(other.segment.x2 - other.segment.x1);
+			if (candidateSide !== 0 && otherSide !== 0 && candidateSide !== otherSide) {
+				continue;
+			}
 		}
 		if (branchesOverlap(candidate, other.segment)) {
 			return true;
@@ -410,87 +435,69 @@ function overlapsAnySameDepth(
 // Branch generation — trunk-origin (depth 1)
 // ---------------------------------------------------------------------------
 
-function generateTrunkBranches(ctx: BranchContext, branches: GeneratedBranch[]): void {
-	const { rng, config, trunkJunctions, trunkTop, trunkAxisAngle } = ctx;
-	const count = sampleBranchCountForLevel(rng, config, 1);
-	if (count <= 0) {
-		return;
-	}
+/** Trunk fork arm width: 0.6-0.7 × trunkTopWidth (thicker than normal L1). */
+const TRUNK_FORK_WIDTH_FRACTION_MIN = 0.6;
+const TRUNK_FORK_WIDTH_FRACTION_MAX = 0.7;
 
-	// REQ-EV2-TZ-01, G-03: L1 branches only at upper-zone junctions.
-	// Pass the ACTUAL segment count (trunkJunctions.length - 1) rather than
-	// config.trunkSegments — buildCrookedPath caps segmentCount at 5, so
-	// config values above that would make the effective lower-zone computation
-	// overshoot and leave zero eligible upper-zone junctions (fallback to a
-	// single middle junction, which forces every L1 branch to the same origin
-	// and triggers the overlap-rejection cascade).
-	const maxL1 = config.branchesLevel1Range[1];
-	const actualSegments = Math.max(1, trunkJunctions.length - 1);
-	const { lowerZoneSegments } = computeZoneSplit(actualSegments, maxL1);
-	// Upper-zone junctions: start at index `lowerZoneSegments`, exclude tip (last junction).
-	// Clamp to actual junction count in case trunkSegments < minimum enforced by zone split.
-	const effectiveLowerSegments = Math.min(lowerZoneSegments, trunkJunctions.length - 2);
-	const upperZoneJunctionIndices: number[] = [];
-	for (let j = Math.max(1, effectiveLowerSegments); j < trunkJunctions.length - 1; j++) {
-		upperZoneJunctionIndices.push(j);
-	}
-	// Fallback: if no upper-zone junctions available, use middle junction
-	if (upperZoneJunctionIndices.length === 0 && trunkJunctions.length >= 2) {
-		upperZoneJunctionIndices.push(Math.floor(trunkJunctions.length / 2));
-	}
+/**
+ * Try to generate a single L1 branch candidate from a junction and side.
+ * When `junctionPool` is provided, a random junction is picked per attempt
+ * (matching the original retry-per-junction behavior for off/allowed modes).
+ */
+function tryGenerateL1Branch(
+	ctx: BranchContext,
+	branches: readonly GeneratedBranch[],
+	junction: Point2D | null,
+	side: 1 | -1,
+	angleRange: { minRad: number; maxRad: number },
+	overrideWidth: number | null,
+	relaxOverlap: boolean,
+	junctionPool?: { indices: readonly number[]; junctions: readonly Point2D[] },
+): BranchSegment | null {
+	const { rng, config, trunkTop, trunkAxisAngle } = ctx;
 
-	const angleRange = mapBranchAngleRange(config.branchAngle);
+	for (let attempt = 0; attempt < BRANCH_RETRY_ATTEMPTS; attempt++) {
+		let resolvedJunction: Point2D;
+		if (junctionPool !== undefined) {
+			const jIdx = junctionPool.indices[Math.floor(rng() * junctionPool.indices.length)]!;
+			resolvedJunction = junctionPool.junctions[jIdx]!;
+		} else {
+			resolvedJunction = junction!;
+		}
+		const startX = resolvedJunction.x;
+		const startY = resolvedJunction.y;
 
-	// Rule I: L1 alternates left/right with random start
-	const startSide = rng() < 0.5 ? 0 : 1;
+		const { min: lenMin, max: lenMax } = resolveBranchLengthRange(
+			TRUNK_BRANCH_BASE_MIN,
+			TRUNK_BRANCH_BASE_MAX,
+			config.branchLength,
+			config.branchLengthVariance,
+			true,
+		);
+		const length = randomInRange(rng, lenMin, lenMax);
 
-	for (let i = 0; i < count; i++) {
-		if (branches.length >= MAX_TOTAL_BRANCHES) {
-			return;
+		const baseUpAngle = randomInRange(rng, angleRange.minRad, angleRange.maxRad);
+		const angleVariationRad = ((rng() * 2 - 1) * BRANCH_ANGLE_VARIATION_DEG * Math.PI) / 180;
+		const upAngle = baseUpAngle + angleVariationRad;
+
+		const candidateAngle = Math.atan2(
+			-Math.sin(upAngle) * length,
+			Math.cos(upAngle) * length * side,
+		);
+		const divergence = angleDivergence(candidateAngle, trunkAxisAngle);
+		const minDivRad = (ANGLE_DIVERGENCE_MIN_DEG * Math.PI) / 180;
+		if (divergence < minDivRad) {
+			continue;
 		}
 
-		const side: 1 | -1 = (i + startSide) % 2 === 0 ? 1 : -1;
-		let accepted: BranchSegment | null = null;
+		const rawEndX = startX + Math.cos(upAngle) * length * side;
+		const rawEndY = startY - Math.sin(upAngle) * length;
+		const endX = reflectEndpointIfCrossing(startX, rawEndX, startX);
 
-		for (let attempt = 0; attempt < BRANCH_RETRY_ATTEMPTS; attempt++) {
-			// REQ-EV2-G-03: pick a random upper-zone junction
-			const junctionIdx =
-				upperZoneJunctionIndices[Math.floor(rng() * upperZoneJunctionIndices.length)]!;
-			const junction = trunkJunctions[junctionIdx]!;
-			const startY = junction.y;
-			const startX = junction.x;
-
-			const { min: lenMin, max: lenMax } = resolveBranchLengthRange(
-				TRUNK_BRANCH_BASE_MIN,
-				TRUNK_BRANCH_BASE_MAX,
-				config.branchLength,
-				config.branchLengthVariance,
-				true,
-			);
-			const length = randomInRange(rng, lenMin, lenMax);
-
-			// Generate branch angle within the mapped range + ±15° variation (REQ-EV2-V-01)
-			const baseUpAngle = randomInRange(rng, angleRange.minRad, angleRange.maxRad);
-			const angleVariationRad =
-				((rng() * 2 - 1) * BRANCH_ANGLE_VARIATION_DEG * Math.PI) / 180;
-			const upAngle = baseUpAngle + angleVariationRad;
-
-			// Check angle divergence from trunk axis (Rule E)
-			const candidateAngle = Math.atan2(
-				-Math.sin(upAngle) * length,
-				Math.cos(upAngle) * length * side,
-			);
-			const divergence = angleDivergence(candidateAngle, trunkAxisAngle);
-			const minDivRad = (ANGLE_DIVERGENCE_MIN_DEG * Math.PI) / 180;
-			if (divergence < minDivRad) {
-				continue;
-			}
-
-			const rawEndX = startX + Math.cos(upAngle) * length * side;
-			const rawEndY = startY - Math.sin(upAngle) * length;
-			const endX = reflectEndpointIfCrossing(startX, rawEndX, startX);
-
-			// Fork width economics (REQ-EV2-F-04): branch width = fraction of trunk width at fork
+		let widthStart: number;
+		if (overrideWidth !== null) {
+			widthStart = overrideWidth;
+		} else {
 			const trunkWidthAtFork = trunkWidthAtY(
 				startY,
 				trunkTop,
@@ -498,51 +505,189 @@ function generateTrunkBranches(ctx: BranchContext, branches: GeneratedBranch[]):
 				ctx.trunkTopWidth,
 				ctx.trunkBaseWidth,
 			);
-			const widthStart = computeForkBranchWidth(
+			widthStart = computeForkBranchWidth(
 				rng,
 				trunkWidthAtFork,
 				config.branchWidthVariance,
 				ctx.branchThicknessScale,
 			);
-			const widthEnd = Math.max(0.5, widthStart * 0.4);
+		}
+		const widthEnd = Math.max(0.5, widthStart * 0.4);
 
-			const candidate: BranchSegment = {
-				x1: startX,
-				y1: startY,
-				x2: endX,
-				y2: rawEndY,
-				widthStart,
-				widthEnd,
-			};
+		const candidate: BranchSegment = {
+			x1: startX,
+			y1: startY,
+			x2: endX,
+			y2: rawEndY,
+			widthStart,
+			widthEnd,
+		};
 
-			// Rule F: overlap check same-depth only
-			if (overlapsAnySameDepth(candidate, branches, 1)) {
-				continue;
-			}
-
-			accepted = candidate;
-			break;
+		if (overlapsAnySameDepth(candidate, branches, 1, undefined, relaxOverlap)) {
+			continue;
 		}
 
-		if (accepted !== null) {
-			const effectiveSegments = computeEffectiveBranchSegments(config.branchSegments, 1);
-			const path = buildBranchPath(
-				rng,
-				accepted.x1,
-				accepted.y1,
-				accepted.x2,
-				accepted.y2,
-				effectiveSegments,
-				config.branchCrookedness,
-				config.crookednessMode,
+		return candidate;
+	}
+	return null;
+}
+
+function finalizeBranch(
+	ctx: BranchContext,
+	accepted: BranchSegment,
+	branches: GeneratedBranch[],
+): void {
+	const effectiveSegments = computeEffectiveBranchSegments(ctx.config.branchSegments, 1);
+	const path = buildBranchPath(
+		ctx.rng,
+		accepted.x1,
+		accepted.y1,
+		accepted.x2,
+		accepted.y2,
+		effectiveSegments,
+		ctx.config.branchCrookedness,
+		ctx.config.crookednessMode,
+	);
+	const tip = path[path.length - 1]!;
+	const segmentWithCrookedTip: BranchSegment = {
+		...accepted,
+		x2: tip.x,
+		y2: tip.y,
+	};
+	branches.push({ segment: segmentWithCrookedTip, path, depth: 1, parentIndex: null });
+}
+
+function generateTrunkBranches(ctx: BranchContext, branches: GeneratedBranch[]): void {
+	const { rng, config, trunkJunctions } = ctx;
+	const count = sampleBranchCountForLevel(rng, config, 1);
+	if (count <= 0) {
+		return;
+	}
+
+	const maxL1 = config.branchesLevel1Range[1];
+	const actualSegments = Math.max(1, trunkJunctions.length - 1);
+	const { lowerZoneSegments } = computeZoneSplit(actualSegments, maxL1);
+	const effectiveLowerSegments = Math.min(lowerZoneSegments, trunkJunctions.length - 2);
+	const upperZoneJunctionIndices: number[] = [];
+	for (let j = Math.max(1, effectiveLowerSegments); j < trunkJunctions.length - 1; j++) {
+		upperZoneJunctionIndices.push(j);
+	}
+	if (upperZoneJunctionIndices.length === 0 && trunkJunctions.length >= 2) {
+		upperZoneJunctionIndices.push(Math.floor(trunkJunctions.length / 2));
+	}
+
+	const angleRange = mapBranchAngleRange(config.branchAngle);
+	const isPreferred = config.branchMirroring === BRANCH_MIRRORING.preferred;
+	const relaxOverlap = config.branchMirroring === BRANCH_MIRRORING.allowed || isPreferred;
+	const startSide = rng() < 0.5 ? 0 : 1;
+	let branchesGenerated = 0;
+
+	// Trunk fork: force first pair from topmost junction with thick widths
+	if (config.trunkFork && upperZoneJunctionIndices.length > 0) {
+		const topIdx = upperZoneJunctionIndices[upperZoneJunctionIndices.length - 1]!;
+		const topJunction = trunkJunctions[topIdx]!;
+		const leftForkWidth =
+			ctx.trunkTopWidth *
+			randomInRange(rng, TRUNK_FORK_WIDTH_FRACTION_MIN, TRUNK_FORK_WIDTH_FRACTION_MAX);
+
+		const leftArm = tryGenerateL1Branch(
+			ctx,
+			branches,
+			topJunction,
+			-1,
+			angleRange,
+			leftForkWidth,
+			true,
+		);
+		if (leftArm !== null) {
+			finalizeBranch(ctx, leftArm, branches);
+			branchesGenerated++;
+		}
+
+		const rightForkWidth =
+			ctx.trunkTopWidth *
+			randomInRange(rng, TRUNK_FORK_WIDTH_FRACTION_MIN, TRUNK_FORK_WIDTH_FRACTION_MAX);
+		const rightArm = tryGenerateL1Branch(
+			ctx,
+			branches,
+			topJunction,
+			1,
+			angleRange,
+			rightForkWidth,
+			true,
+		);
+		if (rightArm !== null) {
+			finalizeBranch(ctx, rightArm, branches);
+			branchesGenerated++;
+		}
+	}
+
+	// Generate remaining branches
+	if (isPreferred) {
+		// Preferred: generate in left/right pairs from shared junctions
+		while (branchesGenerated < count && branches.length < MAX_TOTAL_BRANCHES) {
+			const junctionIdx =
+				upperZoneJunctionIndices[Math.floor(rng() * upperZoneJunctionIndices.length)]!;
+			const junction = trunkJunctions[junctionIdx]!;
+
+			const leftSide: 1 | -1 = (branchesGenerated + startSide) % 2 === 0 ? 1 : -1;
+			const rightSide: 1 | -1 = leftSide === 1 ? -1 : 1;
+
+			const leftBranch = tryGenerateL1Branch(
+				ctx,
+				branches,
+				junction,
+				leftSide,
+				angleRange,
+				null,
+				true,
 			);
-			const tip = path[path.length - 1]!;
-			const segmentWithCrookedTip: BranchSegment = {
-				...accepted,
-				x2: tip.x,
-				y2: tip.y,
-			};
-			branches.push({ segment: segmentWithCrookedTip, path, depth: 1, parentIndex: null });
+			if (leftBranch !== null) {
+				finalizeBranch(ctx, leftBranch, branches);
+				branchesGenerated++;
+			}
+
+			if (branchesGenerated >= count || branches.length >= MAX_TOTAL_BRANCHES) {
+				break;
+			}
+
+			const rightBranch = tryGenerateL1Branch(
+				ctx,
+				branches,
+				junction,
+				rightSide,
+				angleRange,
+				null,
+				true,
+			);
+			if (rightBranch !== null) {
+				finalizeBranch(ctx, rightBranch, branches);
+				branchesGenerated++;
+			}
+		}
+	} else {
+		// Off/Allowed: original alternating behavior with per-attempt junction selection
+		const junctionPool = { indices: upperZoneJunctionIndices, junctions: trunkJunctions };
+		for (let i = branchesGenerated; i < count; i++) {
+			if (branches.length >= MAX_TOTAL_BRANCHES) {
+				return;
+			}
+
+			const side: 1 | -1 = (i + startSide) % 2 === 0 ? 1 : -1;
+
+			const accepted = tryGenerateL1Branch(
+				ctx,
+				branches,
+				null,
+				side,
+				angleRange,
+				null,
+				relaxOverlap,
+				junctionPool,
+			);
+			if (accepted !== null) {
+				finalizeBranch(ctx, accepted, branches);
+			}
 		}
 	}
 }
@@ -596,101 +741,110 @@ function generateSubBranches(
 		const parentDirY = parent.y2 - parent.y1;
 		const parentAngle = Math.atan2(parentDirY, parentDirX);
 
-		for (let c = 0; c < childCount; c++) {
+		const isPreferred = config.branchMirroring === BRANCH_MIRRORING.preferred;
+
+		for (let c = 0; c < childCount; ) {
 			if (branches.length >= MAX_TOTAL_BRANCHES) {
 				return;
 			}
 
-			let accepted: BranchSegment | null = null;
+			// Origin along upper 50-100% of parent — sample the crooked path
+			const originT = randomInRange(rng, 0.5, 1.0);
+			const origin = samplePointAlongPath(parentPath, originT);
+			const originX = origin.x;
+			const originY = origin.y;
 
-			for (let attempt = 0; attempt < BRANCH_RETRY_ATTEMPTS; attempt++) {
-				// Origin along upper 50-100% of parent — sample the crooked path
-				const originT = randomInRange(rng, 0.5, 1.0);
-				const origin = samplePointAlongPath(parentPath, originT);
-				const originX = origin.x;
-				const originY = origin.y;
+			// How many to generate from this origin: 2 if preferred and room, else 1
+			const pairCount = isPreferred && c + 1 < childCount ? 2 : 1;
+			const signs: (1 | -1)[] = pairCount === 2 ? [1, -1] : [rng() < 0.5 ? 1 : -1];
 
-				// Rule K: child length 20-80% of parent
-				const lengthRatio = randomInRange(
-					rng,
-					CHILD_LENGTH_RATIO_MIN,
-					CHILD_LENGTH_RATIO_MAX,
-				);
-				const childLength = Math.max(8, parentLength * lengthRatio);
-
-				// Rule E: angle divergence 30-60 degrees from parent direction
-				const divergenceDeg = randomInRange(
-					rng,
-					ANGLE_DIVERGENCE_MIN_DEG,
-					ANGLE_DIVERGENCE_MAX_DEG,
-				);
-				const divergenceRad = (divergenceDeg * Math.PI) / 180;
-				const forkSign: 1 | -1 = rng() < 0.5 ? 1 : -1;
-				const childAngle = parentAngle + divergenceRad * forkSign;
-
-				const endX = originX + Math.cos(childAngle) * childLength;
-				const endY = originY + Math.sin(childAngle) * childLength;
-
-				// REQ-EV2-F-04: L2+ fork width = 10-15% of parent L1 width at fork
-				const l2CenterFraction =
-					(L2_FORK_WIDTH_FRACTION_MIN + L2_FORK_WIDTH_FRACTION_MAX) / 2;
-				const l2VarianceSpread =
-					(config.branchWidthVariance / 100) *
-					(L2_FORK_WIDTH_FRACTION_MAX - L2_FORK_WIDTH_FRACTION_MIN) *
-					FORK_WIDTH_VARIANCE_SPREAD_MULTIPLIER;
-				const l2Fraction = Math.max(
-					0.05,
-					l2CenterFraction + (rng() * 2 - 1) * l2VarianceSpread,
-				);
-				// Parent widthStart already includes thickness scaling from L1 fork economics
-				const widthStart = parent.widthStart * l2Fraction;
-				const widthEnd = Math.max(0.5, widthStart * 0.55);
-
-				const candidate: BranchSegment = {
-					x1: originX,
-					y1: originY,
-					x2: endX,
-					y2: endY,
-					widthStart,
-					widthEnd,
-				};
-
-				// Rule F: same-depth overlap only
-				if (overlapsAnySameDepth(candidate, branches, targetDepth, parent)) {
-					continue;
+			for (const forkSign of signs) {
+				if (branches.length >= MAX_TOTAL_BRANCHES) {
+					return;
 				}
 
-				accepted = candidate;
-				break;
-			}
+				let accepted: BranchSegment | null = null;
 
-			if (accepted !== null) {
-				const effectiveSegments = computeEffectiveBranchSegments(
-					config.branchSegments,
-					targetDepth,
-				);
-				const childPath = buildBranchPath(
-					rng,
-					accepted.x1,
-					accepted.y1,
-					accepted.x2,
-					accepted.y2,
-					effectiveSegments,
-					config.branchCrookedness,
-					config.crookednessMode,
-				);
-				const tip = childPath[childPath.length - 1]!;
-				const segmentWithCrookedTip: BranchSegment = {
-					...accepted,
-					x2: tip.x,
-					y2: tip.y,
-				};
-				branches.push({
-					segment: segmentWithCrookedTip,
-					path: childPath,
-					depth: targetDepth,
-					parentIndex,
-				});
+				for (let attempt = 0; attempt < BRANCH_RETRY_ATTEMPTS; attempt++) {
+					const lengthRatio = randomInRange(
+						rng,
+						CHILD_LENGTH_RATIO_MIN,
+						CHILD_LENGTH_RATIO_MAX,
+					);
+					const childLength = Math.max(8, parentLength * lengthRatio);
+
+					const divergenceDeg = randomInRange(
+						rng,
+						ANGLE_DIVERGENCE_MIN_DEG,
+						ANGLE_DIVERGENCE_MAX_DEG,
+					);
+					const divergenceRad = (divergenceDeg * Math.PI) / 180;
+					const childAngle = parentAngle + divergenceRad * forkSign;
+
+					const endX = originX + Math.cos(childAngle) * childLength;
+					const endY = originY + Math.sin(childAngle) * childLength;
+
+					const l2CenterFraction =
+						(L2_FORK_WIDTH_FRACTION_MIN + L2_FORK_WIDTH_FRACTION_MAX) / 2;
+					const l2VarianceSpread =
+						(config.branchWidthVariance / 100) *
+						(L2_FORK_WIDTH_FRACTION_MAX - L2_FORK_WIDTH_FRACTION_MIN) *
+						FORK_WIDTH_VARIANCE_SPREAD_MULTIPLIER;
+					const l2Fraction = Math.max(
+						0.05,
+						l2CenterFraction + (rng() * 2 - 1) * l2VarianceSpread,
+					);
+					const widthStart = parent.widthStart * l2Fraction;
+					const widthEnd = Math.max(0.5, widthStart * 0.55);
+
+					const candidate: BranchSegment = {
+						x1: originX,
+						y1: originY,
+						x2: endX,
+						y2: endY,
+						widthStart,
+						widthEnd,
+					};
+
+					if (
+						overlapsAnySameDepth(candidate, branches, targetDepth, parent, isPreferred)
+					) {
+						continue;
+					}
+
+					accepted = candidate;
+					break;
+				}
+
+				if (accepted !== null) {
+					const effectiveSegments = computeEffectiveBranchSegments(
+						config.branchSegments,
+						targetDepth,
+					);
+					const childPath = buildBranchPath(
+						rng,
+						accepted.x1,
+						accepted.y1,
+						accepted.x2,
+						accepted.y2,
+						effectiveSegments,
+						config.branchCrookedness,
+						config.crookednessMode,
+					);
+					const tip = childPath[childPath.length - 1]!;
+					const segmentWithCrookedTip: BranchSegment = {
+						...accepted,
+						x2: tip.x,
+						y2: tip.y,
+					};
+					branches.push({
+						segment: segmentWithCrookedTip,
+						path: childPath,
+						depth: targetDepth,
+						parentIndex,
+					});
+				}
+				c++;
 			}
 		}
 	}
