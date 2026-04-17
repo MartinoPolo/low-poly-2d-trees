@@ -186,6 +186,7 @@
 <svg
 	viewBox="0 0 {geometry.viewBox.width} {geometry.viewBox.height}"
 	xmlns="http://www.w3.org/2000/svg"
+	overflow="hidden"
 	class={className}
 	style={hasGlow ? 'filter: drop-shadow(0 0 8px gold)' : undefined}
 >

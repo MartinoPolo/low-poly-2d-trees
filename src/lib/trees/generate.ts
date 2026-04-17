@@ -32,6 +32,7 @@ import {
 	applyBlobSizeVariance,
 	applyBlobCloseness,
 	applyCanopySize,
+	repositionIsolatedBlobs,
 	validateNoFloatingBlobs,
 	generateTiers,
 	isPointInTier,
@@ -47,6 +48,7 @@ import {
 	TRUNK_ENTRY_MIN_PX,
 	type Blob,
 	type BranchSegment,
+	trimBranchTipsToBlobs,
 	type GeneratedBranch,
 	type ForkReduction,
 } from './shapes.js';
@@ -1343,6 +1345,13 @@ function generateTreeCore(config: TreeConfig, flags: StageFlags): TreeGeometry {
 
 		// Update blobs for subsequent processing (anchors, etc.)
 		blobs = clusteredBlobs;
+
+		// Reposition isolated blobs toward neighbors (issue #110) — prevents
+		// floating canopy blobs in branching-canopy shapes.
+		repositionIsolatedBlobs(clusteredBlobs);
+
+		// Trim branch tips that extend past their closest canopy blob (issue #110).
+		trimBranchTipsToBlobs(allBranches, clusteredBlobs);
 
 		// Generate canopy triangles from clustered blobs
 		const clusteredBlobGeos = generateBlobCanopy(

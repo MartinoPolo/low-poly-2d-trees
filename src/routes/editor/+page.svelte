@@ -259,6 +259,18 @@
 							onValueChange={onShapeChange}
 						/>
 
+						{#if treeConfig.current.shape !== TREE_SHAPES.custom}
+							<Button
+								variant="outline"
+								size="sm"
+								onclick={() => treeConfig.resetToShapeDefaults()}
+							>
+								Reset to {TREE_SHAPE_OPTIONS.find(
+									(o) => o.value === treeConfig.current.shape,
+								)?.label} defaults
+							</Button>
+						{/if}
+
 						<LabeledSelect
 							label="Life Stage"
 							options={TREE_STAGE_OPTIONS}
@@ -302,7 +314,7 @@
 						<LabeledSlider
 							label="Blob Count"
 							min={1}
-							max={8}
+							max={25}
 							value={treeConfig.current.blobCount}
 							onValueChange={onBlobCountChange}
 						/>

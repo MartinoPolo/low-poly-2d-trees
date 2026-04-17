@@ -104,7 +104,7 @@ describe('SHAPE_DEFAULTS §2.5', () => {
 			branchAngle: 50,
 			trunkTwist: 20,
 			blobSizeVariance: 2.0,
-			blobCloseness: 30,
+			blobCloseness: 60,
 			branchThickness: 100,
 			trunkSegments: 3,
 			trunkCrookedness: 10,
@@ -357,5 +357,40 @@ describe('SHAPE_FRUIT_MAP', () => {
 		expect(SHAPE_FRUIT_MAP.bush).toBe('berry');
 		expect(SHAPE_FRUIT_MAP.baobab).toBe('baobab_fruit');
 		expect(SHAPE_FRUIT_MAP.acacia).toBe('seed_pod');
+	});
+});
+
+describe('Issue #110: SHAPE_DEFAULTS reset completeness', () => {
+	const nonCustomShapes: readonly Exclude<TreeShape, 'custom'>[] = [
+		'oak',
+		'pine',
+		'birch',
+		'fir',
+		'maple',
+		'willow',
+		'cypress',
+		'apple',
+		'cherry',
+		'bush',
+		'baobab',
+		'acacia',
+	];
+
+	it('each species defaults produces a valid config when merged with DEFAULT_TREE_CONFIG', () => {
+		for (const shape of nonCustomShapes) {
+			const defaults = SHAPE_DEFAULTS[shape];
+			const merged = { ...DEFAULT_TREE_CONFIG, ...defaults, shape };
+			// Verify key fields exist and are valid
+			expect(typeof merged.blobCount).toBe('number');
+			expect(typeof merged.branchDepth).toBe('number');
+			expect(typeof merged.blobCloseness).toBe('number');
+			expect(typeof merged.canopyLightColor).toBe('string');
+			expect(merged.canopyLightColor).toMatch(/^#[0-9a-f]{6}$/);
+			expect(merged.shape).toBe(shape);
+		}
+	});
+
+	it('pine blobCloseness is 60 (issue #110)', () => {
+		expect(SHAPE_DEFAULTS.pine.blobCloseness).toBe(60);
 	});
 });

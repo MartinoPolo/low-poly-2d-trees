@@ -242,7 +242,7 @@ export const SHAPE_DEFAULTS = {
 		trunkFork: false,
 		trunkTwist: 20,
 		blobSizeVariance: 2.0,
-		blobCloseness: 30,
+		blobCloseness: 60,
 		branchThickness: 100,
 		trunkSegments: 3,
 		trunkCrookedness: 10,

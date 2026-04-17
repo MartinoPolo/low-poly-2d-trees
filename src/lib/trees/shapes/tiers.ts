@@ -45,7 +45,7 @@ export function generateTiers(
 		const topScale = 1 / blobSizeVariance;
 		const widthScale = lerp(topScale, 1.0, widthT);
 
-		const baseHalfWidth = (W * 0.105 + t1 * W * 0.385) * widthScale * canopyScale;
+		const baseHalfWidth = (W * 0.084 + t1 * W * 0.308) * widthScale * canopyScale;
 
 		// D10: tiers follow trunk path (sampled from junctions). For y values
 		// above the topmost junction, sampling clamps to topJunction.x so tiers

@@ -1,9 +1,11 @@
 import {
 	DEFAULT_TREE_CONFIG,
+	SHAPE_DEFAULTS,
 	TREE_SHAPES,
 	FRUIT_TYPES,
 	type CustomBlob,
 	type TreeConfig,
+	type TreeShape,
 	type FruitType,
 } from './types.js';
 
@@ -32,6 +34,23 @@ class TreeConfigState {
 			...this.current,
 			customBlobs: this.current.shape === TREE_SHAPES.custom ? this.customBlobs : undefined,
 		} as TreeConfig;
+	}
+
+	/** Reset all params to SHAPE_DEFAULTS for the current species, preserving seed and shape. */
+	resetToShapeDefaults() {
+		const shape = this.current.shape;
+		if (shape === TREE_SHAPES.custom) {
+			return;
+		}
+		const defaults = SHAPE_DEFAULTS[shape as Exclude<TreeShape, 'custom'>];
+		const seed = this.current.seed;
+		for (const [key, value] of Object.entries(defaults)) {
+			(this.current as Record<string, unknown>)[key] = Array.isArray(value)
+				? [...value]
+				: value;
+		}
+		this.current.seed = seed;
+		this.current.shape = shape;
 	}
 
 	applyConfig(config: TreeConfig) {
