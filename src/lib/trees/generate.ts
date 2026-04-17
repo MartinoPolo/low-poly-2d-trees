@@ -490,6 +490,7 @@ const BACK_BRANCH_LIGHTNESS_OFFSET = -3;
 
 function generateBranchQuadGroup(
 	branch: BranchSegment,
+	path: readonly Point2D[],
 	config: TreeConfig,
 	depth: number,
 	parentIndex: number | null = null,
@@ -510,9 +511,6 @@ function generateBranchQuadGroup(
 		};
 	}
 
-	const perpX = -dirY / length;
-	const perpY = dirX / length;
-
 	// Per-branch PRNG seeded from position to ensure determinism
 	const branchRng = createPrng(
 		config.seed +
@@ -528,6 +526,8 @@ function generateBranchQuadGroup(
 
 	// REQ-EV2-B-02: L3+ uses single plain quad (no strip system)
 	if (depth >= 3) {
+		const perpX = -dirY / length;
+		const perpY = dirX / length;
 		const halfStart = branch.widthStart / 2;
 		const halfEnd = branch.widthEnd / 2;
 		const colors = computeStripColors({
@@ -568,73 +568,110 @@ function generateBranchQuadGroup(
 	const stripCount = config.trunkStripCount;
 	const twistAttenuation = TWIST_ATTENUATION_BY_DEPTH[depth] ?? 0;
 	const effectiveTwist = config.trunkTwist * twistAttenuation;
+	const junctionCount = path.length;
 
-	// Compute strip ratios for branch (2 junctions: start + end)
+	// Compute strip ratios for all junctions (reuses trunk strip ratio model)
 	const branchStripRatios = computeJunctionStripRatios(
 		config.seed + Math.round(branch.x1 * 100) + Math.round(branch.y1 * 100),
-		2,
+		junctionCount,
 		stripCount,
 		effectiveTwist,
 	);
 
-	const stripColors = computeStripColors({
-		segmentDirectionX: dirX,
-		segmentDirectionY: dirY,
-		lightAngle: config.lightAngle,
-		trunkHue: config.trunkHue,
-		trunkSaturation: config.trunkSaturation,
-		trunkLightness: config.trunkLightness,
-		centerPerturbationX: centerPerturbX,
-		centerPerturbationY: centerPerturbY,
-		stripCount,
-		lightnessOffset: branchLightnessOffset,
-	});
+	// Compute bisector perpendicular directions at each junction
+	const bisectors = computeJunctionBisectors(path);
 
-	// Compute edge points at start and end using strip ratios
-	function computeEdgePoints(cx: number, cy: number, half: number, ratios: number[]): Point2D[] {
-		const points: Point2D[] = [];
-		points.push({ x: cx + perpX * half, y: cy + perpY * half });
-		let accRatio = 0;
-		for (let s = 0; s < stripCount - 1; s++) {
-			accRatio += ratios[s]!;
-			const offset = half - accRatio * half * 2;
-			points.push({ x: cx + perpX * offset, y: cy + perpY * offset });
-		}
-		points.push({ x: cx - perpX * half, y: cy - perpY * half });
-		return points;
+	// Compute widths at each junction (linear taper from widthStart to widthEnd)
+	const junctionWidths: number[] = [];
+	for (let j = 0; j < junctionCount; j++) {
+		const t = junctionCount > 1 ? j / (junctionCount - 1) : 0;
+		junctionWidths.push(branch.widthStart + t * (branch.widthEnd - branch.widthStart));
 	}
 
-	const halfStart = branch.widthStart / 2;
-	const halfEnd = branch.widthEnd / 2;
-	const startPoints = computeEdgePoints(branch.x1, branch.y1, halfStart, branchStripRatios[0]!);
-	const endPoints = computeEdgePoints(branch.x2, branch.y2, halfEnd, branchStripRatios[1]!);
+	// Compute shared junction edge points (same model as trunk — REQ-EV2-J-02)
+	const junctionEdgePoints = computeJunctionEdgePoints(
+		path,
+		bisectors,
+		junctionWidths,
+		branchStripRatios,
+		stripCount,
+	);
 
 	const quads: Quad[] = [];
-	for (let s = 0; s < stripCount; s++) {
-		quads.push({
-			points: [startPoints[s]!, startPoints[s + 1]!, endPoints[s + 1]!, endPoints[s]!],
-			color: stripColors[s]!,
-			group: GEOMETRY_GROUPS.branch,
+
+	// Build quads between adjacent junctions, iterating like trunk
+	for (let i = 0; i < junctionCount - 1; i++) {
+		const bottomPoints = junctionEdgePoints[i]!;
+		const topPoints = junctionEdgePoints[i + 1]!;
+
+		const segDirX = path[i + 1]!.x - path[i]!.x;
+		const segDirY = path[i + 1]!.y - path[i]!.y;
+
+		// Per-segment strip colors (consistent lighting per segment)
+		const stripColors = computeStripColors({
+			segmentDirectionX: segDirX,
+			segmentDirectionY: segDirY,
+			lightAngle: config.lightAngle,
+			trunkHue: config.trunkHue,
+			trunkSaturation: config.trunkSaturation,
+			trunkLightness: config.trunkLightness,
+			centerPerturbationX: centerPerturbX,
+			centerPerturbationY: centerPerturbY,
+			stripCount,
+			lightnessOffset: branchLightnessOffset,
 		});
+
+		for (let s = 0; s < stripCount; s++) {
+			quads.push({
+				points: [topPoints[s]!, topPoints[s + 1]!, bottomPoints[s + 1]!, bottomPoints[s]!],
+				color: stripColors[s]!,
+				group: GEOMETRY_GROUPS.branch,
+			});
+		}
 	}
 
-	// REQ-EV2-F-02: junction collar quad at fork point
-	// The collar bridges between the trunk edge and branch start, colored with the
-	// outermost strip color from the branch side (peel-off continuity).
+	// REQ-EV2-F-02: junction collar quad at fork point (base junction only)
 	const junctionFills: Quad[] = [];
-	const collarLength = Math.min(3, length * 0.15);
+	const firstSegDirX = path[1]!.x - path[0]!.x;
+	const firstSegDirY = path[1]!.y - path[0]!.y;
+	const firstSegLen = Math.sqrt(firstSegDirX * firstSegDirX + firstSegDirY * firstSegDirY);
+	const collarLength = Math.min(3, firstSegLen * 0.15);
 	if (collarLength > 0.5) {
-		const collarColor = stripColors[0]!;
-		// Collar extends from branch origin slightly along the branch direction
-		const collarEndX = branch.x1 + (dirX / length) * collarLength;
-		const collarEndY = branch.y1 + (dirY / length) * collarLength;
+		const baseBisector = bisectors[0]!;
+		const halfStart = junctionWidths[0]! / 2;
+		const collarColor = computeStripColors({
+			segmentDirectionX: firstSegDirX,
+			segmentDirectionY: firstSegDirY,
+			lightAngle: config.lightAngle,
+			trunkHue: config.trunkHue,
+			trunkSaturation: config.trunkSaturation,
+			trunkLightness: config.trunkLightness,
+			centerPerturbationX: centerPerturbX,
+			centerPerturbationY: centerPerturbY,
+			stripCount,
+			lightnessOffset: branchLightnessOffset,
+		})[0]!;
+		const collarEndX = path[0]!.x + (firstSegDirX / firstSegLen) * collarLength;
+		const collarEndY = path[0]!.y + (firstSegDirY / firstSegLen) * collarLength;
 		const collarHalfEnd = halfStart * 0.85;
 		junctionFills.push({
 			points: [
-				{ x: branch.x1 + perpX * halfStart * 1.1, y: branch.y1 + perpY * halfStart * 1.1 },
-				{ x: branch.x1 - perpX * halfStart * 1.1, y: branch.y1 - perpY * halfStart * 1.1 },
-				{ x: collarEndX - perpX * collarHalfEnd, y: collarEndY - perpY * collarHalfEnd },
-				{ x: collarEndX + perpX * collarHalfEnd, y: collarEndY + perpY * collarHalfEnd },
+				{
+					x: path[0]!.x + baseBisector.perpX * halfStart * 1.1,
+					y: path[0]!.y + baseBisector.perpY * halfStart * 1.1,
+				},
+				{
+					x: path[0]!.x - baseBisector.perpX * halfStart * 1.1,
+					y: path[0]!.y - baseBisector.perpY * halfStart * 1.1,
+				},
+				{
+					x: collarEndX - baseBisector.perpX * collarHalfEnd,
+					y: collarEndY - baseBisector.perpY * collarHalfEnd,
+				},
+				{
+					x: collarEndX + baseBisector.perpX * collarHalfEnd,
+					y: collarEndY + baseBisector.perpY * collarHalfEnd,
+				},
 			],
 			color: collarColor,
 			group: GEOMETRY_GROUPS.branch,
@@ -659,6 +696,7 @@ function generateAllBranchQuads(
 	return branches.map((branch, i) =>
 		generateBranchQuadGroup(
 			branch.segment,
+			branch.path,
 			config,
 			branch.depth,
 			branch.parentIndex,
@@ -1051,6 +1089,10 @@ function generateTreeCore(config: TreeConfig, flags: StageFlags): TreeGeometry {
 			);
 	const extraBranches: GeneratedBranch[] = extraSegments.map((seg) => ({
 		segment: seg,
+		path: [
+			{ x: seg.x1, y: seg.y1 },
+			{ x: seg.x2, y: seg.y2 },
+		],
 		depth: 1,
 		parentIndex: null,
 	}));
@@ -1079,6 +1121,10 @@ function generateTreeCore(config: TreeConfig, flags: StageFlags): TreeGeometry {
 				widthStart: 3 * (config.branchThickness / 100),
 				widthEnd: 1,
 			},
+			path: [
+				{ x: topJunction.x, y: topJunction.y },
+				{ x: targetX, y: targetY },
+			],
 			depth: 1,
 			parentIndex: null,
 		});
