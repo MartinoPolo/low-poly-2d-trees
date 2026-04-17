@@ -118,7 +118,9 @@ const STAGE_HANDLERS = {
 	[TREE_STAGES.dead]: (_config: TreeConfig): StageResult => ({
 		kind: 'modifiedConfig',
 		config: modifyConfig(_config, {
-			trunkLean: 30,
+			trunkLean: 15,
+			trunkCrookedness: 50,
+			trunkSegments: 5,
 			branchesLevel1Range: [1, 2],
 			branchLength: 40,
 			blobCount: 0,

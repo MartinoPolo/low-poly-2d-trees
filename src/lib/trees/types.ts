@@ -9,6 +9,7 @@ export {
 	type BlobGeometry,
 	type BranchGeometry,
 	type JunctionData,
+	type BirchStripe,
 	type TreeGeometry,
 } from './types/core.js';
 

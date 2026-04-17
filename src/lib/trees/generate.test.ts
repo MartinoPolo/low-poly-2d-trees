@@ -631,21 +631,20 @@ describe('REQ-T: Trunk & Branch Generation', () => {
 			expect(canopyShift).toBeCloseTo(trunkShift, 5);
 		});
 
-		it('trunk top enters canopy (sampled) for pine at 50/100/150', () => {
-			// Branching shapes (oak, birch) use clustering; their canopy bottom
-			// may not extend to the trunk top. Pine (branchless tiered) still
-			// guarantees the trunk-into-canopy invariant.
-			for (const trunkHeight of [50, 100, 150]) {
-				const geo = generateTree(makeConfig({ trunkHeight, seed: 42, shape: 'pine' }));
-				const allCanopyYs = geo.canopyBlobs.flatMap((b) =>
-					b.triangles.flatMap((t) => t.points.map((p) => p.y)),
-				);
-				if (allCanopyYs.length === 0) {
-					continue;
-				}
-				const canopyMaxY = Math.max(...allCanopyYs);
-				expect(geo.anchors.trunkTop.y + 3).toBeLessThanOrEqual(canopyMaxY);
-			}
+		it('pine trunk top respects trunkHeight slider (tiered shapes skip trunk-penetration clamp)', () => {
+			// Tiered shapes (pine/fir) should NOT be clamped into the canopy.
+			// The trunk sits below the tiers naturally.
+			const tallPine = generateTree(
+				makeConfig({ trunkHeight: 100, seed: 42, shape: 'pine' }),
+			);
+			const shortPine = generateTree(
+				makeConfig({ trunkHeight: 10, seed: 42, shape: 'pine' }),
+			);
+			// Trunk top Y should differ significantly with different trunkHeight values
+			expect(shortPine.anchors.trunkTop.y).toBeGreaterThan(tallPine.anchors.trunkTop.y);
+			expect(
+				shortPine.anchors.trunkTop.y - tallPine.anchors.trunkTop.y,
+			).toBeGreaterThanOrEqual(20);
 		});
 	});
 
@@ -1277,24 +1276,13 @@ describe('Issue #8: new tree shapes (fir/maple/willow)', () => {
 		}
 	});
 
-	// Branching shapes (maple, willow) use clustering; canopy bottom may not
-	// extend to trunk top. Only test branchless/tiered shapes (fir).
-	it.each(['fir'] as const)(
-		'%s: trunk top enters the sampled canopy (sampled penetration ≥ 5 px)',
-		(shape) => {
-			for (const trunkHeight of [50, 100, 150]) {
-				const geo = generateTree(makeConfig({ shape, trunkHeight, seed: 42 }));
-				const allCanopyYs = geo.canopyBlobs.flatMap((b) =>
-					b.triangles.flatMap((t) => t.points.map((p) => p.y)),
-				);
-				if (allCanopyYs.length === 0) {
-					continue;
-				}
-				const canopyMaxY = Math.max(...allCanopyYs);
-				expect(geo.anchors.trunkTop.y + 5).toBeLessThanOrEqual(canopyMaxY);
-			}
-		},
-	);
+	// Tiered shapes (fir) skip trunk-penetration clamp; trunk respects trunkHeight slider.
+	it('fir trunk top respects trunkHeight slider (tiered shapes skip trunk-penetration clamp)', () => {
+		const tallFir = generateTree(makeConfig({ shape: 'fir', trunkHeight: 100, seed: 42 }));
+		const shortFir = generateTree(makeConfig({ shape: 'fir', trunkHeight: 10, seed: 42 }));
+		expect(shortFir.anchors.trunkTop.y).toBeGreaterThan(tallFir.anchors.trunkTop.y);
+		expect(shortFir.anchors.trunkTop.y - tallFir.anchors.trunkTop.y).toBeGreaterThanOrEqual(20);
+	});
 
 	// Maple emits branches toward canopy blobs (issue #8 spec). Validate
 	// reach via bounding-box containment: at least one branch quad vertex

@@ -677,7 +677,7 @@ const shapeDefinitions: Record<TreeShape, ShapeDefinition> = {
 		generateBlobs: generateWillowBlobs,
 		styleParameters: {
 			blobRxRyRatio: 1.3,
-			blobVerticalOffset: 15,
+			blobVerticalOffset: 25,
 			blobBoundary: 'circle',
 			blobClusterBehavior: 0.3,
 			trunkTipWeight: 0.5,

@@ -341,7 +341,7 @@ export const SHAPE_DEFAULTS = {
 		branchesLevel1Range: [3, 5] as readonly [number, number],
 		branchesLevel2Range: [1, 2] as readonly [number, number],
 		branchesLevel3Range: [0, 1] as readonly [number, number],
-		branchAngle: 30,
+		branchAngle: 15,
 		branchMirroring: BRANCH_MIRRORING.off,
 		trunkFork: false,
 		trunkTwist: 35,

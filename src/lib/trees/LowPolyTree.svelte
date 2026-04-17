@@ -282,6 +282,15 @@
 						stroke-width="0.5"
 					/>
 				{/each}
+				{#each geometry.birchStripes as stripe (stripe)}
+					<rect
+						x={stripe.centerX - stripe.width / 2}
+						y={stripe.y - stripe.height / 2}
+						width={stripe.width}
+						height={stripe.height}
+						fill={stripe.color}
+					/>
+				{/each}
 			</g>
 		{/if}
 
