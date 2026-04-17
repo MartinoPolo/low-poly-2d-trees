@@ -19,11 +19,14 @@
 		SHAPE_DEFAULTS,
 		CROOKEDNESS_MODES,
 		CROOKEDNESS_MODE_OPTIONS,
+		BRANCH_MIRRORING,
+		BRANCH_MIRRORING_OPTIONS,
 		FRUIT_TYPES,
 		FRUIT_TYPE_OPTIONS,
 		isTreeStage,
 		type TreeShape,
 		type FruitType,
+		type BranchMirroring,
 	} from '$lib/trees/types.js';
 	import {
 		createDefaultToolVisibility,
@@ -101,6 +104,10 @@
 		return (Object.values(TREE_SHAPES) as readonly string[]).includes(value);
 	}
 
+	function isBranchMirroring(value: string): value is BranchMirroring {
+		return (Object.values(BRANCH_MIRRORING) as readonly string[]).includes(value);
+	}
+
 	function isFruitType(value: string): value is FruitType {
 		return (Object.values(FRUIT_TYPES) as readonly string[]).includes(value);
 	}
@@ -157,6 +164,8 @@
 		treeConfig.current.trunkSaturation = defaults.trunkSaturation;
 		treeConfig.current.trunkLightness = defaults.trunkLightness;
 		treeConfig.current.trunkTwist = defaults.trunkTwist;
+		treeConfig.current.branchMirroring = defaults.branchMirroring;
+		treeConfig.current.trunkFork = defaults.trunkFork;
 		treeConfig.current.fruitType = defaults.fruitType;
 		treeConfig.current.fruitCount = defaults.fruitCount;
 		if ('trunkStripCount' in defaults) {
@@ -442,6 +451,25 @@
 							bind:value={treeConfig.current.branchAngle}
 							disabled={level1Disabled}
 						/>
+						<LabeledSelect
+							label="Branch Mirroring"
+							options={BRANCH_MIRRORING_OPTIONS}
+							value={treeConfig.current.branchMirroring}
+							onValueChange={(v) => {
+								if (isBranchMirroring(v)) {
+									treeConfig.current.branchMirroring = v;
+								}
+							}}
+							disabled={level1Disabled}
+						/>
+						<div class="flex items-center gap-2">
+							<Checkbox
+								checked={treeConfig.current.trunkFork}
+								onCheckedChange={(v) => (treeConfig.current.trunkFork = v === true)}
+								disabled={level1Disabled}
+							/>
+							<Label>Trunk Fork</Label>
+						</div>
 
 						<!-- Per-level branch count range sliders (BR-4) -->
 						{#if treeConfig.current.branchDepth >= 1}

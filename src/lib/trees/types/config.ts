@@ -79,6 +79,20 @@ export const CROOKEDNESS_MODE_OPTIONS: readonly { value: CrookednessMode; label:
 	{ value: CROOKEDNESS_MODES.random, label: 'Random' },
 ] as const;
 
+export const BRANCH_MIRRORING = {
+	off: 'off',
+	allowed: 'allowed',
+	preferred: 'preferred',
+} as const;
+
+export type BranchMirroring = (typeof BRANCH_MIRRORING)[keyof typeof BRANCH_MIRRORING];
+
+export const BRANCH_MIRRORING_OPTIONS: readonly { value: BranchMirroring; label: string }[] = [
+	{ value: BRANCH_MIRRORING.off, label: 'Off' },
+	{ value: BRANCH_MIRRORING.allowed, label: 'Allowed' },
+	{ value: BRANCH_MIRRORING.preferred, label: 'Preferred' },
+] as const;
+
 export interface TreeConfig {
 	readonly stage: TreeStage;
 	readonly shape: TreeShape;
@@ -123,6 +137,10 @@ export interface TreeConfig {
 	readonly branchDepthTaper: number;
 	/** Branch angle slider (0-100%). 0% = wide spread, 100% = vertical. */
 	readonly branchAngle: number;
+	/** Branch mirror symmetry: off, allowed (relaxed overlap), preferred (paired generation). */
+	readonly branchMirroring: BranchMirroring;
+	/** When true, trunk flares at top and forces two thick L1 branches from topmost junction. */
+	readonly trunkFork: boolean;
 	/** Trunk face-width variation (0-100%). Controls twist and per-face randomness. */
 	readonly trunkTwist: number;
 	/** Number of visible strip faces on trunk/branch cross-section (REQ-EV2-X-01). */
@@ -173,6 +191,8 @@ export const DEFAULT_TREE_CONFIG: TreeConfig = {
 	branchCrookedness: 0,
 	branchDepthTaper: 55,
 	branchAngle: 50,
+	branchMirroring: BRANCH_MIRRORING.off,
+	trunkFork: false,
 	trunkTwist: 10,
 	trunkStripCount: 3,
 	branchWidthVariance: 25,
@@ -192,6 +212,8 @@ export const SHAPE_DEFAULTS = {
 		branchesLevel2Range: [1, 2] as readonly [number, number],
 		branchesLevel3Range: [0, 1] as readonly [number, number],
 		branchAngle: 50,
+		branchMirroring: BRANCH_MIRRORING.off,
+		trunkFork: false,
 		trunkTwist: 35,
 		blobSizeVariance: 2.5,
 		blobCloseness: 45,
@@ -216,6 +238,8 @@ export const SHAPE_DEFAULTS = {
 		branchesLevel2Range: [0, 0] as readonly [number, number],
 		branchesLevel3Range: [0, 0] as readonly [number, number],
 		branchAngle: 50,
+		branchMirroring: BRANCH_MIRRORING.off,
+		trunkFork: false,
 		trunkTwist: 20,
 		blobSizeVariance: 2.0,
 		blobCloseness: 30,
@@ -240,6 +264,8 @@ export const SHAPE_DEFAULTS = {
 		branchesLevel2Range: [1, 2] as readonly [number, number],
 		branchesLevel3Range: [0, 1] as readonly [number, number],
 		branchAngle: 60,
+		branchMirroring: BRANCH_MIRRORING.off,
+		trunkFork: false,
 		trunkTwist: 25,
 		blobSizeVariance: 2.5,
 		blobCloseness: 35,
@@ -264,6 +290,8 @@ export const SHAPE_DEFAULTS = {
 		branchesLevel2Range: [0, 0] as readonly [number, number],
 		branchesLevel3Range: [0, 0] as readonly [number, number],
 		branchAngle: 50,
+		branchMirroring: BRANCH_MIRRORING.off,
+		trunkFork: false,
 		trunkTwist: 20,
 		blobSizeVariance: 2.5,
 		blobCloseness: 45,
@@ -288,6 +316,8 @@ export const SHAPE_DEFAULTS = {
 		branchesLevel2Range: [1, 2] as readonly [number, number],
 		branchesLevel3Range: [0, 1] as readonly [number, number],
 		branchAngle: 40,
+		branchMirroring: BRANCH_MIRRORING.off,
+		trunkFork: false,
 		trunkTwist: 30,
 		blobSizeVariance: 1.3,
 		blobCloseness: 40,
@@ -312,6 +342,8 @@ export const SHAPE_DEFAULTS = {
 		branchesLevel2Range: [1, 2] as readonly [number, number],
 		branchesLevel3Range: [0, 1] as readonly [number, number],
 		branchAngle: 30,
+		branchMirroring: BRANCH_MIRRORING.off,
+		trunkFork: false,
 		trunkTwist: 35,
 		blobSizeVariance: 2.0,
 		blobCloseness: 35,
@@ -336,6 +368,8 @@ export const SHAPE_DEFAULTS = {
 		branchesLevel2Range: [0, 0] as readonly [number, number],
 		branchesLevel3Range: [0, 0] as readonly [number, number],
 		branchAngle: 50,
+		branchMirroring: BRANCH_MIRRORING.off,
+		trunkFork: false,
 		trunkTwist: 20,
 		blobSizeVariance: 1.0,
 		blobCloseness: 80,
@@ -360,6 +394,8 @@ export const SHAPE_DEFAULTS = {
 		branchesLevel2Range: [0, 0] as readonly [number, number],
 		branchesLevel3Range: [0, 0] as readonly [number, number],
 		branchAngle: 50,
+		branchMirroring: BRANCH_MIRRORING.off,
+		trunkFork: false,
 		trunkTwist: 25,
 		blobSizeVariance: 2.0,
 		blobCloseness: 70,
@@ -384,6 +420,8 @@ export const SHAPE_DEFAULTS = {
 		branchesLevel2Range: [1, 2] as readonly [number, number],
 		branchesLevel3Range: [0, 0] as readonly [number, number],
 		branchAngle: 35,
+		branchMirroring: BRANCH_MIRRORING.preferred,
+		trunkFork: false,
 		trunkTwist: 25,
 		blobSizeVariance: 2.0,
 		blobCloseness: 40,
@@ -408,6 +446,8 @@ export const SHAPE_DEFAULTS = {
 		branchesLevel2Range: [0, 0] as readonly [number, number],
 		branchesLevel3Range: [0, 0] as readonly [number, number],
 		branchAngle: 50,
+		branchMirroring: BRANCH_MIRRORING.off,
+		trunkFork: false,
 		trunkTwist: 30,
 		blobSizeVariance: 2.0,
 		blobCloseness: 60,
@@ -432,6 +472,8 @@ export const SHAPE_DEFAULTS = {
 		branchesLevel2Range: [0, 0] as readonly [number, number],
 		branchesLevel3Range: [0, 0] as readonly [number, number],
 		branchAngle: 40,
+		branchMirroring: BRANCH_MIRRORING.off,
+		trunkFork: false,
 		trunkTwist: 40,
 		blobSizeVariance: 1.5,
 		blobCloseness: 60,
@@ -456,6 +498,8 @@ export const SHAPE_DEFAULTS = {
 		branchesLevel2Range: [0, 0] as readonly [number, number],
 		branchesLevel3Range: [0, 0] as readonly [number, number],
 		branchAngle: 25,
+		branchMirroring: BRANCH_MIRRORING.preferred,
+		trunkFork: true,
 		trunkTwist: 30,
 		blobSizeVariance: 1.5,
 		blobCloseness: 30,
@@ -483,6 +527,8 @@ export const SHAPE_DEFAULTS = {
 		| 'branchesLevel2Range'
 		| 'branchesLevel3Range'
 		| 'branchAngle'
+		| 'branchMirroring'
+		| 'trunkFork'
 		| 'trunkTwist'
 		| 'blobSizeVariance'
 		| 'blobCloseness'
