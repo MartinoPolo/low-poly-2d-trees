@@ -1,11 +1,6 @@
-import { VIEWBOX_WIDTH, VIEWBOX_HEIGHT } from './types/config.js';
-
 // ---------------------------------------------------------------------------
 // Constants
 // ---------------------------------------------------------------------------
-
-/** Minimum distance from canopy envelope to viewport edge (REQ-EV2-CE-03). */
-const VIEWPORT_MARGIN_PX = 10;
 
 /**
  * Maximum normalised distance (1.0 = on envelope edge) beyond which a tip gets
@@ -53,51 +48,30 @@ interface ShapeEnvelopeConfig {
 // ---------------------------------------------------------------------------
 
 /**
- * Compute a canopy envelope for a shape, scaled by canopySize and clamped to viewport.
+ * Compute a canopy envelope for a shape, scaled by canopySize.
  *
  * - canopySize=100 uses base radii as-is.
  * - canopySize<100 shrinks envelope (sapling stage).
  * - canopySize>100 grows envelope (lush canopy).
- * - Envelope never extends within 10px of viewport edge.
+ * - Envelope grows freely; SVG overflow clipping handles viewport bounds (REQ-R-01).
  */
 export function computeCanopyEnvelope(
 	shapeConfig: ShapeEnvelopeConfig,
 	canopySize: number,
-	viewportWidth: number = VIEWBOX_WIDTH,
-	viewportHeight: number = VIEWBOX_HEIGHT,
 ): CanopyEnvelope {
 	const scale = canopySize / 100;
-	const scaledRadiusX = shapeConfig.baseRadiusX * scale;
-	const scaledRadiusY = shapeConfig.baseRadiusY * scale;
-
-	// Viewport clamp: envelope cannot extend within VIEWPORT_MARGIN_PX of edges
-	const maxAllowedRadiusX = Math.max(
-		0,
-		Math.min(
-			shapeConfig.canopyCenterX - VIEWPORT_MARGIN_PX,
-			viewportWidth - VIEWPORT_MARGIN_PX - shapeConfig.canopyCenterX,
-		),
-	);
-	const maxAllowedRadiusY = Math.max(
-		0,
-		Math.min(
-			shapeConfig.canopyCenterY - VIEWPORT_MARGIN_PX,
-			viewportHeight - VIEWPORT_MARGIN_PX - shapeConfig.canopyCenterY,
-		),
-	);
-
-	const clampedRadiusX = Math.min(scaledRadiusX, maxAllowedRadiusX);
-	const clampedRadiusY = Math.min(scaledRadiusY, maxAllowedRadiusY);
+	const radiusX = shapeConfig.baseRadiusX * scale;
+	const radiusY = shapeConfig.baseRadiusY * scale;
 
 	return {
 		centerX: shapeConfig.canopyCenterX,
 		centerY: shapeConfig.canopyCenterY,
-		radiusX: clampedRadiusX,
-		radiusY: clampedRadiusY,
-		minX: shapeConfig.canopyCenterX - clampedRadiusX,
-		minY: shapeConfig.canopyCenterY - clampedRadiusY,
-		maxX: shapeConfig.canopyCenterX + clampedRadiusX,
-		maxY: shapeConfig.canopyCenterY + clampedRadiusY,
+		radiusX,
+		radiusY,
+		minX: shapeConfig.canopyCenterX - radiusX,
+		minY: shapeConfig.canopyCenterY - radiusY,
+		maxX: shapeConfig.canopyCenterX + radiusX,
+		maxY: shapeConfig.canopyCenterY + radiusY,
 	};
 }
 

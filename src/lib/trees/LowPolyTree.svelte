@@ -37,6 +37,7 @@
 		showTrunk?: boolean;
 		showFruit?: boolean;
 		showAnchors?: boolean;
+		showEnvelope?: boolean;
 		animateCanopySway?: boolean;
 		animateBranches?: boolean;
 		animateGrowth?: boolean;
@@ -55,6 +56,7 @@
 		showTrunk = true,
 		showFruit = true,
 		showAnchors = false,
+		showEnvelope = false,
 		animateCanopySway = false,
 		animateBranches = false,
 		animateGrowth = false,
@@ -444,6 +446,22 @@
 						stroke-width="0.5"
 					/>
 				{/each}
+			</g>
+		{/if}
+
+		{#if showEnvelope && geometry.canopyEnvelope}
+			<g class="envelope-debug">
+				<ellipse
+					cx={geometry.canopyEnvelope.centerX}
+					cy={geometry.canopyEnvelope.centerY}
+					rx={geometry.canopyEnvelope.radiusX}
+					ry={geometry.canopyEnvelope.radiusY}
+					fill="none"
+					stroke="#ef4444"
+					stroke-width="1"
+					stroke-dasharray="4 3"
+					opacity="0.7"
+				/>
 			</g>
 		{/if}
 	</g>

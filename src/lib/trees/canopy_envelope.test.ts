@@ -16,7 +16,7 @@ describe('computeCanopyEnvelope', () => {
 	};
 
 	it('canopySize=100 uses base radii', () => {
-		const env = computeCanopyEnvelope(baseConfig, 100, 300, 300);
+		const env = computeCanopyEnvelope(baseConfig, 100);
 		expect(env.radiusX).toBe(80);
 		expect(env.radiusY).toBe(60);
 		expect(env.centerX).toBe(150);
@@ -24,32 +24,27 @@ describe('computeCanopyEnvelope', () => {
 	});
 
 	it('canopySize=50 shrinks envelope by half', () => {
-		const env = computeCanopyEnvelope(baseConfig, 50, 300, 300);
+		const env = computeCanopyEnvelope(baseConfig, 50);
 		expect(env.radiusX).toBe(40);
 		expect(env.radiusY).toBe(30);
 	});
 
-	it('canopySize=200 grows envelope (clamped by viewport)', () => {
-		const env = computeCanopyEnvelope(baseConfig, 200, 300, 300);
-		// 150 - 10 = 140 max radiusX, 300 - 10 - 150 = 140 max radiusX → min = 140
-		// Scaled radiusX = 160, clamped to 140
-		expect(env.radiusX).toBe(140);
+	it('canopySize=200 grows envelope freely (no viewport clamp)', () => {
+		const env = computeCanopyEnvelope(baseConfig, 200);
+		expect(env.radiusX).toBe(160);
+		expect(env.radiusY).toBe(120);
 	});
 
-	it('viewport clamp: envelope stays 10px from edges (REQ-EV2-CE-03)', () => {
-		const env = computeCanopyEnvelope(baseConfig, 200, 300, 300);
-		expect(env.minX).toBeGreaterThanOrEqual(10);
-		expect(env.minY).toBeGreaterThanOrEqual(10);
-		expect(env.maxX).toBeLessThanOrEqual(290);
-		expect(env.maxY).toBeLessThanOrEqual(290);
+	it('envelope may extend beyond viewport (SVG clipping handles overflow)', () => {
+		const env = computeCanopyEnvelope(baseConfig, 200);
+		expect(env.minX).toBeLessThan(0);
+		expect(env.maxX).toBeGreaterThan(300);
 	});
 
-	it('off-center canopy still respects viewport margins', () => {
+	it('off-center canopy grows freely without viewport margins', () => {
 		const offCenter = { ...baseConfig, canopyCenterX: 30 };
-		const env = computeCanopyEnvelope(offCenter, 100, 300, 300);
-		// maxAllowedRadiusX = min(30-10, 300-10-30) = min(20, 260) = 20
-		expect(env.radiusX).toBe(20);
-		expect(env.minX).toBeGreaterThanOrEqual(10);
+		const env = computeCanopyEnvelope(offCenter, 100);
+		expect(env.radiusX).toBe(80);
 	});
 });
 
@@ -57,8 +52,6 @@ describe('isInsideEnvelope', () => {
 	const envelope = computeCanopyEnvelope(
 		{ canopyCenterX: 150, canopyCenterY: 90, baseRadiusX: 80, baseRadiusY: 60 },
 		100,
-		300,
-		300,
 	);
 
 	it('center point is inside', () => {
@@ -78,8 +71,6 @@ describe('clampToEnvelope', () => {
 	const envelope = computeCanopyEnvelope(
 		{ canopyCenterX: 150, canopyCenterY: 90, baseRadiusX: 80, baseRadiusY: 60 },
 		100,
-		300,
-		300,
 	);
 
 	it('inside point returned as-is', () => {
@@ -100,8 +91,6 @@ describe('computeEnvelopeScaleFactor', () => {
 	const envelope = computeCanopyEnvelope(
 		{ canopyCenterX: 150, canopyCenterY: 90, baseRadiusX: 80, baseRadiusY: 60 },
 		100,
-		300,
-		300,
 	);
 
 	it('center point has scale factor ~1.0', () => {

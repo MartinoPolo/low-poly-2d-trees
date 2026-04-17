@@ -962,6 +962,7 @@ function generateTreeCore(config: TreeConfig, flags: StageFlags): TreeGeometry {
 	const shapeDef = getShapeDefinition(config.shape);
 	const isTiered = TIERED_SHAPES.has(config.shape);
 	const isCustom = config.shape === TREE_SHAPES.custom;
+	const hasBranchingCanopy = !isTiered && shapeDef.styleParameters !== undefined;
 
 	const effectiveTrunkTop = computeEffectiveTrunkTop(shapeDef, config.trunkHeight);
 	const canopyDelta = effectiveTrunkTop - shapeDef.defaultTrunkTop;
@@ -1005,6 +1006,8 @@ function generateTreeCore(config: TreeConfig, flags: StageFlags): TreeGeometry {
 			blob.cy += canopyDelta;
 			blob.cx += horizontalCanopyShift;
 		}
+	} else if (hasBranchingCanopy) {
+		blobs = [];
 	} else {
 		blobs = shapeDef.generateBlobs(rng, config.blobCount);
 		applyBlobSizeVariance(blobs, config.blobSizeVariance);
@@ -1046,12 +1049,14 @@ function generateTreeCore(config: TreeConfig, flags: StageFlags): TreeGeometry {
 					maxY: effectiveTrunkTop + TRUNK_ENTRY_MIN_PX,
 				};
 
-	const clampedTrunkTop = Math.min(effectiveTrunkTop, canopyBounds.maxY - TRUNK_ENTRY_MIN_PX);
-	if (clampedTrunkTop !== effectiveTrunkTop) {
-		const clamped = [...trunkJunctions];
-		const top = clamped[clamped.length - 1]!;
-		clamped[clamped.length - 1] = { x: top.x, y: clampedTrunkTop };
-		trunkJunctions = clamped;
+	if (!hasBranchingCanopy) {
+		const clampedTrunkTop = Math.min(effectiveTrunkTop, canopyBounds.maxY - TRUNK_ENTRY_MIN_PX);
+		if (clampedTrunkTop !== effectiveTrunkTop) {
+			const clamped = [...trunkJunctions];
+			const top = clamped[clamped.length - 1]!;
+			clamped[clamped.length - 1] = { x: top.x, y: clampedTrunkTop };
+			trunkJunctions = clamped;
+		}
 	}
 	const trunkTop = trunkJunctions[trunkJunctions.length - 1]!.y;
 
@@ -1115,12 +1120,13 @@ function generateTreeCore(config: TreeConfig, flags: StageFlags): TreeGeometry {
 		}
 	}
 
-	const extraSegments = isTiered
-		? []
-		: validateNoFloatingBlobs(
-				blobs,
-				branches.map((b) => b.segment),
-			);
+	const extraSegments =
+		isTiered || hasBranchingCanopy
+			? []
+			: validateNoFloatingBlobs(
+					blobs,
+					branches.map((b) => b.segment),
+				);
 	const extraBranches: GeneratedBranch[] = extraSegments.map((seg) => ({
 		segment: seg,
 		path: [
@@ -1172,7 +1178,6 @@ function generateTreeCore(config: TreeConfig, flags: StageFlags): TreeGeometry {
 	// Z-Order Classification (REQ-EV2-Z-01, Z-03)
 	// ---------------------------------------------------------------------------
 
-	const hasBranchingCanopy = !isTiered && shapeDef.styleParameters !== undefined;
 	const trunkCenterX = sampleTrunkCenterX(
 		trunkJunctions,
 		(trunkJunctions[0]!.y + trunkJunctions[trunkJunctions.length - 1]!.y) / 2,
@@ -1234,11 +1239,14 @@ function generateTreeCore(config: TreeConfig, flags: StageFlags): TreeGeometry {
 
 	const smoothAcuteAngles = SHAPES_WITH_ACUTE_SMOOTHING.has(config.shape);
 	let canopyBlobs: BlobGeometry[];
+	let canopyEnvelope:
+		| { centerX: number; centerY: number; radiusX: number; radiusY: number }
+		| undefined;
 
 	if (isTiered) {
 		// Branchless tiered shapes (pine, fir): unchanged
 		canopyBlobs = generateTierCanopy(rng, tiers, config.polygonsPerBlob, config);
-	} else if (hasBranchingCanopy && allBranches.length > 0) {
+	} else if (hasBranchingCanopy) {
 		// Branch-driven canopy: cluster tips → generate blobs (REQ-EV2-BC-01)
 		const styleParams = shapeDef.styleParameters!;
 		const envDefaults = shapeDef.envelopeDefaults!;
@@ -1253,35 +1261,44 @@ function generateTreeCore(config: TreeConfig, flags: StageFlags): TreeGeometry {
 				baseRadiusY: envDefaults.baseRadiusY,
 			},
 			config.canopySize,
-			VIEWBOX_WIDTH,
-			VIEWBOX_HEIGHT,
 		);
 
-		// Build branch tip info with z-order
-		const tipInfos: BranchTipInfo[] = allBranches.map((b, i) => ({
-			position: { x: b.segment.x2, y: b.segment.y2 },
-			depth: b.depth,
-			widthEnd: b.segment.widthEnd,
-			zOrder: branchZOrders[i]!,
-		}));
+		canopyEnvelope = envelope;
 
-		// Cluster tips into blob groups (REQ-EV2-BC-01)
 		const trunkTipPoint = trunkJunctions[trunkJunctions.length - 1]!;
-		const clusters = clusterBranchTips(
-			tipInfos,
-			config.blobCount,
-			trunkTipPoint,
-			styleParams.trunkTipWeight,
-			config.seed,
-		);
 
-		// Blob sizing uses config.blobCount (target) not live cluster count, so
-		// per-blob area stays stable as clusters drop out (REQ-EV2-CE-04 bare
-		// branches). Growing survivors would break the polygons-per-blob contract
-		// and inflate already-visible blobs over nearby branches.
+		let clusters: ReturnType<typeof clusterBranchTips>;
+		if (allBranches.length > 0) {
+			const tipInfos: BranchTipInfo[] = allBranches.map((b, i) => ({
+				position: { x: b.segment.x2, y: b.segment.y2 },
+				depth: b.depth,
+				widthEnd: b.segment.widthEnd,
+				zOrder: branchZOrders[i]!,
+			}));
+			clusters = clusterBranchTips(
+				tipInfos,
+				config.blobCount,
+				trunkTipPoint,
+				styleParams.trunkTipWeight,
+				config.seed,
+			);
+		} else {
+			clusters = [
+				{
+					centroid: trunkTipPoint,
+					tips: [],
+					strongestDepth: 1,
+					strongestWidth: 2,
+					hasTrunkTip: true,
+					zOrder: 'front' as const,
+				},
+			];
+		}
+
+		const survivingClusterCount = clusters.length;
 		const clusteredBlobsWithZ: { blob: Blob; zOrder: 'front' | 'back' }[] = [];
 		for (const cluster of clusters) {
-			const blob = computeClusterBlob(cluster, styleParams, envelope, config.blobCount);
+			const blob = computeClusterBlob(cluster, styleParams, envelope, survivingClusterCount);
 			if (blob !== null) {
 				clusteredBlobsWithZ.push({ blob, zOrder: cluster.zOrder });
 			}
@@ -1391,5 +1408,6 @@ function generateTreeCore(config: TreeConfig, flags: StageFlags): TreeGeometry {
 		viewBox: { width: VIEWBOX_WIDTH, height: VIEWBOX_HEIGHT },
 		junctionData,
 		envelopeBounds: finalCanopyBounds,
+		canopyEnvelope,
 	};
 }

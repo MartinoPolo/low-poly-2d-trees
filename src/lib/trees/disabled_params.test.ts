@@ -19,15 +19,22 @@ describe('DISABLED_PARAMS_BY_SHAPE', () => {
 		expect(DISABLED_PARAMS_BY_SHAPE.fir).toEqual(DISABLED_PARAMS_BY_SHAPE.pine);
 	});
 
-	it('oak, birch, maple, willow, apple, cherry, baobab, acacia, custom have empty disabled lists', () => {
-		expect(DISABLED_PARAMS_BY_SHAPE.oak).toEqual([]);
-		expect(DISABLED_PARAMS_BY_SHAPE.birch).toEqual([]);
-		expect(DISABLED_PARAMS_BY_SHAPE.maple).toEqual([]);
-		expect(DISABLED_PARAMS_BY_SHAPE.willow).toEqual([]);
-		expect(DISABLED_PARAMS_BY_SHAPE.apple).toEqual([]);
-		expect(DISABLED_PARAMS_BY_SHAPE.cherry).toEqual([]);
-		expect(DISABLED_PARAMS_BY_SHAPE.baobab).toEqual([]);
-		expect(DISABLED_PARAMS_BY_SHAPE.acacia).toEqual([]);
+	it('branching shapes disable blobCloseness (REQ-S-12)', () => {
+		for (const shape of [
+			'oak',
+			'birch',
+			'maple',
+			'willow',
+			'apple',
+			'cherry',
+			'baobab',
+			'acacia',
+		] as const) {
+			expect(DISABLED_PARAMS_BY_SHAPE[shape]).toContain('blobCloseness');
+		}
+	});
+
+	it('custom has empty disabled list', () => {
 		expect(DISABLED_PARAMS_BY_SHAPE.custom).toEqual([]);
 	});
 
@@ -165,6 +172,29 @@ describe('isParamDisabled', () => {
 
 		it('does not disable fruitType for custom', () => {
 			expect(isParamDisabled('custom', 'fruitType', {})).toBe(false);
+		});
+	});
+
+	describe('blobCloseness disabled for branching shapes (REQ-S-12)', () => {
+		it.each([
+			'oak',
+			'birch',
+			'maple',
+			'willow',
+			'apple',
+			'cherry',
+			'baobab',
+			'acacia',
+		] as const)('disables blobCloseness for %s', (shape) => {
+			expect(isParamDisabled(shape, 'blobCloseness', {})).toBe(true);
+		});
+
+		it('does not disable blobCloseness for custom', () => {
+			expect(isParamDisabled('custom', 'blobCloseness', {})).toBe(false);
+		});
+
+		it('does not disable blobCloseness for pine', () => {
+			expect(isParamDisabled('pine', 'blobCloseness', {})).toBe(false);
 		});
 	});
 });

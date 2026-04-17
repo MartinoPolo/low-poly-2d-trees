@@ -3,11 +3,7 @@ import { CROOKEDNESS_MODES, VIEWBOX_WIDTH } from '../types.js';
 import { randomInRange } from '../prng.js';
 import { sampleTrunkCenterX, computeZoneSplit } from './trunk.js';
 import { isPointInSingleBlob, getBlobsBounds } from './shape_bounds.js';
-import {
-	computeVisibleBranchLength,
-	branchesOverlap,
-	resolveBranchLengthRange,
-} from './geometry.js';
+import { branchesOverlap, resolveBranchLengthRange } from './geometry.js';
 import type { Blob, BranchSegment } from './shape_types.js';
 
 // ---------------------------------------------------------------------------
@@ -200,9 +196,6 @@ export function samplePointAlongPath(path: readonly Point2D[], t: number): Point
 /** Max total branches across all levels (Rule J). */
 const MAX_TOTAL_BRANCHES = 25;
 
-/** Minimum visible branch length in pixels (Rule C). */
-const MIN_VISIBLE_LENGTH = 5;
-
 /** Angle divergence from parent direction (Rule E): 30-60 degrees. */
 const ANGLE_DIVERGENCE_MIN_DEG = 30;
 const ANGLE_DIVERGENCE_MAX_DEG = 60;
@@ -251,12 +244,12 @@ interface BranchContext {
 // ---------------------------------------------------------------------------
 
 /** L1 branch width = this fraction of trunk width at fork point. */
-const FORK_WIDTH_FRACTION_MIN = 0.15;
-const FORK_WIDTH_FRACTION_MAX = 0.2;
+const FORK_WIDTH_FRACTION_MIN = 0.3;
+const FORK_WIDTH_FRACTION_MAX = 0.4;
 
 /** L2 branch width = this fraction of parent L1 width at fork point (REQ-EV2-F-04). */
-const L2_FORK_WIDTH_FRACTION_MIN = 0.1;
-const L2_FORK_WIDTH_FRACTION_MAX = 0.15;
+const L2_FORK_WIDTH_FRACTION_MIN = 0.2;
+const L2_FORK_WIDTH_FRACTION_MAX = 0.3;
 
 /** ±15° random angle variation around center branchAngle (REQ-EV2-V-01). */
 const BRANCH_ANGLE_VARIATION_DEG = 15;
@@ -418,7 +411,7 @@ function overlapsAnySameDepth(
 // ---------------------------------------------------------------------------
 
 function generateTrunkBranches(ctx: BranchContext, branches: GeneratedBranch[]): void {
-	const { rng, config, trunkJunctions, blobs, trunkTop, trunkAxisAngle } = ctx;
+	const { rng, config, trunkJunctions, trunkTop, trunkAxisAngle } = ctx;
 	const count = sampleBranchCountForLevel(rng, config, 1);
 	if (count <= 0) {
 		return;
@@ -527,12 +520,6 @@ function generateTrunkBranches(ctx: BranchContext, branches: GeneratedBranch[]):
 				continue;
 			}
 
-			// Rule C: min visible length
-			const visible = computeVisibleBranchLength(candidate, blobs, []);
-			if (visible < MIN_VISIBLE_LENGTH) {
-				continue;
-			}
-
 			accepted = candidate;
 			break;
 		}
@@ -569,7 +556,7 @@ function generateSubBranches(
 	branches: GeneratedBranch[],
 	parentDepth: number,
 ): void {
-	const { rng, config, blobs } = ctx;
+	const { rng, config } = ctx;
 	const targetDepth = parentDepth + 1;
 	if (targetDepth > config.branchDepth) {
 		return;
@@ -670,12 +657,6 @@ function generateSubBranches(
 
 				// Rule F: same-depth overlap only
 				if (overlapsAnySameDepth(candidate, branches, targetDepth, parent)) {
-					continue;
-				}
-
-				// Rule C: min visible length
-				const visible = computeVisibleBranchLength(candidate, blobs, []);
-				if (visible < MIN_VISIBLE_LENGTH) {
 					continue;
 				}
 

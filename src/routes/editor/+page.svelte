@@ -48,6 +48,7 @@
 	let showBranches = $state(true);
 	let showTrunk = $state(true);
 	let showFruit = $state(true);
+	let showEnvelope = $state(false);
 	let animateCanopySway = $state(false);
 	let animateBranches = $state(false);
 	let animateGrowth = $state(false);
@@ -321,7 +322,7 @@
 						<LabeledSlider
 							label="Canopy Size"
 							min={25}
-							max={400}
+							max={200}
 							step={5}
 							unit="%"
 							bind:value={treeConfig.current.canopySize}
@@ -617,6 +618,13 @@
 							/>
 							<Label>Show Anchor Points</Label>
 						</div>
+						<div class="flex items-center gap-2">
+							<Checkbox
+								checked={showEnvelope}
+								onCheckedChange={(v) => (showEnvelope = v === true)}
+							/>
+							<Label>Show Envelope</Label>
+						</div>
 					</Card.Content>
 				</Card.Root>
 
@@ -668,6 +676,7 @@
 					{showTrunk}
 					{showFruit}
 					{showAnchors}
+					{showEnvelope}
 					{animateCanopySway}
 					{animateBranches}
 					{animateGrowth}

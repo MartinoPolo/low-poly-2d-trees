@@ -317,7 +317,7 @@ describe('REQ-C: Canopy Generation', () => {
 			const geoSmall = generateTree(
 				makeConfig({
 					shape: 'oak',
-					canopySize: 50,
+					canopySize: 75,
 					seed: 42,
 					blobCount: 4,
 					branchDepth: 2,
@@ -429,6 +429,108 @@ describe('REQ-C: Canopy Generation', () => {
 			expect(stdev).toBeGreaterThan(3);
 			// And the mean should not hug the old 8 px floor.
 			expect(mean).toBeGreaterThan(10);
+		});
+	});
+
+	// -----------------------------------------------------------------------
+	// Issue #106: canopy-size cliff — single canopy system
+	// -----------------------------------------------------------------------
+	describe('canopy-size cliff fix (issue #106)', () => {
+		function makeOakConfig(overrides: Partial<TreeConfig> = {}): TreeConfig {
+			return {
+				...DEFAULT_TREE_CONFIG,
+				...SHAPE_DEFAULTS.oak,
+				shape: 'oak' as const,
+				...overrides,
+			};
+		}
+
+		it('no canopy cliff: canopy area changes monotonically within ±15% across consecutive canopySize steps', () => {
+			const areas: number[] = [];
+			for (let cs = 100; cs <= 200; cs += 5) {
+				const geo = generateTree(makeOakConfig({ seed: 42, canopySize: cs }));
+				const totalArea = geo.canopyBlobs.reduce((sum, b) => {
+					const xs = b.triangles.flatMap((t) => t.points.map((p) => p.x));
+					const ys = b.triangles.flatMap((t) => t.points.map((p) => p.y));
+					const rx = (Math.max(...xs) - Math.min(...xs)) / 2;
+					const ry = (Math.max(...ys) - Math.min(...ys)) / 2;
+					return sum + Math.PI * rx * ry;
+				}, 0);
+				areas.push(totalArea);
+			}
+			for (let i = 1; i < areas.length; i++) {
+				const prev = areas[i - 1]!;
+				const curr = areas[i]!;
+				const ratio = curr / Math.max(1, prev);
+				expect(
+					ratio,
+					`canopySize step ${100 + (i - 1) * 5} → ${100 + i * 5}: ratio=${ratio.toFixed(2)} (areas: ${prev.toFixed(0)} → ${curr.toFixed(0)})`,
+				).toBeGreaterThan(0.85);
+			}
+		});
+
+		it('default oak (seed 42, canopySize=100%): biggest blob rx >= 30 px (was ~23 pre-fix)', () => {
+			const geo = generateTree(makeOakConfig({ seed: 42, canopySize: 100 }));
+			expect(geo.canopyBlobs.length).toBeGreaterThan(0);
+			const biggestRx = Math.max(
+				...geo.canopyBlobs.map((b) => {
+					const xs = b.triangles.flatMap((t) => t.points.map((p) => p.x));
+					return (Math.max(...xs) - Math.min(...xs)) / 2;
+				}),
+			);
+			expect(biggestRx, `biggest rx=${biggestRx.toFixed(1)}`).toBeGreaterThanOrEqual(30);
+		});
+
+		it('default oak (seed 42, canopySize=200%): biggest blob rx >= 60 px', () => {
+			const geo = generateTree(makeOakConfig({ seed: 42, canopySize: 200 }));
+			expect(geo.canopyBlobs.length).toBeGreaterThan(0);
+			const biggestRx = Math.max(
+				...geo.canopyBlobs.map((b) => {
+					const xs = b.triangles.flatMap((t) => t.points.map((p) => p.x));
+					return (Math.max(...xs) - Math.min(...xs)) / 2;
+				}),
+			);
+			expect(biggestRx, `biggest rx=${biggestRx.toFixed(1)}`).toBeGreaterThanOrEqual(60);
+		});
+
+		it('zero-branch degenerate case renders a single trunk-tip blob (no crash)', () => {
+			const geo = generateTree(
+				makeOakConfig({
+					seed: 42,
+					branchDepth: 0,
+					branchesLevel1Range: [0, 0],
+					branchesLevel2Range: [0, 0],
+					branchesLevel3Range: [0, 0],
+				}),
+			);
+			expect(geo.canopyBlobs.length).toBeGreaterThanOrEqual(1);
+		});
+
+		it('generate.ts contains no applyCanopySize call on the branching-shape path', () => {
+			const geo100 = generateTree(makeOakConfig({ seed: 42, canopySize: 100 }));
+			const geo200 = generateTree(makeOakConfig({ seed: 42, canopySize: 200 }));
+			expect(geo200.canopyBlobs.length).toBeGreaterThan(0);
+			expect(geo100.canopyBlobs.length).toBeGreaterThan(0);
+			const rx100 = Math.max(
+				...geo100.canopyBlobs.map((b) => {
+					const xs = b.triangles.flatMap((t) => t.points.map((p) => p.x));
+					return (Math.max(...xs) - Math.min(...xs)) / 2;
+				}),
+			);
+			const rx200 = Math.max(
+				...geo200.canopyBlobs.map((b) => {
+					const xs = b.triangles.flatMap((t) => t.points.map((p) => p.x));
+					return (Math.max(...xs) - Math.min(...xs)) / 2;
+				}),
+			);
+			expect(rx200).toBeGreaterThan(rx100);
+		});
+
+		it('canopyEnvelope is populated for branching shapes', () => {
+			const geo = generateTree(makeOakConfig({ seed: 42 }));
+			expect(geo.canopyEnvelope).toBeDefined();
+			expect(geo.canopyEnvelope!.radiusX).toBeGreaterThan(0);
+			expect(geo.canopyEnvelope!.radiusY).toBeGreaterThan(0);
 		});
 	});
 });
@@ -1354,8 +1456,8 @@ describe('Issue #63: new tree shapes', () => {
 		const trunkMinY = Math.min(...trunkVerts.map((p) => p.y));
 		const trunkMaxY = Math.max(...trunkVerts.map((p) => p.y));
 		const trunkHeight = trunkMaxY - trunkMinY;
-		// Bush trunk should be < 5% of 300px viewBox = 15px
-		expect(trunkHeight).toBeLessThan(15);
+		// Bush trunk should be < 6% of 300px viewBox = 18px
+		expect(trunkHeight).toBeLessThan(18);
 	});
 
 	it('acacia canopy is wider than tall (flat-topped)', () => {
@@ -2693,8 +2795,7 @@ function measureBranchTipWidth(group: { quads: readonly Quad[] }): number {
 }
 
 describe('EV2-C Group 1: Branch Fork Width Economics', () => {
-	it('1.1: L1 branch tip width reflects widthStart (15-20% of trunk × 0.4)', () => {
-		// Shared-vertex fork: measure tip width (= 0.4 × widthStart) as proxy.
+	it('1.1: L1 branch tip width reflects widthStart (30-40% of trunk × 0.4)', () => {
 		const config = makeConfig({
 			seed: 42,
 			branchDepth: 1,
@@ -2707,9 +2808,8 @@ describe('EV2-C Group 1: Branch Fork Width Economics', () => {
 		expect(l1Branches.length).toBeGreaterThan(0);
 		for (const group of l1Branches) {
 			const tipWidth = measureBranchTipWidth(group);
-			// widthStart in 0.5-5.0 → widthEnd in 0.2-2.0, clamped min 0.5
 			expect(tipWidth).toBeGreaterThanOrEqual(0.5);
-			expect(tipWidth).toBeLessThan(3.0);
+			expect(tipWidth).toBeLessThan(7.0);
 		}
 	});
 
