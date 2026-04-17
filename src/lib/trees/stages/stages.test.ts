@@ -1,7 +1,15 @@
 import { describe, it, expect } from 'vitest';
 import { generateTree } from '../generate.js';
 import type { TreeConfig, TreeGeometry } from '../types.js';
-import { DEFAULT_TREE_CONFIG, TREE_STAGES, TREE_STAGE_OPTIONS, type TreeStage } from '../types.js';
+import {
+	DEFAULT_TREE_CONFIG,
+	TREE_STAGES,
+	TREE_STAGE_OPTIONS,
+	TREE_SHAPES,
+	CROOKEDNESS_MODES,
+	type TreeStage,
+} from '../types.js';
+import { applyStageModifiers } from './index.js';
 
 function makeConfig(overrides: Partial<TreeConfig> = {}): TreeConfig {
 	return { ...DEFAULT_TREE_CONFIG, ...overrides };
@@ -256,6 +264,18 @@ describe('dead stage', () => {
 		const overlap = [...deadColors].filter((c) => leafyColors.has(c));
 		expect(overlap.length).toBeLessThan(deadColors.size);
 	});
+
+	it('config overrides: trunkLean=15, trunkCrookedness=50, trunkSegments=5', () => {
+		const result = applyStageModifiers(makeConfig({ stage: TREE_STAGES.dead }));
+		expect(result.kind).toBe('modifiedConfig');
+		if (result.kind !== 'modifiedConfig') {
+			return;
+		}
+		expect(result.config.trunkLean).toBe(15);
+		expect(result.config.trunkCrookedness).toBe(50);
+		expect(result.config.trunkSegments).toBe(5);
+		expect(result.config.crookednessMode).toBe(CROOKEDNESS_MODES.random);
+	});
 });
 
 describe('stump stage', () => {
@@ -268,6 +288,77 @@ describe('stump stage', () => {
 	it('produces trunk triangles', () => {
 		const geo = generateTree(makeConfig({ stage: TREE_STAGES.stump }));
 		expect(geo.trunkTriangles.length).toBeGreaterThan(0);
+	});
+});
+
+describe('pine trunk height respects trunkHeight slider', () => {
+	it('pine with trunkHeight=10 has trunk top y > pine with trunkHeight=100 (shorter trunk = lower on screen)', () => {
+		const tallPine = generateTree(
+			makeConfig({ shape: TREE_SHAPES.pine, trunkHeight: 100, seed: 42 }),
+		);
+		const shortPine = generateTree(
+			makeConfig({ shape: TREE_SHAPES.pine, trunkHeight: 10, seed: 42 }),
+		);
+		// Trunk top = last junction = highest point (lowest Y)
+		const tallTrunkTopY = tallPine.anchors.trunkTop.y;
+		const shortTrunkTopY = shortPine.anchors.trunkTop.y;
+		// Short trunk should have higher Y (lower on screen) than tall trunk
+		expect(shortTrunkTopY).toBeGreaterThan(tallTrunkTopY);
+		// Delta should be significant (at least 20px for 300px viewbox)
+		expect(shortTrunkTopY - tallTrunkTopY).toBeGreaterThanOrEqual(20);
+	});
+
+	it('pine trunk top is not clamped into canopy (tiered shapes skip trunk-penetration clamp)', () => {
+		// Pine defaultTrunkTop = H*0.8 = 240. Without the isTiered guard,
+		// the trunk-penetration clamp forces trunkTop up to canopyBounds.maxY - 15,
+		// overriding the slider. With the guard, trunkTop stays at ~240.
+		const pine = generateTree(
+			makeConfig({ shape: TREE_SHAPES.pine, trunkHeight: 100, seed: 42 }),
+		);
+		// Pine trunk top should be near defaultTrunkTop (240), not clamped to ~165
+		expect(pine.anchors.trunkTop.y).toBeGreaterThan(200);
+	});
+});
+
+describe('birch stripes', () => {
+	it('birch shape produces 3-6 stripes', () => {
+		const geo = generateTree(makeConfig({ shape: TREE_SHAPES.birch, seed: 42 }));
+		expect(geo.birchStripes.length).toBeGreaterThanOrEqual(3);
+		expect(geo.birchStripes.length).toBeLessThanOrEqual(6);
+	});
+
+	it('non-birch shapes produce empty birchStripes array', () => {
+		const oakGeo = generateTree(makeConfig({ shape: TREE_SHAPES.oak, seed: 42 }));
+		expect(oakGeo.birchStripes).toHaveLength(0);
+		const pineGeo = generateTree(makeConfig({ shape: TREE_SHAPES.pine, seed: 42 }));
+		expect(pineGeo.birchStripes).toHaveLength(0);
+	});
+
+	it('birch stripe y-values are between trunk top and trunk bottom', () => {
+		const geo = generateTree(makeConfig({ shape: TREE_SHAPES.birch, seed: 42 }));
+		const trunkTopY = geo.anchors.trunkTop.y;
+		const trunkBaseY = geo.anchors.trunkBase.y;
+		for (const stripe of geo.birchStripes) {
+			expect(stripe.y).toBeGreaterThanOrEqual(trunkTopY);
+			expect(stripe.y).toBeLessThanOrEqual(trunkBaseY);
+		}
+	});
+
+	it('birch stripe colors are dark (low lightness HSL)', () => {
+		const geo = generateTree(makeConfig({ shape: TREE_SHAPES.birch, seed: 42 }));
+		for (const stripe of geo.birchStripes) {
+			// Color format: hsl(0, 0%, N%) where N is 15-29
+			expect(stripe.color).toMatch(/^hsl\(0, 0%, \d+%\)$/);
+			const lightness = parseInt(stripe.color.match(/(\d+)%\)$/)![1]!, 10);
+			expect(lightness).toBeGreaterThanOrEqual(15);
+			expect(lightness).toBeLessThan(30);
+		}
+	});
+
+	it('birch stripes are deterministic (same seed produces same stripes)', () => {
+		const geo1 = generateTree(makeConfig({ shape: TREE_SHAPES.birch, seed: 123 }));
+		const geo2 = generateTree(makeConfig({ shape: TREE_SHAPES.birch, seed: 123 }));
+		expect(geo1.birchStripes).toEqual(geo2.birchStripes);
 	});
 });
 

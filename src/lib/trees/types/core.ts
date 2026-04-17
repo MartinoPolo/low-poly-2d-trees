@@ -101,6 +101,14 @@ export interface JunctionData {
 	readonly bisectorAngle: number;
 }
 
+export interface BirchStripe {
+	readonly y: number;
+	readonly centerX: number;
+	readonly width: number;
+	readonly height: number;
+	readonly color: string;
+}
+
 export interface TreeGeometry {
 	/** Stacked trapezoid quads for trunk (BR-1). Empty for simple stages. */
 	readonly trunkQuads: readonly Quad[];
@@ -117,6 +125,8 @@ export interface TreeGeometry {
 	readonly showFallingLeaves: boolean;
 	readonly anchors: TreeAnchors;
 	readonly viewBox: { readonly width: number; readonly height: number };
+	/** Dark horizontal stripes on birch trunks. Empty for non-birch shapes. */
+	readonly birchStripes: readonly BirchStripe[];
 	/** Junction positions/widths/ratios for Phase 2 (REQ-EV2-C-01). */
 	readonly junctionData?: readonly JunctionData[];
 	/** Canopy envelope bounds for Phase 2 (REQ-EV2-C-04). */

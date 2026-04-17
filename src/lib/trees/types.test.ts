@@ -7,6 +7,7 @@ import {
 	TREE_SHAPE_OPTIONS,
 	type TreeShape,
 } from './types.js';
+import { getShapeDefinition } from './shapes/blob_generators.js';
 
 describe('TREE_SHAPES union', () => {
 	const allShapes = [
@@ -209,7 +210,7 @@ describe('SHAPE_DEFAULTS §2.5', () => {
 			branchesLevel1Range: [3, 5],
 			branchesLevel2Range: [1, 2],
 			branchesLevel3Range: [0, 1],
-			branchAngle: 30,
+			branchAngle: 15,
 			trunkTwist: 35,
 			blobSizeVariance: 2.0,
 			blobCloseness: 35,
@@ -227,6 +228,11 @@ describe('SHAPE_DEFAULTS §2.5', () => {
 			fruitType: 'catkin_willow',
 			fruitCount: 3,
 		});
+	});
+
+	it('willow blobVerticalOffset is 25 (drooping canopy)', () => {
+		const willowDef = getShapeDefinition(TREE_SHAPES.willow);
+		expect(willowDef.styleParameters?.blobVerticalOffset).toBe(25);
 	});
 
 	it('every shape entry has crookednessMode, trunkSegments >= 1, trunkCrookedness >= 0', () => {

@@ -61,6 +61,7 @@ export function generateSeedGeometry(): TreeGeometry {
 		fruitSlots: [],
 		flowerSlots: [],
 		showFallingLeaves: false,
+		birchStripes: [],
 		anchors,
 		viewBox: { width: VIEWBOX_WIDTH, height: VIEWBOX_HEIGHT },
 	};
