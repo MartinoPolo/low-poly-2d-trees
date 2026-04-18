@@ -42,6 +42,8 @@
 	import { page } from '$app/state';
 	import Shuffle from '@lucide/svelte/icons/shuffle';
 	import Save from '@lucide/svelte/icons/save';
+	import SettingsTierControl from '$lib/components/composed/SettingsTierControl.svelte';
+	import { use_settings_tier, tierAtLeast } from '$lib/context/settings_tier.context.svelte.js';
 
 	const user = $derived(page.data.user);
 	const signedIn = $derived(user !== null);
@@ -61,7 +63,10 @@
 	let animateGrowth = $state(false);
 	let toolVisibility: ToolVisibility = $state(createDefaultToolVisibility());
 	let animateTools = $state(false);
-	let showAdvancedControls = $state(false);
+
+	const { tier } = use_settings_tier();
+	const isIntermediate = $derived(tierAtLeast(tier.current, 'intermediate'));
+	const isAdvanced = $derived(tierAtLeast(tier.current, 'advanced'));
 
 	const trunkCrookednessDisabled = $derived(
 		isParamDisabled(treeConfig.current.shape, 'trunkCrookedness', {
@@ -256,10 +261,37 @@
 </svelte:head>
 
 <main class="grid h-dvh grid-rows-[1fr] bg-background text-foreground">
-	<div class="grid grid-cols-[320px_1fr] overflow-hidden xl:grid-cols-[640px_1fr]">
+	<div class="grid grid-cols-[1fr_320px] overflow-hidden xl:grid-cols-[1fr_640px]">
+		<!-- Preview -->
+		<div
+			class="flex items-center justify-center rounded-xl border border-border bg-muted/30 p-8"
+		>
+			<div class="w-full max-w-sm">
+				<LowPolyTree
+					config={treeConfig.configForTree}
+					{showCanopy}
+					{showBranches}
+					{showTrunk}
+					{showFruit}
+					{showAnchors}
+					{showEnvelope}
+					{animateCanopySway}
+					{animateBranches}
+					{animateGrowth}
+					{toolVisibility}
+					{animateTools}
+					overlayConfig={overlayConfig.config}
+					groundElements={overlayConfig.groundEnabled}
+					class="h-auto w-full"
+				/>
+			</div>
+		</div>
+
 		<!-- Controls -->
 		<aside class="select-none overflow-y-auto p-6">
 			<div class="grid grid-cols-1 gap-6 xl:grid-cols-2">
+				<SettingsTierControl />
+
 				<Card.Root>
 					<Card.Header>
 						<Card.Title>Shape</Card.Title>
@@ -340,45 +372,11 @@
 					</Card.Header>
 					<Card.Content class="space-y-4">
 						<LabeledSlider
-							label="Polygons Per Blob"
-							min={4}
-							max={30}
-							bind:value={treeConfig.current.polygonsPerBlob}
-						/>
-						<LabeledSlider
-							label="Trunk Strips"
-							min={2}
-							max={4}
-							bind:value={treeConfig.current.trunkStripCount}
-						/>
-						<LabeledSlider
 							label="Blob Count"
 							min={1}
 							max={25}
 							value={treeConfig.current.blobCount}
 							onValueChange={onBlobCountChange}
-						/>
-						<LabeledSlider
-							label="Branch Depth"
-							min={0}
-							max={3}
-							bind:value={treeConfig.current.branchDepth}
-						/>
-						<LabeledSlider
-							label="Blob Size Variance"
-							min={1}
-							max={10}
-							step={0.1}
-							format={(v) => v.toFixed(1)}
-							unit="x"
-							bind:value={treeConfig.current.blobSizeVariance}
-						/>
-						<LabeledSlider
-							label="Blob Closeness"
-							min={0}
-							max={100}
-							unit="%"
-							bind:value={treeConfig.current.blobCloseness}
 						/>
 						<LabeledSlider
 							label="Canopy Size"
@@ -388,10 +386,40 @@
 							unit="%"
 							bind:value={treeConfig.current.canopySize}
 						/>
+						{#if isAdvanced}
+							<LabeledSlider
+								label="Polygons Per Blob"
+								min={4}
+								max={30}
+								bind:value={treeConfig.current.polygonsPerBlob}
+							/>
+							<LabeledSlider
+								label="Trunk Strips"
+								min={2}
+								max={4}
+								bind:value={treeConfig.current.trunkStripCount}
+							/>
+							<LabeledSlider
+								label="Blob Size Variance"
+								min={1}
+								max={10}
+								step={0.1}
+								format={(v) => v.toFixed(1)}
+								unit="x"
+								bind:value={treeConfig.current.blobSizeVariance}
+							/>
+							<LabeledSlider
+								label="Blob Closeness"
+								min={0}
+								max={100}
+								unit="%"
+								bind:value={treeConfig.current.blobCloseness}
+							/>
+						{/if}
 					</Card.Content>
 				</Card.Root>
 
-				{#if treeConfig.current.shape === TREE_SHAPES.custom}
+				{#if isAdvanced && treeConfig.current.shape === TREE_SHAPES.custom}
 					<CustomBlobsEditor
 						customBlobs={treeConfig.customBlobs}
 						blobCount={treeConfig.current.blobCount}
@@ -434,19 +462,9 @@
 
 				<Card.Root>
 					<Card.Header>
-						<div class="flex items-center justify-between">
-							<Card.Title>Trunk & Branches</Card.Title>
-							<div class="flex items-center gap-2">
-								<Checkbox
-									checked={showAdvancedControls}
-									onCheckedChange={(v) => (showAdvancedControls = v === true)}
-								/>
-								<Label class="text-xs">Advanced</Label>
-							</div>
-						</div>
+						<Card.Title>Trunk & Branches</Card.Title>
 					</Card.Header>
 					<Card.Content class="space-y-4">
-						<!-- Simple controls (always visible) -->
 						<LabeledSlider
 							label="Trunk Height"
 							min={10}
@@ -462,101 +480,133 @@
 							unit="%"
 							bind:value={treeConfig.current.trunkThickness}
 						/>
-						<LabeledSlider
-							label="Branch Thickness"
-							min={25}
-							max={400}
-							step={5}
-							unit="%"
-							bind:value={treeConfig.current.branchThickness}
-						/>
-						<LabeledSlider
-							label="Trunk Segments"
-							min={1}
-							max={10}
-							step={1}
-							bind:value={treeConfig.current.trunkSegments}
-						/>
-						<LabeledSlider
-							label="Trunk Crookedness"
-							min={0}
-							max={100}
-							step={5}
-							unit="%"
-							bind:value={treeConfig.current.trunkCrookedness}
-							disabled={trunkCrookednessDisabled}
-						/>
-						<LabeledSlider
-							label="Trunk Lean"
-							min={-45}
-							max={45}
-							step={1}
-							unit="°"
-							bind:value={treeConfig.current.trunkLean}
-						/>
-						<LabeledSlider
-							label="Branch Angle"
-							min={0}
-							max={100}
-							step={5}
-							unit="%"
-							bind:value={treeConfig.current.branchAngle}
-							disabled={level1Disabled}
-						/>
-						<LabeledSelect
-							label="Branch Mirroring"
-							options={BRANCH_MIRRORING_OPTIONS}
-							value={treeConfig.current.branchMirroring}
-							onValueChange={(v) => {
-								if (isBranchMirroring(v)) {
-									treeConfig.current.branchMirroring = v;
-								}
-							}}
-							disabled={level1Disabled}
-						/>
-						<div class="flex items-center gap-2">
-							<Checkbox
-								checked={treeConfig.current.trunkFork}
-								onCheckedChange={(v) => (treeConfig.current.trunkFork = v === true)}
+
+						{#if isIntermediate}
+							<LabeledSlider
+								label="Branch Thickness"
+								min={25}
+								max={400}
+								step={5}
+								unit="%"
+								bind:value={treeConfig.current.branchThickness}
+							/>
+							<LabeledSlider
+								label="Trunk Segments"
+								min={1}
+								max={10}
+								step={1}
+								bind:value={treeConfig.current.trunkSegments}
+							/>
+							<LabeledSlider
+								label="Trunk Crookedness"
+								min={0}
+								max={100}
+								step={5}
+								unit="%"
+								bind:value={treeConfig.current.trunkCrookedness}
+								disabled={trunkCrookednessDisabled}
+							/>
+							<LabeledSlider
+								label="Branch Depth"
+								min={0}
+								max={3}
+								bind:value={treeConfig.current.branchDepth}
+							/>
+							<LabeledSlider
+								label="Branch Angle"
+								min={0}
+								max={100}
+								step={5}
+								unit="%"
+								bind:value={treeConfig.current.branchAngle}
 								disabled={level1Disabled}
 							/>
-							<Label>Trunk Fork</Label>
-						</div>
-
-						<!-- Per-level branch count range sliders (BR-4) -->
-						{#if treeConfig.current.branchDepth >= 1}
-							<LabeledRangeSliderDual
-								label="L1 Branches"
-								min={0}
-								max={branchMaximums.maxLevel1}
-								value={[...treeConfig.current.branchesLevel1Range]}
-								onValueChange={(v) => (treeConfig.current.branchesLevel1Range = v)}
+							<LabeledSlider
+								label="Branch Length"
+								min={25}
+								max={400}
+								step={5}
+								unit="%"
+								bind:value={treeConfig.current.branchLength}
+							/>
+							<LabeledSelect
+								label="Branch Mirroring"
+								options={BRANCH_MIRRORING_OPTIONS}
+								value={treeConfig.current.branchMirroring}
+								onValueChange={(v) => {
+									if (isBranchMirroring(v)) {
+										treeConfig.current.branchMirroring = v;
+									}
+								}}
 								disabled={level1Disabled}
 							/>
-						{/if}
-						{#if treeConfig.current.branchDepth >= 2}
-							<LabeledRangeSliderDual
-								label="L2 Branches"
-								min={0}
-								max={branchMaximums.maxLevel2}
-								value={[...treeConfig.current.branchesLevel2Range]}
-								onValueChange={(v) => (treeConfig.current.branchesLevel2Range = v)}
-								disabled={level2Disabled}
-							/>
-						{/if}
-						{#if treeConfig.current.branchDepth >= 3}
-							<LabeledRangeSliderDual
-								label="L3 Branches"
-								min={0}
-								max={branchMaximums.maxLevel3}
-								value={[...treeConfig.current.branchesLevel3Range]}
-								onValueChange={(v) => (treeConfig.current.branchesLevel3Range = v)}
-								disabled={level3Disabled}
-							/>
+							<div class="flex items-center gap-2">
+								<Checkbox
+									checked={treeConfig.current.trunkFork}
+									onCheckedChange={(v) =>
+										(treeConfig.current.trunkFork = v === true)}
+									disabled={level1Disabled}
+								/>
+								<Label>Trunk Fork</Label>
+							</div>
+
+							{#if treeConfig.current.branchDepth >= 1}
+								<LabeledRangeSliderDual
+									label="L1 Branches"
+									min={0}
+									max={branchMaximums.maxLevel1}
+									value={[...treeConfig.current.branchesLevel1Range]}
+									onValueChange={(v) =>
+										(treeConfig.current.branchesLevel1Range = v)}
+									disabled={level1Disabled}
+								/>
+							{/if}
+							{#if treeConfig.current.branchDepth >= 2}
+								<LabeledRangeSliderDual
+									label="L2 Branches"
+									min={0}
+									max={branchMaximums.maxLevel2}
+									value={[...treeConfig.current.branchesLevel2Range]}
+									onValueChange={(v) =>
+										(treeConfig.current.branchesLevel2Range = v)}
+									disabled={level2Disabled}
+								/>
+							{/if}
+							{#if treeConfig.current.branchDepth >= 3}
+								<LabeledRangeSliderDual
+									label="L3 Branches"
+									min={0}
+									max={branchMaximums.maxLevel3}
+									value={[...treeConfig.current.branchesLevel3Range]}
+									onValueChange={(v) =>
+										(treeConfig.current.branchesLevel3Range = v)}
+									disabled={level3Disabled}
+								/>
+							{/if}
 						{/if}
 
-						<!-- Advanced controls (BR-14: toggle) -->
-						{#if showAdvancedControls}
+						{#if isAdvanced}
+							<LabeledSlider
+								label="Trunk Lean"
+								min={-45}
+								max={45}
+								step={1}
+								unit="°"
+								bind:value={treeConfig.current.trunkLean}
+							/>
+							<LabeledSlider
+								label="Trunk Twist"
+								min={0}
+								max={100}
+								step={5}
+								unit="%"
+								bind:value={treeConfig.current.trunkTwist}
+								disabled={isParamDisabled(
+									treeConfig.current.shape,
+									'trunkTwist',
+									treeConfig.current,
+								)}
+							/>
 							<LabeledSelect
 								label="Crookedness Mode"
 								options={CROOKEDNESS_MODE_OPTIONS}
@@ -601,14 +651,6 @@
 								bind:value={treeConfig.current.branchWidthVariance}
 							/>
 							<LabeledSlider
-								label="Branch Length"
-								min={25}
-								max={400}
-								step={5}
-								unit="%"
-								bind:value={treeConfig.current.branchLength}
-							/>
-							<LabeledSlider
 								label="Branch Length Variance"
 								min={0}
 								max={100}
@@ -616,47 +658,38 @@
 								unit="%"
 								bind:value={treeConfig.current.branchLengthVariance}
 							/>
-							<LabeledSlider
-								label="Trunk Twist"
-								min={0}
-								max={100}
-								step={5}
-								unit="%"
-								bind:value={treeConfig.current.trunkTwist}
-								disabled={isParamDisabled(
-									treeConfig.current.shape,
-									'trunkTwist',
-									treeConfig.current,
-								)}
-							/>
 						{/if}
 					</Card.Content>
 				</Card.Root>
 
-				<Card.Root>
-					<Card.Header>
-						<Card.Title>Lighting</Card.Title>
-					</Card.Header>
-					<Card.Content class="space-y-4">
-						<LabeledSlider
-							label="Light Angle"
-							min={0}
-							max={360}
-							unit="°"
-							bind:value={treeConfig.current.lightAngle}
-						/>
-						<LabeledSlider
-							label="Depth Variance"
-							min={0}
-							max={2}
-							step={0.1}
-							format={(v) => v.toFixed(1)}
-							bind:value={treeConfig.current.depthVariance}
-						/>
-					</Card.Content>
-				</Card.Root>
+				{#if isIntermediate}
+					<Card.Root>
+						<Card.Header>
+							<Card.Title>Lighting</Card.Title>
+						</Card.Header>
+						<Card.Content class="space-y-4">
+							<LabeledSlider
+								label="Light Angle"
+								min={0}
+								max={360}
+								unit="°"
+								bind:value={treeConfig.current.lightAngle}
+							/>
+							{#if isAdvanced}
+								<LabeledSlider
+									label="Depth Variance"
+									min={0}
+									max={2}
+									step={0.1}
+									format={(v) => v.toFixed(1)}
+									bind:value={treeConfig.current.depthVariance}
+								/>
+							{/if}
+						</Card.Content>
+					</Card.Root>
 
-				<ToolAccessoriesCard bind:toolVisibility bind:animateTools />
+					<ToolAccessoriesCard bind:toolVisibility bind:animateTools />
+				{/if}
 
 				<Card.Root>
 					<Card.Header>
@@ -745,30 +778,5 @@
 				<OverlaysCard {overlayConfig} />
 			</div>
 		</aside>
-
-		<!-- Preview -->
-		<div
-			class="flex items-center justify-center rounded-xl border border-border bg-muted/30 p-8"
-		>
-			<div class="w-full max-w-sm">
-				<LowPolyTree
-					config={treeConfig.configForTree}
-					{showCanopy}
-					{showBranches}
-					{showTrunk}
-					{showFruit}
-					{showAnchors}
-					{showEnvelope}
-					{animateCanopySway}
-					{animateBranches}
-					{animateGrowth}
-					{toolVisibility}
-					{animateTools}
-					overlayConfig={overlayConfig.config}
-					groundElements={overlayConfig.groundEnabled}
-					class="h-auto w-full"
-				/>
-			</div>
-		</div>
 	</div>
 </main>

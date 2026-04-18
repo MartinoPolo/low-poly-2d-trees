@@ -4,6 +4,9 @@ test.describe('Scene: tree count slider + depth positioning (#35)', () => {
 	test.beforeEach(async ({ page }) => {
 		await page.goto('/');
 		await page.waitForLoadState('networkidle');
+		await page.evaluate(() => localStorage.setItem('settings-tier', '"intermediate"'));
+		await page.reload();
+		await page.waitForLoadState('networkidle');
 	});
 
 	test('tree count slider defaults to 3 and renders 3 trees', async ({ page }) => {

@@ -48,6 +48,11 @@ test.describe('Issue #3 — Slider UX + UI control reorganization', () => {
 		await page.goto('/editor');
 		await page.waitForLoadState('networkidle');
 
+		// Branch Angle is intermediate-tier — switch tier before asserting
+		await page.evaluate(() => localStorage.setItem('settings-tier', '"intermediate"'));
+		await page.reload();
+		await page.waitForLoadState('networkidle');
+
 		// Select pine shape via shadcn select trigger
 		const trigger = page.locator('[data-slot="select-trigger"]').first();
 		await trigger.click();
@@ -70,8 +75,12 @@ test.describe('Issue #3 — Slider UX + UI control reorganization', () => {
 		await page.goto('/editor');
 		await page.waitForLoadState('networkidle');
 
+		// Branch Angle is intermediate-tier — switch tier before asserting
+		await page.evaluate(() => localStorage.setItem('settings-tier', '"intermediate"'));
+		await page.reload();
+		await page.waitForLoadState('networkidle');
+
 		// Oak is the default shape; Branch Angle should be enabled
-		// First ensure branch depth >= 1 so the L1 range sliders and branch angle are visible
 		const branchAngleSlider = page.locator('#slider-branch-angle');
 		const branchAngleDisabled = await branchAngleSlider.getAttribute('data-disabled');
 		console.log('oak branchAngle disabled:', branchAngleDisabled);
@@ -89,7 +98,11 @@ test.describe('Issue #3 — Slider UX + UI control reorganization', () => {
 	});
 
 	test('5. / scene editor has all 7 card titles', async ({ page }) => {
+		// Lighting card is intermediate+ tier — switch tier before asserting
 		await page.goto('/');
+		await page.waitForLoadState('networkidle');
+		await page.evaluate(() => localStorage.setItem('settings-tier', '"advanced"'));
+		await page.reload();
 		await page.waitForLoadState('networkidle');
 
 		const expectedTitles = [

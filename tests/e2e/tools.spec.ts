@@ -103,6 +103,9 @@ test.describe('Scene page tool accessories', () => {
 test.describe('Editor page tool accessories', () => {
 	test.beforeEach(async ({ page }) => {
 		await page.goto('/editor', { waitUntil: 'networkidle' });
+		await page.evaluate(() => localStorage.setItem('settings-tier', '"intermediate"'));
+		await page.reload();
+		await page.waitForLoadState('networkidle');
 	});
 
 	test('has Tools & Accessories section with 6 tool checkboxes', async ({ page }) => {
