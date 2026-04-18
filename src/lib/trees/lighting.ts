@@ -75,7 +75,7 @@ function triangleCentroid(points: readonly [Point2D, Point2D, Point2D]): Point2D
  * The output color is produced by interpolating between `canopyDarkColor`
  * and `canopyLightColor` in HSL space using the computed lighting factor
  * (REQ-L-01, REQ-L-02, REQ-L-07). Fully-lit faces map exactly to
- * `canopyLightColor`; fully-shadowed faces map exactly to `canopyDarkColor`.
+ * `canopyLightColor`; fully-shadowed faces reach near `canopyDarkColor`.
  */
 export function computeCanopyColor(
 	points: readonly [Point2D, Point2D, Point2D],
