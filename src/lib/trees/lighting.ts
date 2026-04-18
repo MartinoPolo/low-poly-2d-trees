@@ -95,7 +95,7 @@ export function computeCanopyColor(
 	// depthVariance (0 → uniform lighting, 1 → standard, 2 → exaggerated).
 	const r2 = nx * nx + ny * ny;
 	const z = (r2 < 1 ? Math.sqrt(1 - r2) : 0.05) * config.depthVariance;
-	const normal = normalize3({ x: nx * 0.7, y: ny * 0.7, z });
+	const normal = normalize3({ x: nx * 0.95, y: ny * 0.95, z });
 
 	// Diffuse lighting clamped to [0, 1]
 	const diffuse = clamp(dot3(normal, light), 0, 1);
@@ -103,10 +103,10 @@ export function computeCanopyColor(
 	// Rim darkening — triangles outside the hemisphere disk
 	const rimFactor = r2 < 1 ? 1 : 0.7;
 
-	// REQ-L-02: ambient 0.15 + diffuse 0.85 × diffuse. Rim factor applies
-	// last and only reduces edge brightness, so fully-lit non-rim faces
-	// still reach lighting = 1 and land on canopyLightColor exactly.
-	const lighting = clamp((0.15 + 0.85 * diffuse) * rimFactor, 0, 1);
+	// REQ-L-02: ambient 0.05 + diffuse 0.95, then power curve 1.4 to bias
+	// toward shadows. Rim factor applies last.
+	const linearLighting = clamp((0.05 + 0.95 * diffuse) * rimFactor, 0, 1);
+	const lighting = Math.pow(linearLighting, 1.4);
 
 	return interpolateHslInHexSpace(config.canopyDarkColor, config.canopyLightColor, lighting);
 }
