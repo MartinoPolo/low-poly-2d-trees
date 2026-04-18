@@ -91,6 +91,86 @@ describe('computeCanopyColor — two-color interpolation', () => {
 		const color = computeCanopyColor(center, BOUNDS, flat);
 		expect(color).toMatch(/^#[0-9a-f]{6}$/);
 	});
+
+	it('shadow-side triangles reach near-dark color', () => {
+		// Triangle at lower-right edge (away from light at 130 degrees) should
+		// produce lightness within 2 units of canopyDarkColor — validates that
+		// the lowered ambient floor lets shadows reach near-minimum.
+		const shadowTri: TrianglePoints = [
+			{ x: 92, y: 92 },
+			{ x: 97, y: 92 },
+			{ x: 95, y: 97 },
+		];
+		const darkL = hexToHsl(oakConfig.canopyDarkColor).l;
+		const resultL = hexToHsl(computeCanopyColor(shadowTri, BOUNDS, oakConfig)).l;
+		expect(Math.abs(resultL - darkL)).toBeLessThanOrEqual(2);
+	});
+
+	it('lit-side triangles reach near-light color', () => {
+		// Triangle on the lit side of the hemisphere (toward light at 130 degrees)
+		// should produce lightness within 2 units of canopyLightColor. Position
+		// chosen inside the hemisphere disk (r2 < 1) to avoid rim darkening.
+		const litTri: TrianglePoints = [
+			{ x: 22, y: 17 },
+			{ x: 27, y: 17 },
+			{ x: 24, y: 22 },
+		];
+		const lightL = hexToHsl(oakConfig.canopyLightColor).l;
+		const resultL = hexToHsl(computeCanopyColor(litTri, BOUNDS, oakConfig)).l;
+		expect(Math.abs(resultL - lightL)).toBeLessThanOrEqual(2);
+	});
+
+	it('wide contrast range across the canopy', () => {
+		// Sample a uniform grid across the canopy — the observed lightness range
+		// should exceed 95% of the full dark-to-light range, validating that
+		// both extremes are reachable with the steeper normals and lower ambient.
+		const darkL = hexToHsl(oakConfig.canopyDarkColor).l;
+		const lightL = hexToHsl(oakConfig.canopyLightColor).l;
+		const fullRange = lightL - darkL;
+
+		const lightnesses: number[] = [];
+		for (let gx = 5; gx <= 95; gx += 10) {
+			for (let gy = 5; gy <= 95; gy += 10) {
+				const tri: TrianglePoints = [
+					{ x: gx, y: gy },
+					{ x: gx + 4, y: gy },
+					{ x: gx + 2, y: gy + 4 },
+				];
+				lightnesses.push(hexToHsl(computeCanopyColor(tri, BOUNDS, oakConfig)).l);
+			}
+		}
+
+		const minL = Math.min(...lightnesses);
+		const maxL = Math.max(...lightnesses);
+		expect(maxL - minL).toBeGreaterThan(fullRange * 0.95);
+	});
+
+	it('shadow bias — median lightness below midpoint', () => {
+		// Uniformly distributed triangles should have median lightness below
+		// the midpoint of dark-to-light range (power curve pushes toward shadow)
+		const darkL = hexToHsl(oakConfig.canopyDarkColor).l;
+		const lightL = hexToHsl(oakConfig.canopyLightColor).l;
+		const midpoint = (darkL + lightL) / 2;
+
+		const lightnesses: number[] = [];
+		for (let gx = 5; gx <= 95; gx += 10) {
+			for (let gy = 5; gy <= 95; gy += 10) {
+				const tri: TrianglePoints = [
+					{ x: gx, y: gy },
+					{ x: gx + 4, y: gy },
+					{ x: gx + 2, y: gy + 4 },
+				];
+				lightnesses.push(hexToHsl(computeCanopyColor(tri, BOUNDS, oakConfig)).l);
+			}
+		}
+
+		lightnesses.sort((a, b) => a - b);
+		const median = lightnesses[Math.floor(lightnesses.length / 2)];
+		// Power curve biases median well below the midpoint (at least 8 units).
+		// Old linear formula had median ~34.5 vs midpoint ~38.3 (gap ~3.8);
+		// the power curve pushes it to ~25.5 (gap ~12.8).
+		expect(median).toBeLessThan(midpoint - 8);
+	});
 });
 
 // ---------------------------------------------------------------------------
