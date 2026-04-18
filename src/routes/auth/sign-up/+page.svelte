@@ -11,7 +11,7 @@
 	} from '$lib/components/ui/card/index.js';
 	import { Alert, AlertDescription } from '$lib/components/ui/alert/index.js';
 	import { authClient } from '$lib/auth/client.js';
-	import { goto } from '$app/navigation';
+	import { goto, invalidateAll } from '$app/navigation';
 	import { resolve } from '$app/paths';
 
 	type SocialProvider = 'google' | 'github';
@@ -62,6 +62,7 @@
 				errorMessage = result.error.message ?? 'Sign-up failed.';
 				return;
 			}
+			await invalidateAll();
 			await goto(resolve('/'));
 		} catch {
 			errorMessage = 'Sign-up failed.';

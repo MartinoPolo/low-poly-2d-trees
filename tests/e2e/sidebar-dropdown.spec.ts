@@ -11,10 +11,8 @@ test.describe('sidebar user dropdown (anonymous)', () => {
 		await expect(page.getByTestId('sidebar-sign-in')).toBeVisible();
 	});
 
-	test('does not show standalone dark mode toggle in sidebar', async ({ page }) => {
+	test('shows theme switcher in sidebar when anonymous', async ({ page }) => {
 		await page.goto('/editor');
-		// DarkModeToggle used to render a button with aria-label "Toggle theme (...)"
-		const themeToggle = page.locator('button[aria-label^="Toggle theme"]');
-		await expect(themeToggle).not.toBeVisible();
+		await expect(page.getByTestId('sidebar-theme-trigger')).toBeVisible();
 	});
 });

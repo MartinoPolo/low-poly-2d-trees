@@ -87,6 +87,62 @@
 		</Sidebar.Group>
 	</Sidebar.Content>
 	<Sidebar.Footer>
+		<Sidebar.Menu>
+			<Sidebar.MenuItem>
+				<DropdownMenu.Root>
+					<DropdownMenu.Trigger>
+						{#snippet child({ props: triggerProps })}
+							<Sidebar.MenuButton
+								data-testid="sidebar-theme-trigger"
+								tooltipContent="Theme"
+								{...triggerProps}
+							>
+								{#snippet child({ props })}
+									<button {...props}>
+										{#if userPrefersMode.current === 'light'}
+											<Sun />
+										{:else if userPrefersMode.current === 'dark'}
+											<Moon />
+										{:else}
+											<Monitor />
+										{/if}
+										<span>Theme</span>
+									</button>
+								{/snippet}
+							</Sidebar.MenuButton>
+						{/snippet}
+					</DropdownMenu.Trigger>
+					<DropdownMenu.Content side="top">
+						<DropdownMenu.RadioGroup
+							value={userPrefersMode.current}
+							onValueChange={(value) => {
+								if (
+									typeof value === 'string' &&
+									(THEME_MODES as readonly string[]).includes(value)
+								)
+									setMode(value as ThemeMode);
+							}}
+						>
+							<DropdownMenu.RadioItem value="light" data-testid="sidebar-theme-light">
+								<Sun />
+								Light
+							</DropdownMenu.RadioItem>
+							<DropdownMenu.RadioItem
+								value="system"
+								data-testid="sidebar-theme-system"
+							>
+								<Monitor />
+								System
+							</DropdownMenu.RadioItem>
+							<DropdownMenu.RadioItem value="dark" data-testid="sidebar-theme-dark">
+								<Moon />
+								Dark
+							</DropdownMenu.RadioItem>
+						</DropdownMenu.RadioGroup>
+					</DropdownMenu.Content>
+				</DropdownMenu.Root>
+			</Sidebar.MenuItem>
+		</Sidebar.Menu>
 		{#if user}
 			<Sidebar.Menu>
 				<Sidebar.MenuItem>
@@ -149,53 +205,6 @@
 								<Settings />
 								Settings
 							</DropdownMenu.Item>
-							<DropdownMenu.Separator />
-							<DropdownMenu.Sub>
-								<DropdownMenu.SubTrigger data-testid="sidebar-dropdown-theme">
-									{#if userPrefersMode.current === 'light'}
-										<Sun />
-									{:else if userPrefersMode.current === 'dark'}
-										<Moon />
-									{:else}
-										<Monitor />
-									{/if}
-									Theme
-								</DropdownMenu.SubTrigger>
-								<DropdownMenu.SubContent>
-									<DropdownMenu.RadioGroup
-										value={userPrefersMode.current}
-										onValueChange={(value) => {
-											if (
-												typeof value === 'string' &&
-												(THEME_MODES as readonly string[]).includes(value)
-											)
-												setMode(value as ThemeMode);
-										}}
-									>
-										<DropdownMenu.RadioItem
-											value="light"
-											data-testid="sidebar-dropdown-theme-light"
-										>
-											<Sun />
-											Light
-										</DropdownMenu.RadioItem>
-										<DropdownMenu.RadioItem
-											value="system"
-											data-testid="sidebar-dropdown-theme-system"
-										>
-											<Monitor />
-											System
-										</DropdownMenu.RadioItem>
-										<DropdownMenu.RadioItem
-											value="dark"
-											data-testid="sidebar-dropdown-theme-dark"
-										>
-											<Moon />
-											Dark
-										</DropdownMenu.RadioItem>
-									</DropdownMenu.RadioGroup>
-								</DropdownMenu.SubContent>
-							</DropdownMenu.Sub>
 							<DropdownMenu.Separator />
 							<DropdownMenu.Item
 								data-testid="sidebar-dropdown-sign-out"
