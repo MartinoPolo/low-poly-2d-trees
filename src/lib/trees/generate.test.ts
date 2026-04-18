@@ -2441,7 +2441,10 @@ describe('B8: all shapes x all stages cross-product', () => {
 								: {}),
 						}),
 					);
-					for (const tri of allTrianglesAndQuads(geo)) {
+					const polygons = allTrianglesAndQuads(geo);
+					// SVG-based stages (seed, sprouting, stump) produce empty geometry
+					expect(Array.isArray(polygons)).toBe(true);
+					for (const tri of polygons) {
 						for (const p of tri.points) {
 							expect(Number.isNaN(p.x)).toBe(false);
 							expect(Number.isNaN(p.y)).toBe(false);

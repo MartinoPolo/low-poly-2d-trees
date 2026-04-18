@@ -31,6 +31,7 @@
 	import GlowEffect from '$lib/trees/overlays/GlowEffect.svelte';
 	import WiltingEffect from '$lib/trees/overlays/WiltingEffect.svelte';
 	import GroundElements from '$lib/trees/ground/GroundElements.svelte';
+	import { SeedSvg, SproutingSvg, StumpSvg } from '$lib/trees/assets/stages/index.js';
 	import {
 		OVERLAY_DEFAULTS,
 		OVERLAY_VIEWBOX_HEADROOM,
@@ -85,6 +86,26 @@
 	const geometry = $derived(generateTree(config));
 	const hasReadyGlow = $derived(config.stage === TREE_STAGES.ready);
 	const hasOverlayGlow = $derived(overlayConfig.glow.enabled);
+
+	const stageSvgComponent = $derived(
+		config.stage === TREE_STAGES.seed
+			? SeedSvg
+			: config.stage === TREE_STAGES.sprouting
+				? SproutingSvg
+				: config.stage === TREE_STAGES.stump
+					? StumpSvg
+					: null,
+	);
+
+	const isGrowing = $derived(animateGrowth || growthProgress < 1);
+	const growthTrunkStyle = $derived(
+		isGrowing
+			? `transform: scaleY(${growthProgress}); transform-origin: ${geometry.anchors.trunkBase.x}px ${geometry.anchors.trunkBase.y}px`
+			: undefined,
+	);
+	const growthCanopyStyle = $derived(
+		isGrowing ? `clip-path: inset(${(1 - growthProgress) * 100}% 0 0 0)` : undefined,
+	);
 
 	const glowFilterId = $derived(`glow-${config.seed}`);
 	const expandViewbox = $derived(needsViewboxExpansion(overlayConfig));
@@ -214,12 +235,7 @@
 	filter={hasOverlayGlow ? `url(#${glowFilterId})` : undefined}
 >
 	<GlowEffect config={overlayConfig.glow} filterId={glowFilterId} />
-	<g
-		class="tree-root"
-		class:animate-growth={animateGrowth}
-		style="--growth-origin-x: {geometry.anchors.trunkBase.x}px; --growth-origin-y: {geometry
-			.anchors.trunkBase.y}px; --growth-progress: {growthProgress};"
-	>
+	<g class="tree-root">
 		{#snippet branchGroupSnippet(branchGroup: BranchGeometry, branchIndex: number)}
 			<g
 				class="branch-group"
@@ -277,7 +293,11 @@
 		<!-- REQ-EV2-Z-04: 5-layer rendering for branching shapes -->
 		<!-- Layer 1: Back branches (behind trunk) -->
 		{#if showBranches && backRootBranches.length > 0}
-			<g class="back-branches">
+			<g
+				class="back-branches"
+				class:animate-trunk-growth={animateGrowth}
+				style={growthTrunkStyle}
+			>
 				{#each backRootBranches as { group, index: groupIndex } (groupIndex)}
 					{@render branchGroupSnippet(group, groupIndex)}
 				{/each}
@@ -286,41 +306,51 @@
 
 		<!-- Layer 2: Trunk -->
 		{#if showTrunk}
-			<g class="trunk">
-				{#each geometry.trunkQuads as quad (quad)}
-					<polygon
-						points="{quad.points[0].x},{quad.points[0].y} {quad.points[1].x},{quad
-							.points[1].y} {quad.points[2].x},{quad.points[2].y} {quad.points[3]
-							.x},{quad.points[3].y}"
-						fill={quad.color}
-						stroke={quad.color}
-						stroke-width="0.5"
-					/>
-				{/each}
-				{#each geometry.trunkTriangles as tri (tri)}
-					<polygon
-						points="{tri.points[0].x},{tri.points[0].y} {tri.points[1].x},{tri.points[1]
-							.y} {tri.points[2].x},{tri.points[2].y}"
-						fill={tri.color}
-						stroke={tri.color}
-						stroke-width="0.5"
-					/>
-				{/each}
-				{#each geometry.birchStripes as stripe (stripe)}
-					<rect
-						x={stripe.centerX - stripe.width / 2}
-						y={stripe.y - stripe.height / 2}
-						width={stripe.width}
-						height={stripe.height}
-						fill={stripe.color}
-					/>
-				{/each}
+			<g class="trunk" class:animate-trunk-growth={animateGrowth} style={growthTrunkStyle}>
+				{#if stageSvgComponent}
+					{@const StageSvg = stageSvgComponent}
+					<g
+						transform="translate({geometry.anchors.trunkBase.x},{geometry.anchors
+							.trunkBase.y})"
+					>
+						<StageSvg />
+					</g>
+				{:else}
+					{#each geometry.trunkQuads as quad (quad)}
+						<polygon
+							points="{quad.points[0].x},{quad.points[0].y} {quad.points[1].x},{quad
+								.points[1].y} {quad.points[2].x},{quad.points[2].y} {quad.points[3]
+								.x},{quad.points[3].y}"
+							fill={quad.color}
+							stroke={quad.color}
+							stroke-width="0.5"
+						/>
+					{/each}
+					{#each geometry.trunkTriangles as tri (tri)}
+						<polygon
+							points="{tri.points[0].x},{tri.points[0].y} {tri.points[1].x},{tri
+								.points[1].y} {tri.points[2].x},{tri.points[2].y}"
+							fill={tri.color}
+							stroke={tri.color}
+							stroke-width="0.5"
+						/>
+					{/each}
+					{#each geometry.birchStripes as stripe (stripe)}
+						<rect
+							x={stripe.centerX - stripe.width / 2}
+							y={stripe.y - stripe.height / 2}
+							width={stripe.width}
+							height={stripe.height}
+							fill={stripe.color}
+						/>
+					{/each}
+				{/if}
 			</g>
 		{/if}
 
 		<!-- Layer 3: Front branches -->
 		{#if showBranches}
-			<g class="branches">
+			<g class="branches" class:animate-trunk-growth={animateGrowth} style={growthTrunkStyle}>
 				{#each frontRootBranches as { group, index: groupIndex } (groupIndex)}
 					{@render branchGroupSnippet(group, groupIndex)}
 				{/each}
@@ -328,9 +358,13 @@
 		{/if}
 
 		<!-- Layer 4: Back canopy blobs -->
-		{#if showCanopy && backCanopyBlobs.length > 0}
+		{#if showCanopy && !stageSvgComponent && backCanopyBlobs.length > 0}
 			<WiltingEffect enabled={overlayConfig.wilting.enabled}>
-				<g class="back-canopy">
+				<g
+					class="back-canopy"
+					class:animate-canopy-growth={animateGrowth}
+					style={growthCanopyStyle}
+				>
 					{#each backCanopyBlobs as { blob, index: blobIndex } (blob)}
 						{@render canopyBlobSnippet(blob, blobIndex)}
 					{/each}
@@ -339,9 +373,13 @@
 		{/if}
 
 		<!-- Layer 5: Front canopy blobs -->
-		{#if showCanopy}
+		{#if showCanopy && !stageSvgComponent}
 			<WiltingEffect enabled={overlayConfig.wilting.enabled}>
-				<g class="canopy">
+				<g
+					class="canopy"
+					class:animate-canopy-growth={animateGrowth}
+					style={growthCanopyStyle}
+				>
 					{#each frontCanopyBlobs as { blob, index: blobIndex } (blob)}
 						{@render canopyBlobSnippet(blob, blobIndex)}
 					{/each}
@@ -543,13 +581,23 @@
 		}
 	}
 
-	@keyframes tree-growth {
+	@keyframes trunk-growth {
 		0% {
-			transform: scaleY(0.05) scaleX(1);
+			transform: scaleY(0.05);
 		}
 
 		100% {
-			transform: scaleY(1) scaleX(1);
+			transform: scaleY(1);
+		}
+	}
+
+	@keyframes canopy-reveal {
+		0% {
+			clip-path: inset(95% 0 0 0);
+		}
+
+		100% {
+			clip-path: inset(0 0 0 0);
 		}
 	}
 
@@ -584,10 +632,14 @@
 		will-change: transform;
 	}
 
-	.tree-root.animate-growth {
-		animation: tree-growth 2s ease-in-out infinite alternate;
-		transform-origin: var(--growth-origin-x) var(--growth-origin-y);
+	.animate-trunk-growth {
+		animation: trunk-growth 2s ease-in-out infinite alternate;
 		will-change: transform;
+	}
+
+	.animate-canopy-growth {
+		animation: canopy-reveal 2s ease-in-out infinite alternate;
+		will-change: clip-path;
 	}
 
 	.falling-leaf {

@@ -88,23 +88,21 @@ describe('seed stage', () => {
 		expect(geo.branchGroups).toHaveLength(0);
 	});
 
-	it('produces trunk triangles (seed polygons)', () => {
+	it('produces empty trunk triangles (rendered via SVG component)', () => {
 		const geo = generateTree(makeConfig({ stage: TREE_STAGES.seed }));
-		expect(geo.trunkTriangles.length).toBeGreaterThan(0);
+		expect(geo.trunkTriangles).toHaveLength(0);
 	});
 });
 
 describe('sprouting stage', () => {
-	it('produces minimal canopy (leaf triangles)', () => {
+	it('produces empty canopy blobs (rendered via SVG component)', () => {
 		const geo = generateTree(makeConfig({ stage: TREE_STAGES.sprouting }));
-		expect(geo.canopyBlobs.length).toBeGreaterThan(0);
-		const totalCanopyTris = geo.canopyBlobs.reduce((s, b) => s + b.triangles.length, 0);
-		expect(totalCanopyTris).toBeLessThanOrEqual(4);
+		expect(geo.canopyBlobs).toHaveLength(0);
 	});
 
-	it('produces a trunk (stem)', () => {
+	it('produces empty trunk triangles (rendered via SVG component)', () => {
 		const geo = generateTree(makeConfig({ stage: TREE_STAGES.sprouting }));
-		expect(geo.trunkTriangles.length).toBeGreaterThan(0);
+		expect(geo.trunkTriangles).toHaveLength(0);
 	});
 });
 
@@ -285,9 +283,9 @@ describe('stump stage', () => {
 		expect(geo.branchGroups).toHaveLength(0);
 	});
 
-	it('produces trunk triangles', () => {
+	it('produces empty trunk triangles (rendered via SVG component)', () => {
 		const geo = generateTree(makeConfig({ stage: TREE_STAGES.stump }));
-		expect(geo.trunkTriangles.length).toBeGreaterThan(0);
+		expect(geo.trunkTriangles).toHaveLength(0);
 	});
 });
 

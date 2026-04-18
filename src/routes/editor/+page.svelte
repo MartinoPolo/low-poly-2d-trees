@@ -34,7 +34,7 @@
 	} from '$lib/trees/tools/tool_types.js';
 	import ToolAccessoriesCard from '$lib/components/composed/ToolAccessoriesCard.svelte';
 	import OverlaysCard from '$lib/components/composed/OverlaysCard.svelte';
-	import { growCustomBlobs } from '$lib/trees/shapes.js';
+	import { growCustomBlobs, computeMaxBranches, clampBranchMaximums } from '$lib/trees/shapes.js';
 	import { isParamDisabled } from '$lib/trees/disabled_params.js';
 	import { getSavedTree, saveTree } from '$lib/trees/saved_trees.remote.js';
 	import { createTreeConfigContext } from '$lib/trees/tree_config.context.svelte.js';
@@ -99,6 +99,42 @@
 			branchDepth: treeConfig.current.branchDepth,
 		}),
 	);
+
+	const branchMaximums = $derived.by(() => {
+		const raw = computeMaxBranches(treeConfig.current.shape, treeConfig.current.trunkHeight);
+		return clampBranchMaximums(
+			raw,
+			treeConfig.current.branchMirroring,
+			treeConfig.current.trunkFork,
+		);
+	});
+
+	// Clamp current slider values when dynamic max drops below current range
+	$effect(() => {
+		const max1 = branchMaximums.maxLevel1;
+		const max2 = branchMaximums.maxLevel2;
+		const max3 = branchMaximums.maxLevel3;
+		const cfg = treeConfig.current;
+
+		if (cfg.branchesLevel1Range[1] > max1) {
+			treeConfig.current.branchesLevel1Range = [
+				Math.min(cfg.branchesLevel1Range[0], max1),
+				max1,
+			];
+		}
+		if (cfg.branchesLevel2Range[1] > max2) {
+			treeConfig.current.branchesLevel2Range = [
+				Math.min(cfg.branchesLevel2Range[0], max2),
+				max2,
+			];
+		}
+		if (cfg.branchesLevel3Range[1] > max3) {
+			treeConfig.current.branchesLevel3Range = [
+				Math.min(cfg.branchesLevel3Range[0], max3),
+				max3,
+			];
+		}
+	});
 
 	const savedId = $derived(page.url.searchParams.get('saved'));
 	const savedTreeQuery = $derived(savedId === null ? null : getSavedTree(savedId));
@@ -492,7 +528,7 @@
 							<LabeledRangeSliderDual
 								label="L1 Branches"
 								min={0}
-								max={10}
+								max={branchMaximums.maxLevel1}
 								value={[...treeConfig.current.branchesLevel1Range]}
 								onValueChange={(v) => (treeConfig.current.branchesLevel1Range = v)}
 								disabled={level1Disabled}
@@ -502,7 +538,7 @@
 							<LabeledRangeSliderDual
 								label="L2 Branches"
 								min={0}
-								max={5}
+								max={branchMaximums.maxLevel2}
 								value={[...treeConfig.current.branchesLevel2Range]}
 								onValueChange={(v) => (treeConfig.current.branchesLevel2Range = v)}
 								disabled={level2Disabled}
@@ -512,7 +548,7 @@
 							<LabeledRangeSliderDual
 								label="L3 Branches"
 								min={0}
-								max={3}
+								max={branchMaximums.maxLevel3}
 								value={[...treeConfig.current.branchesLevel3Range]}
 								onValueChange={(v) => (treeConfig.current.branchesLevel3Range = v)}
 								disabled={level3Disabled}
