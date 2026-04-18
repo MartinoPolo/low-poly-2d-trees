@@ -57,9 +57,8 @@ test.describe('/auth/sign-up page', () => {
 		await expect(page).toHaveURL(/\/auth\/sign-in$/);
 	});
 
-	// Skip: pre-existing flaky test - alert element not found (broken on dev branch too)
-	test.skip('shows password mismatch error', async ({ page }) => {
-		await page.goto('/auth/sign-up');
+	test('shows password mismatch error', async ({ page }) => {
+		await page.goto('/auth/sign-up', { waitUntil: 'networkidle' });
 		await page.getByTestId('auth-name').fill('Test User');
 		await page.getByTestId('auth-email').fill('test@example.com');
 		await page.getByTestId('auth-password').fill('password123');
