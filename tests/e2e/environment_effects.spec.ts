@@ -4,6 +4,9 @@ test.describe('Environment effects (#41)', () => {
 	test.beforeEach(async ({ page }) => {
 		await page.goto('/');
 		await page.waitForLoadState('networkidle');
+		await page.evaluate(() => localStorage.setItem('settings-tier', '"advanced"'));
+		await page.reload();
+		await page.waitForLoadState('networkidle');
 	});
 
 	test('all 7 checkboxes visible and default unchecked', async ({ page }) => {

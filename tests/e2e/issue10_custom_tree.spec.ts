@@ -13,10 +13,14 @@ import { test, expect } from '@playwright/test';
  */
 
 test.describe('Issue #10 — Custom tree mode', () => {
-	test('single editor: custom shape exists in the dropdown', async ({ page }) => {
+	test.beforeEach(async ({ page }) => {
 		await page.goto('/editor');
+		await page.evaluate(() => localStorage.setItem('settings-tier', '"advanced"'));
+		await page.reload();
 		await page.waitForLoadState('networkidle');
+	});
 
+	test('single editor: custom shape exists in the dropdown', async ({ page }) => {
 		const trigger = page.locator('[data-slot="select-trigger"]').first();
 		await trigger.click();
 		await expect(
@@ -28,9 +32,6 @@ test.describe('Issue #10 — Custom tree mode', () => {
 	});
 
 	test('single editor: selecting custom reveals the Custom Blobs card', async ({ page }) => {
-		await page.goto('/editor');
-		await page.waitForLoadState('networkidle');
-
 		await expect(page.getByText('Custom Blobs')).toHaveCount(0);
 
 		const trigger = page.locator('[data-slot="select-trigger"]').first();
@@ -45,9 +46,6 @@ test.describe('Issue #10 — Custom tree mode', () => {
 	});
 
 	test('single editor: custom blobs card has one accordion item per blob', async ({ page }) => {
-		await page.goto('/editor');
-		await page.waitForLoadState('networkidle');
-
 		const trigger = page.locator('[data-slot="select-trigger"]').first();
 		await trigger.click();
 		await page
@@ -64,9 +62,6 @@ test.describe('Issue #10 — Custom tree mode', () => {
 	test('single editor: expanding a blob reveals 5 controls (boundary + 4 sliders)', async ({
 		page,
 	}) => {
-		await page.goto('/editor');
-		await page.waitForLoadState('networkidle');
-
 		const shapeTrigger = page.locator('[data-slot="select-trigger"]').first();
 		await shapeTrigger.click();
 		await page
@@ -89,9 +84,6 @@ test.describe('Issue #10 — Custom tree mode', () => {
 	test('single editor: changing a blob X position updates the canopy polygon points', async ({
 		page,
 	}) => {
-		await page.goto('/editor');
-		await page.waitForLoadState('networkidle');
-
 		const shapeTrigger = page.locator('[data-slot="select-trigger"]').first();
 		await shapeTrigger.click();
 		await page
@@ -136,9 +128,6 @@ test.describe('Issue #10 — Custom tree mode', () => {
 	});
 
 	test('single editor: changing blob 0 boundary to egg updates the preview', async ({ page }) => {
-		await page.goto('/editor');
-		await page.waitForLoadState('networkidle');
-
 		const shapeTrigger = page.locator('[data-slot="select-trigger"]').first();
 		await shapeTrigger.click();
 		await page
@@ -179,9 +168,6 @@ test.describe('Issue #10 — Custom tree mode', () => {
 	});
 
 	test('single editor: adjusting blob 2 position updates the preview', async ({ page }) => {
-		await page.goto('/editor');
-		await page.waitForLoadState('networkidle');
-
 		const shapeTrigger = page.locator('[data-slot="select-trigger"]').first();
 		await shapeTrigger.click();
 		await page

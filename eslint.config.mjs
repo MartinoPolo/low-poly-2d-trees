@@ -114,6 +114,33 @@ export default [
 		},
 	},
 	{
+		files: ['src/lib/context/*.context.svelte.ts'],
+		rules: {
+			'@typescript-eslint/naming-convention': [
+				'warn',
+				{
+					selector: 'function',
+					format: ['snake_case', 'camelCase'],
+				},
+				{
+					selector: 'variableLike',
+					format: ['camelCase', 'PascalCase'],
+					leadingUnderscore: 'allow',
+				},
+				{
+					selector: 'variable',
+					format: ['UPPER_CASE', 'camelCase', 'PascalCase'],
+					modifiers: ['global', 'const'],
+					leadingUnderscore: 'allow',
+				},
+				{
+					selector: 'typeLike',
+					format: ['PascalCase'],
+				},
+			],
+		},
+	},
+	{
 		// Gallery thumbnails link to /showcase with a dynamic ?saved=<id> query string.
 		// `svelte/no-navigation-without-resolve` does not accept query strings appended to
 		// a resolve() call, so we turn it off for this file.
