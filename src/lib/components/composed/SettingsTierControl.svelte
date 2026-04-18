@@ -15,7 +15,7 @@
 	}
 </script>
 
-<div data-testid="settings-tier-control" class="col-span-full pb-4">
+<div data-testid="settings-tier-control" class="pb-4">
 	<ToggleGroup.Root
 		type="single"
 		value={tier.current}

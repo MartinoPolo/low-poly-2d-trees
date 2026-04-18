@@ -33,9 +33,13 @@
 	/>
 </svelte:head>
 
-<Sidebar.Provider>
+<Sidebar.Provider open={false}>
 	<AppSidebar />
 	<Sidebar.Inset>
+		<Sidebar.Trigger
+			data-testid="mobile-sidebar-trigger"
+			class="fixed top-2 left-2 z-50 md:hidden"
+		/>
 		{@render children()}
 	</Sidebar.Inset>
 </Sidebar.Provider>

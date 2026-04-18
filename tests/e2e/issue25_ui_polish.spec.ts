@@ -81,7 +81,7 @@ test.describe('Issue #25 — UI polish: color picker styling + layout swap', () 
 		await expect(hexInput).toBeDisabled();
 	});
 
-	test('scene layout — canvas is on the left, controls on the right', async ({ page }) => {
+	test('scene layout — canvas is on top, controls on bottom', async ({ page }) => {
 		await page.goto('/');
 		await page.waitForLoadState('networkidle');
 
@@ -96,10 +96,11 @@ test.describe('Issue #25 — UI polish: color picker styling + layout swap', () 
 
 		expect(canvasBox).not.toBeNull();
 		expect(controlsBox).not.toBeNull();
-		expect(canvasBox!.x).toBeLessThan(controlsBox!.x);
+		// Canvas should be above controls (top/bottom split)
+		expect(canvasBox!.y).toBeLessThan(controlsBox!.y);
 	});
 
-	test('control panel width is 320px at default viewport', async ({ page }) => {
+	test('control panel spans full width', async ({ page }) => {
 		await page.setViewportSize({ width: 1024, height: 768 });
 		await page.goto('/');
 		await page.waitForLoadState('networkidle');
@@ -107,19 +108,7 @@ test.describe('Issue #25 — UI polish: color picker styling + layout swap', () 
 		const controls = page.locator('[data-testid="scene-controls"]');
 		const width = await controls.evaluate((el) => (el as HTMLElement).offsetWidth);
 
-		expect(width).toBeGreaterThanOrEqual(315);
-		expect(width).toBeLessThanOrEqual(325);
-	});
-
-	test('control panel width is 640px at XL viewport', async ({ page }) => {
-		await page.setViewportSize({ width: 1440, height: 900 });
-		await page.goto('/');
-		await page.waitForLoadState('networkidle');
-
-		const controls = page.locator('[data-testid="scene-controls"]');
-		const width = await controls.evaluate((el) => (el as HTMLElement).offsetWidth);
-
-		expect(width).toBeGreaterThanOrEqual(635);
-		expect(width).toBeLessThanOrEqual(645);
+		// Controls should span nearly full width (minus sidebar)
+		expect(width).toBeGreaterThanOrEqual(900);
 	});
 });
