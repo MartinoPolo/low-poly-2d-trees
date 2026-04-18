@@ -232,6 +232,15 @@ const CONICAL_TAPER_FRACTION = 0.25;
 /** Seed offset for junction strip ratio computation. */
 const JUNCTION_STRIP_SEED_OFFSET = 900;
 const BIRCH_STRIPE_SEED_OFFSET = 9999;
+const BLOB_FACET_NOISE_SEED_MULTIPLIER = 3333;
+const TIER_FACET_NOISE_SEED_MULTIPLIER = 4444;
+
+const DEPTH_DARKENING_FLOOR = 0.75;
+const DEPTH_DARKENING_RANGE = 0.25;
+
+function computeDepthDarkeningFactor(normalizedDepth: number): number {
+	return DEPTH_DARKENING_FLOOR + DEPTH_DARKENING_RANGE * normalizedDepth;
+}
 
 // ---------------------------------------------------------------------------
 // Engine v2: Junction-Based Strip Ratios (REQ-EV2-S-01, S-02, S-03)
@@ -768,6 +777,7 @@ function generateBlobCanopy(
 	const totalArea = blobs.reduce((sum, b) => sum + b.rx * b.ry, 0);
 	const averageArea = blobs.length > 0 ? totalArea / blobs.length : 1;
 	const depths = assignBlobDepths(blobs, rng);
+	const maxDepth = Math.max(...depths);
 
 	const blobGeos: { geo: BlobGeometry; depth: number }[] = [];
 
@@ -837,13 +847,15 @@ function generateBlobCanopy(
 			),
 		);
 
+		const depth = depths[i]!;
+		const depthDarkeningFactor =
+			maxDepth > 0 ? computeDepthDarkeningFactor(depth / maxDepth) : 1;
+		const blobRng = createPrng(config.seed + i * BLOB_FACET_NOISE_SEED_MULTIPLIER);
 		const coloredTris: Triangle[] = filtered.map((tri) => ({
 			points: tri,
-			color: computeCanopyColor(tri, blobBounds, config),
+			color: computeCanopyColor(tri, blobBounds, config, blobRng, depthDarkeningFactor),
 			group: GEOMETRY_GROUPS.canopy,
 		}));
-
-		const depth = depths[i]!;
 		blobGeos.push({
 			geo: { triangles: coloredTris, center: { x: blob.cx, y: blob.cy }, depth },
 			depth,
@@ -913,9 +925,12 @@ function generateTierCanopy(
 			isTriangleInsideRegion(tri, (x, y) => isPointInTier(x, y, tier)),
 		);
 
+		const depthDarkeningFactor =
+			count <= 1 ? 1 : computeDepthDarkeningFactor((count - 1 - i) / (count - 1));
+		const tierRng = createPrng(config.seed + i * TIER_FACET_NOISE_SEED_MULTIPLIER);
 		const coloredTris: Triangle[] = filtered.map((tri) => ({
 			points: tri,
-			color: computeCanopyColor(tri, tierBounds, config),
+			color: computeCanopyColor(tri, tierBounds, config, tierRng, depthDarkeningFactor),
 			group: GEOMETRY_GROUPS.canopy,
 		}));
 

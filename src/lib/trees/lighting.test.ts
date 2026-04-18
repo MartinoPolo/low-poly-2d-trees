@@ -107,9 +107,8 @@ describe('computeCanopyColor — two-color interpolation', () => {
 	});
 
 	it('lit-side triangles reach near-light color', () => {
-		// Triangle on the lit side of the hemisphere (toward light at 130 degrees)
-		// should produce lightness within 2 units of canopyLightColor. Position
-		// chosen inside the hemisphere disk (r2 < 1) to avoid rim darkening.
+		// Triangle on the lit side of the hemisphere (toward light at 130 degrees).
+		// Tolerance is 4 because z=0.3 shifts peak specular off-axis.
 		const litTri: TrianglePoints = [
 			{ x: 22, y: 17 },
 			{ x: 27, y: 17 },
@@ -117,7 +116,7 @@ describe('computeCanopyColor — two-color interpolation', () => {
 		];
 		const lightL = hexToHsl(oakConfig.canopyLightColor).l;
 		const resultL = hexToHsl(computeCanopyColor(litTri, BOUNDS, oakConfig)).l;
-		expect(Math.abs(resultL - lightL)).toBeLessThanOrEqual(2);
+		expect(Math.abs(resultL - lightL)).toBeLessThanOrEqual(4);
 	});
 
 	it('wide contrast range across the canopy', () => {
@@ -193,6 +192,88 @@ const TRUNK_BOUNDS = { minX: 80, maxX: 120 };
 function noJitterRng(): number {
 	return 0.5;
 }
+
+// ---------------------------------------------------------------------------
+// Canopy depth layering & facet noise (issue #116)
+// ---------------------------------------------------------------------------
+
+describe('computeCanopyColor — facet noise via rng parameter', () => {
+	it('with varying rng, same triangle produces different colors on repeated calls', () => {
+		let callCount = 0;
+		const varyingRng = () => {
+			callCount++;
+			return callCount % 3 === 0 ? 0.1 : callCount % 3 === 1 ? 0.9 : 0.5;
+		};
+		const a = computeCanopyColor(CENTER_TRI, BOUNDS, oakConfig, varyingRng);
+		const b = computeCanopyColor(CENTER_TRI, BOUNDS, oakConfig, varyingRng);
+		expect(a).not.toBe(b);
+	});
+
+	it('with rng returning 0.5, output equals no-rng case', () => {
+		const noRngResult = computeCanopyColor(CENTER_TRI, BOUNDS, oakConfig);
+		const midRng = () => 0.5;
+		const withRngResult = computeCanopyColor(CENTER_TRI, BOUNDS, oakConfig, midRng);
+		expect(withRngResult).toBe(noRngResult);
+	});
+});
+
+describe('computeCanopyColor — depth darkening factor', () => {
+	it('depthDarkeningFactor=0.75 produces darker output than 1.0', () => {
+		const darkened = computeCanopyColor(CENTER_TRI, BOUNDS, oakConfig, undefined, 0.75);
+		const normal = computeCanopyColor(CENTER_TRI, BOUNDS, oakConfig, undefined, 1.0);
+		const darkenedL = hexToHsl(darkened).l;
+		const normalL = hexToHsl(normal).l;
+		expect(darkenedL).toBeLessThan(normalL);
+	});
+
+	it('default (no parameter) behaves same as depthDarkeningFactor=1.0', () => {
+		const defaultResult = computeCanopyColor(CENTER_TRI, BOUNDS, oakConfig);
+		const explicitResult = computeCanopyColor(CENTER_TRI, BOUNDS, oakConfig, undefined, 1.0);
+		expect(defaultResult).toBe(explicitResult);
+	});
+});
+
+describe('computeCanopyColor — facet noise bounds', () => {
+	it('rng returning 0 still produces valid hex color', () => {
+		const rng = () => 0;
+		const color = computeCanopyColor(CENTER_TRI, BOUNDS, oakConfig, rng);
+		expect(color).toMatch(/^#[0-9a-f]{6}$/);
+	});
+
+	it('rng returning 1 still produces valid hex color', () => {
+		const rng = () => 1;
+		const color = computeCanopyColor(CENTER_TRI, BOUNDS, oakConfig, rng);
+		expect(color).toMatch(/^#[0-9a-f]{6}$/);
+	});
+
+	it('extreme rng values keep lightness within dark-light range', () => {
+		const darkL = hexToHsl(oakConfig.canopyDarkColor).l;
+		const lightL = hexToHsl(oakConfig.canopyLightColor).l;
+		for (const rngVal of [0, 1]) {
+			const rng = () => rngVal;
+			const hsl = hexToHsl(computeCanopyColor(CENTER_TRI, BOUNDS, oakConfig, rng));
+			expect(hsl.l).toBeGreaterThanOrEqual(darkL - 1);
+			expect(hsl.l).toBeLessThanOrEqual(lightL + 1);
+		}
+	});
+});
+
+describe('computeCanopyColor — deterministic facet noise with seeded rng', () => {
+	it('same seeded rng produces identical output', () => {
+		const makeRng = () => {
+			let s = 42;
+			return () => {
+				s = (s + 0x6d2b79f5) | 0;
+				let t = Math.imul(s ^ (s >>> 15), 1 | s);
+				t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+				return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+			};
+		};
+		const a = computeCanopyColor(CENTER_TRI, BOUNDS, oakConfig, makeRng());
+		const b = computeCanopyColor(CENTER_TRI, BOUNDS, oakConfig, makeRng());
+		expect(a).toBe(b);
+	});
+});
 
 describe('VQ-2: trunk triangles on lit side are brighter than shadowed side', () => {
 	it('with lightAngle=0 (light from right), right-side triangles are brighter', () => {
