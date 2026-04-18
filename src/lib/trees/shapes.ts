@@ -55,3 +55,5 @@ export {
 	CUSTOM_BLOB_CANOPY_CENTER_Y,
 	TRUNK_ENTRY_MIN_PX,
 } from './shapes/blob_generators.js';
+
+export { computeMaxBranches, clampBranchMaximums } from './shapes/branch_maximums.js';

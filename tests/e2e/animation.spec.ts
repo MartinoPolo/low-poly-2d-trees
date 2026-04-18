@@ -52,15 +52,19 @@ test.describe('Scene page animation controls', () => {
 		await expect(branchGroup).not.toHaveClass(/animate-branch-sway/);
 	});
 
-	test('growth checkbox toggles animation on tree root', async ({ page }) => {
-		const treeRoot = page.locator('.tree-root').first();
-		await expect(treeRoot).toBeAttached();
+	test('growth checkbox toggles animation on trunk and canopy layers', async ({ page }) => {
+		const trunk = page.locator('.trunk').first();
+		await expect(trunk).toBeAttached();
 
 		await page.locator('[data-testid="animate-growth"]').click();
-		await expect(treeRoot).toHaveClass(/animate-growth/);
+		await expect(trunk).toHaveClass(/animate-trunk-growth/);
+
+		const canopy = page.locator('.canopy').first();
+		await expect(canopy).toHaveClass(/animate-canopy-growth/);
 
 		await page.locator('[data-testid="animate-growth"]').click();
-		await expect(treeRoot).not.toHaveClass(/animate-growth/);
+		await expect(trunk).not.toHaveClass(/animate-trunk-growth/);
+		await expect(canopy).not.toHaveClass(/animate-canopy-growth/);
 	});
 
 	test('multiple animations can be enabled simultaneously', async ({ page }) => {
@@ -68,9 +72,9 @@ test.describe('Scene page animation controls', () => {
 		await page.locator('[data-testid="animate-growth"]').click();
 
 		const canopyBlob = page.locator('.canopy-blob').first();
-		const treeRoot = page.locator('.tree-root').first();
+		const trunk = page.locator('.trunk').first();
 		await expect(canopyBlob).toHaveClass(/animate-canopy-sway/);
-		await expect(treeRoot).toHaveClass(/animate-growth/);
+		await expect(trunk).toHaveClass(/animate-trunk-growth/);
 	});
 });
 
@@ -98,10 +102,10 @@ test.describe('Editor page animation controls', () => {
 		await expect(canopyBlob).toHaveClass(/animate-canopy-sway/);
 	});
 
-	test('growth checkbox toggles animation on tree root', async ({ page }) => {
+	test('growth checkbox toggles animation on trunk layer', async ({ page }) => {
 		await page.locator('[data-testid="animate-growth"]').click();
 
-		const treeRoot = page.locator('.tree-root').first();
-		await expect(treeRoot).toHaveClass(/animate-growth/);
+		const trunk = page.locator('.trunk').first();
+		await expect(trunk).toHaveClass(/animate-trunk-growth/);
 	});
 });
