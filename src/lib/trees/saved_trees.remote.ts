@@ -16,7 +16,11 @@ const treeShapeSchema = v.picklist(Object.values(TREE_SHAPES));
 
 export const listSavedTrees = query(async () => {
 	const user = requireUser();
-	return savedTreesDb.listSavedTrees(user.id);
+	const rows = await savedTreesDb.listSavedTrees(user.id);
+	return rows.map((row) => ({
+		...row,
+		config: { ...DEFAULT_TREE_CONFIG, ...(row.config as TreeConfig) },
+	}));
 });
 
 export const getSavedTree = query(v.string(), async (id) => {
