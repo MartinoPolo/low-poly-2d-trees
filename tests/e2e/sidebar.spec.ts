@@ -31,4 +31,14 @@ test.describe('app shell sidebar (anonymous)', () => {
 		await expect(saveButton).toBeDisabled();
 		await expect(saveButton).toHaveText(/Sign in to save/i);
 	});
+
+	test('all tree editing controls are visible when signed out', async ({ page }) => {
+		await page.goto('/editor');
+		const cardTitle = (name: string) =>
+			page.locator('[data-slot="card-title"]', { hasText: name });
+		await expect(cardTitle('Shape')).toBeVisible();
+		await expect(cardTitle('Geometry')).toBeVisible();
+		await expect(cardTitle('Growables')).toBeVisible();
+		await expect(cardTitle('Trunk & Branches')).toBeVisible();
+	});
 });

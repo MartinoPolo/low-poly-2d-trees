@@ -33,9 +33,15 @@
 	async function signInWithSocial(provider: SocialProvider) {
 		errorMessage = null;
 		pendingAction = provider;
-		const result = await authClient.signIn.social({ provider, callbackURL: resolve('/') });
-		if (result.error) {
-			errorMessage = result.error.message ?? `${PROVIDER_LABEL[provider]} sign-in failed.`;
+		try {
+			const result = await authClient.signIn.social({ provider, callbackURL: resolve('/') });
+			if (result.error) {
+				errorMessage =
+					result.error.message ?? `${PROVIDER_LABEL[provider]} sign-in failed.`;
+			}
+		} catch {
+			errorMessage = `${PROVIDER_LABEL[provider]} sign-in failed.`;
+		} finally {
 			pendingAction = null;
 		}
 	}
@@ -43,25 +49,35 @@
 	async function signInWithPasskey() {
 		errorMessage = null;
 		pendingAction = 'passkey';
-		const result = await authClient.signIn.passkey();
-		if (result?.error) {
-			errorMessage = result.error.message ?? 'Passkey sign-in failed.';
+		try {
+			const result = await authClient.signIn.passkey();
+			if (result?.error) {
+				errorMessage = result.error.message ?? 'Passkey sign-in failed.';
+				return;
+			}
+			await goto(resolve('/'));
+		} catch {
+			errorMessage = 'Passkey sign-in failed.';
+		} finally {
 			pendingAction = null;
-			return;
 		}
-		await goto(resolve('/'));
 	}
 
 	async function handleEmailSubmit() {
 		errorMessage = null;
 		pendingAction = 'email';
-		const result = await authClient.signIn.email({ email, password });
-		if (result.error) {
-			errorMessage = result.error.message ?? 'Sign-in failed.';
+		try {
+			const result = await authClient.signIn.email({ email, password });
+			if (result.error) {
+				errorMessage = result.error.message ?? 'Sign-in failed.';
+				return;
+			}
+			await goto(resolve('/'));
+		} catch {
+			errorMessage = 'Sign-in failed.';
+		} finally {
 			pendingAction = null;
-			return;
 		}
-		await goto(resolve('/'));
 	}
 </script>
 

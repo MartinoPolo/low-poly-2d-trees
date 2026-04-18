@@ -34,9 +34,15 @@
 	async function signInWithSocial(provider: SocialProvider) {
 		errorMessage = null;
 		pendingAction = provider;
-		const result = await authClient.signIn.social({ provider, callbackURL: resolve('/') });
-		if (result.error) {
-			errorMessage = result.error.message ?? `${PROVIDER_LABEL[provider]} sign-in failed.`;
+		try {
+			const result = await authClient.signIn.social({ provider, callbackURL: resolve('/') });
+			if (result.error) {
+				errorMessage =
+					result.error.message ?? `${PROVIDER_LABEL[provider]} sign-in failed.`;
+			}
+		} catch {
+			errorMessage = `${PROVIDER_LABEL[provider]} sign-in failed.`;
+		} finally {
 			pendingAction = null;
 		}
 	}
@@ -50,13 +56,18 @@
 		}
 
 		pendingAction = 'email';
-		const result = await authClient.signUp.email({ email, password, name });
-		if (result.error) {
-			errorMessage = result.error.message ?? 'Sign-up failed.';
+		try {
+			const result = await authClient.signUp.email({ email, password, name });
+			if (result.error) {
+				errorMessage = result.error.message ?? 'Sign-up failed.';
+				return;
+			}
+			await goto(resolve('/'));
+		} catch {
+			errorMessage = 'Sign-up failed.';
+		} finally {
 			pendingAction = null;
-			return;
 		}
-		await goto(resolve('/'));
 	}
 </script>
 
