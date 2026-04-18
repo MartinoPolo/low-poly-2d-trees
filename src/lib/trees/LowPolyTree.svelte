@@ -27,6 +27,16 @@
 	import { FLOWER_SVG_COMPONENTS } from '$lib/trees/shapes/flower_geometry.js';
 	import { createPrng, randomInRange } from '$lib/trees/prng.js';
 	import { SvelteMap } from 'svelte/reactivity';
+	import TreeOverlay from '$lib/trees/overlays/TreeOverlay.svelte';
+	import GlowEffect from '$lib/trees/overlays/GlowEffect.svelte';
+	import WiltingEffect from '$lib/trees/overlays/WiltingEffect.svelte';
+	import GroundElements from '$lib/trees/ground/GroundElements.svelte';
+	import {
+		OVERLAY_DEFAULTS,
+		OVERLAY_VIEWBOX_HEADROOM,
+		needsViewboxExpansion,
+		type OverlayConfig,
+	} from '$lib/trees/overlays/overlay_types.js';
 
 	const FRUIT_RENDER_SCALE = 2;
 
@@ -45,6 +55,8 @@
 		toolVisibility?: ToolVisibility;
 		animateTools?: boolean;
 		reviewerCount?: number;
+		overlayConfig?: OverlayConfig;
+		groundElements?: boolean;
 		class?: string;
 		onanchors?: (anchors: TreeAnchors) => void;
 	}
@@ -64,12 +76,22 @@
 		toolVisibility,
 		animateTools = false,
 		reviewerCount = 0,
+		overlayConfig = OVERLAY_DEFAULTS,
+		groundElements = false,
 		class: className = '',
 		onanchors,
 	}: Props = $props();
 
 	const geometry = $derived(generateTree(config));
-	const hasGlow = $derived(config.stage === TREE_STAGES.ready);
+	const hasReadyGlow = $derived(config.stage === TREE_STAGES.ready);
+	const hasOverlayGlow = $derived(overlayConfig.glow.enabled);
+
+	const glowFilterId = $derived(`glow-${config.seed}`);
+	const expandViewbox = $derived(needsViewboxExpansion(overlayConfig));
+	const viewBoxY = $derived(expandViewbox ? -OVERLAY_VIEWBOX_HEADROOM : 0);
+	const viewBoxHeight = $derived(
+		geometry.viewBox.height + (expandViewbox ? OVERLAY_VIEWBOX_HEADROOM : 0),
+	);
 
 	const canopySwayDelay = $derived(computeAnimationDelay(config.seed));
 
@@ -184,12 +206,14 @@
 </script>
 
 <svg
-	viewBox="0 0 {geometry.viewBox.width} {geometry.viewBox.height}"
+	viewBox="0 {viewBoxY} {geometry.viewBox.width} {viewBoxHeight}"
 	xmlns="http://www.w3.org/2000/svg"
 	overflow="hidden"
 	class={className}
-	style={hasGlow ? 'filter: drop-shadow(0 0 8px gold)' : undefined}
+	style={hasReadyGlow && !hasOverlayGlow ? 'filter: drop-shadow(0 0 8px gold)' : undefined}
+	filter={hasOverlayGlow ? `url(#${glowFilterId})` : undefined}
 >
+	<GlowEffect config={overlayConfig.glow} filterId={glowFilterId} />
 	<g
 		class="tree-root"
 		class:animate-growth={animateGrowth}
@@ -305,20 +329,24 @@
 
 		<!-- Layer 4: Back canopy blobs -->
 		{#if showCanopy && backCanopyBlobs.length > 0}
-			<g class="back-canopy">
-				{#each backCanopyBlobs as { blob, index: blobIndex } (blob)}
-					{@render canopyBlobSnippet(blob, blobIndex)}
-				{/each}
-			</g>
+			<WiltingEffect enabled={overlayConfig.wilting.enabled}>
+				<g class="back-canopy">
+					{#each backCanopyBlobs as { blob, index: blobIndex } (blob)}
+						{@render canopyBlobSnippet(blob, blobIndex)}
+					{/each}
+				</g>
+			</WiltingEffect>
 		{/if}
 
 		<!-- Layer 5: Front canopy blobs -->
 		{#if showCanopy}
-			<g class="canopy">
-				{#each frontCanopyBlobs as { blob, index: blobIndex } (blob)}
-					{@render canopyBlobSnippet(blob, blobIndex)}
-				{/each}
-			</g>
+			<WiltingEffect enabled={overlayConfig.wilting.enabled}>
+				<g class="canopy">
+					{#each frontCanopyBlobs as { blob, index: blobIndex } (blob)}
+						{@render canopyBlobSnippet(blob, blobIndex)}
+					{/each}
+				</g>
+			</WiltingEffect>
 		{/if}
 
 		{#if geometry.stakeTriangles.length > 0}
@@ -370,6 +398,10 @@
 			</g>
 		{/if}
 
+		{#if groundElements}
+			<GroundElements seed={config.seed} trunkBase={geometry.anchors.trunkBase} />
+		{/if}
+
 		{#if toolVisibility}
 			<g class="tools-group">
 				{#each Object.values(TOOL_TYPES) as toolType (toolType)}
@@ -385,6 +417,13 @@
 				{/each}
 			</g>
 		{/if}
+
+		<TreeOverlay
+			config={overlayConfig}
+			anchors={geometry.anchors}
+			seed={config.seed}
+			treeWidth={geometry.viewBox.width}
+		/>
 
 		{#if showAnchors}
 			<g class="anchors-group">

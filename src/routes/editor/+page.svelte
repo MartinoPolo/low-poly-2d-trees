@@ -33,16 +33,20 @@
 		type ToolVisibility,
 	} from '$lib/trees/tools/tool_types.js';
 	import ToolAccessoriesCard from '$lib/components/composed/ToolAccessoriesCard.svelte';
+	import OverlaysCard from '$lib/components/composed/OverlaysCard.svelte';
 	import { growCustomBlobs } from '$lib/trees/shapes.js';
 	import { isParamDisabled } from '$lib/trees/disabled_params.js';
 	import { getSavedTree, saveTree } from '$lib/trees/saved_trees.remote.js';
 	import { createTreeConfigContext } from '$lib/trees/tree_config.context.svelte.js';
+	import { createOverlayConfigContext } from '$lib/trees/overlays/overlay_config.context.svelte.js';
 	import { page } from '$app/state';
 	import Shuffle from '@lucide/svelte/icons/shuffle';
 	import Save from '@lucide/svelte/icons/save';
 
 	const user = $derived(page.data.user);
 	const signedIn = $derived(user !== null);
+
+	const overlayConfig = createOverlayConfigContext();
 
 	const treeConfig = createTreeConfigContext();
 
@@ -701,6 +705,8 @@
 						</div>
 					</Card.Content>
 				</Card.Root>
+
+				<OverlaysCard {overlayConfig} />
 			</div>
 		</aside>
 
@@ -722,6 +728,8 @@
 					{animateGrowth}
 					{toolVisibility}
 					{animateTools}
+					overlayConfig={overlayConfig.config}
+					groundElements={overlayConfig.groundEnabled}
 					class="h-auto w-full"
 				/>
 			</div>
