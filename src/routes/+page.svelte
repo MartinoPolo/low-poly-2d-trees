@@ -15,6 +15,7 @@
 		type ToolVisibility,
 	} from '$lib/trees/tools/tool_types.js';
 	import ToolAccessoriesCard from '$lib/components/composed/ToolAccessoriesCard.svelte';
+	import OverlaysCard from '$lib/components/composed/OverlaysCard.svelte';
 	import { createTreeConfigContext } from '$lib/trees/tree_config.context.svelte.js';
 	import { createSceneConfigContext } from '$lib/scene/scene_config.context.svelte.js';
 	import { generateSceneLayout } from '$lib/scene/scene_layout.js';
@@ -22,11 +23,17 @@
 	import { createEnvironmentConfigContext } from '$lib/environment/environment_config.context.svelte.js';
 	import { ENVIRONMENT_LIMITS } from '$lib/environment/environment_config.js';
 	import EnvironmentOverlay from '$lib/environment/EnvironmentOverlay.svelte';
+	import { createOverlayConfigContext } from '$lib/trees/overlays/overlay_config.context.svelte.js';
+	import RootConnection from '$lib/scene/RootConnection.svelte';
+	import { CONNECTION_STATES } from '$lib/scene/root_connection_types.js';
+	import type { Point2D } from '$lib/trees/types/core.js';
+	import { SvelteMap } from 'svelte/reactivity';
 	import Shuffle from '@lucide/svelte/icons/shuffle';
 
 	const treeConfig = createTreeConfigContext();
 	const sceneConfig = createSceneConfigContext();
 	const environmentConfig = createEnvironmentConfigContext();
+	const overlayConfig = createOverlayConfigContext();
 
 	let usePerShapeDefaults = $state(false);
 	let showAnchors = $state(false);
@@ -38,6 +45,8 @@
 	let animateGrowth = $state(false);
 	let toolVisibility: ToolVisibility = $state(createDefaultToolVisibility());
 	let animateTools = $state(false);
+	let showRootConnections = $state(false);
+	let treeAnchorsMap = new SvelteMap<number, { roots: Point2D }>();
 
 	const trunkCrookednessDisabled = $derived(
 		isParamDisabled('custom', 'trunkCrookedness', {
@@ -125,10 +134,33 @@
 						{animateGrowth}
 						{toolVisibility}
 						{animateTools}
+						overlayConfig={overlayConfig.config}
+						groundElements={overlayConfig.groundEnabled}
+						onanchors={(anchors) => {
+							treeAnchorsMap.set(index, { roots: anchors.roots });
+						}}
 						class="h-auto w-full"
 					/>
 				</div>
 			{/each}
+
+			{#if showRootConnections && scenePlacements.length >= 2}
+				<svg class="pointer-events-none absolute inset-0 h-full w-full">
+					{#each scenePlacements.slice(1) as connectedPlacement, i (connectedPlacement.seed)}
+						{@const fromAnchors = treeAnchorsMap.get(0)}
+						{@const toAnchors = treeAnchorsMap.get(i + 1)}
+						{#if fromAnchors && toAnchors}
+							<RootConnection
+								from={fromAnchors.roots}
+								to={toAnchors.roots}
+								state={CONNECTION_STATES.connected}
+								seed={i * 1000}
+							/>
+						{/if}
+					{/each}
+				</svg>
+			{/if}
+
 			<EnvironmentOverlay
 				config={environmentConfig}
 				lightAngle={treeConfig.current.lightAngle}
@@ -484,6 +516,19 @@
 							/>
 							<Label>Growth</Label>
 						</div>
+					</div>
+				</SectionCard>
+
+				<OverlaysCard {overlayConfig} />
+
+				<SectionCard title="Connections" contentClass="space-y-4">
+					<div class="flex items-center gap-2">
+						<Checkbox
+							data-testid="root-connections-toggle"
+							checked={showRootConnections}
+							onCheckedChange={(v) => (showRootConnections = v === true)}
+						/>
+						<Label>Root Connections</Label>
 					</div>
 				</SectionCard>
 			</div>
