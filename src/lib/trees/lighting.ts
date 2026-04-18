@@ -20,7 +20,7 @@ function lightDirection(angleDeg: number): { x: number; y: number; z: number } {
 	return {
 		x: Math.cos(rad),
 		y: -Math.sin(rad),
-		z: 0.5,
+		z: 0.3,
 	};
 }
 
@@ -76,11 +76,18 @@ function triangleCentroid(points: readonly [Point2D, Point2D, Point2D]): Point2D
  * and `canopyLightColor` in HSL space using the computed lighting factor
  * (REQ-L-01, REQ-L-02, REQ-L-07). Fully-lit faces map exactly to
  * `canopyLightColor`; fully-shadowed faces reach near `canopyDarkColor`.
+ *
+ * Optional `rng` adds per-triangle facet noise for visual variety.
+ * Optional `depthDarkeningFactor` darkens back-layer blobs (< 1 = darker).
  */
+const FACET_NOISE_AMPLITUDE = 0.08;
+
 export function computeCanopyColor(
 	points: readonly [Point2D, Point2D, Point2D],
 	canopyBounds: { minX: number; minY: number; maxX: number; maxY: number },
 	config: LightConfig,
+	rng?: () => number,
+	depthDarkeningFactor?: number,
 ): string {
 	const centroid = triangleCentroid(points);
 	const light = normalize3(lightDirection(config.lightAngle));
@@ -108,7 +115,16 @@ export function computeCanopyColor(
 	const linearLighting = clamp((0.05 + 0.95 * diffuse) * rimFactor, 0, 1);
 	const lighting = Math.pow(linearLighting, 1.4);
 
-	return interpolateHslInHexSpace(config.canopyDarkColor, config.canopyLightColor, lighting);
+	// Depth darkening: back-layer blobs receive a multiplier < 1
+	let finalLighting = lighting * (depthDarkeningFactor ?? 1);
+
+	// Per-triangle facet noise for visual variety
+	if (rng) {
+		finalLighting += (rng() - 0.5) * FACET_NOISE_AMPLITUDE;
+	}
+	finalLighting = clamp(finalLighting, 0, 1);
+
+	return interpolateHslInHexSpace(config.canopyDarkColor, config.canopyLightColor, finalLighting);
 }
 
 /**
