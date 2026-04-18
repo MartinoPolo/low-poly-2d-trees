@@ -8,10 +8,6 @@
 	import LogIn from '@lucide/svelte/icons/log-in';
 	import LogOut from '@lucide/svelte/icons/log-out';
 	import ChevronsUpDown from '@lucide/svelte/icons/chevrons-up-down';
-	import Sun from '@lucide/svelte/icons/sun';
-	import Moon from '@lucide/svelte/icons/moon';
-	import Monitor from '@lucide/svelte/icons/monitor';
-	import { userPrefersMode, setMode } from 'mode-watcher';
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
@@ -23,9 +19,6 @@
 	const authPath = resolve('/auth/sign-in');
 	const signOutPath = resolve('/auth/sign-out');
 
-	const THEME_MODES = ['light', 'system', 'dark'] as const;
-	type ThemeMode = (typeof THEME_MODES)[number];
-
 	const user = $derived(page.data.user);
 
 	let signOutFormElement = $state<HTMLFormElement>();
@@ -33,14 +26,13 @@
 
 <Sidebar.Root collapsible="icon">
 	<Sidebar.Header>
-		<div class="flex items-center gap-2 px-2 py-1.5">
+		<a href={rootPath} class="flex items-center gap-2 px-2 py-1.5">
 			<TreePine class="size-5 text-primary" />
 			<span class="font-semibold group-data-[collapsible=icon]:hidden">Low-Poly Trees</span>
-		</div>
+		</a>
 	</Sidebar.Header>
 	<Sidebar.Content>
 		<Sidebar.Group>
-			<Sidebar.GroupLabel>Navigation</Sidebar.GroupLabel>
 			<Sidebar.GroupContent>
 				<Sidebar.Menu>
 					<Sidebar.MenuItem>
@@ -87,62 +79,6 @@
 		</Sidebar.Group>
 	</Sidebar.Content>
 	<Sidebar.Footer>
-		<Sidebar.Menu>
-			<Sidebar.MenuItem>
-				<DropdownMenu.Root>
-					<DropdownMenu.Trigger>
-						{#snippet child({ props: triggerProps })}
-							<Sidebar.MenuButton
-								data-testid="sidebar-theme-trigger"
-								tooltipContent="Theme"
-								{...triggerProps}
-							>
-								{#snippet child({ props })}
-									<button {...props}>
-										{#if userPrefersMode.current === 'light'}
-											<Sun />
-										{:else if userPrefersMode.current === 'dark'}
-											<Moon />
-										{:else}
-											<Monitor />
-										{/if}
-										<span>Theme</span>
-									</button>
-								{/snippet}
-							</Sidebar.MenuButton>
-						{/snippet}
-					</DropdownMenu.Trigger>
-					<DropdownMenu.Content side="top">
-						<DropdownMenu.RadioGroup
-							value={userPrefersMode.current}
-							onValueChange={(value) => {
-								if (
-									typeof value === 'string' &&
-									(THEME_MODES as readonly string[]).includes(value)
-								)
-									setMode(value as ThemeMode);
-							}}
-						>
-							<DropdownMenu.RadioItem value="light" data-testid="sidebar-theme-light">
-								<Sun />
-								Light
-							</DropdownMenu.RadioItem>
-							<DropdownMenu.RadioItem
-								value="system"
-								data-testid="sidebar-theme-system"
-							>
-								<Monitor />
-								System
-							</DropdownMenu.RadioItem>
-							<DropdownMenu.RadioItem value="dark" data-testid="sidebar-theme-dark">
-								<Moon />
-								Dark
-							</DropdownMenu.RadioItem>
-						</DropdownMenu.RadioGroup>
-					</DropdownMenu.Content>
-				</DropdownMenu.Root>
-			</Sidebar.MenuItem>
-		</Sidebar.Menu>
 		{#if user}
 			<Sidebar.Menu>
 				<Sidebar.MenuItem>

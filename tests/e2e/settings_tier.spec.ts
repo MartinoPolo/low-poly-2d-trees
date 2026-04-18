@@ -35,14 +35,19 @@ test.describe('Issue #84 — 3-tier settings control', () => {
 
 	test('switching to intermediate shows intermediate controls', async ({ page }) => {
 		const control = page.locator('[data-testid="settings-tier-control"]');
+		await expect(control).toBeVisible();
 		const intermediateButton = control.locator('[data-slot="toggle-group-item"]').nth(1);
 		await intermediateButton.click();
 
-		// Branch Angle visible at intermediate
-		await expect(page.locator('#slider-branch-angle')).toBeVisible();
+		// Branch Thickness visible at intermediate (may need scroll)
+		const branchThickness = page.locator('text=Branch Thickness');
+		await branchThickness.scrollIntoViewIfNeeded();
+		await expect(branchThickness).toBeVisible();
 
 		// Lighting card visible at intermediate
-		await expect(page.locator('text=Light Angle')).toBeVisible();
+		const lightAngle = page.locator('text=Light Angle');
+		await lightAngle.scrollIntoViewIfNeeded();
+		await expect(lightAngle).toBeVisible();
 
 		// Advanced: Polygons Per Blob still hidden
 		await expect(page.locator('text=Polygons Per Blob')).not.toBeVisible();
@@ -53,12 +58,24 @@ test.describe('Issue #84 — 3-tier settings control', () => {
 		const advancedButton = control.locator('[data-slot="toggle-group-item"]').nth(2);
 		await advancedButton.click();
 
-		// All tiers visible
-		await expect(page.locator('text=Trunk Height')).toBeVisible();
-		await expect(page.locator('#slider-branch-angle')).toBeVisible();
-		await expect(page.locator('text=Polygons Per Blob')).toBeVisible();
-		await expect(page.locator('text=Trunk Lean')).toBeVisible();
-		await expect(page.locator('text=Depth Variance')).toBeVisible();
+		// All tiers visible (scroll to each since bottom panel is smaller)
+		await expect(page.locator('text=Trunk Height').first()).toBeVisible();
+
+		const branchAngle = page.locator('#slider-branch-angle');
+		await branchAngle.scrollIntoViewIfNeeded();
+		await expect(branchAngle).toBeVisible();
+
+		const polyBlob = page.locator('text=Polygons Per Blob');
+		await polyBlob.scrollIntoViewIfNeeded();
+		await expect(polyBlob).toBeVisible();
+
+		const trunkLean = page.locator('text=Trunk Lean');
+		await trunkLean.scrollIntoViewIfNeeded();
+		await expect(trunkLean).toBeVisible();
+
+		const depthVar = page.locator('text=Depth Variance');
+		await depthVar.scrollIntoViewIfNeeded();
+		await expect(depthVar).toBeVisible();
 	});
 
 	test('tier persists across page reload', async ({ page }) => {
@@ -67,13 +84,17 @@ test.describe('Issue #84 — 3-tier settings control', () => {
 		await control.locator('[data-slot="toggle-group-item"]').nth(2).click();
 
 		// Verify advanced is active
-		await expect(page.locator('text=Polygons Per Blob')).toBeVisible();
+		const polyBlob = page.locator('text=Polygons Per Blob');
+		await polyBlob.scrollIntoViewIfNeeded();
+		await expect(polyBlob).toBeVisible();
 
 		// Reload and verify persistence
 		await page.reload();
 		await page.waitForLoadState('networkidle');
 
-		await expect(page.locator('text=Polygons Per Blob')).toBeVisible();
+		const polyBlobAfterReload = page.locator('text=Polygons Per Blob');
+		await polyBlobAfterReload.scrollIntoViewIfNeeded();
+		await expect(polyBlobAfterReload).toBeVisible();
 	});
 
 	test('tier persists across navigation between editors', async ({ page }) => {
@@ -93,10 +114,10 @@ test.describe('Issue #84 — 3-tier settings control', () => {
 		await expect(page.locator('text=Light Angle')).toBeVisible();
 	});
 
-	test('single editor layout is flipped — preview left, controls right', async ({ page }) => {
-		const grid = page.locator('main > div');
+	test('single editor layout uses top/bottom split', async ({ page }) => {
+		const grid = page.locator('main.grid');
 		const gridClasses = await grid.getAttribute('class');
-		expect(gridClasses).toContain('grid-cols-[1fr_320px]');
+		expect(gridClasses).toContain('grid-rows-[1fr_1fr]');
 	});
 
 	test('debug card is always visible regardless of tier', async ({ page }) => {

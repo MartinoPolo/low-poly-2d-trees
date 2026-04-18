@@ -29,6 +29,7 @@
 	import type { Point2D } from '$lib/trees/types/core.js';
 	import { SvelteMap } from 'svelte/reactivity';
 	import Shuffle from '@lucide/svelte/icons/shuffle';
+	import SceneFloatingButtons from '$lib/components/app-shell/SceneFloatingButtons.svelte';
 	import SettingsTierControl from '$lib/components/composed/SettingsTierControl.svelte';
 	import { use_settings_tier, tierAtLeast } from '$lib/context/settings_tier.context.svelte.js';
 
@@ -77,482 +78,473 @@
 	<title>Scene Editor</title>
 </svelte:head>
 
-<main class="grid h-dvh grid-rows-[1fr] bg-background text-foreground">
-	<div class="grid grid-cols-[1fr_320px] overflow-hidden xl:grid-cols-[1fr_640px]">
-		<!-- Scene Preview -->
-		<div
-			data-testid="scene-canvas"
-			class="relative overflow-hidden rounded-xl border border-border bg-muted/30"
-		>
-			{#each scenePlacements as placement, index (index)}
-				{@const shapeDefaults = SHAPE_DEFAULTS[placement.shape]}
-				<div
-					data-testid="scene-tree"
-					class="absolute bottom-0"
-					style="
+<main class="grid h-dvh grid-rows-[1fr_1fr] overflow-hidden bg-background text-foreground">
+	<!-- Scene Preview -->
+	<div
+		data-testid="scene-canvas"
+		class="relative overflow-hidden border border-border bg-muted/30"
+	>
+		{#each scenePlacements as placement, index (index)}
+			{@const shapeDefaults = SHAPE_DEFAULTS[placement.shape]}
+			<div
+				data-testid="scene-tree"
+				class="absolute bottom-0"
+				style="
 						left: {placement.x}%;
 						bottom: {placement.y}%;
 						transform: scale({placement.scale}) translateX(-50%);
 						transform-origin: bottom center;
 						width: {160 * placement.scale}px;
 					"
-				>
-					<LowPolyTree
-						config={{
-							...treeConfig.current,
-							shape: placement.shape,
-							seed: placement.seed,
-							blobCount: shapeDefaults.blobCount,
-							branchDepth: shapeDefaults.branchDepth,
-							branchesLevel1Range: shapeDefaults.branchesLevel1Range,
-							branchesLevel2Range: shapeDefaults.branchesLevel2Range,
-							branchesLevel3Range: shapeDefaults.branchesLevel3Range,
-							branchAngle: shapeDefaults.branchAngle,
-							blobSizeVariance: shapeDefaults.blobSizeVariance,
-							blobCloseness: shapeDefaults.blobCloseness,
-							branchThickness: shapeDefaults.branchThickness,
-							trunkSegments: shapeDefaults.trunkSegments,
-							trunkCrookedness: shapeDefaults.trunkCrookedness,
-							branchLength: shapeDefaults.branchLength,
-							branchLengthVariance: shapeDefaults.branchLengthVariance,
-							canopyLightColor: usePerShapeDefaults
-								? shapeDefaults.canopyLightColor
-								: treeConfig.current.canopyLightColor,
-							canopyDarkColor: usePerShapeDefaults
-								? shapeDefaults.canopyDarkColor
-								: treeConfig.current.canopyDarkColor,
-							trunkHue: usePerShapeDefaults
-								? shapeDefaults.trunkHue
-								: treeConfig.current.trunkHue,
-							trunkSaturation: usePerShapeDefaults
-								? shapeDefaults.trunkSaturation
-								: treeConfig.current.trunkSaturation,
-							trunkLightness: usePerShapeDefaults
-								? shapeDefaults.trunkLightness
-								: treeConfig.current.trunkLightness,
-						}}
-						{showCanopy}
-						{showBranches}
-						{showTrunk}
-						{showAnchors}
-						{animateCanopySway}
-						{animateBranches}
-						{animateGrowth}
-						{toolVisibility}
-						{animateTools}
-						overlayConfig={overlayConfig.config}
-						groundElements={overlayConfig.groundEnabled}
-						onanchors={(anchors) => {
-							treeAnchorsMap.set(index, { roots: anchors.roots });
-						}}
-						class="h-auto w-full"
+			>
+				<LowPolyTree
+					config={{
+						...treeConfig.current,
+						shape: placement.shape,
+						seed: placement.seed,
+						blobCount: shapeDefaults.blobCount,
+						branchDepth: shapeDefaults.branchDepth,
+						branchesLevel1Range: shapeDefaults.branchesLevel1Range,
+						branchesLevel2Range: shapeDefaults.branchesLevel2Range,
+						branchesLevel3Range: shapeDefaults.branchesLevel3Range,
+						branchAngle: shapeDefaults.branchAngle,
+						blobSizeVariance: shapeDefaults.blobSizeVariance,
+						blobCloseness: shapeDefaults.blobCloseness,
+						branchThickness: shapeDefaults.branchThickness,
+						trunkSegments: shapeDefaults.trunkSegments,
+						trunkCrookedness: shapeDefaults.trunkCrookedness,
+						branchLength: shapeDefaults.branchLength,
+						branchLengthVariance: shapeDefaults.branchLengthVariance,
+						canopyLightColor: usePerShapeDefaults
+							? shapeDefaults.canopyLightColor
+							: treeConfig.current.canopyLightColor,
+						canopyDarkColor: usePerShapeDefaults
+							? shapeDefaults.canopyDarkColor
+							: treeConfig.current.canopyDarkColor,
+						trunkHue: usePerShapeDefaults
+							? shapeDefaults.trunkHue
+							: treeConfig.current.trunkHue,
+						trunkSaturation: usePerShapeDefaults
+							? shapeDefaults.trunkSaturation
+							: treeConfig.current.trunkSaturation,
+						trunkLightness: usePerShapeDefaults
+							? shapeDefaults.trunkLightness
+							: treeConfig.current.trunkLightness,
+					}}
+					{showCanopy}
+					{showBranches}
+					{showTrunk}
+					{showAnchors}
+					{animateCanopySway}
+					{animateBranches}
+					{animateGrowth}
+					{toolVisibility}
+					{animateTools}
+					overlayConfig={overlayConfig.config}
+					groundElements={overlayConfig.groundEnabled}
+					onanchors={(anchors) => {
+						treeAnchorsMap.set(index, { roots: anchors.roots });
+					}}
+					class="h-auto w-full"
+				/>
+			</div>
+		{/each}
+
+		{#if showRootConnections && scenePlacements.length >= 2}
+			<svg class="pointer-events-none absolute inset-0 h-full w-full">
+				{#each scenePlacements.slice(1) as connectedPlacement, i (connectedPlacement.seed)}
+					{@const fromAnchors = treeAnchorsMap.get(0)}
+					{@const toAnchors = treeAnchorsMap.get(i + 1)}
+					{#if fromAnchors && toAnchors}
+						<RootConnection
+							from={fromAnchors.roots}
+							to={toAnchors.roots}
+							state={CONNECTION_STATES.connected}
+							seed={i * 1000}
+						/>
+					{/if}
+				{/each}
+			</svg>
+		{/if}
+
+		<EnvironmentOverlay config={environmentConfig} lightAngle={treeConfig.current.lightAngle} />
+
+		<SceneFloatingButtons
+			onReset={() => treeConfig.resetToShapeDefaults()}
+			onRandomize={randomizeSeed}
+		/>
+	</div>
+
+	<!-- Shared Controls -->
+	<aside data-testid="scene-controls" class="select-none overflow-y-auto p-6">
+		<div class="sticky top-0 z-10 bg-background">
+			<SettingsTierControl />
+		</div>
+		<div class="grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-6">
+			<SectionCard title="Scene Settings" contentClass="space-y-4">
+				<LabeledSlider
+					label="Tree Count"
+					min={SCENE_LIMITS.treeCountMin}
+					max={SCENE_LIMITS.treeCountMax}
+					bind:value={sceneConfig.treeCount}
+					id="tree-count"
+				/>
+				<div class="space-y-2">
+					<Label>Base Seed</Label>
+					<div class="flex gap-2">
+						<Input type="number" bind:value={treeConfig.current.seed} class="flex-1" />
+						<Button variant="outline" size="icon" onclick={randomizeSeed}>
+							<Shuffle />
+						</Button>
+					</div>
+				</div>
+				{#if isIntermediate}
+					<LabeledSlider
+						label="Depth Spread"
+						min={SCENE_LIMITS.depthSpreadMin}
+						max={SCENE_LIMITS.depthSpreadMax}
+						bind:value={sceneConfig.depthSpread}
+						id="depth-spread"
+					/>
+				{/if}
+				{#if isAdvanced}
+					<div class="space-y-2">
+						<Label>Polygons Per Blob: {treeConfig.current.polygonsPerBlob}</Label>
+						<input
+							type="range"
+							min="4"
+							max="30"
+							bind:value={treeConfig.current.polygonsPerBlob}
+							class="w-full accent-primary"
+						/>
+					</div>
+					<div class="space-y-2">
+						<Label>Trunk Strips: {treeConfig.current.trunkStripCount}</Label>
+						<input
+							type="range"
+							min="2"
+							max="4"
+							bind:value={treeConfig.current.trunkStripCount}
+							class="w-full accent-primary"
+						/>
+					</div>
+				{/if}
+			</SectionCard>
+
+			<SectionCard title="Canopy" contentClass="space-y-4">
+				<div class="space-y-2">
+					<Label>Canopy Size: {treeConfig.current.canopySize}%</Label>
+					<input
+						type="range"
+						min="25"
+						max="400"
+						step="5"
+						bind:value={treeConfig.current.canopySize}
+						class="w-full accent-primary"
 					/>
 				</div>
-			{/each}
+				{#if isAdvanced}
+					<div class="space-y-2">
+						<Label>
+							Blob Size Variance: {treeConfig.current.blobSizeVariance.toFixed(1)}x
+						</Label>
+						<input
+							type="range"
+							min="1"
+							max="10"
+							step="0.1"
+							bind:value={treeConfig.current.blobSizeVariance}
+							class="w-full accent-primary"
+						/>
+					</div>
+					<div class="space-y-2">
+						<Label>Blob Closeness: {treeConfig.current.blobCloseness}%</Label>
+						<input
+							type="range"
+							min="0"
+							max="100"
+							bind:value={treeConfig.current.blobCloseness}
+							class="w-full accent-primary"
+						/>
+					</div>
+				{/if}
+			</SectionCard>
 
-			{#if showRootConnections && scenePlacements.length >= 2}
-				<svg class="pointer-events-none absolute inset-0 h-full w-full">
-					{#each scenePlacements.slice(1) as connectedPlacement, i (connectedPlacement.seed)}
-						{@const fromAnchors = treeAnchorsMap.get(0)}
-						{@const toAnchors = treeAnchorsMap.get(i + 1)}
-						{#if fromAnchors && toAnchors}
-							<RootConnection
-								from={fromAnchors.roots}
-								to={toAnchors.roots}
-								state={CONNECTION_STATES.connected}
-								seed={i * 1000}
-							/>
-						{/if}
-					{/each}
-				</svg>
+			<SectionCard title="Trunk & Branches" contentClass="space-y-4">
+				<div class="space-y-2">
+					<Label>Trunk Height: {treeConfig.current.trunkHeight}%</Label>
+					<input
+						type="range"
+						min="50"
+						max="150"
+						bind:value={treeConfig.current.trunkHeight}
+						class="w-full accent-primary"
+					/>
+				</div>
+				<div class="space-y-2">
+					<Label>Trunk Thickness: {treeConfig.current.trunkThickness}%</Label>
+					<input
+						type="range"
+						min="25"
+						max="400"
+						step="5"
+						bind:value={treeConfig.current.trunkThickness}
+						class="w-full accent-primary"
+					/>
+				</div>
+				{#if isIntermediate}
+					<div class="space-y-2">
+						<Label>Branch Thickness: {treeConfig.current.branchThickness}%</Label>
+						<input
+							type="range"
+							min="25"
+							max="400"
+							step="5"
+							bind:value={treeConfig.current.branchThickness}
+							class="w-full accent-primary"
+						/>
+					</div>
+					<LabeledSlider
+						label="Trunk Lean"
+						min={-45}
+						max={45}
+						step={1}
+						unit="°"
+						bind:value={treeConfig.current.trunkLean}
+					/>
+					<LabeledSlider
+						label="Trunk Segments"
+						min={1}
+						max={5}
+						step={1}
+						bind:value={treeConfig.current.trunkSegments}
+					/>
+					<LabeledSlider
+						label="Trunk Crookedness"
+						min={0}
+						max={100}
+						step={5}
+						unit="%"
+						bind:value={treeConfig.current.trunkCrookedness}
+						disabled={trunkCrookednessDisabled}
+					/>
+					<LabeledSlider
+						label="Branch Length"
+						min={25}
+						max={400}
+						step={5}
+						unit="%"
+						bind:value={treeConfig.current.branchLength}
+					/>
+					<LabeledSlider
+						label="Branch Length Variance"
+						min={0}
+						max={100}
+						step={5}
+						unit="%"
+						bind:value={treeConfig.current.branchLengthVariance}
+					/>
+				{/if}
+				{#if isAdvanced}
+					<LabeledSlider
+						label="Depth Variance"
+						min={0}
+						max={2}
+						step={0.1}
+						format={(v) => v.toFixed(1)}
+						bind:value={treeConfig.current.depthVariance}
+					/>
+				{/if}
+			</SectionCard>
+
+			<SectionCard title="Color Mode" contentClass="space-y-4">
+				<div class="flex items-center gap-2">
+					<Checkbox
+						id="use-per-shape-defaults"
+						checked={usePerShapeDefaults}
+						onCheckedChange={(v) => (usePerShapeDefaults = v === true)}
+					/>
+					<Label for="use-per-shape-defaults">Use per-shape default colors</Label>
+				</div>
+				<p class="text-xs text-muted-foreground">
+					When enabled, each tree uses its shape's default palette and the shared color
+					controls below are disabled.
+				</p>
+			</SectionCard>
+
+			<CanopyColorCard
+				bind:lightColor={treeConfig.current.canopyLightColor}
+				bind:darkColor={treeConfig.current.canopyDarkColor}
+				disabled={usePerShapeDefaults}
+			/>
+
+			<TrunkColorCard
+				bind:hue={treeConfig.current.trunkHue}
+				bind:saturation={treeConfig.current.trunkSaturation}
+				bind:lightness={treeConfig.current.trunkLightness}
+				disabled={usePerShapeDefaults}
+			/>
+
+			{#if isIntermediate}
+				<SectionCard title="Lighting" contentClass="space-y-4">
+					<div class="space-y-2">
+						<Label>Light Angle: {treeConfig.current.lightAngle}°</Label>
+						<input
+							type="range"
+							min="0"
+							max="360"
+							bind:value={treeConfig.current.lightAngle}
+							class="w-full accent-primary"
+						/>
+					</div>
+				</SectionCard>
+
+				<SectionCard title="Environment" contentClass="space-y-4">
+					<div class="flex items-center gap-2">
+						<Checkbox
+							data-testid="env-rain-toggle"
+							checked={environmentConfig.rainEnabled}
+							onCheckedChange={(v) => (environmentConfig.rainEnabled = v === true)}
+						/>
+						<Label>Rain</Label>
+					</div>
+					{#if isAdvanced && environmentConfig.rainEnabled}
+						<LabeledSlider
+							label="Rain Intensity"
+							min={ENVIRONMENT_LIMITS.rainIntensityMin}
+							max={ENVIRONMENT_LIMITS.rainIntensityMax}
+							bind:value={environmentConfig.rainIntensity}
+							id="rain-intensity"
+						/>
+					{/if}
+					<div class="flex items-center gap-2">
+						<Checkbox
+							data-testid="env-lightning-toggle"
+							checked={environmentConfig.lightningEnabled}
+							onCheckedChange={(v) =>
+								(environmentConfig.lightningEnabled = v === true)}
+						/>
+						<Label>Lightning</Label>
+					</div>
+					<div class="flex items-center gap-2">
+						<Checkbox
+							data-testid="env-snow-toggle"
+							checked={environmentConfig.snowEnabled}
+							onCheckedChange={(v) => (environmentConfig.snowEnabled = v === true)}
+						/>
+						<Label>Snow</Label>
+					</div>
+					<div class="flex items-center gap-2">
+						<Checkbox
+							data-testid="env-fireflies-toggle"
+							checked={environmentConfig.firefliesEnabled}
+							onCheckedChange={(v) =>
+								(environmentConfig.firefliesEnabled = v === true)}
+						/>
+						<Label>Fireflies</Label>
+					</div>
+					<div class="flex items-center gap-2">
+						<Checkbox
+							data-testid="env-wind-toggle"
+							checked={environmentConfig.windParticlesEnabled}
+							onCheckedChange={(v) =>
+								(environmentConfig.windParticlesEnabled = v === true)}
+						/>
+						<Label>Wind Particles</Label>
+					</div>
+					<div class="flex items-center gap-2">
+						<Checkbox
+							data-testid="env-sun-rays-toggle"
+							checked={environmentConfig.sunRaysEnabled}
+							onCheckedChange={(v) => (environmentConfig.sunRaysEnabled = v === true)}
+						/>
+						<Label>Sun Rays</Label>
+					</div>
+					<div class="flex items-center gap-2">
+						<Checkbox
+							data-testid="env-clouds-toggle"
+							checked={environmentConfig.cloudsEnabled}
+							onCheckedChange={(v) => (environmentConfig.cloudsEnabled = v === true)}
+						/>
+						<Label>Clouds</Label>
+					</div>
+				</SectionCard>
 			{/if}
 
-			<EnvironmentOverlay
-				config={environmentConfig}
-				lightAngle={treeConfig.current.lightAngle}
-			/>
-		</div>
+			<ToolAccessoriesCard bind:toolVisibility bind:animateTools />
 
-		<!-- Shared Controls -->
-		<aside data-testid="scene-controls" class="select-none overflow-y-auto p-6">
-			<div class="grid grid-cols-1 gap-6 xl:grid-cols-2">
-				<SettingsTierControl />
-
-				<SectionCard title="Scene Settings" contentClass="space-y-4">
-					<LabeledSlider
-						label="Tree Count"
-						min={SCENE_LIMITS.treeCountMin}
-						max={SCENE_LIMITS.treeCountMax}
-						bind:value={sceneConfig.treeCount}
-						id="tree-count"
+			<SectionCard title="Debug" contentClass="space-y-4">
+				<div class="flex items-center gap-2">
+					<Checkbox
+						checked={showCanopy}
+						onCheckedChange={(v) => (showCanopy = v === true)}
 					/>
-					<div class="space-y-2">
-						<Label>Base Seed</Label>
-						<div class="flex gap-2">
-							<Input
-								type="number"
-								bind:value={treeConfig.current.seed}
-								class="flex-1"
-							/>
-							<Button variant="outline" size="icon" onclick={randomizeSeed}>
-								<Shuffle />
-							</Button>
-						</div>
-					</div>
-					{#if isIntermediate}
-						<LabeledSlider
-							label="Depth Spread"
-							min={SCENE_LIMITS.depthSpreadMin}
-							max={SCENE_LIMITS.depthSpreadMax}
-							bind:value={sceneConfig.depthSpread}
-							id="depth-spread"
-						/>
-					{/if}
-					{#if isAdvanced}
-						<div class="space-y-2">
-							<Label>Polygons Per Blob: {treeConfig.current.polygonsPerBlob}</Label>
-							<input
-								type="range"
-								min="4"
-								max="30"
-								bind:value={treeConfig.current.polygonsPerBlob}
-								class="w-full accent-primary"
-							/>
-						</div>
-						<div class="space-y-2">
-							<Label>Trunk Strips: {treeConfig.current.trunkStripCount}</Label>
-							<input
-								type="range"
-								min="2"
-								max="4"
-								bind:value={treeConfig.current.trunkStripCount}
-								class="w-full accent-primary"
-							/>
-						</div>
-					{/if}
-				</SectionCard>
+					<Label>Show Canopy</Label>
+				</div>
+				<div class="flex items-center gap-2">
+					<Checkbox
+						checked={showBranches}
+						onCheckedChange={(v) => (showBranches = v === true)}
+					/>
+					<Label>Show Branches</Label>
+				</div>
+				<div class="flex items-center gap-2">
+					<Checkbox
+						checked={showTrunk}
+						onCheckedChange={(v) => (showTrunk = v === true)}
+					/>
+					<Label>Show Trunk</Label>
+				</div>
+				<div class="flex items-center gap-2">
+					<Checkbox
+						checked={showAnchors}
+						onCheckedChange={(v) => (showAnchors = v === true)}
+					/>
+					<Label>Show Anchor Points</Label>
+				</div>
+			</SectionCard>
 
-				<SectionCard title="Canopy" contentClass="space-y-4">
-					<div class="space-y-2">
-						<Label>Canopy Size: {treeConfig.current.canopySize}%</Label>
-						<input
-							type="range"
-							min="25"
-							max="400"
-							step="5"
-							bind:value={treeConfig.current.canopySize}
-							class="w-full accent-primary"
-						/>
-					</div>
-					{#if isAdvanced}
-						<div class="space-y-2">
-							<Label>
-								Blob Size Variance: {treeConfig.current.blobSizeVariance.toFixed(
-									1,
-								)}x
-							</Label>
-							<input
-								type="range"
-								min="1"
-								max="10"
-								step="0.1"
-								bind:value={treeConfig.current.blobSizeVariance}
-								class="w-full accent-primary"
-							/>
-						</div>
-						<div class="space-y-2">
-							<Label>Blob Closeness: {treeConfig.current.blobCloseness}%</Label>
-							<input
-								type="range"
-								min="0"
-								max="100"
-								bind:value={treeConfig.current.blobCloseness}
-								class="w-full accent-primary"
-							/>
-						</div>
-					{/if}
-				</SectionCard>
-
-				<SectionCard title="Trunk & Branches" contentClass="space-y-4">
-					<div class="space-y-2">
-						<Label>Trunk Height: {treeConfig.current.trunkHeight}%</Label>
-						<input
-							type="range"
-							min="50"
-							max="150"
-							bind:value={treeConfig.current.trunkHeight}
-							class="w-full accent-primary"
-						/>
-					</div>
-					<div class="space-y-2">
-						<Label>Trunk Thickness: {treeConfig.current.trunkThickness}%</Label>
-						<input
-							type="range"
-							min="25"
-							max="400"
-							step="5"
-							bind:value={treeConfig.current.trunkThickness}
-							class="w-full accent-primary"
-						/>
-					</div>
-					{#if isIntermediate}
-						<div class="space-y-2">
-							<Label>Branch Thickness: {treeConfig.current.branchThickness}%</Label>
-							<input
-								type="range"
-								min="25"
-								max="400"
-								step="5"
-								bind:value={treeConfig.current.branchThickness}
-								class="w-full accent-primary"
-							/>
-						</div>
-						<LabeledSlider
-							label="Trunk Lean"
-							min={-45}
-							max={45}
-							step={1}
-							unit="°"
-							bind:value={treeConfig.current.trunkLean}
-						/>
-						<LabeledSlider
-							label="Trunk Segments"
-							min={1}
-							max={5}
-							step={1}
-							bind:value={treeConfig.current.trunkSegments}
-						/>
-						<LabeledSlider
-							label="Trunk Crookedness"
-							min={0}
-							max={100}
-							step={5}
-							unit="%"
-							bind:value={treeConfig.current.trunkCrookedness}
-							disabled={trunkCrookednessDisabled}
-						/>
-						<LabeledSlider
-							label="Branch Length"
-							min={25}
-							max={400}
-							step={5}
-							unit="%"
-							bind:value={treeConfig.current.branchLength}
-						/>
-						<LabeledSlider
-							label="Branch Length Variance"
-							min={0}
-							max={100}
-							step={5}
-							unit="%"
-							bind:value={treeConfig.current.branchLengthVariance}
-						/>
-					{/if}
-					{#if isAdvanced}
-						<LabeledSlider
-							label="Depth Variance"
-							min={0}
-							max={2}
-							step={0.1}
-							format={(v) => v.toFixed(1)}
-							bind:value={treeConfig.current.depthVariance}
-						/>
-					{/if}
-				</SectionCard>
-
-				<SectionCard title="Color Mode" contentClass="space-y-4">
+			<SectionCard title="Animations" contentClass="space-y-4">
+				<div data-testid="animation-controls">
 					<div class="flex items-center gap-2">
 						<Checkbox
-							id="use-per-shape-defaults"
-							checked={usePerShapeDefaults}
-							onCheckedChange={(v) => (usePerShapeDefaults = v === true)}
+							data-testid="animate-canopy-sway"
+							checked={animateCanopySway}
+							onCheckedChange={(v) => (animateCanopySway = v === true)}
 						/>
-						<Label for="use-per-shape-defaults">Use per-shape default colors</Label>
+						<Label>Canopy Sway</Label>
 					</div>
-					<p class="text-xs text-muted-foreground">
-						When enabled, each tree uses its shape's default palette and the shared
-						color controls below are disabled.
-					</p>
-				</SectionCard>
-
-				<CanopyColorCard
-					bind:lightColor={treeConfig.current.canopyLightColor}
-					bind:darkColor={treeConfig.current.canopyDarkColor}
-					disabled={usePerShapeDefaults}
-				/>
-
-				<TrunkColorCard
-					bind:hue={treeConfig.current.trunkHue}
-					bind:saturation={treeConfig.current.trunkSaturation}
-					bind:lightness={treeConfig.current.trunkLightness}
-					disabled={usePerShapeDefaults}
-				/>
-
-				{#if isIntermediate}
-					<SectionCard title="Lighting" contentClass="space-y-4">
-						<div class="space-y-2">
-							<Label>Light Angle: {treeConfig.current.lightAngle}°</Label>
-							<input
-								type="range"
-								min="0"
-								max="360"
-								bind:value={treeConfig.current.lightAngle}
-								class="w-full accent-primary"
-							/>
-						</div>
-					</SectionCard>
-
-					<SectionCard title="Environment" contentClass="space-y-4">
-						<div class="flex items-center gap-2">
-							<Checkbox
-								data-testid="env-rain-toggle"
-								checked={environmentConfig.rainEnabled}
-								onCheckedChange={(v) =>
-									(environmentConfig.rainEnabled = v === true)}
-							/>
-							<Label>Rain</Label>
-						</div>
-						{#if isAdvanced && environmentConfig.rainEnabled}
-							<LabeledSlider
-								label="Rain Intensity"
-								min={ENVIRONMENT_LIMITS.rainIntensityMin}
-								max={ENVIRONMENT_LIMITS.rainIntensityMax}
-								bind:value={environmentConfig.rainIntensity}
-								id="rain-intensity"
-							/>
-						{/if}
-						<div class="flex items-center gap-2">
-							<Checkbox
-								data-testid="env-lightning-toggle"
-								checked={environmentConfig.lightningEnabled}
-								onCheckedChange={(v) =>
-									(environmentConfig.lightningEnabled = v === true)}
-							/>
-							<Label>Lightning</Label>
-						</div>
-						<div class="flex items-center gap-2">
-							<Checkbox
-								data-testid="env-snow-toggle"
-								checked={environmentConfig.snowEnabled}
-								onCheckedChange={(v) =>
-									(environmentConfig.snowEnabled = v === true)}
-							/>
-							<Label>Snow</Label>
-						</div>
-						<div class="flex items-center gap-2">
-							<Checkbox
-								data-testid="env-fireflies-toggle"
-								checked={environmentConfig.firefliesEnabled}
-								onCheckedChange={(v) =>
-									(environmentConfig.firefliesEnabled = v === true)}
-							/>
-							<Label>Fireflies</Label>
-						</div>
-						<div class="flex items-center gap-2">
-							<Checkbox
-								data-testid="env-wind-toggle"
-								checked={environmentConfig.windParticlesEnabled}
-								onCheckedChange={(v) =>
-									(environmentConfig.windParticlesEnabled = v === true)}
-							/>
-							<Label>Wind Particles</Label>
-						</div>
-						<div class="flex items-center gap-2">
-							<Checkbox
-								data-testid="env-sun-rays-toggle"
-								checked={environmentConfig.sunRaysEnabled}
-								onCheckedChange={(v) =>
-									(environmentConfig.sunRaysEnabled = v === true)}
-							/>
-							<Label>Sun Rays</Label>
-						</div>
-						<div class="flex items-center gap-2">
-							<Checkbox
-								data-testid="env-clouds-toggle"
-								checked={environmentConfig.cloudsEnabled}
-								onCheckedChange={(v) =>
-									(environmentConfig.cloudsEnabled = v === true)}
-							/>
-							<Label>Clouds</Label>
-						</div>
-					</SectionCard>
-				{/if}
-
-				<ToolAccessoriesCard bind:toolVisibility bind:animateTools />
-
-				<SectionCard title="Debug" contentClass="space-y-4">
-					<div class="flex items-center gap-2">
+					<div class="mt-4 flex items-center gap-2">
 						<Checkbox
-							checked={showCanopy}
-							onCheckedChange={(v) => (showCanopy = v === true)}
+							data-testid="animate-branches"
+							checked={animateBranches}
+							onCheckedChange={(v) => (animateBranches = v === true)}
 						/>
-						<Label>Show Canopy</Label>
+						<Label>Branch Movement</Label>
 					</div>
-					<div class="flex items-center gap-2">
+					<div class="mt-4 flex items-center gap-2">
 						<Checkbox
-							checked={showBranches}
-							onCheckedChange={(v) => (showBranches = v === true)}
+							data-testid="animate-growth"
+							checked={animateGrowth}
+							onCheckedChange={(v) => (animateGrowth = v === true)}
 						/>
-						<Label>Show Branches</Label>
+						<Label>Growth</Label>
 					</div>
-					<div class="flex items-center gap-2">
-						<Checkbox
-							checked={showTrunk}
-							onCheckedChange={(v) => (showTrunk = v === true)}
-						/>
-						<Label>Show Trunk</Label>
-					</div>
-					<div class="flex items-center gap-2">
-						<Checkbox
-							checked={showAnchors}
-							onCheckedChange={(v) => (showAnchors = v === true)}
-						/>
-						<Label>Show Anchor Points</Label>
-					</div>
-				</SectionCard>
+				</div>
+			</SectionCard>
 
-				<SectionCard title="Animations" contentClass="space-y-4">
-					<div data-testid="animation-controls">
-						<div class="flex items-center gap-2">
-							<Checkbox
-								data-testid="animate-canopy-sway"
-								checked={animateCanopySway}
-								onCheckedChange={(v) => (animateCanopySway = v === true)}
-							/>
-							<Label>Canopy Sway</Label>
-						</div>
-						<div class="mt-4 flex items-center gap-2">
-							<Checkbox
-								data-testid="animate-branches"
-								checked={animateBranches}
-								onCheckedChange={(v) => (animateBranches = v === true)}
-							/>
-							<Label>Branch Movement</Label>
-						</div>
-						<div class="mt-4 flex items-center gap-2">
-							<Checkbox
-								data-testid="animate-growth"
-								checked={animateGrowth}
-								onCheckedChange={(v) => (animateGrowth = v === true)}
-							/>
-							<Label>Growth</Label>
-						</div>
-					</div>
-				</SectionCard>
+			<OverlaysCard {overlayConfig} />
 
-				<OverlaysCard {overlayConfig} />
-
-				<SectionCard title="Connections" contentClass="space-y-4">
-					<div class="flex items-center gap-2">
-						<Checkbox
-							data-testid="root-connections-toggle"
-							checked={showRootConnections}
-							onCheckedChange={(v) => (showRootConnections = v === true)}
-						/>
-						<Label>Root Connections</Label>
-					</div>
-				</SectionCard>
-			</div>
-		</aside>
-	</div>
+			<SectionCard title="Connections" contentClass="space-y-4">
+				<div class="flex items-center gap-2">
+					<Checkbox
+						data-testid="root-connections-toggle"
+						checked={showRootConnections}
+						onCheckedChange={(v) => (showRootConnections = v === true)}
+					/>
+					<Label>Root Connections</Label>
+				</div>
+			</SectionCard>
+		</div>
+	</aside>
 </main>
