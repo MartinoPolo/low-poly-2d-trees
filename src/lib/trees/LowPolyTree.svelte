@@ -206,7 +206,8 @@
 		const bounds = geometry.anchors;
 		const minX = bounds.crownCenter.x - 30;
 		const maxX = bounds.crownCenter.x + 30;
-		const startY = computeCanopyBottomY(geometry.canopyBlobs);
+		const startY =
+			(geometry.anchors.crownCenter.y + computeCanopyBottomY(geometry.canopyBlobs)) / 2;
 		const colors = ['#E8A028', '#C47020', '#8B2010', '#A05020', '#D08030'];
 		for (let i = 0; i < count; i++) {
 			leaves.push({
@@ -430,7 +431,7 @@
 						class="falling-leaf"
 						style="--leaf-start-x: {leaf.x}px; --leaf-start-y: {leaf.y}px; --leaf-delay: {leaf.delay}s; --leaf-duration: {leaf.duration}s; --leaf-rotation: {leaf.rotation}deg;"
 					>
-						<path d="M0,-2 L1.5,0 L0,2 L-1.5,0 Z" fill={leaf.color} opacity="0.85" />
+						<path d="M0,-4 L3,0 L0,4 L-3,0 Z" fill={leaf.color} opacity="0.85" />
 					</g>
 				{/each}
 			</g>

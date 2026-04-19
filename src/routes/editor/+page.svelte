@@ -270,7 +270,7 @@
 <main class="grid h-dvh grid-rows-[1fr_1fr] overflow-hidden bg-background text-foreground">
 	<!-- Preview -->
 	<div class="relative flex items-center justify-center border border-border bg-muted/30 p-8">
-		<div class="w-full max-w-sm">
+		<div class="w-full max-w-[576px]">
 			<LowPolyTree
 				config={treeConfig.configForTree}
 				{showCanopy}

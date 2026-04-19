@@ -55,9 +55,27 @@ describe('generateGroundPlacements', () => {
 		const placements = generateGroundPlacements(42, TRUNK_BASE, SPREAD);
 		for (const p of placements) {
 			expect(p.scale).toBeGreaterThan(0);
-			expect(p.scale).toBeLessThan(2);
+			expect(p.scale).toBeLessThan(4);
 			expect(p.rotation).toBeGreaterThanOrEqual(-20);
 			expect(p.rotation).toBeLessThanOrEqual(20);
+		}
+	});
+
+	it('stone scales are in range [1.5, 3.0]', () => {
+		const placements = generateGroundPlacements(42, TRUNK_BASE, SPREAD);
+		const stones = placements.filter((p) => p.type === 'stone');
+		for (const stone of stones) {
+			expect(stone.scale).toBeGreaterThanOrEqual(1.5);
+			expect(stone.scale).toBeLessThanOrEqual(3.0);
+		}
+	});
+
+	it('grass scales are in range [1.75, 3.25]', () => {
+		const placements = generateGroundPlacements(42, TRUNK_BASE, SPREAD);
+		const grasses = placements.filter((p) => p.type === 'grass');
+		for (const grass of grasses) {
+			expect(grass.scale).toBeGreaterThanOrEqual(1.75);
+			expect(grass.scale).toBeLessThanOrEqual(3.25);
 		}
 	});
 });

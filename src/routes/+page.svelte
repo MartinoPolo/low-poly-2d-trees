@@ -82,7 +82,7 @@
 	<!-- Scene Preview -->
 	<div
 		data-testid="scene-canvas"
-		class="relative overflow-hidden border border-border bg-muted/30"
+		class="relative overflow-hidden border border-border bg-gradient-to-b from-sky-200 to-white dark:from-[#0a1628] dark:to-[#1a2744]"
 	>
 		{#each scenePlacements as placement, index (index)}
 			{@const shapeDefaults = SHAPE_DEFAULTS[placement.shape]}
@@ -94,7 +94,7 @@
 						bottom: {placement.y}%;
 						transform: scale({placement.scale}) translateX(-50%);
 						transform-origin: bottom center;
-						width: {160 * placement.scale}px;
+						width: {320 * placement.scale}px;
 					"
 			>
 				<LowPolyTree

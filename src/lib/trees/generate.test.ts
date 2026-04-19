@@ -831,15 +831,7 @@ describe('REQ-T: Trunk & Branch Generation', () => {
 			expect(geo.anchors.trunkTop.x).toBeCloseTo(VIEWBOX_WIDTH / 2, 10);
 		});
 
-		it('REQ-T-12c: crookedness=0 with multi-segment is straight and matches single segment', () => {
-			const g1 = generateTree(
-				makeConfig({
-					trunkLean: 20,
-					trunkSegments: 1,
-					trunkCrookedness: 0,
-					branchDepth: 0,
-				}),
-			);
+		it('REQ-T-12c: multi-segment trunk has vertical base segment (lean from segment 2 onward)', () => {
 			const g5 = generateTree(
 				makeConfig({
 					trunkLean: 20,
@@ -848,8 +840,9 @@ describe('REQ-T: Trunk & Branch Generation', () => {
 					branchDepth: 0,
 				}),
 			);
-			expect(g5.anchors.trunkTop.x).toBeCloseTo(g1.anchors.trunkTop.x, 6);
-			expect(g5.anchors.trunkTop.y).toBeCloseTo(g1.anchors.trunkTop.y, 6);
+			// Base stays centered; trunk top shifts horizontally due to lean
+			expect(g5.anchors.trunkBase.x).toBeCloseTo(VIEWBOX_WIDTH / 2, 0);
+			expect(g5.anchors.trunkBase.x).not.toBeCloseTo(g5.anchors.trunkTop.x, 0);
 		});
 
 		it('REQ-T-12a: high crookedness produces visible horizontal deviations with zero lean', () => {
