@@ -5,6 +5,7 @@
 		ENVIRONMENT_VIEW_HEIGHT,
 		ENVIRONMENT_VIEW_WIDTH,
 	} from '../environment_config.js';
+	import WindParticleSvg from '$lib/trees/assets/overlays/WindParticleSvg.svelte';
 
 	const particles = generateWindParticles(
 		15,
@@ -22,18 +23,16 @@
 	xmlns="http://www.w3.org/2000/svg"
 >
 	{#each particles as particle, index (index)}
-		<path
+		<g
 			data-testid="wind-particle"
-			d="M0,-{particle.size} C{particle.size / 2},-{particle.size / 2} {particle.size /
-				2},{particle.size / 2} 0,{particle.size} C-{particle.size / 3},0 -{particle.size /
-				3},0 0,-{particle.size}Z"
-			fill="rgba(139,119,101,0.4)"
 			class="wind-particle"
 			style="
 				transform: translate({particle.x}px, {particle.y}px) rotate({particle.rotation}deg);
 				animation-delay: {particle.delay}s;
 			"
-		/>
+		>
+			<WindParticleSvg size={particle.size} />
+		</g>
 	{/each}
 </svg>
 

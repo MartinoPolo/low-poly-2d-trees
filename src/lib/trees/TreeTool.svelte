@@ -28,11 +28,13 @@
 
 <!-- Outer <g> for positioning (translate + scale) — not animated -->
 <g data-tool={tool} transform="translate({posX}, {posY}) scale({size})">
-	<!-- Inner <g> for CSS animation — pivots around snap point -->
+	<!-- Inner <g> for CSS animation — pivots around configured pivot point -->
 	<g
 		class="tool-anim"
 		class:animate-tool={animate}
-		style="--tool-animation-name: {animationConfig.keyframeName}; --tool-duration: {animationConfig.duration}s; --snap-x: {snapOffset.x}px; --snap-y: {snapOffset.y}px;"
+		data-tool-type={tool}
+		style="--tool-duration: {animationConfig.duration}s; --pivot-x: {animationConfig.pivotPoint
+			.x}px; --pivot-y: {animationConfig.pivotPoint.y}px;"
 	>
 		<SvgComponent />
 	</g>
@@ -160,9 +162,32 @@
 	}
 
 	.tool-anim.animate-tool {
-		animation: var(--tool-animation-name) var(--tool-duration) ease-in-out infinite;
-		transform-origin: var(--snap-x) var(--snap-y);
+		transform-origin: var(--pivot-x) var(--pivot-y);
 		will-change: transform;
+	}
+
+	.tool-anim.animate-tool[data-tool-type='shovel'] {
+		animation: tool-shovel-idle var(--tool-duration) ease-in-out infinite;
+	}
+
+	.tool-anim.animate-tool[data-tool-type='wateringCan'] {
+		animation: tool-watering-can-idle var(--tool-duration) ease-in-out infinite;
+	}
+
+	.tool-anim.animate-tool[data-tool-type='ladder'] {
+		animation: tool-ladder-idle var(--tool-duration) ease-in-out infinite;
+	}
+
+	.tool-anim.animate-tool[data-tool-type='axe'] {
+		animation: tool-axe-idle var(--tool-duration) ease-in-out infinite;
+	}
+
+	.tool-anim.animate-tool[data-tool-type='rake'] {
+		animation: tool-rake-idle var(--tool-duration) ease-in-out infinite;
+	}
+
+	.tool-anim.animate-tool[data-tool-type='woodpecker'] {
+		animation: tool-woodpecker-idle var(--tool-duration) ease-in-out infinite;
 	}
 
 	.woodpecker-badge text {

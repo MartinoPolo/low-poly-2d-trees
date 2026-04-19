@@ -5,6 +5,7 @@
 		ENVIRONMENT_VIEW_HEIGHT,
 		ENVIRONMENT_VIEW_WIDTH,
 	} from '../environment_config.js';
+	import RaindropSvg from '$lib/trees/assets/overlays/RaindropSvg.svelte';
 
 	interface Props {
 		intensity: number;
@@ -30,17 +31,15 @@
 	xmlns="http://www.w3.org/2000/svg"
 >
 	{#each drops as drop, index (index)}
-		<line
-			data-testid="rain-drop"
-			x1={drop.x}
-			y1={drop.y}
-			x2={drop.x + 2}
-			y2={drop.y + drop.length}
-			stroke="rgba(174,194,224,0.5)"
-			stroke-width="1.5"
-			class="rain-drop"
-			style="animation-delay: {drop.delay}s; animation-duration: {drop.speed}s;"
-		/>
+		<g transform="translate({drop.x}, {drop.y})">
+			<g
+				data-testid="rain-drop"
+				class="rain-drop"
+				style="animation-delay: {drop.delay}s; animation-duration: {drop.speed}s;"
+			>
+				<RaindropSvg length={drop.length} />
+			</g>
+		</g>
 	{/each}
 </svg>
 

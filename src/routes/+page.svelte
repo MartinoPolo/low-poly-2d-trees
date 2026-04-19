@@ -46,6 +46,7 @@
 	let animateCanopySway = $state(false);
 	let animateBranches = $state(false);
 	let animateGrowth = $state(false);
+	let growthVariance = $state(50);
 	let toolVisibility: ToolVisibility = $state(createDefaultToolVisibility());
 	let animateTools = $state(false);
 	let showRootConnections = $state(false);
@@ -138,6 +139,7 @@
 					{animateCanopySway}
 					{animateBranches}
 					{animateGrowth}
+					{growthVariance}
 					{toolVisibility}
 					{animateTools}
 					overlayConfig={overlayConfig.config}
@@ -530,6 +532,16 @@
 						/>
 						<Label>Growth</Label>
 					</div>
+					{#if animateGrowth}
+						<LabeledSlider
+							label="Growth Variance"
+							min={0}
+							max={100}
+							step={5}
+							unit="%"
+							bind:value={growthVariance}
+						/>
+					{/if}
 				</div>
 			</SectionCard>
 

@@ -14,17 +14,6 @@ describe('TOOL_ANIMATIONS', () => {
 		expect(TOOL_ANIMATIONS).not.toHaveProperty('birdNest');
 	});
 
-	it('each tool has a unique keyframe name', () => {
-		const names = Object.values(TOOL_ANIMATIONS).map((a) => a.keyframeName);
-		expect(new Set(names).size).toBe(names.length);
-	});
-
-	it('each tool has a non-empty keyframe name', () => {
-		for (const toolType of Object.values(TOOL_TYPES)) {
-			expect(TOOL_ANIMATIONS[toolType].keyframeName.length).toBeGreaterThan(0);
-		}
-	});
-
 	it('each tool has a positive duration', () => {
 		for (const toolType of Object.values(TOOL_TYPES)) {
 			expect(TOOL_ANIMATIONS[toolType].duration).toBeGreaterThan(0);
@@ -55,20 +44,20 @@ describe('TOOL_ANIMATIONS', () => {
 		expect(TOOL_ANIMATIONS.woodpecker.duration).toBe(1.5);
 	});
 
-	it('axe keyframe name is tool-axe-idle', () => {
-		expect(TOOL_ANIMATIONS.axe.keyframeName).toBe('tool-axe-idle');
-	});
-
-	it('rake keyframe name is tool-rake-idle', () => {
-		expect(TOOL_ANIMATIONS.rake.keyframeName).toBe('tool-rake-idle');
-	});
-
-	it('woodpecker keyframe name is tool-woodpecker-idle', () => {
-		expect(TOOL_ANIMATIONS.woodpecker.keyframeName).toBe('tool-woodpecker-idle');
+	it('each tool has a pivotPoint with x and y', () => {
+		for (const toolType of Object.values(TOOL_TYPES)) {
+			const config = TOOL_ANIMATIONS[toolType];
+			expect(config.pivotPoint).toBeDefined();
+			expect(typeof config.pivotPoint.x).toBe('number');
+			expect(typeof config.pivotPoint.y).toBe('number');
+		}
 	});
 
 	it('ToolAnimationConfig type is exported and usable', () => {
-		const config: ToolAnimationConfig = { keyframeName: 'test', duration: 1 };
-		expect(config.keyframeName).toBe('test');
+		const config: ToolAnimationConfig = {
+			duration: 1,
+			pivotPoint: { x: 0, y: 0 },
+		};
+		expect(config.duration).toBe(1);
 	});
 });

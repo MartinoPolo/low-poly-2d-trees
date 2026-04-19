@@ -133,8 +133,6 @@ export interface TreeConfig {
 	readonly branchSegments: number;
 	/** Branch crookedness (0-100). Default = 50% of trunk crookedness. */
 	readonly branchCrookedness: number;
-	/** Child start width = parent end width * taper ratio (30-80%). */
-	readonly branchDepthTaper: number;
 	/** Branch angle slider (0-100%). 0% = wide spread, 100% = vertical. */
 	readonly branchAngle: number;
 	/** Branch mirror symmetry: off, allowed (relaxed overlap), preferred (paired generation). */
@@ -145,7 +143,7 @@ export interface TreeConfig {
 	readonly trunkTwist: number;
 	/** Number of visible strip faces on trunk/branch cross-section (REQ-EV2-X-01). */
 	readonly trunkStripCount: number;
-	/** Spread around branchDepthTaper center ratio (0-50, REQ-EV2-V-02). */
+	/** Branch width randomness per branch (0-50, REQ-EV2-V-02). */
 	readonly branchWidthVariance: number;
 	/**
 	 * Per-blob overrides for the `custom` tree shape. Only consulted when
@@ -189,7 +187,6 @@ export const DEFAULT_TREE_CONFIG: TreeConfig = {
 	branchesLevel3Range: [0, 1],
 	branchSegments: 1,
 	branchCrookedness: 0,
-	branchDepthTaper: 55,
 	branchAngle: 50,
 	branchMirroring: BRANCH_MIRRORING.off,
 	trunkFork: false,
