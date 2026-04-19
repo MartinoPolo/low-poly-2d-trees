@@ -5,6 +5,7 @@
 		ENVIRONMENT_VIEW_HEIGHT,
 		ENVIRONMENT_VIEW_WIDTH,
 	} from '../environment_config.js';
+	import SnowflakeSvg from '$lib/trees/assets/overlays/SnowflakeSvg.svelte';
 
 	const flakes = generateSnowflakes(
 		40,
@@ -22,16 +23,15 @@
 	xmlns="http://www.w3.org/2000/svg"
 >
 	{#each flakes as flake, index (index)}
-		<circle
-			data-testid="snow-particle"
-			cx={flake.x}
-			cy={flake.y}
-			r={flake.size}
-			fill="white"
-			fill-opacity="0.8"
-			class="snow-flake"
-			style="animation-delay: {flake.delay}s; animation-duration: {flake.speed}s; --drift: {flake.drift}px;"
-		/>
+		<g transform="translate({flake.x}, {flake.y})">
+			<g
+				data-testid="snow-particle"
+				class="snow-flake"
+				style="animation-delay: {flake.delay}s; animation-duration: {flake.speed}s; --drift: {flake.drift}px;"
+			>
+				<SnowflakeSvg size={flake.size} />
+			</g>
+		</g>
 	{/each}
 </svg>
 
