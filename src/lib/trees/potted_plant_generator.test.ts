@@ -36,10 +36,10 @@ describe('potted plant — all stages return valid TreeGeometry', () => {
 	const allStages = Object.values(POTTED_PLANT_STAGES);
 
 	for (const stage of allStages) {
-		it(`${stage}: viewBox 300x300, valid anchors, all arrays present`, () => {
+		it(`${stage}: viewBox 500x500, valid anchors, all arrays present`, () => {
 			const geo = generatePottedPlant(makeConfig({ stage }));
-			expect(geo.viewBox.width).toBe(300);
-			expect(geo.viewBox.height).toBe(300);
+			expect(geo.viewBox.width).toBe(500);
+			expect(geo.viewBox.height).toBe(500);
 			expect(hasValidAnchors(geo)).toBe(true);
 			expect(Array.isArray(geo.trunkQuads)).toBe(true);
 			expect(Array.isArray(geo.trunkTriangles)).toBe(true);
@@ -184,23 +184,23 @@ describe('pot is wide planter style', () => {
 		const minX = Math.min(...allX);
 		const maxX = Math.max(...allX);
 		const potWidth = maxX - minX;
-		expect(potWidth).toBeGreaterThanOrEqual(150); // POT_BOTTOM_WIDTH = 0.5 * 300
-		expect(potWidth).toBeLessThanOrEqual(200); // POT_TOP_WIDTH = 0.6 * 300 + margin
+		expect(potWidth).toBeGreaterThanOrEqual(250); // POT_BOTTOM_WIDTH = 0.5 * 500
+		expect(potWidth).toBeLessThanOrEqual(330); // POT_TOP_WIDTH = 0.6 * 500 + margin
 	});
 });
 
 describe('anchors are pot-relative', () => {
 	it('trunkBase is at pot rim (where stem emerges)', () => {
 		const geo = generatePottedPlant(makeConfig({ stage: POTTED_PLANT_STAGES.sprout }));
-		// potTopY = GROUND_LINE_Y - 40 = 285 - 40 = 245
-		expect(geo.anchors.trunkBase.y).toBe(245);
-		expect(geo.anchors.trunkBase.x).toBe(150); // cx = 300/2
+		// potTopY = GROUND_LINE_Y - 67 = 475 - 67 = 408
+		expect(geo.anchors.trunkBase.y).toBe(408);
+		expect(geo.anchors.trunkBase.x).toBe(250); // cx = 500/2
 	});
 
 	it('roots at pot bottom', () => {
 		const geo = generatePottedPlant(makeConfig({ stage: POTTED_PLANT_STAGES.sprout }));
-		// potBottomY = GROUND_LINE_Y = 285
-		expect(geo.anchors.roots.y).toBe(285);
+		// potBottomY = GROUND_LINE_Y = 475
+		expect(geo.anchors.roots.y).toBe(475);
 	});
 });
 

@@ -8,6 +8,7 @@ const config: KnipConfig = {
 		'src/lib/components/ui/*/index.ts',
 		'src/lib/components/ui/*/*.svelte.ts',
 		'src/lib/context/*.svelte.ts',
+		'src/lib/trees/assets/*/index.ts',
 	],
 	project: ['src/**/*.{ts,svelte}'],
 	ignoreDependencies: [

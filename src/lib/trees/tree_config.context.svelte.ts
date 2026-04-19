@@ -41,7 +41,7 @@ class TreeConfigState {
 		} as TreeConfig;
 	}
 
-	/** Reset all params to SHAPE_DEFAULTS for the current species, preserving seed and shape. */
+	/** Reset all params to full defaults for the current species, preserving seed and shape. */
 	resetToShapeDefaults() {
 		const shape = this.current.shape;
 		if (shape === TREE_SHAPES.custom) {
@@ -49,13 +49,7 @@ class TreeConfigState {
 		}
 		const defaults = SHAPE_DEFAULTS[shape as Exclude<TreeShape, 'custom'>];
 		const seed = this.current.seed;
-		for (const [key, value] of Object.entries(defaults)) {
-			(this.current as Record<string, unknown>)[key] = Array.isArray(value)
-				? [...value]
-				: value;
-		}
-		this.current.seed = seed;
-		this.current.shape = shape;
+		this.current = { ...DEFAULT_TREE_CONFIG, ...defaults, seed, shape } as Mutable<TreeConfig>;
 	}
 
 	applyConfig(config: TreeConfig) {

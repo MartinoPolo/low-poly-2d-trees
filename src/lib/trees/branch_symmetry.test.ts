@@ -33,20 +33,30 @@ describe('Branch symmetry species defaults', () => {
 		expect(defaults.trunkFork).toBe(true);
 	});
 
-	it('all other species default to branchMirroring=off, trunkFork=false', () => {
-		const otherShapes = [
+	it('oak, birch, maple, willow, apple, baobab default to branchMirroring=allowed', () => {
+		const allowedShapes = [
 			TREE_SHAPES.oak,
-			TREE_SHAPES.pine,
 			TREE_SHAPES.birch,
-			TREE_SHAPES.fir,
 			TREE_SHAPES.maple,
 			TREE_SHAPES.willow,
-			TREE_SHAPES.cypress,
 			TREE_SHAPES.apple,
-			TREE_SHAPES.bush,
 			TREE_SHAPES.baobab,
 		] as const;
-		for (const shape of otherShapes) {
+		for (const shape of allowedShapes) {
+			const defaults = SHAPE_DEFAULTS[shape];
+			expect(defaults.branchMirroring).toBe(BRANCH_MIRRORING.allowed);
+			expect(defaults.trunkFork).toBe(false);
+		}
+	});
+
+	it('pine, fir, cypress, bush default to branchMirroring=off, trunkFork=false', () => {
+		const offShapes = [
+			TREE_SHAPES.pine,
+			TREE_SHAPES.fir,
+			TREE_SHAPES.cypress,
+			TREE_SHAPES.bush,
+		] as const;
+		for (const shape of offShapes) {
 			const defaults = SHAPE_DEFAULTS[shape];
 			expect(defaults.branchMirroring).toBe(BRANCH_MIRRORING.off);
 			expect(defaults.trunkFork).toBe(false);
@@ -588,12 +598,14 @@ describe('trunk fork flare', () => {
 		const geoFork = generateTree(configWithFork);
 		const geoNoFork = generateTree(configNoFork);
 
-		// The trunk quads should differ — fork version has flared top
-		expect(geoFork.trunkQuads.length).toBe(geoNoFork.trunkQuads.length);
+		// Fork version has fewer trunk quads (topmost segment removed)
+		expect(geoFork.trunkQuads.length).toBeLessThan(geoNoFork.trunkQuads.length);
 
-		// Find the topmost trunk quads and compare widths
-		const topForkQuads = geoFork.trunkQuads.filter((q) => q.points.some((p) => p.y < 150));
-		const topNoForkQuads = geoNoFork.trunkQuads.filter((q) => q.points.some((p) => p.y < 150));
+		// Compare the topmost remaining quads — fork version should be wider due to flare
+		const jd = geoFork.junctionData!;
+		const midY = (jd[0]!.position.y + jd[jd.length - 1]!.position.y) / 2;
+		const topForkQuads = geoFork.trunkQuads.filter((q) => q.points.some((p) => p.y < midY));
+		const topNoForkQuads = geoNoFork.trunkQuads.filter((q) => q.points.some((p) => p.y < midY));
 
 		if (topForkQuads.length > 0 && topNoForkQuads.length > 0) {
 			const forkMaxWidth = Math.max(
@@ -610,6 +622,49 @@ describe('trunk fork flare', () => {
 			);
 			expect(forkMaxWidth).toBeGreaterThan(noForkMaxWidth);
 		}
+	});
+});
+
+// ============================================================================
+// Trunk fork termination (REQ-PRD7-02)
+// ============================================================================
+
+describe('trunk fork termination', () => {
+	it('trunkFork=true produces no trunk quads above fork junction Y', () => {
+		const config = makeConfig({
+			trunkFork: true,
+			branchMirroring: BRANCH_MIRRORING.off,
+			branchDepth: 1,
+			branchesLevel1Range: [2, 3],
+			trunkSegments: 5,
+			seed: 42,
+		});
+		const geo = generateTree(config);
+
+		const forkJunctionY = geo.junctionData![geo.junctionData!.length - 2]!.position.y;
+
+		for (const quad of geo.trunkQuads) {
+			const allAbove = quad.points.every((p) => p.y < forkJunctionY);
+			expect(allAbove).toBe(false);
+		}
+	});
+
+	it('trunkFork=false still has trunk quads above second-from-top junction', () => {
+		const config = makeConfig({
+			trunkFork: false,
+			branchMirroring: BRANCH_MIRRORING.off,
+			branchDepth: 1,
+			branchesLevel1Range: [2, 3],
+			trunkSegments: 5,
+			seed: 42,
+		});
+		const geo = generateTree(config);
+
+		const secondFromTopY = geo.junctionData![geo.junctionData!.length - 2]!.position.y;
+		const hasQuadAbove = geo.trunkQuads.some((q) =>
+			q.points.every((p) => p.y < secondFromTopY),
+		);
+		expect(hasQuadAbove).toBe(true);
 	});
 });
 

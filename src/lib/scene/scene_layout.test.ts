@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { generateSceneLayout } from './scene_layout.js';
+import { generateSceneLayout, computeRowShifts } from './scene_layout.js';
 import {
 	SCENE_SHAPES,
 	LAYER_COUNT,
@@ -138,52 +138,45 @@ describe('generateSceneLayout', () => {
 		});
 	});
 
-	describe('Group 3: Horizontal stagger (even vs odd layers)', () => {
-		it('even layer horizontal stagger: layer 2 x positions offset by half inter-tree distance', () => {
+	describe('Group 3: Seeded row stagger', () => {
+		it('front row (layer 1) has 0% shift', () => {
 			const result = generateSceneLayout({
 				...BASE_CONFIG,
 				treeCount: 20,
 				depthSpread: 50,
 			});
 			const layer1 = result.filter((t) => t.layer === 1);
-			const layer2 = result.filter((t) => t.layer === 2);
-
-			// Layer 1: 10 trees, inter-tree = 100/11
-			// Layer 2: 10 trees, inter-tree = 100/11, offset = 100/11/2
 			const interTree = 100 / 11;
-			const offset = interTree / 2;
 
 			const layer1xs = layer1.map((t) => t.x).sort((a, b) => a - b);
-			const layer2xs = layer2.map((t) => t.x).sort((a, b) => a - b);
-
-			// Layer 1 positions: interTree*1, interTree*2, ...
 			for (let i = 0; i < 10; i++) {
 				expect(layer1xs[i]).toBeCloseTo((i + 1) * interTree, 5);
 			}
-			// Layer 2 positions: offset + interTree*1, offset + interTree*2, ...
-			for (let i = 0; i < 10; i++) {
-				expect(layer2xs[i]).toBeCloseTo(offset + (i + 1) * interTree, 5);
-			}
 		});
 
-		it('odd layer alignment: layer 3 x positions match layer 1 alignment (no stagger)', () => {
+		it('rows 2+ have non-zero shift within 15-45% of inter-tree distance', () => {
 			const result = generateSceneLayout({
 				...BASE_CONFIG,
 				treeCount: 30,
 				depthSpread: 50,
 			});
-			const layer1 = result.filter((t) => t.layer === 1);
-			const layer3 = result.filter((t) => t.layer === 3);
+			const interTree = 100 / 11;
 
-			const layer1xs = layer1.map((t) => t.x).sort((a, b) => a - b);
-			const layer3xs = layer3.map((t) => t.x).sort((a, b) => a - b);
-
-			// Both have 10 trees, same formula, no offset
-			expect(layer1xs).toHaveLength(10);
-			expect(layer3xs).toHaveLength(10);
-			for (let i = 0; i < 10; i++) {
-				expect(layer3xs[i]).toBeCloseTo(layer1xs[i], 5);
+			for (let layerNumber = 2; layerNumber <= 3; layerNumber++) {
+				const layerTrees = result.filter((t) => t.layer === layerNumber);
+				const layerXs = layerTrees.map((t) => t.x).sort((a, b) => a - b);
+				const baseX = 1 * interTree;
+				const shift = layerXs[0]! - baseX;
+				expect(shift).toBeGreaterThanOrEqual(interTree * 0.15 - 0.01);
+				expect(shift).toBeLessThanOrEqual(interTree * 0.45 + 0.01);
 			}
+		});
+
+		it('deterministic: same seed produces same stagger', () => {
+			const config = { ...BASE_CONFIG, treeCount: 30, depthSpread: 50 };
+			const a = generateSceneLayout(config);
+			const b = generateSceneLayout(config);
+			expect(a).toEqual(b);
 		});
 	});
 
@@ -299,5 +292,48 @@ describe('generateSceneLayout', () => {
 			const ids = result.map((t) => t.id).sort((a, b) => (a ?? '').localeCompare(b ?? ''));
 			expect(ids).toEqual(['tree-a', 'tree-b', 'tree-c']);
 		});
+	});
+});
+
+describe('computeRowShifts', () => {
+	it('front row (index 0) is always 0', () => {
+		const shifts = computeRowShifts(5, 42);
+		expect(shifts[0]).toBe(0);
+	});
+
+	it('rows 1+ are within [15, 45]', () => {
+		const shifts = computeRowShifts(10, 42);
+		for (let i = 1; i < shifts.length; i++) {
+			expect(shifts[i]).toBeGreaterThanOrEqual(15);
+			expect(shifts[i]).toBeLessThanOrEqual(45);
+		}
+	});
+
+	it('no two rows within ±3 share position within 10%', () => {
+		const shifts = computeRowShifts(10, 42);
+		for (let i = 0; i < shifts.length; i++) {
+			for (let j = i + 1; j < shifts.length; j++) {
+				if (Math.abs(i - j) <= 3) {
+					expect(Math.abs(shifts[i]! - shifts[j]!)).toBeGreaterThanOrEqual(10 - 0.01);
+				}
+			}
+		}
+	});
+
+	it('deterministic: same seed produces same output', () => {
+		const a = computeRowShifts(10, 42);
+		const b = computeRowShifts(10, 42);
+		expect(a).toEqual(b);
+	});
+
+	it('different seeds produce different shifts', () => {
+		const a = computeRowShifts(5, 42);
+		const b = computeRowShifts(5, 999);
+		expect(a).not.toEqual(b);
+	});
+
+	it('single layer returns [0]', () => {
+		const shifts = computeRowShifts(1, 42);
+		expect(shifts).toEqual([0]);
 	});
 });
