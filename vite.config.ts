@@ -73,6 +73,16 @@ export default defineConfig({
 				},
 			},
 			{
+				extends: './vite.config.ts',
+				test: {
+					name: 'scripts',
+					environment: 'node',
+					include: ['scripts/**/*.{test,spec}.{js,ts}'],
+					pool: 'threads',
+					maxWorkers: 1,
+				},
+			},
+			{
 				extends: true,
 				plugins: [
 					storybookTest({
