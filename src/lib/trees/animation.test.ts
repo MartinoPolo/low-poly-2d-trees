@@ -4,6 +4,7 @@ import {
 	computeBranchDuration,
 	computeBranchDelay,
 	computeCanopyBottomY,
+	computeGrowthScales,
 } from './animation.js';
 import type { BlobGeometry } from './types/core.js';
 
@@ -99,6 +100,39 @@ describe('Animation helpers', () => {
 
 		it('returns 0 for empty blobs', () => {
 			expect(computeCanopyBottomY([])).toBe(0);
+		});
+	});
+
+	describe('computeGrowthScales', () => {
+		it('returns scale 1.0 at 0% variance (no oscillation)', () => {
+			const scales = computeGrowthScales(0);
+			expect(scales.minScale).toBe(1);
+			expect(scales.maxScale).toBe(1);
+			expect(scales.canopyMinScale).toBe(1);
+			expect(scales.canopyMaxScale).toBe(1);
+		});
+
+		it('returns ±0.5 branch amplitude at 100% variance', () => {
+			const scales = computeGrowthScales(100);
+			expect(scales.minScale).toBe(0.5);
+			expect(scales.maxScale).toBe(1.5);
+		});
+
+		it('returns linear scaling at 50% variance', () => {
+			const scales = computeGrowthScales(50);
+			expect(scales.minScale).toBe(0.75);
+			expect(scales.maxScale).toBe(1.25);
+		});
+
+		it('canopy amplitude is subtle (±8% at 100%)', () => {
+			const scales = computeGrowthScales(100);
+			expect(scales.canopyMinScale).toBeCloseTo(0.92, 2);
+			expect(scales.canopyMaxScale).toBeCloseTo(1.08, 2);
+		});
+
+		it('effect clearly visible at 50%+ (amplitude ≥ 0.25)', () => {
+			const scales = computeGrowthScales(50);
+			expect(scales.maxScale - scales.minScale).toBeGreaterThanOrEqual(0.5);
 		});
 	});
 });
