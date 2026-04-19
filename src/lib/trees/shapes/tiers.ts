@@ -28,8 +28,8 @@ export function generateTiers(
 	const centerX = W / 2;
 	const trunkTopY = trunkJunctions[trunkJunctions.length - 1]!.y;
 	const tipY = H * 0.05 + verticalShift;
-	const OVERLAP_FRACTION = 0.1;
-	const overlapAmount = (trunkTopY - tipY) * OVERLAP_FRACTION;
+	const tierTrunkOverlap = 0.1;
+	const overlapAmount = (trunkTopY - tipY) * tierTrunkOverlap;
 	const baseY = trunkTopY + overlapAmount;
 	const totalHeight = baseY - tipY;
 
