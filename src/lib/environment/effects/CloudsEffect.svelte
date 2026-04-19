@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { generateCloudShapes } from '../environment_generators.js';
 	import { ENVIRONMENT_SEEDS, ENVIRONMENT_VIEW_WIDTH } from '../environment_config.js';
+	import CloudSvg from '$lib/trees/assets/overlays/CloudSvg.svelte';
 
 	const clouds = generateCloudShapes(5, ENVIRONMENT_SEEDS.clouds, ENVIRONMENT_VIEW_WIDTH);
 </script>
@@ -18,9 +19,7 @@
 			class="cloud-group"
 			style="--x: {cloud.x}px; --y: {cloud.y * 5}px; animation-delay: {i * 2}s;"
 		>
-			{#each cloud.triangles as pts, ti (ti)}
-				<polygon points={pts} fill="rgba(220,220,230,{cloud.opacity})" />
-			{/each}
+			<CloudSvg triangles={cloud.triangles} opacity={cloud.opacity} />
 		</g>
 	{/each}
 </svg>

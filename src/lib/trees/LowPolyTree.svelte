@@ -32,6 +32,7 @@
 	import WiltingEffect from '$lib/trees/overlays/WiltingEffect.svelte';
 	import GroundElements from '$lib/trees/ground/GroundElements.svelte';
 	import { SeedSvg, SproutingSvg, StumpSvg } from '$lib/trees/assets/stages/index.js';
+	import LeafSvg from '$lib/trees/assets/overlays/LeafSvg.svelte';
 	import {
 		OVERLAY_DEFAULTS,
 		OVERLAY_VIEWBOX_HEADROOM,
@@ -430,7 +431,7 @@
 						class="falling-leaf"
 						style="--leaf-start-x: {leaf.x}px; --leaf-start-y: {leaf.y}px; --leaf-delay: {leaf.delay}s; --leaf-duration: {leaf.duration}s; --leaf-rotation: {leaf.rotation}deg;"
 					>
-						<path d="M0,-2 L1.5,0 L0,2 L-1.5,0 Z" fill={leaf.color} opacity="0.85" />
+						<LeafSvg color={leaf.color} />
 					</g>
 				{/each}
 			</g>
