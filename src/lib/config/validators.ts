@@ -77,7 +77,6 @@ export function isValidTreeConfig(value: unknown): value is TreeConfig {
 		hasNumberPair(o, 'branchesLevel3Range') &&
 		hasNumber(o, 'branchSegments') &&
 		hasNumber(o, 'branchCrookedness') &&
-		hasNumber(o, 'branchDepthTaper') &&
 		hasNumber(o, 'branchAngle') &&
 		hasString(o, 'branchMirroring') &&
 		BRANCH_MIRRORING_VALUES.has(o.branchMirroring as string) &&
