@@ -1512,8 +1512,8 @@ describe('B2: oak redesign', () => {
 		}
 	});
 
-	it('oak trunkBaseWidth is 32 (thick trunk)', () => {
-		expect(shapeDef.trunkBaseWidth).toBe(32);
+	it('oak trunkBaseWidth is 53 (thick trunk)', () => {
+		expect(shapeDef.trunkBaseWidth).toBe(53);
 	});
 });
 
@@ -1537,8 +1537,8 @@ describe('B3: birch redesign', () => {
 		expect(maxCx - minCx).toBeGreaterThan(W * 0.15);
 	});
 
-	it('birch ShapeDefinition: trunkBaseWidth <= 18 (thin trunk)', () => {
-		expect(shapeDef.trunkBaseWidth).toBeLessThanOrEqual(18);
+	it('birch ShapeDefinition: trunkBaseWidth <= 30 (thin trunk)', () => {
+		expect(shapeDef.trunkBaseWidth).toBeLessThanOrEqual(30);
 	});
 });
 

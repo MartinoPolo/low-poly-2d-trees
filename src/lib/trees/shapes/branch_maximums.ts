@@ -2,7 +2,7 @@ import { BRANCH_MIRRORING, type TreeShape, type BranchMirroring } from '../types
 import { getShapeDefinition } from './blob_generators.js';
 import { computeEffectiveTrunkTop } from './trunk.js';
 
-const MIN_BRANCH_SPACING = 20;
+const MIN_BRANCH_SPACING = 33;
 const CHILD_LEVEL_SCALE_FACTOR = 0.6;
 const MIN_BRANCHES_PER_LEVEL = 1;
 

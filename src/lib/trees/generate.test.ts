@@ -99,11 +99,11 @@ function allBranchQuads(geo: TreeGeometry): Quad[] {
 // ============================================================================
 
 describe('REQ-R: Rendering', () => {
-	describe('REQ-R-01: viewBox 300×300', () => {
-		it('produces a viewBox of 300×300', () => {
+	describe('REQ-R-01: viewBox 500×500', () => {
+		it('produces a viewBox of 500×500', () => {
 			const geo = generateTree(makeConfig());
-			expect(geo.viewBox.width).toBe(300);
-			expect(geo.viewBox.height).toBe(300);
+			expect(geo.viewBox.width).toBe(500);
+			expect(geo.viewBox.height).toBe(500);
 		});
 	});
 
@@ -571,17 +571,17 @@ describe('REQ-T: Trunk & Branch Generation', () => {
 	});
 
 	describe('REQ-T-03/T-04: trunk top entry clearance', () => {
-		// Clamp guarantees ANALYTICAL (cy + ry) penetration of ≥15 px. Sampled
+		// Clamp guarantees ANALYTICAL (cy + ry) penetration of ≥25 px. Sampled
 		// triangle vertices can fall up to RADIAL_JITTER_FACTOR * ry inward, so
-		// we assert triangle-level penetration of ≥12 px (15 minus 3 px slack).
-		it('anchors.trunkTop.y + 12 is above the lowest canopy vertex', () => {
+		// we assert triangle-level penetration of ≥20 px (25 minus 5 px slack).
+		it('anchors.trunkTop.y + 20 is above the lowest canopy vertex', () => {
 			const geo = generateTree(makeConfig({ seed: 42 }));
 			const canopyMaxY = Math.max(
 				...geo.canopyBlobs.flatMap((b) =>
 					b.triangles.flatMap((t) => t.points.map((p) => p.y)),
 				),
 			);
-			expect(geo.anchors.trunkTop.y + 12).toBeLessThanOrEqual(canopyMaxY);
+			expect(geo.anchors.trunkTop.y + 20).toBeLessThanOrEqual(canopyMaxY);
 		});
 	});
 
@@ -596,27 +596,27 @@ describe('REQ-T: Trunk & Branch Generation', () => {
 	});
 
 	describe('REQ-T-02b: canopy follows trunk height', () => {
-		// Pine (branchless): defaultTrunkTop = H*0.8 = 240, trunkBottom = H*0.95 = 285.
-		// trunkHeight=50 → eff = 285 - 45*0.5 = 262.5 → delta = +22.5 (canopy shifts down).
+		// Pine (branchless): defaultTrunkTop = H*0.8 = 400, trunkBottom = H*0.95 = 475.
+		// trunkHeight=50 → eff = 475 - 75*0.5 = 437.5 → delta = +37.5 (canopy shifts down).
 		// Use pine because branching shapes have clustering-driven canopy offsets.
-		it('pine canopy centroid shifts down by 22.5 when trunkHeight drops 100 → 50 (first)', () => {
+		it('pine canopy centroid shifts down by 37.5 when trunkHeight drops 100 → 50 (first)', () => {
 			const base = generateTree(makeConfig({ trunkHeight: 100, seed: 42, shape: 'pine' }));
 			const shortTrunk = generateTree(
 				makeConfig({ trunkHeight: 50, seed: 42, shape: 'pine' }),
 			);
 			const shift = shortTrunk.anchors.crownCenter.y - base.anchors.crownCenter.y;
-			expect(shift).toBeCloseTo(22.5, 5);
+			expect(shift).toBeCloseTo(37.5, 5);
 		});
 
-		// Pine (#62): defaultTrunkTop = H*0.8 = 240, trunkBottom = H*0.95 = 285.
-		// trunkHeight=50 → eff = 285 - 45*0.5 = 262.5 → delta = +22.5.
-		it('pine canopy centroid shifts down by 22.5 when trunkHeight drops 100 → 50', () => {
+		// Pine (#62): defaultTrunkTop = H*0.8 = 400, trunkBottom = H*0.95 = 475.
+		// trunkHeight=50 → eff = 475 - 75*0.5 = 437.5 → delta = +37.5.
+		it('pine canopy centroid shifts down by 37.5 when trunkHeight drops 100 → 50', () => {
 			const base = generateTree(makeConfig({ trunkHeight: 100, seed: 42, shape: 'pine' }));
 			const shortTrunk = generateTree(
 				makeConfig({ trunkHeight: 50, seed: 42, shape: 'pine' }),
 			);
 			const shift = shortTrunk.anchors.crownCenter.y - base.anchors.crownCenter.y;
-			expect(shift).toBeCloseTo(22.5, 5);
+			expect(shift).toBeCloseTo(37.5, 5);
 		});
 
 		// Canopy shift must equal the effectiveTrunkTop shift (delta invariant).
@@ -892,7 +892,7 @@ describe('REQ-T: Trunk & Branch Generation', () => {
 			const trunkTopShiftX = leaned.anchors.trunkTop.x - base.anchors.trunkTop.x;
 			// Larger envelopes may clip at viewport edges, introducing a small
 			// discrepancy between trunk-top shift and canopy-center shift.
-			expect(Math.abs(canopyShiftX - trunkTopShiftX)).toBeLessThan(10);
+			expect(Math.abs(canopyShiftX - trunkTopShiftX)).toBeLessThan(17);
 		});
 
 		it('trunk mesh is generated with multi-segment crooked configuration', () => {
@@ -1050,7 +1050,7 @@ describe('REQ-O: Output', () => {
 			expect(geo).toHaveProperty('canopyBlobs');
 			expect(geo).toHaveProperty('anchors');
 			expect(geo).toHaveProperty('viewBox');
-			expect(geo.viewBox).toEqual({ width: 300, height: 300 });
+			expect(geo.viewBox).toEqual({ width: 500, height: 500 });
 		});
 	});
 
@@ -1440,8 +1440,8 @@ describe('Issue #63: new tree shapes', () => {
 		const trunkMinY = Math.min(...trunkVerts.map((p) => p.y));
 		const trunkMaxY = Math.max(...trunkVerts.map((p) => p.y));
 		const trunkHeight = trunkMaxY - trunkMinY;
-		// Bush trunk should be < 6% of 300px viewBox = 18px
-		expect(trunkHeight).toBeLessThan(18);
+		// Bush trunk should be < 6% of 500px viewBox = 30px
+		expect(trunkHeight).toBeLessThan(30);
 	});
 
 	it('acacia canopy is wider than tall (flat-topped)', () => {
@@ -1491,8 +1491,8 @@ describe('Issue #63: new tree shapes', () => {
 		for (const stage of stages) {
 			const geo = generateTree(makeConfig({ shape, stage, seed: 42 }));
 			expect(geo).toBeDefined();
-			expect(geo.viewBox.width).toBe(300);
-			expect(geo.viewBox.height).toBe(300);
+			expect(geo.viewBox.width).toBe(500);
+			expect(geo.viewBox.height).toBe(500);
 		}
 	});
 });
@@ -1647,10 +1647,10 @@ describe('Issue #10: custom tree shape', () => {
 				) / tris.length
 			);
 		};
-		// Position delta is 0.5·spreadRadius (0.5 · 300·0.22 = 33).
+		// Position delta is 0.5·spreadRadius (0.5 · 500·0.22 = 55).
 		const delta = meanX(shifted) - meanX(centered);
-		expect(delta).toBeGreaterThan(25);
-		expect(delta).toBeLessThan(45);
+		expect(delta).toBeGreaterThan(40);
+		expect(delta).toBeLessThan(75);
 	});
 
 	it('custom blob with sizeScale=2.0 roughly doubles the bbox vs sizeScale=1.0', () => {
@@ -2148,10 +2148,10 @@ describe('VQ-3: branchDepth config', () => {
 			trunkJunctions,
 			blobs,
 		);
-		// Trunk-origin branches use TRUNK_BRANCH_WIDTH_START_MIN (7) at scale 1.0,
-		// while sub-sub-branches use SUB_BRANCH_WIDTH_MIN (3.5) at scale 0.5 = 1.75.
+		// Trunk-origin branches use TRUNK_BRANCH_WIDTH_START_MIN (12) at scale 1.0,
+		// while sub-sub-branches use SUB_BRANCH_WIDTH_MIN (5.83) at scale 0.5 = 2.92.
 		// At least one branch should be thinner than the trunk-origin minimum.
-		const trunkMinWidthAtScale1 = 7; // TRUNK_BRANCH_WIDTH_START_MIN
+		const trunkMinWidthAtScale1 = 12; // TRUNK_BRANCH_WIDTH_START_MIN
 		const allWidths = branches.map((b) => b.segment.widthStart);
 		const minOverallWidth = Math.min(...allWidths);
 		expect(minOverallWidth).toBeLessThan(trunkMinWidthAtScale1);
@@ -2277,9 +2277,9 @@ describe('VQ-1: trunk quads', () => {
 			expect(quad.points).toHaveLength(4);
 			for (const p of quad.points) {
 				expect(p.x).toBeGreaterThanOrEqual(0);
-				expect(p.x).toBeLessThanOrEqual(300);
+				expect(p.x).toBeLessThanOrEqual(500);
 				expect(p.y).toBeGreaterThanOrEqual(0);
-				expect(p.y).toBeLessThanOrEqual(300);
+				expect(p.y).toBeLessThanOrEqual(500);
 			}
 		}
 	});
@@ -2796,7 +2796,7 @@ describe('EV2-C Group 1: Branch Fork Width Economics', () => {
 		for (const group of l1Branches) {
 			const tipWidth = measureBranchTipWidth(group);
 			expect(tipWidth).toBeGreaterThanOrEqual(0.5);
-			expect(tipWidth).toBeLessThan(7.0);
+			expect(tipWidth).toBeLessThan(12.0);
 		}
 	});
 
@@ -3220,9 +3220,9 @@ describe('REQ-EV2-BC: Branch-Driven Canopy', () => {
 		const centerMargin = 8;
 		for (const blob of geo.canopyBlobs) {
 			expect(blob.center.x).toBeGreaterThanOrEqual(centerMargin);
-			expect(blob.center.x).toBeLessThanOrEqual(300 - centerMargin);
+			expect(blob.center.x).toBeLessThanOrEqual(500 - centerMargin);
 			expect(blob.center.y).toBeGreaterThanOrEqual(centerMargin);
-			expect(blob.center.y).toBeLessThanOrEqual(300 - centerMargin);
+			expect(blob.center.y).toBeLessThanOrEqual(500 - centerMargin);
 		}
 	});
 
@@ -3366,8 +3366,8 @@ describe('Issue #110: Pine tier width reduction', () => {
 		// Pine tiers produce canopy triangles — canopy should be narrower than
 		// the old formula which produced widths close to the full viewport.
 		const bounds = canopyBounds(geo);
-		// Old formula: (0.105 + 0.385) * 300 = 147 half-width → ~294 full with jitter.
-		// New formula: (0.084 + 0.308) * 300 = 117.6 half-width → ~240 full with jitter.
+		// Old formula: (0.105 + 0.385) * 500 = 245 half-width → ~490 full with jitter.
+		// New formula: (0.084 + 0.308) * 500 = 196 half-width → ~392 full with jitter.
 		expect(bounds.width).toBeLessThan(VIEWBOX_WIDTH * 0.85);
 	});
 });

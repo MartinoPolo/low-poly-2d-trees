@@ -591,12 +591,12 @@ export function growCustomBlobs(
 // Shape definition registry
 // ---------------------------------------------------------------------------
 
-export const TRUNK_ENTRY_MIN_PX = 15;
+export const TRUNK_ENTRY_MIN_PX = 25;
 
 const shapeDefinitions: Record<TreeShape, ShapeDefinition> = {
 	oak: {
-		trunkBaseWidth: 32,
-		trunkTopWidth: 20,
+		trunkBaseWidth: 53,
+		trunkTopWidth: 33,
 		trunkBottom: H * 0.95,
 		defaultTrunkTop: H * 0.45,
 		generateBlobs: generateOakBlobs,
@@ -614,8 +614,8 @@ const shapeDefinitions: Record<TreeShape, ShapeDefinition> = {
 		},
 	},
 	pine: {
-		trunkBaseWidth: 21,
-		trunkTopWidth: 12.25,
+		trunkBaseWidth: 35,
+		trunkTopWidth: 20,
 		trunkBottom: H * 0.95,
 		defaultTrunkTop: H * 0.8,
 		generateBlobs() {
@@ -623,8 +623,8 @@ const shapeDefinitions: Record<TreeShape, ShapeDefinition> = {
 		},
 	},
 	birch: {
-		trunkBaseWidth: 16,
-		trunkTopWidth: 9,
+		trunkBaseWidth: 27,
+		trunkTopWidth: 15,
 		trunkBottom: H * 0.95,
 		defaultTrunkTop: H * 0.45,
 		generateBlobs: generateBirchBlobs,
@@ -642,8 +642,8 @@ const shapeDefinitions: Record<TreeShape, ShapeDefinition> = {
 		},
 	},
 	fir: {
-		trunkBaseWidth: 19,
-		trunkTopWidth: 11,
+		trunkBaseWidth: 32,
+		trunkTopWidth: 18,
 		trunkBottom: H * 0.95,
 		defaultTrunkTop: H * 0.82,
 		generateBlobs() {
@@ -651,8 +651,8 @@ const shapeDefinitions: Record<TreeShape, ShapeDefinition> = {
 		},
 	},
 	maple: {
-		trunkBaseWidth: 28,
-		trunkTopWidth: 17.5,
+		trunkBaseWidth: 47,
+		trunkTopWidth: 29,
 		trunkBottom: H * 0.95,
 		defaultTrunkTop: H * 0.45,
 		generateBlobs: generateMapleBlobs,
@@ -670,8 +670,8 @@ const shapeDefinitions: Record<TreeShape, ShapeDefinition> = {
 		},
 	},
 	willow: {
-		trunkBaseWidth: 28,
-		trunkTopWidth: 17.5,
+		trunkBaseWidth: 47,
+		trunkTopWidth: 29,
 		trunkBottom: H * 0.95,
 		defaultTrunkTop: H * 0.45,
 		generateBlobs: generateWillowBlobs,
@@ -689,15 +689,15 @@ const shapeDefinitions: Record<TreeShape, ShapeDefinition> = {
 		},
 	},
 	cypress: {
-		trunkBaseWidth: 14,
-		trunkTopWidth: 8,
+		trunkBaseWidth: 23,
+		trunkTopWidth: 13,
 		trunkBottom: H * 0.95,
 		defaultTrunkTop: H * 0.2,
 		generateBlobs: generateCypressBlobs,
 	},
 	apple: {
-		trunkBaseWidth: 32,
-		trunkTopWidth: 22,
+		trunkBaseWidth: 53,
+		trunkTopWidth: 37,
 		trunkBottom: H * 0.95,
 		defaultTrunkTop: H * 0.55,
 		generateBlobs: generateAppleBlobs,
@@ -715,8 +715,8 @@ const shapeDefinitions: Record<TreeShape, ShapeDefinition> = {
 		},
 	},
 	cherry: {
-		trunkBaseWidth: 22,
-		trunkTopWidth: 14,
+		trunkBaseWidth: 37,
+		trunkTopWidth: 23,
 		trunkBottom: H * 0.95,
 		defaultTrunkTop: H * 0.45,
 		generateBlobs: generateCherryBlobs,
@@ -734,15 +734,15 @@ const shapeDefinitions: Record<TreeShape, ShapeDefinition> = {
 		},
 	},
 	bush: {
-		trunkBaseWidth: 10,
-		trunkTopWidth: 6,
+		trunkBaseWidth: 17,
+		trunkTopWidth: 10,
 		trunkBottom: H * 0.92,
 		defaultTrunkTop: H * 0.88,
 		generateBlobs: generateBushBlobs,
 	},
 	baobab: {
-		trunkBaseWidth: 50,
-		trunkTopWidth: 20,
+		trunkBaseWidth: 83,
+		trunkTopWidth: 33,
 		trunkBottom: H * 0.95,
 		defaultTrunkTop: H * 0.25,
 		generateBlobs: generateBaobabBlobs,
@@ -760,8 +760,8 @@ const shapeDefinitions: Record<TreeShape, ShapeDefinition> = {
 		},
 	},
 	acacia: {
-		trunkBaseWidth: 16,
-		trunkTopWidth: 10,
+		trunkBaseWidth: 27,
+		trunkTopWidth: 17,
 		trunkBottom: H * 0.95,
 		defaultTrunkTop: H * 0.35,
 		generateBlobs: generateAcaciaBlobs,
@@ -779,8 +779,8 @@ const shapeDefinitions: Record<TreeShape, ShapeDefinition> = {
 		},
 	},
 	custom: {
-		trunkBaseWidth: 28,
-		trunkTopWidth: 17.5,
+		trunkBaseWidth: 47,
+		trunkTopWidth: 29,
 		trunkBottom: H * 0.95,
 		defaultTrunkTop: H * 0.45,
 		generateBlobs() {
