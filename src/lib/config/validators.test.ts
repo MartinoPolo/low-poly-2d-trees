@@ -1,21 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import {
-	isValidTreeConfig,
-	isValidSceneConfig,
-	isValidEnvironmentConfig,
-	debugTreeConfigValidation,
-} from './validators.js';
+import { isValidTreeConfig, isValidSceneConfig, isValidEnvironmentConfig } from './validators.js';
 import { DEFAULT_TREE_CONFIG } from '$lib/trees/types.js';
 import { SCENE_DEFAULTS } from '$lib/scene/scene_config.js';
 import { ENVIRONMENT_DEFAULTS } from '$lib/environment/environment_config.js';
 
 describe('isValidTreeConfig', () => {
 	it('accepts DEFAULT_TREE_CONFIG', () => {
-		const result = debugTreeConfigValidation(DEFAULT_TREE_CONFIG);
-		if (!result.success) {
-			console.error('Validation issues:', JSON.stringify(result.issues, null, 2));
-		}
-		expect(result.success).toBe(true);
+		expect(isValidTreeConfig(DEFAULT_TREE_CONFIG)).toBe(true);
 	});
 
 	it('accepts DEFAULT_TREE_CONFIG with customBlobs', () => {
