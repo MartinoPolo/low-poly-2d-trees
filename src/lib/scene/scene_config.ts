@@ -27,7 +27,7 @@ export interface SceneConfig {
 }
 
 export const SCENE_DEFAULTS: SceneConfig = {
-	treeCount: 3,
+	treeCount: 10,
 	depthSpread: 0,
 	baseSeed: 42,
 } as const;

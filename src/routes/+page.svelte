@@ -32,13 +32,21 @@
 	import SceneFloatingButtons from '$lib/components/app-shell/SceneFloatingButtons.svelte';
 	import SettingsTierControl from '$lib/components/composed/SettingsTierControl.svelte';
 	import { use_settings_tier, tierAtLeast } from '$lib/context/settings_tier.context.svelte.js';
+	import { Persisted, jsonSerde } from '$lib/reactivity/persisted.svelte.js';
+	import { isValidBoolean } from '$lib/config/validators.js';
+
+	const USE_PER_SHAPE_DEFAULTS_KEY = 'use-per-shape-defaults';
 
 	const treeConfig = createTreeConfigContext();
 	const sceneConfig = createSceneConfigContext();
 	const environmentConfig = createEnvironmentConfigContext();
 	const overlayConfig = createOverlayConfigContext();
 
-	let usePerShapeDefaults = $state(false);
+	const usePerShapeDefaults = new Persisted<boolean>({
+		key: USE_PER_SHAPE_DEFAULTS_KEY,
+		serde: jsonSerde(isValidBoolean),
+		defaultValue: true,
+	});
 	let showAnchors = $state(false);
 	let showCanopy = $state(true);
 	let showBranches = $state(true);
@@ -71,6 +79,13 @@
 
 	function randomizeSeed() {
 		treeConfig.current.seed = Math.floor(Math.random() * 100000);
+	}
+
+	function resetAll() {
+		treeConfig.resetToShapeDefaults();
+		sceneConfig.resetToDefaults();
+		environmentConfig.resetToDefaults();
+		usePerShapeDefaults.setDefaultValue();
 	}
 </script>
 
@@ -115,19 +130,19 @@
 						trunkCrookedness: shapeDefaults.trunkCrookedness,
 						branchLength: shapeDefaults.branchLength,
 						branchLengthVariance: shapeDefaults.branchLengthVariance,
-						canopyLightColor: usePerShapeDefaults
+						canopyLightColor: usePerShapeDefaults.current
 							? shapeDefaults.canopyLightColor
 							: treeConfig.current.canopyLightColor,
-						canopyDarkColor: usePerShapeDefaults
+						canopyDarkColor: usePerShapeDefaults.current
 							? shapeDefaults.canopyDarkColor
 							: treeConfig.current.canopyDarkColor,
-						trunkHue: usePerShapeDefaults
+						trunkHue: usePerShapeDefaults.current
 							? shapeDefaults.trunkHue
 							: treeConfig.current.trunkHue,
-						trunkSaturation: usePerShapeDefaults
+						trunkSaturation: usePerShapeDefaults.current
 							? shapeDefaults.trunkSaturation
 							: treeConfig.current.trunkSaturation,
-						trunkLightness: usePerShapeDefaults
+						trunkLightness: usePerShapeDefaults.current
 							? shapeDefaults.trunkLightness
 							: treeConfig.current.trunkLightness,
 					}}
@@ -169,10 +184,7 @@
 
 		<EnvironmentOverlay config={environmentConfig} lightAngle={treeConfig.current.lightAngle} />
 
-		<SceneFloatingButtons
-			onReset={() => treeConfig.resetToShapeDefaults()}
-			onRandomize={randomizeSeed}
-		/>
+		<SceneFloatingButtons onReset={resetAll} onRandomize={randomizeSeed} />
 	</div>
 
 	<!-- Shared Controls -->
@@ -189,15 +201,6 @@
 					bind:value={sceneConfig.treeCount}
 					id="tree-count"
 				/>
-				<div class="space-y-2">
-					<Label>Base Seed</Label>
-					<div class="flex gap-2">
-						<Input type="number" bind:value={treeConfig.current.seed} class="flex-1" />
-						<Button variant="outline" size="icon" onclick={randomizeSeed}>
-							<Shuffle />
-						</Button>
-					</div>
-				</div>
 				{#if isIntermediate}
 					<LabeledSlider
 						label="Depth Spread"
@@ -208,6 +211,19 @@
 					/>
 				{/if}
 				{#if isAdvanced}
+					<div class="space-y-2">
+						<Label>Base Seed</Label>
+						<div class="flex gap-2">
+							<Input
+								type="number"
+								bind:value={treeConfig.current.seed}
+								class="flex-1"
+							/>
+							<Button variant="outline" size="icon" onclick={randomizeSeed}>
+								<Shuffle />
+							</Button>
+						</div>
+					</div>
 					<div class="space-y-2">
 						<Label>Polygons Per Blob: {treeConfig.current.polygonsPerBlob}</Label>
 						<input
@@ -270,7 +286,7 @@
 				{/if}
 			</SectionCard>
 
-			<SectionCard title="Trunk & Branches" contentClass="space-y-4">
+			<SectionCard title="Trunk" contentClass="space-y-4">
 				<div class="space-y-2">
 					<Label>Trunk Height: {treeConfig.current.trunkHeight}%</Label>
 					<input
@@ -293,17 +309,6 @@
 					/>
 				</div>
 				{#if isIntermediate}
-					<div class="space-y-2">
-						<Label>Branch Thickness: {treeConfig.current.branchThickness}%</Label>
-						<input
-							type="range"
-							min="25"
-							max="400"
-							step="5"
-							bind:value={treeConfig.current.branchThickness}
-							class="w-full accent-primary"
-						/>
-					</div>
 					<LabeledSlider
 						label="Trunk Lean"
 						min={-45}
@@ -328,6 +333,22 @@
 						bind:value={treeConfig.current.trunkCrookedness}
 						disabled={trunkCrookednessDisabled}
 					/>
+				{/if}
+			</SectionCard>
+
+			{#if isIntermediate}
+				<SectionCard title="Branches" contentClass="space-y-4">
+					<div class="space-y-2">
+						<Label>Branch Thickness: {treeConfig.current.branchThickness}%</Label>
+						<input
+							type="range"
+							min="25"
+							max="400"
+							step="5"
+							bind:value={treeConfig.current.branchThickness}
+							class="w-full accent-primary"
+						/>
+					</div>
 					<LabeledSlider
 						label="Branch Length"
 						min={25}
@@ -344,25 +365,38 @@
 						unit="%"
 						bind:value={treeConfig.current.branchLengthVariance}
 					/>
-				{/if}
-				{#if isAdvanced}
-					<LabeledSlider
-						label="Depth Variance"
-						min={0}
-						max={2}
-						step={0.1}
-						format={(v) => v.toFixed(1)}
-						bind:value={treeConfig.current.depthVariance}
+					{#if isAdvanced}
+						<LabeledSlider
+							label="Depth Variance"
+							min={0}
+							max={2}
+							step={0.1}
+							format={(v) => v.toFixed(1)}
+							bind:value={treeConfig.current.depthVariance}
+						/>
+					{/if}
+				</SectionCard>
+			{/if}
+
+			<SectionCard title="Lighting" contentClass="space-y-4">
+				<div class="space-y-2">
+					<Label>Light Angle: {treeConfig.current.lightAngle}°</Label>
+					<input
+						type="range"
+						min="0"
+						max="360"
+						bind:value={treeConfig.current.lightAngle}
+						class="w-full accent-primary"
 					/>
-				{/if}
+				</div>
 			</SectionCard>
 
 			<SectionCard title="Color Mode" contentClass="space-y-4">
 				<div class="flex items-center gap-2">
 					<Checkbox
 						id="use-per-shape-defaults"
-						checked={usePerShapeDefaults}
-						onCheckedChange={(v) => (usePerShapeDefaults = v === true)}
+						checked={usePerShapeDefaults.current}
+						onCheckedChange={(v) => (usePerShapeDefaults.current = v === true)}
 					/>
 					<Label for="use-per-shape-defaults">Use per-shape default colors</Label>
 				</div>
@@ -372,33 +406,22 @@
 				</p>
 			</SectionCard>
 
-			<CanopyColorCard
-				bind:lightColor={treeConfig.current.canopyLightColor}
-				bind:darkColor={treeConfig.current.canopyDarkColor}
-				disabled={usePerShapeDefaults}
-			/>
+			<div class="col-span-full grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-6">
+				<CanopyColorCard
+					bind:lightColor={treeConfig.current.canopyLightColor}
+					bind:darkColor={treeConfig.current.canopyDarkColor}
+					disabled={usePerShapeDefaults.current}
+				/>
 
-			<TrunkColorCard
-				bind:hue={treeConfig.current.trunkHue}
-				bind:saturation={treeConfig.current.trunkSaturation}
-				bind:lightness={treeConfig.current.trunkLightness}
-				disabled={usePerShapeDefaults}
-			/>
+				<TrunkColorCard
+					bind:hue={treeConfig.current.trunkHue}
+					bind:saturation={treeConfig.current.trunkSaturation}
+					bind:lightness={treeConfig.current.trunkLightness}
+					disabled={usePerShapeDefaults.current}
+				/>
+			</div>
 
 			{#if isIntermediate}
-				<SectionCard title="Lighting" contentClass="space-y-4">
-					<div class="space-y-2">
-						<Label>Light Angle: {treeConfig.current.lightAngle}°</Label>
-						<input
-							type="range"
-							min="0"
-							max="360"
-							bind:value={treeConfig.current.lightAngle}
-							class="w-full accent-primary"
-						/>
-					</div>
-				</SectionCard>
-
 				<SectionCard title="Environment" contentClass="space-y-4">
 					<div class="flex items-center gap-2">
 						<Checkbox

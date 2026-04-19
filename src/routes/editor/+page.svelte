@@ -5,6 +5,7 @@
 	import LabeledRangeSliderDual from '$lib/components/composed/LabeledRangeSliderDual.svelte';
 
 	import CustomBlobsEditor from '$lib/components/composed/CustomBlobsEditor.svelte';
+	import SectionCard from '$lib/components/composed/SectionCard.svelte';
 	import CanopyColorCard from '$lib/components/composed/CanopyColorCard.svelte';
 	import TrunkColorCard from '$lib/components/composed/TrunkColorCard.svelte';
 	import { Label } from '$lib/components/ui/label/index.js';
@@ -89,7 +90,6 @@
 			fruitType: treeConfig.current.fruitType,
 		}),
 	);
-	const fruitTypeDisabled = $derived(isParamDisabled(treeConfig.current.shape, 'fruitType', {}));
 	const level1Disabled = $derived(
 		isParamDisabled(treeConfig.current.shape, 'branchesLevel1Range', {
 			branchDepth: treeConfig.current.branchDepth,
@@ -361,19 +361,21 @@
 						onValueChange={onStageChange}
 					/>
 
-					<div class="space-y-2">
-						<Label>Seed</Label>
-						<div class="flex gap-2">
-							<Input
-								type="number"
-								bind:value={treeConfig.current.seed}
-								class="flex-1"
-							/>
-							<Button variant="outline" size="icon" onclick={randomizeSeed}>
-								<Shuffle />
-							</Button>
+					{#if isAdvanced}
+						<div class="space-y-2">
+							<Label>Seed</Label>
+							<div class="flex gap-2">
+								<Input
+									type="number"
+									bind:value={treeConfig.current.seed}
+									class="flex-1"
+								/>
+								<Button variant="outline" size="icon" onclick={randomizeSeed}>
+									<Shuffle />
+								</Button>
+							</div>
 						</div>
-					</div>
+					{/if}
 				</Card.Content>
 			</Card.Root>
 
@@ -438,42 +440,45 @@
 				/>
 			{/if}
 
+			{#if treeConfig.current.shape === TREE_SHAPES.custom}
+				<Card.Root>
+					<Card.Header>
+						<Card.Title>Growables</Card.Title>
+					</Card.Header>
+					<Card.Content class="space-y-4">
+						<LabeledSelect
+							label="Fruit Type"
+							options={FRUIT_TYPE_OPTIONS}
+							value={treeConfig.current.fruitType}
+							onValueChange={onFruitTypeChange}
+						/>
+						<LabeledSlider
+							label="Fruit Count"
+							min={0}
+							max={7}
+							bind:value={treeConfig.current.fruitCount}
+							disabled={fruitCountDisabled}
+						/>
+					</Card.Content>
+				</Card.Root>
+			{/if}
+
+			<div class="col-span-full grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-6">
+				<CanopyColorCard
+					bind:lightColor={treeConfig.current.canopyLightColor}
+					bind:darkColor={treeConfig.current.canopyDarkColor}
+				/>
+
+				<TrunkColorCard
+					bind:hue={treeConfig.current.trunkHue}
+					bind:saturation={treeConfig.current.trunkSaturation}
+					bind:lightness={treeConfig.current.trunkLightness}
+				/>
+			</div>
+
 			<Card.Root>
 				<Card.Header>
-					<Card.Title>Growables</Card.Title>
-				</Card.Header>
-				<Card.Content class="space-y-4">
-					<LabeledSelect
-						label="Fruit Type"
-						options={FRUIT_TYPE_OPTIONS}
-						value={treeConfig.current.fruitType}
-						onValueChange={onFruitTypeChange}
-						disabled={fruitTypeDisabled}
-					/>
-					<LabeledSlider
-						label="Fruit Count"
-						min={0}
-						max={7}
-						bind:value={treeConfig.current.fruitCount}
-						disabled={fruitCountDisabled}
-					/>
-				</Card.Content>
-			</Card.Root>
-
-			<CanopyColorCard
-				bind:lightColor={treeConfig.current.canopyLightColor}
-				bind:darkColor={treeConfig.current.canopyDarkColor}
-			/>
-
-			<TrunkColorCard
-				bind:hue={treeConfig.current.trunkHue}
-				bind:saturation={treeConfig.current.trunkSaturation}
-				bind:lightness={treeConfig.current.trunkLightness}
-			/>
-
-			<Card.Root>
-				<Card.Header>
-					<Card.Title>Trunk & Branches</Card.Title>
+					<Card.Title>Trunk</Card.Title>
 				</Card.Header>
 				<Card.Content class="space-y-4">
 					<LabeledSlider
@@ -494,14 +499,6 @@
 
 					{#if isIntermediate}
 						<LabeledSlider
-							label="Branch Thickness"
-							min={25}
-							max={400}
-							step={5}
-							unit="%"
-							bind:value={treeConfig.current.branchThickness}
-						/>
-						<LabeledSlider
 							label="Trunk Segments"
 							min={1}
 							max={10}
@@ -516,6 +513,60 @@
 							unit="%"
 							bind:value={treeConfig.current.trunkCrookedness}
 							disabled={trunkCrookednessDisabled}
+						/>
+					{/if}
+
+					{#if isAdvanced}
+						<LabeledSlider
+							label="Trunk Lean"
+							min={-45}
+							max={45}
+							step={1}
+							unit="°"
+							bind:value={treeConfig.current.trunkLean}
+						/>
+						<LabeledSlider
+							label="Trunk Twist"
+							min={0}
+							max={100}
+							step={5}
+							unit="%"
+							bind:value={treeConfig.current.trunkTwist}
+							disabled={isParamDisabled(
+								treeConfig.current.shape,
+								'trunkTwist',
+								treeConfig.current,
+							)}
+						/>
+						<LabeledSelect
+							label="Crookedness Mode"
+							options={CROOKEDNESS_MODE_OPTIONS}
+							value={treeConfig.current.crookednessMode}
+							onValueChange={(v) => {
+								if (v in CROOKEDNESS_MODES) {
+									treeConfig.current.crookednessMode =
+										v as (typeof CROOKEDNESS_MODES)[keyof typeof CROOKEDNESS_MODES];
+								}
+							}}
+							disabled={crookednessModeDisabled}
+						/>
+					{/if}
+				</Card.Content>
+			</Card.Root>
+
+			<Card.Root>
+				<Card.Header>
+					<Card.Title>Branches</Card.Title>
+				</Card.Header>
+				<Card.Content class="space-y-4">
+					{#if isIntermediate}
+						<LabeledSlider
+							label="Branch Thickness"
+							min={25}
+							max={400}
+							step={5}
+							unit="%"
+							bind:value={treeConfig.current.branchThickness}
 						/>
 						<LabeledSlider
 							label="Branch Depth"
@@ -594,39 +645,6 @@
 
 					{#if isAdvanced}
 						<LabeledSlider
-							label="Trunk Lean"
-							min={-45}
-							max={45}
-							step={1}
-							unit="°"
-							bind:value={treeConfig.current.trunkLean}
-						/>
-						<LabeledSlider
-							label="Trunk Twist"
-							min={0}
-							max={100}
-							step={5}
-							unit="%"
-							bind:value={treeConfig.current.trunkTwist}
-							disabled={isParamDisabled(
-								treeConfig.current.shape,
-								'trunkTwist',
-								treeConfig.current,
-							)}
-						/>
-						<LabeledSelect
-							label="Crookedness Mode"
-							options={CROOKEDNESS_MODE_OPTIONS}
-							value={treeConfig.current.crookednessMode}
-							onValueChange={(v) => {
-								if (v in CROOKEDNESS_MODES) {
-									treeConfig.current.crookednessMode =
-										v as (typeof CROOKEDNESS_MODES)[keyof typeof CROOKEDNESS_MODES];
-								}
-							}}
-							disabled={crookednessModeDisabled}
-						/>
-						<LabeledSlider
 							label="Branch Segments"
 							min={1}
 							max={3}
@@ -669,32 +687,27 @@
 				</Card.Content>
 			</Card.Root>
 
-			{#if isIntermediate}
-				<Card.Root>
-					<Card.Header>
-						<Card.Title>Lighting</Card.Title>
-					</Card.Header>
-					<Card.Content class="space-y-4">
-						<LabeledSlider
-							label="Light Angle"
-							min={0}
-							max={360}
-							unit="°"
-							bind:value={treeConfig.current.lightAngle}
-						/>
-						{#if isAdvanced}
-							<LabeledSlider
-								label="Depth Variance"
-								min={0}
-								max={2}
-								step={0.1}
-								format={(v) => v.toFixed(1)}
-								bind:value={treeConfig.current.depthVariance}
-							/>
-						{/if}
-					</Card.Content>
-				</Card.Root>
+			<SectionCard title="Lighting" contentClass="space-y-4">
+				<LabeledSlider
+					label="Light Angle"
+					min={0}
+					max={360}
+					unit="°"
+					bind:value={treeConfig.current.lightAngle}
+				/>
+				{#if isAdvanced}
+					<LabeledSlider
+						label="Depth Variance"
+						min={0}
+						max={2}
+						step={0.1}
+						format={(v) => v.toFixed(1)}
+						bind:value={treeConfig.current.depthVariance}
+					/>
+				{/if}
+			</SectionCard>
 
+			{#if isIntermediate}
 				<ToolAccessoriesCard bind:toolVisibility bind:animateTools />
 			{/if}
 
