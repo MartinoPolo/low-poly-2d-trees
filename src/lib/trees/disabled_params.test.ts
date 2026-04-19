@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { DISABLED_PARAMS_BY_SHAPE, isParamDisabled } from './disabled_params.js';
 
 describe('DISABLED_PARAMS_BY_SHAPE', () => {
-	it('pine disables 8 branch-related params including branchWidthVariance (REQ-EV2-D-02)', () => {
+	it('pine disables 7 branch-related params including branchWidthVariance (REQ-EV2-D-02)', () => {
 		expect(DISABLED_PARAMS_BY_SHAPE.pine).toEqual([
 			'branchesLevel1Range',
 			'branchesLevel2Range',
@@ -10,7 +10,6 @@ describe('DISABLED_PARAMS_BY_SHAPE', () => {
 			'branchAngle',
 			'branchSegments',
 			'branchCrookedness',
-			'branchDepthTaper',
 			'branchWidthVariance',
 		]);
 	});
@@ -64,10 +63,6 @@ describe('isParamDisabled', () => {
 
 		it('disables branchSegments for fir', () => {
 			expect(isParamDisabled('fir', 'branchSegments', {})).toBe(true);
-		});
-
-		it('disables branchDepthTaper for fir', () => {
-			expect(isParamDisabled('fir', 'branchDepthTaper', {})).toBe(true);
 		});
 
 		it('does not disable branchesLevel1Range for oak (when branchDepth >= 1)', () => {

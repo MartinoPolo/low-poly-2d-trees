@@ -16,6 +16,7 @@
 		computeBranchDuration,
 		computeBranchDelay,
 		computeCanopyBottomY,
+		computeGrowthScales,
 	} from '$lib/trees/animation.js';
 	import TreeTool from '$lib/trees/TreeTool.svelte';
 	import {
@@ -53,7 +54,7 @@
 		animateCanopySway?: boolean;
 		animateBranches?: boolean;
 		animateGrowth?: boolean;
-		growthProgress?: number;
+		growthVariance?: number;
 		toolVisibility?: ToolVisibility;
 		animateTools?: boolean;
 		reviewerCount?: number;
@@ -74,7 +75,7 @@
 		animateCanopySway = false,
 		animateBranches = false,
 		animateGrowth = false,
-		growthProgress = 1,
+		growthVariance = 50,
 		toolVisibility,
 		animateTools = false,
 		reviewerCount = 0,
@@ -98,15 +99,8 @@
 					: null,
 	);
 
-	const isGrowing = $derived(animateGrowth || growthProgress < 1);
-	const growthTrunkStyle = $derived(
-		isGrowing
-			? `transform: scaleY(${growthProgress}); transform-origin: ${geometry.anchors.trunkBase.x}px ${geometry.anchors.trunkBase.y}px`
-			: undefined,
-	);
-	const growthCanopyStyle = $derived(
-		isGrowing ? `clip-path: inset(${(1 - growthProgress) * 100}% 0 0 0)` : undefined,
-	);
+	const growthScales = $derived(computeGrowthScales(growthVariance));
+	const shouldAnimateGrowth = $derived(animateGrowth && growthVariance > 0);
 
 	const glowFilterId = $derived(`glow-${config.seed}`);
 	const expandViewbox = $derived(needsViewboxExpansion(overlayConfig));
@@ -241,10 +235,12 @@
 			<g
 				class="branch-group"
 				class:animate-branch-sway={animateBranches}
+				class:animate-branch-growth={shouldAnimateGrowth}
 				style="--branch-duration: {branchDurations[
 					branchIndex
 				]}s; --branch-delay: {branchDelays[branchIndex]}s; --branch-origin-x: {branchGroup
-					.origin.x}px; --branch-origin-y: {branchGroup.origin.y}px;"
+					.origin.x}px; --branch-origin-y: {branchGroup.origin
+					.y}px; --growth-min-scale: {growthScales.minScale}; --growth-max-scale: {growthScales.maxScale};"
 			>
 				{#each branchGroup.quads as quad (quad)}
 					<polygon
@@ -276,8 +272,10 @@
 			<g
 				class="canopy-blob"
 				class:animate-canopy-sway={animateCanopySway}
+				class:animate-canopy-pulse={shouldAnimateGrowth}
 				style="--sway-delay: {canopySwayDelay + blobIndex * 0.15}s; --sway-origin-x: {blob
-					.center.x}px; --sway-origin-y: {blob.center.y}px;"
+					.center.x}px; --sway-origin-y: {blob.center
+					.y}px; --canopy-min-scale: {growthScales.canopyMinScale}; --canopy-max-scale: {growthScales.canopyMaxScale};"
 			>
 				{#each blob.triangles as tri (tri)}
 					<polygon
@@ -294,11 +292,7 @@
 		<!-- REQ-EV2-Z-04: 5-layer rendering for branching shapes -->
 		<!-- Layer 1: Back branches (behind trunk) -->
 		{#if showBranches && backRootBranches.length > 0}
-			<g
-				class="back-branches"
-				class:animate-trunk-growth={animateGrowth}
-				style={growthTrunkStyle}
-			>
+			<g class="back-branches">
 				{#each backRootBranches as { group, index: groupIndex } (groupIndex)}
 					{@render branchGroupSnippet(group, groupIndex)}
 				{/each}
@@ -307,7 +301,7 @@
 
 		<!-- Layer 2: Trunk -->
 		{#if showTrunk}
-			<g class="trunk" class:animate-trunk-growth={animateGrowth} style={growthTrunkStyle}>
+			<g class="trunk">
 				{#if stageSvgComponent}
 					{@const StageSvg = stageSvgComponent}
 					<g
@@ -351,7 +345,7 @@
 
 		<!-- Layer 3: Front branches -->
 		{#if showBranches}
-			<g class="branches" class:animate-trunk-growth={animateGrowth} style={growthTrunkStyle}>
+			<g class="branches">
 				{#each frontRootBranches as { group, index: groupIndex } (groupIndex)}
 					{@render branchGroupSnippet(group, groupIndex)}
 				{/each}
@@ -361,11 +355,7 @@
 		<!-- Layer 4: Back canopy blobs -->
 		{#if showCanopy && !stageSvgComponent && backCanopyBlobs.length > 0}
 			<WiltingEffect enabled={overlayConfig.wilting.enabled}>
-				<g
-					class="back-canopy"
-					class:animate-canopy-growth={animateGrowth}
-					style={growthCanopyStyle}
-				>
+				<g class="back-canopy">
 					{#each backCanopyBlobs as { blob, index: blobIndex } (blob)}
 						{@render canopyBlobSnippet(blob, blobIndex)}
 					{/each}
@@ -376,11 +366,7 @@
 		<!-- Layer 5: Front canopy blobs -->
 		{#if showCanopy && !stageSvgComponent}
 			<WiltingEffect enabled={overlayConfig.wilting.enabled}>
-				<g
-					class="canopy"
-					class:animate-canopy-growth={animateGrowth}
-					style={growthCanopyStyle}
-				>
+				<g class="canopy">
 					{#each frontCanopyBlobs as { blob, index: blobIndex } (blob)}
 						{@render canopyBlobSnippet(blob, blobIndex)}
 					{/each}
@@ -582,23 +568,25 @@
 		}
 	}
 
-	@keyframes trunk-growth {
-		0% {
-			transform: scaleY(0.05);
+	@keyframes branch-growth-oscillation {
+		0%,
+		100% {
+			transform: scale(var(--growth-min-scale));
 		}
 
-		100% {
-			transform: scaleY(1);
+		50% {
+			transform: scale(var(--growth-max-scale));
 		}
 	}
 
-	@keyframes canopy-reveal {
-		0% {
-			clip-path: inset(95% 0 0 0);
+	@keyframes canopy-pulse {
+		0%,
+		100% {
+			transform: scale(var(--canopy-min-scale));
 		}
 
-		100% {
-			clip-path: inset(0 0 0 0);
+		50% {
+			transform: scale(var(--canopy-max-scale));
 		}
 	}
 
@@ -633,14 +621,18 @@
 		will-change: transform;
 	}
 
-	.animate-trunk-growth {
-		animation: trunk-growth 2s ease-in-out infinite alternate;
+	.branch-group.animate-branch-growth {
+		animation: branch-growth-oscillation 3s ease-in-out infinite;
+		animation-delay: var(--branch-delay);
+		transform-origin: var(--branch-origin-x) var(--branch-origin-y);
 		will-change: transform;
 	}
 
-	.animate-canopy-growth {
-		animation: canopy-reveal 2s ease-in-out infinite alternate;
-		will-change: clip-path;
+	.canopy-blob.animate-canopy-pulse {
+		animation: canopy-pulse 4s ease-in-out infinite;
+		animation-delay: var(--sway-delay);
+		transform-origin: var(--sway-origin-x) var(--sway-origin-y);
+		will-change: transform;
 	}
 
 	.falling-leaf {

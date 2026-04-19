@@ -1,33 +1,33 @@
 import type { ToolType } from './tool_types.js';
 
 export interface ToolAnimationConfig {
-	readonly keyframeName: string;
 	readonly duration: number;
+	readonly pivotPoint: { readonly x: number; readonly y: number };
 }
 
 export const TOOL_ANIMATIONS = {
 	shovel: {
-		keyframeName: 'tool-shovel-idle',
 		duration: 2,
+		pivotPoint: { x: 0, y: 25 },
 	},
 	wateringCan: {
-		keyframeName: 'tool-watering-can-idle',
 		duration: 2.5,
+		pivotPoint: { x: 16, y: 0 },
 	},
 	ladder: {
-		keyframeName: 'tool-ladder-idle',
 		duration: 3,
+		pivotPoint: { x: 0, y: 0 },
 	},
 	axe: {
-		keyframeName: 'tool-axe-idle',
 		duration: 1.8,
+		pivotPoint: { x: 14, y: 0 },
 	},
 	rake: {
-		keyframeName: 'tool-rake-idle',
 		duration: 2.2,
+		pivotPoint: { x: 0, y: 18 },
 	},
 	woodpecker: {
-		keyframeName: 'tool-woodpecker-idle',
 		duration: 1.5,
+		pivotPoint: { x: 6, y: 10 },
 	},
 } as const satisfies Record<ToolType, ToolAnimationConfig>;
