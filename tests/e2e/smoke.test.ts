@@ -7,8 +7,10 @@ test('homepage loads', async ({ page }) => {
 
 /** Helper: select a value from a LabeledSelect dropdown identified by its label text. */
 async function selectDropdownOption(page: Page, labelText: string, optionName: string) {
-	const card = page.getByText(labelText).locator('xpath=ancestor::*[contains(@class,"grid")]');
-	const trigger = card.locator('[data-slot="select-trigger"]');
+	const container = page
+		.getByText(labelText)
+		.locator('xpath=ancestor::div[contains(@class,"space-y-2")]');
+	const trigger = container.locator('[data-slot="select-trigger"]');
 	await trigger.click();
 	await page.waitForTimeout(300);
 
