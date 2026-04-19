@@ -1,6 +1,8 @@
 <script lang="ts">
 	import * as Sidebar from '$lib/components/ui/sidebar/index.js';
 	import * as DropdownMenu from '$lib/components/ui/dropdown-menu/index.js';
+	import { Button } from '$lib/components/ui/button/index.js';
+	import { useSidebar } from '$lib/components/ui/sidebar/context.svelte.js';
 	import TreePine from '@lucide/svelte/icons/tree-pine';
 	import Trees from '@lucide/svelte/icons/trees';
 	import Images from '@lucide/svelte/icons/images';
@@ -8,9 +10,16 @@
 	import LogIn from '@lucide/svelte/icons/log-in';
 	import LogOut from '@lucide/svelte/icons/log-out';
 	import ChevronsUpDown from '@lucide/svelte/icons/chevrons-up-down';
+	import PanelLeftOpen from '@lucide/svelte/icons/panel-left-open';
+	import PanelLeftClose from '@lucide/svelte/icons/panel-left-close';
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
+
+	const sidebar = useSidebar();
+	const isExpanded = $derived(sidebar.state === 'expanded');
+	const ToggleIcon = $derived(isExpanded ? PanelLeftClose : PanelLeftOpen);
+	const toggleLabel = $derived(isExpanded ? 'Collapse sidebar' : 'Expand sidebar');
 
 	const rootPath = resolve('/');
 	const editorPath = resolve('/editor');
@@ -30,6 +39,16 @@
 			<TreePine class="size-5 text-primary" />
 			<span class="font-semibold group-data-[collapsible=icon]:hidden">Low-Poly Trees</span>
 		</a>
+		<Button
+			variant="ghost"
+			size="icon"
+			class="hidden md:inline-flex"
+			onclick={sidebar.toggle}
+			aria-label={toggleLabel}
+			data-testid="sidebar-toggle"
+		>
+			<ToggleIcon class="size-4" />
+		</Button>
 	</Sidebar.Header>
 	<Sidebar.Content>
 		<Sidebar.Group>

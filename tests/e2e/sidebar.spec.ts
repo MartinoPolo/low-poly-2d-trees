@@ -34,12 +34,13 @@ test.describe('app shell sidebar (anonymous)', () => {
 		await expect(page).toHaveURL(/\/auth/);
 	});
 
-	test('save button in single editor is disabled for anonymous users', async ({ page }) => {
+	test('floating save button in single editor is disabled for anonymous users', async ({
+		page,
+	}) => {
 		await page.goto('/editor');
-		const saveButton = page.getByTestId('save-tree-button');
+		const saveButton = page.getByTestId('floating-save');
 		await expect(saveButton).toBeVisible();
 		await expect(saveButton).toBeDisabled();
-		await expect(saveButton).toHaveText(/Sign in to save/i);
 	});
 
 	test('all tree editing controls are visible when signed out', async ({ page }) => {

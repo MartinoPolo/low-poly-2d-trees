@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { Button } from '$lib/components/ui/button/index.js';
 	import * as Tooltip from '$lib/components/ui/tooltip/index.js';
+	import { mergeProps } from 'bits-ui';
 	import Sun from '@lucide/svelte/icons/sun';
 	import Moon from '@lucide/svelte/icons/moon';
 	import Monitor from '@lucide/svelte/icons/monitor';
@@ -38,8 +39,7 @@
 					size="icon"
 					aria-label="Toggle theme"
 					data-testid="floating-theme-toggle"
-					onclick={cycleTheme}
-					{...props}
+					{...mergeProps(props, { onclick: cycleTheme })}
 				>
 					{#if userPrefersMode.current === 'light'}
 						<Sun />
@@ -62,8 +62,7 @@
 					size="icon"
 					aria-label="Reset to defaults"
 					data-testid="floating-reset"
-					onclick={onReset}
-					{...props}
+					{...mergeProps(props, { onclick: onReset })}
 				>
 					<RotateCcw />
 				</Button>
@@ -80,8 +79,7 @@
 					size="icon"
 					aria-label="Randomize seed"
 					data-testid="floating-randomize"
-					onclick={onRandomize}
-					{...props}
+					{...mergeProps(props, { onclick: onRandomize })}
 				>
 					<Shuffle />
 				</Button>
@@ -99,9 +97,8 @@
 						size="icon"
 						aria-label="Save tree"
 						data-testid="floating-save"
-						onclick={onSave}
 						disabled={saveDisabled}
-						{...props}
+						{...mergeProps(props, { onclick: onSave })}
 					>
 						<Save />
 					</Button>
