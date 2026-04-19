@@ -67,12 +67,12 @@ describe('buildTrunkPath', () => {
 		expect(path[1]!.x - path[0]!.x).toBeCloseTo(expectedDx, 10);
 	});
 
-	it('REQ-T-12c: first segment angle equals lean regardless of crookedness', () => {
-		// Build two paths: one with 1 segment, one with 5 segments, both
-		// crookedness=0. Top X must match exactly since no jitter applies.
-		const p1 = buildTrunkPath(createPrng(42), 25, 1, 0, trunkTopY, trunkBottomY);
+	it('REQ-T-12c: lean applies from second segment onward (base stays vertical)', () => {
+		// With multi-segment trunks, base segment is vertical and lean starts at segment 2.
+		// So junctions[0].x === junctions[1].x, but junctions[1].x !== junctions[2].x.
 		const p5 = buildTrunkPath(createPrng(42), 25, 5, 0, trunkTopY, trunkBottomY);
-		expect(p5[5]!.x).toBeCloseTo(p1[1]!.x, 10);
+		expect(p5[0]!.x).toBe(p5[1]!.x); // base segment vertical
+		expect(p5[1]!.x).not.toBe(p5[2]!.x); // lean starts at segment 2
 	});
 
 	it('REQ-T-12: N=1 ignores crookedness (straight trunk)', () => {
@@ -251,6 +251,28 @@ describe('buildTrunkPath', () => {
 			'alternating',
 		);
 		expect(withDefault).toEqual(withExplicit);
+	});
+
+	it('base segment is vertical: lean=30, 3 segments, 0 crookedness — junctions[0].x === junctions[1].x', () => {
+		const path = buildTrunkPath(createPrng(42), 30, 3, 0, trunkTopY, trunkBottomY);
+		expect(path[0]!.x).toBe(path[1]!.x);
+	});
+
+	it('lean visible from second segment onward: lean=30, 3 segments — junctions[1].x !== junctions[2].x', () => {
+		const path = buildTrunkPath(createPrng(42), 30, 3, 0, trunkTopY, trunkBottomY);
+		expect(path[1]!.x).not.toBe(path[2]!.x);
+	});
+
+	it('lean=30, 1 segment still applies lean (no vertical-only regression)', () => {
+		const path = buildTrunkPath(createPrng(42), 30, 1, 0, trunkTopY, trunkBottomY);
+		expect(path[0]!.x).not.toBe(path[1]!.x);
+	});
+
+	it('lean=0, multiple segments — all junctions share same x (all vertical)', () => {
+		const path = buildTrunkPath(createPrng(42), 0, 3, 0, trunkTopY, trunkBottomY);
+		for (const junction of path) {
+			expect(junction.x).toBe(baseX);
+		}
 	});
 });
 

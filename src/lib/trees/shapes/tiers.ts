@@ -26,8 +26,11 @@ export function generateTiers(
 	const tiers: Tier[] = [];
 	const count = Math.max(1, blobCount);
 	const centerX = W / 2;
+	const trunkTopY = trunkJunctions[trunkJunctions.length - 1]!.y;
 	const tipY = H * 0.05 + verticalShift;
-	const baseY = H * 0.6 + verticalShift;
+	const tierTrunkOverlap = 0.1;
+	const overlapAmount = (trunkTopY - tipY) * tierTrunkOverlap;
+	const baseY = trunkTopY + overlapAmount;
 	const totalHeight = baseY - tipY;
 
 	const canopyScale = canopySize / 100;

@@ -6,4 +6,4 @@
 	let { color }: Props = $props();
 </script>
 
-<path d="M0,-2 L1.5,0 L0,2 L-1.5,0 Z" fill={color} opacity="0.85" />
+<path d="M0,-4 L3,0 L0,4 L-3,0 Z" fill={color} opacity="0.85" />

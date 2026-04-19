@@ -26,7 +26,7 @@ export function generateGroundPlacements(
 			y: trunkBase.y + randomInRange(rng, -3, 5),
 			type: 'stone',
 			variant: Math.floor(rng() * 3),
-			scale: randomInRange(rng, 0.6, 1.2),
+			scale: randomInRange(rng, 1.5, 3.0),
 			rotation: randomInRange(rng, -15, 15),
 		});
 	}
@@ -37,7 +37,7 @@ export function generateGroundPlacements(
 			y: trunkBase.y + randomInRange(rng, -2, 3),
 			type: 'grass',
 			variant: Math.floor(rng() * 2),
-			scale: randomInRange(rng, 0.7, 1.3),
+			scale: randomInRange(rng, 1.75, 3.25),
 			rotation: randomInRange(rng, -10, 10),
 		});
 	}

@@ -201,7 +201,8 @@
 		const bounds = geometry.anchors;
 		const minX = bounds.crownCenter.x - 30;
 		const maxX = bounds.crownCenter.x + 30;
-		const startY = computeCanopyBottomY(geometry.canopyBlobs);
+		const startY =
+			(geometry.anchors.crownCenter.y + computeCanopyBottomY(geometry.canopyBlobs)) / 2;
 		const colors = ['#E8A028', '#C47020', '#8B2010', '#A05020', '#D08030'];
 		for (let i = 0; i < count; i++) {
 			leaves.push({
