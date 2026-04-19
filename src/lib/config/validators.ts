@@ -80,7 +80,12 @@ const environmentConfigSchema = v.object({
 });
 
 export function isValidTreeConfig(value: unknown): value is TreeConfig {
-	return v.safeParse(treeConfigSchema, value).success;
+	const result = v.safeParse(treeConfigSchema, value);
+	return result.success;
+}
+
+export function debugTreeConfigValidation(value: unknown) {
+	return v.safeParse(treeConfigSchema, value);
 }
 
 export function isValidSceneConfig(value: unknown): value is SceneConfig {
