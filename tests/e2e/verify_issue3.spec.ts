@@ -97,8 +97,7 @@ test.describe('Issue #3 — Slider UX + UI control reorganization', () => {
 		expect(classes).toContain('select-none');
 	});
 
-	test('5. / scene editor has all 7 card titles', async ({ page }) => {
-		// Lighting card is intermediate+ tier — switch tier before asserting
+	test('5. / scene editor has expected card titles', async ({ page }) => {
 		await page.goto('/');
 		await page.waitForLoadState('networkidle');
 		await page.evaluate(() => localStorage.setItem('settings-tier', '"advanced"'));
@@ -108,11 +107,16 @@ test.describe('Issue #3 — Slider UX + UI control reorganization', () => {
 		const expectedTitles = [
 			'Scene Settings',
 			'Canopy',
-			'Trunk & Branches',
+			'Trunk',
+			'Branches',
+			'Lighting',
+			'Color Mode',
 			'Canopy Color',
 			'Trunk Color',
-			'Lighting',
+			'Environment',
 			'Debug',
+			'Animations',
+			'Connections',
 		];
 
 		for (const title of expectedTitles) {
@@ -122,9 +126,10 @@ test.describe('Issue #3 — Slider UX + UI control reorganization', () => {
 			expect(visible, `Card title "${title}" should be visible`).toBe(true);
 		}
 
-		// Lighting card has light angle and depth variance sliders
+		// Lighting card has light angle slider
 		const lightingSection = page.locator('text=Light Angle').first();
 		expect(await lightingSection.isVisible()).toBe(true);
+		// Depth variance is in the Branches card at advanced tier
 		const depthSection = page.locator('text=Depth Variance').first();
 		expect(await depthSection.isVisible()).toBe(true);
 	});

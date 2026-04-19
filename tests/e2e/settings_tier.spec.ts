@@ -134,14 +134,17 @@ test.describe('Issue #84 — 3-tier settings control', () => {
 		await expect(control).toBeVisible();
 	});
 
-	test('scene editor basic tier shows canopy size, hides lighting', async ({ page }) => {
+	test('scene editor basic tier shows canopy size and lighting, hides branches', async ({
+		page,
+	}) => {
 		await page.goto('/');
 		await page.waitForLoadState('networkidle');
 
-		// Basic: Canopy Size visible
+		// Basic: Canopy Size and Lighting always visible
 		await expect(page.locator('text=Canopy Size').first()).toBeVisible();
+		await expect(page.locator('text=Light Angle').first()).toBeVisible();
 
-		// Intermediate: Lighting card hidden at basic
-		await expect(page.locator('text=Light Angle')).not.toBeVisible();
+		// Intermediate: Branches card hidden at basic
+		await expect(page.locator('text=Branch Thickness')).not.toBeVisible();
 	});
 });

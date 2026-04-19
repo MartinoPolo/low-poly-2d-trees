@@ -1,3 +1,6 @@
+import { browser } from '$app/environment';
+import { Persisted, jsonSerde } from '$lib/reactivity/persisted.svelte.js';
+import { isValidTreeConfig } from '$lib/config/validators.js';
 import {
 	DEFAULT_TREE_CONFIG,
 	SHAPE_DEFAULTS,
@@ -8,6 +11,8 @@ import {
 	type TreeShape,
 	type FruitType,
 } from './types.js';
+
+const TREE_CONFIG_KEY = 'tree-config';
 
 /** Strip readonly from all properties so `bind:value` can write through the deep proxy. */
 type Mutable<T> = { -readonly [K in keyof T]: T[K] };
@@ -74,5 +79,30 @@ class TreeConfigState {
 }
 
 export function createTreeConfigContext() {
-	return new TreeConfigState();
+	const persisted = new Persisted<TreeConfig>({
+		key: TREE_CONFIG_KEY,
+		serde: jsonSerde(isValidTreeConfig),
+		defaultValue: DEFAULT_TREE_CONFIG,
+	});
+
+	const state = new TreeConfigState();
+	state.applyConfig(persisted.current);
+
+	if (browser) {
+		$effect(() => {
+			persisted.current = state.snapshot();
+		});
+
+		$effect(() => {
+			const handler = (e: StorageEvent) => {
+				if (e.key === TREE_CONFIG_KEY) {
+					state.applyConfig(persisted.current);
+				}
+			};
+			window.addEventListener('storage', handler);
+			return () => window.removeEventListener('storage', handler);
+		});
+	}
+
+	return state;
 }

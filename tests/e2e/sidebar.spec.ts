@@ -45,10 +45,10 @@ test.describe('app shell sidebar (anonymous)', () => {
 	test('all tree editing controls are visible when signed out', async ({ page }) => {
 		await page.goto('/editor');
 		const cardTitle = (name: string) =>
-			page.locator('[data-slot="card-title"]', { hasText: name });
+			page.locator('[data-slot="card-title"]', { hasText: new RegExp(`^${name}$`) });
 		await expect(cardTitle('Shape')).toBeVisible();
 		await expect(cardTitle('Geometry')).toBeVisible();
-		await expect(cardTitle('Growables')).toBeVisible();
-		await expect(cardTitle('Trunk & Branches')).toBeVisible();
+		await expect(cardTitle('Trunk')).toBeVisible();
+		await expect(cardTitle('Branches')).toBeVisible();
 	});
 });
