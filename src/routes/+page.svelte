@@ -54,6 +54,7 @@
 	let animateCanopySway = $state(false);
 	let animateBranches = $state(false);
 	let animateGrowth = $state(false);
+	let growthVariance = $state(50);
 	let toolVisibility: ToolVisibility = $state(createDefaultToolVisibility());
 	let animateTools = $state(false);
 	let showRootConnections = $state(false);
@@ -97,7 +98,7 @@
 	<!-- Scene Preview -->
 	<div
 		data-testid="scene-canvas"
-		class="relative overflow-hidden border border-border bg-muted/30"
+		class="relative overflow-hidden border border-border bg-gradient-to-b from-sky-200 to-white dark:from-[#0a1628] dark:to-[#1a2744]"
 	>
 		{#each scenePlacements as placement, index (index)}
 			{@const shapeDefaults = SHAPE_DEFAULTS[placement.shape]}
@@ -109,7 +110,7 @@
 						bottom: {placement.y}%;
 						transform: scale({placement.scale}) translateX(-50%);
 						transform-origin: bottom center;
-						width: {160 * placement.scale}px;
+						width: {320 * placement.scale}px;
 					"
 			>
 				<LowPolyTree
@@ -153,6 +154,7 @@
 					{animateCanopySway}
 					{animateBranches}
 					{animateGrowth}
+					{growthVariance}
 					{toolVisibility}
 					{animateTools}
 					overlayConfig={overlayConfig.config}
@@ -553,6 +555,16 @@
 						/>
 						<Label>Growth</Label>
 					</div>
+					{#if animateGrowth}
+						<LabeledSlider
+							label="Growth Variance"
+							min={0}
+							max={100}
+							step={5}
+							unit="%"
+							bind:value={growthVariance}
+						/>
+					{/if}
 				</div>
 			</SectionCard>
 

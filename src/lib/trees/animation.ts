@@ -19,6 +19,26 @@ export function computeBranchDelay(seed: number, branchIndex: number): number {
 	return randomInRange(rng, 0, 2);
 }
 
+/**
+ * Compute growth oscillation scale factors from variance (0-100).
+ * At 0%: no oscillation (scale = 1). At 100%: branches scale 0.5–1.5.
+ */
+export function computeGrowthScales(variance: number): {
+	minScale: number;
+	maxScale: number;
+	canopyMinScale: number;
+	canopyMaxScale: number;
+} {
+	const amplitude = (variance / 100) * 0.5;
+	const canopyAmplitude = (variance / 100) * 0.08;
+	return {
+		minScale: 1 - amplitude,
+		maxScale: 1 + amplitude,
+		canopyMinScale: 1 - canopyAmplitude,
+		canopyMaxScale: 1 + canopyAmplitude,
+	};
+}
+
 /** Returns the maximum Y value across all triangle points in canopy blobs (bottom edge). */
 export function computeCanopyBottomY(canopyBlobs: readonly BlobGeometry[]): number {
 	let maxY = -Infinity;

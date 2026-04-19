@@ -63,6 +63,7 @@
 	let animateCanopySway = $state(false);
 	let animateBranches = $state(false);
 	let animateGrowth = $state(false);
+	let growthVariance = $state(50);
 	let toolVisibility: ToolVisibility = $state(createDefaultToolVisibility());
 	let animateTools = $state(false);
 
@@ -270,7 +271,7 @@
 <main class="grid h-dvh grid-rows-[1fr_1fr] overflow-hidden bg-background text-foreground">
 	<!-- Preview -->
 	<div class="relative flex items-center justify-center border border-border bg-muted/30 p-8">
-		<div class="w-full max-w-sm">
+		<div class="w-full" style="max-width: min(576px, calc(50dvh - 4rem))">
 			<LowPolyTree
 				config={treeConfig.configForTree}
 				{showCanopy}
@@ -282,6 +283,7 @@
 				{animateCanopySway}
 				{animateBranches}
 				{animateGrowth}
+				{growthVariance}
 				{toolVisibility}
 				{animateTools}
 				overlayConfig={overlayConfig.config}
@@ -661,14 +663,6 @@
 							disabled={branchCrookednessDisabled}
 						/>
 						<LabeledSlider
-							label="Branch Depth Taper"
-							min={30}
-							max={80}
-							step={5}
-							unit="%"
-							bind:value={treeConfig.current.branchDepthTaper}
-						/>
-						<LabeledSlider
 							label="Branch Width Variance"
 							min={0}
 							max={50}
@@ -791,6 +785,16 @@
 							/>
 							<Label>Growth</Label>
 						</div>
+						{#if animateGrowth}
+							<LabeledSlider
+								label="Growth Variance"
+								min={0}
+								max={100}
+								step={5}
+								unit="%"
+								bind:value={growthVariance}
+							/>
+						{/if}
 					</div>
 				</Card.Content>
 			</Card.Root>

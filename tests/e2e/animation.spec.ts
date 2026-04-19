@@ -52,19 +52,27 @@ test.describe('Scene page animation controls', () => {
 		await expect(branchGroup).not.toHaveClass(/animate-branch-sway/);
 	});
 
-	test('growth checkbox toggles animation on trunk and canopy layers', async ({ page }) => {
-		const trunk = page.locator('.trunk').first();
-		await expect(trunk).toBeAttached();
+	test('growth checkbox toggles animation on branch groups and canopy blobs', async ({
+		page,
+	}) => {
+		await page.locator('[data-testid="animate-growth"]').click();
+
+		const branchGroupCount = await page.locator('.branch-group').count();
+		if (branchGroupCount > 0) {
+			const branchGroup = page.locator('.branch-group').first();
+			await expect(branchGroup).toHaveClass(/animate-branch-growth/);
+		}
+
+		const canopyBlob = page.locator('.canopy-blob').first();
+		await expect(canopyBlob).toHaveClass(/animate-canopy-pulse/);
 
 		await page.locator('[data-testid="animate-growth"]').click();
-		await expect(trunk).toHaveClass(/animate-trunk-growth/);
 
-		const canopy = page.locator('.canopy').first();
-		await expect(canopy).toHaveClass(/animate-canopy-growth/);
-
-		await page.locator('[data-testid="animate-growth"]').click();
-		await expect(trunk).not.toHaveClass(/animate-trunk-growth/);
-		await expect(canopy).not.toHaveClass(/animate-canopy-growth/);
+		if (branchGroupCount > 0) {
+			const branchGroup = page.locator('.branch-group').first();
+			await expect(branchGroup).not.toHaveClass(/animate-branch-growth/);
+		}
+		await expect(canopyBlob).not.toHaveClass(/animate-canopy-pulse/);
 	});
 
 	test('multiple animations can be enabled simultaneously', async ({ page }) => {
@@ -72,9 +80,8 @@ test.describe('Scene page animation controls', () => {
 		await page.locator('[data-testid="animate-growth"]').click();
 
 		const canopyBlob = page.locator('.canopy-blob').first();
-		const trunk = page.locator('.trunk').first();
 		await expect(canopyBlob).toHaveClass(/animate-canopy-sway/);
-		await expect(trunk).toHaveClass(/animate-trunk-growth/);
+		await expect(canopyBlob).toHaveClass(/animate-canopy-pulse/);
 	});
 });
 
@@ -102,10 +109,10 @@ test.describe('Editor page animation controls', () => {
 		await expect(canopyBlob).toHaveClass(/animate-canopy-sway/);
 	});
 
-	test('growth checkbox toggles animation on trunk layer', async ({ page }) => {
+	test('growth checkbox toggles animation on canopy blobs', async ({ page }) => {
 		await page.locator('[data-testid="animate-growth"]').click();
 
-		const trunk = page.locator('.trunk').first();
-		await expect(trunk).toHaveClass(/animate-trunk-growth/);
+		const canopyBlob = page.locator('.canopy-blob').first();
+		await expect(canopyBlob).toHaveClass(/animate-canopy-pulse/);
 	});
 });

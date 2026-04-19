@@ -5,6 +5,7 @@
 		ENVIRONMENT_VIEW_HEIGHT,
 		ENVIRONMENT_VIEW_WIDTH,
 	} from '../environment_config.js';
+	import FireflySvg from '$lib/trees/assets/overlays/FireflySvg.svelte';
 
 	const fireflies = generateFireflyPositions(
 		20,
@@ -31,16 +32,15 @@
 		</filter>
 	</defs>
 	{#each fireflies as ff, index (index)}
-		<circle
-			data-testid="firefly"
-			cx={ff.x}
-			cy={ff.y}
-			r="3"
-			fill="#9FFF50"
-			filter="url(#firefly-glow)"
-			class="firefly"
-			style="animation-delay: {ff.delay}s; animation-duration: {ff.duration}s;"
-		/>
+		<g transform="translate({ff.x}, {ff.y})">
+			<g
+				data-testid="firefly"
+				class="firefly"
+				style="animation-delay: {ff.delay}s; animation-duration: {ff.duration}s;"
+			>
+				<FireflySvg />
+			</g>
+		</g>
 	{/each}
 </svg>
 

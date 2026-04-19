@@ -71,7 +71,9 @@ function buildCrookedPath(
 	const maxJitterDeg = lerp(0, 90, clampedCrookedness / 100);
 	const maxAbsoluteRad = (MAX_ABSOLUTE_ANGLE_DEG * Math.PI) / 180;
 
-	let currentAngleRad = initialAngleRad;
+	// Base segment (junction 0->1) is always vertical; lean starts from segment 2 onward.
+	// Exception: single-segment trunks apply lean directly (no base segment to keep vertical).
+	let currentAngleRad = segmentCount >= 2 ? 0 : initialAngleRad;
 	let currentX = startX;
 	// For alternating mode: initialize first direction randomly, then flip each junction
 	let alternatingSign = clampedCrookedness > 0 ? (rng() < 0.5 ? -1 : 1) : 1;
@@ -82,6 +84,11 @@ function buildCrookedPath(
 			segmentMultipliers !== null
 				? baseSegmentLenY * segmentMultipliers[i - 1]! * normalizeScale
 				: baseSegmentLenY;
+
+		// Apply lean starting from the second segment
+		if (i === 2 && segmentCount >= 2) {
+			currentAngleRad = initialAngleRad;
+		}
 
 		if (i > 1 && clampedCrookedness > 0) {
 			// Per-junction jitter reduction: up to 50% of max
