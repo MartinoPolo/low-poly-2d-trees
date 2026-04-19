@@ -10,7 +10,6 @@
 	import TrunkColorCard from '$lib/components/composed/TrunkColorCard.svelte';
 	import { Label } from '$lib/components/ui/label/index.js';
 	import { Input } from '$lib/components/ui/input/index.js';
-	import { Button } from '$lib/components/ui/button/index.js';
 	import * as Card from '$lib/components/ui/card/index.js';
 	import { Checkbox } from '$lib/components/ui/checkbox/index.js';
 	import {
@@ -41,8 +40,6 @@
 	import { createTreeConfigContext } from '$lib/trees/tree_config.context.svelte.js';
 	import { createOverlayConfigContext } from '$lib/trees/overlays/overlay_config.context.svelte.js';
 	import { page } from '$app/state';
-	import Shuffle from '@lucide/svelte/icons/shuffle';
-	import Save from '@lucide/svelte/icons/save';
 	import SceneFloatingButtons from '$lib/components/app-shell/SceneFloatingButtons.svelte';
 	import SettingsTierControl from '$lib/components/composed/SettingsTierControl.svelte';
 	import { use_settings_tier, tierAtLeast } from '$lib/context/settings_tier.context.svelte.js';
@@ -303,39 +300,28 @@
 
 	<!-- Controls -->
 	<aside class="select-none overflow-y-auto p-6">
-		<div class="sticky top-0 z-10 bg-background">
-			<SettingsTierControl />
-		</div>
+		<SettingsTierControl />
 		<div class="grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-6">
 			<Card.Root>
 				<Card.Header>
 					<Card.Title>Shape</Card.Title>
 				</Card.Header>
 				<Card.Content class="space-y-4">
-					<form bind:this={saveFormElement} {...saveTree} class="flex flex-col gap-2">
+					<form bind:this={saveFormElement} {...saveTree} class="hidden">
 						<input
 							type="hidden"
 							name="config"
 							value={JSON.stringify(treeConfig.snapshot())}
 						/>
-						<Button
-							type="submit"
-							disabled={!signedIn}
-							data-testid="save-tree-button"
-							class="w-full"
-						>
-							<Save class="mr-2 size-4" />
-							{signedIn ? 'Save' : 'Sign in to save'}
-						</Button>
-						{#if saveTree.result?.success}
-							<p class="text-xs text-muted-foreground" role="status">
-								Saved as {saveTree.result.name}
-							</p>
-						{/if}
-						{#if saveTree.result && !saveTree.result.success}
-							<p class="text-xs text-destructive" role="alert">Failed to save tree</p>
-						{/if}
 					</form>
+					{#if saveTree.result?.success}
+						<p class="text-xs text-muted-foreground" role="status">
+							Saved as {saveTree.result.name}
+						</p>
+					{/if}
+					{#if saveTree.result && !saveTree.result.success}
+						<p class="text-xs text-destructive" role="alert">Failed to save tree</p>
+					{/if}
 
 					<LabeledSelect
 						label="Tree Type"
@@ -343,18 +329,6 @@
 						value={treeConfig.current.shape}
 						onValueChange={onShapeChange}
 					/>
-
-					{#if treeConfig.current.shape !== TREE_SHAPES.custom}
-						<Button
-							variant="outline"
-							size="sm"
-							onclick={() => treeConfig.resetToShapeDefaults()}
-						>
-							Reset to {TREE_SHAPE_OPTIONS.find(
-								(o) => o.value === treeConfig.current.shape,
-							)?.label} defaults
-						</Button>
-					{/if}
 
 					<LabeledSelect
 						label="Life Stage"
@@ -366,16 +340,7 @@
 					{#if isAdvanced}
 						<div class="space-y-2">
 							<Label>Seed</Label>
-							<div class="flex gap-2">
-								<Input
-									type="number"
-									bind:value={treeConfig.current.seed}
-									class="flex-1"
-								/>
-								<Button variant="outline" size="icon" onclick={randomizeSeed}>
-									<Shuffle />
-								</Button>
-							</div>
+							<Input type="number" bind:value={treeConfig.current.seed} />
 						</div>
 					{/if}
 				</Card.Content>

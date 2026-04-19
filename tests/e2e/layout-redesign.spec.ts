@@ -81,13 +81,10 @@ test.describe('Issue #125 — Layout redesign', () => {
 			await page.goto('/');
 			await page.waitForLoadState('networkidle');
 
-			// Tier control should be outside the scrollable grid, in a sticky container
 			const tierControl = page.locator('[data-testid="settings-tier-control"]');
 			await expect(tierControl).toBeVisible();
 
-			// The tier control's parent wrapper should have sticky positioning
-			const stickyWrapper = tierControl.locator('..');
-			const classes = await stickyWrapper.getAttribute('class');
+			const classes = await tierControl.getAttribute('class');
 			expect(classes).toContain('sticky');
 		});
 	});

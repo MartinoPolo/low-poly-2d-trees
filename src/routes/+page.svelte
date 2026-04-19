@@ -2,13 +2,13 @@
 	import LowPolyTree from '$lib/trees/LowPolyTree.svelte';
 	import { Label } from '$lib/components/ui/label/index.js';
 	import { Input } from '$lib/components/ui/input/index.js';
-	import { Button } from '$lib/components/ui/button/index.js';
 	import { Checkbox } from '$lib/components/ui/checkbox/index.js';
 	import SectionCard from '$lib/components/composed/SectionCard.svelte';
 	import LabeledSlider from '$lib/components/composed/LabeledSlider.svelte';
+	import LabeledSelect from '$lib/components/composed/LabeledSelect.svelte';
 	import CanopyColorCard from '$lib/components/composed/CanopyColorCard.svelte';
 	import TrunkColorCard from '$lib/components/composed/TrunkColorCard.svelte';
-	import { SHAPE_DEFAULTS } from '$lib/trees/types.js';
+	import { SHAPE_DEFAULTS, TREE_STAGE_OPTIONS, isTreeStage } from '$lib/trees/types.js';
 	import { isParamDisabled } from '$lib/trees/disabled_params.js';
 	import {
 		createDefaultToolVisibility,
@@ -28,7 +28,6 @@
 	import { CONNECTION_STATES } from '$lib/scene/root_connection_types.js';
 	import type { Point2D } from '$lib/trees/types/core.js';
 	import { SvelteMap } from 'svelte/reactivity';
-	import Shuffle from '@lucide/svelte/icons/shuffle';
 	import SceneFloatingButtons from '$lib/components/app-shell/SceneFloatingButtons.svelte';
 	import SettingsTierControl from '$lib/components/composed/SettingsTierControl.svelte';
 	import { use_settings_tier, tierAtLeast } from '$lib/context/settings_tier.context.svelte.js';
@@ -80,6 +79,13 @@
 
 	function randomizeSeed() {
 		treeConfig.current.seed = Math.floor(Math.random() * 100000);
+	}
+
+	function onStageChange(value: string) {
+		if (!isTreeStage(value)) {
+			return;
+		}
+		treeConfig.current.stage = value;
 	}
 
 	function resetAll() {
@@ -191,11 +197,15 @@
 
 	<!-- Shared Controls -->
 	<aside data-testid="scene-controls" class="select-none overflow-y-auto p-6">
-		<div class="sticky top-0 z-10 bg-background">
-			<SettingsTierControl />
-		</div>
+		<SettingsTierControl />
 		<div class="grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-6">
 			<SectionCard title="Scene Settings" contentClass="space-y-4">
+				<LabeledSelect
+					label="Life Stage"
+					options={TREE_STAGE_OPTIONS}
+					value={treeConfig.current.stage}
+					onValueChange={onStageChange}
+				/>
 				<LabeledSlider
 					label="Tree Count"
 					min={SCENE_LIMITS.treeCountMin}
@@ -215,16 +225,7 @@
 				{#if isAdvanced}
 					<div class="space-y-2">
 						<Label>Base Seed</Label>
-						<div class="flex gap-2">
-							<Input
-								type="number"
-								bind:value={treeConfig.current.seed}
-								class="flex-1"
-							/>
-							<Button variant="outline" size="icon" onclick={randomizeSeed}>
-								<Shuffle />
-							</Button>
-						</div>
+						<Input type="number" bind:value={treeConfig.current.seed} />
 					</div>
 					<div class="space-y-2">
 						<Label>Polygons Per Blob: {treeConfig.current.polygonsPerBlob}</Label>
