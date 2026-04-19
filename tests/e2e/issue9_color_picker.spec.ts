@@ -65,18 +65,13 @@ test.describe('Issue #9 — Color system overhaul', () => {
 		await expect(page.getByText(/Use per-shape default colors/i)).toBeVisible();
 	});
 
-	test('scene editor: toggle ON disables shared canopy + trunk controls', async ({ page }) => {
+	test('scene editor: toggle OFF enables shared canopy + trunk controls', async ({ page }) => {
 		await page.goto('/');
 		await page.waitForLoadState('networkidle');
 
+		// Per-shape defaults is ON by default — pickers start disabled
 		const lightPicker = page.locator('#canopy-light-color');
 		const darkPicker = page.locator('#canopy-dark-color');
-		await expect(lightPicker).toBeEnabled();
-		await expect(darkPicker).toBeEnabled();
-
-		// Click the toggle
-		await page.locator('label[for="use-per-shape-defaults"]').click();
-
 		await expect(lightPicker).toBeDisabled();
 		await expect(darkPicker).toBeDisabled();
 
@@ -89,13 +84,18 @@ test.describe('Issue #9 — Color system overhaul', () => {
 		await expect(satSlider).toHaveAttribute('data-disabled', '');
 		await expect(lightSlider).toHaveAttribute('data-disabled', '');
 
-		// Click again -> controls re-enabled
+		// Click toggle OFF -> controls enabled
 		await page.locator('label[for="use-per-shape-defaults"]').click();
 		await expect(lightPicker).toBeEnabled();
 		await expect(darkPicker).toBeEnabled();
+
+		// Click again -> controls re-disabled
+		await page.locator('label[for="use-per-shape-defaults"]').click();
+		await expect(lightPicker).toBeDisabled();
+		await expect(darkPicker).toBeDisabled();
 	});
 
-	test('scene editor: toggle ON makes trees render with different canopy colors', async ({
+	test('scene editor: per-shape defaults ON makes trees render with different canopy colors', async ({
 		page,
 	}) => {
 		await page.goto('/');
@@ -112,18 +112,18 @@ test.describe('Issue #9 — Color system overhaul', () => {
 				});
 			});
 
-		// Toggle OFF (default): all trees share the same picker colors.
+		// Per-shape defaults is ON by default: trees use per-shape colors
+		const perShapeFills = await getCanopyFills();
+		expect(perShapeFills.length).toBeGreaterThanOrEqual(3);
+		expect(perShapeFills[0]).not.toEqual(perShapeFills[1]);
+
+		// Toggle OFF — all trees share the same picker colors
+		await page.locator('label[for="use-per-shape-defaults"]').click();
+		await expect(page.locator('#canopy-light-color')).toBeEnabled();
+
 		const sharedFills = await getCanopyFills();
 		expect(sharedFills.length).toBeGreaterThanOrEqual(3);
 
-		// Toggle ON
-		await page.locator('label[for="use-per-shape-defaults"]').click();
-		await expect(page.locator('#canopy-light-color')).toBeDisabled();
-
-		const perShapeFills = await getCanopyFills();
-		expect(perShapeFills.length).toBeGreaterThanOrEqual(3);
-
-		expect(perShapeFills[0]).not.toEqual(perShapeFills[1]);
 		expect(perShapeFills).not.toEqual(sharedFills);
 	});
 });

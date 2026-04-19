@@ -32,6 +32,10 @@ test.describe('Growables card', () => {
 	}) => {
 		await page.goto('/editor');
 		await page.waitForLoadState('networkidle');
+
+		// Growables card only appears for Custom shape
+		await switchToCustomShape(page);
+
 		await expect(page.getByText('Growables')).toBeVisible();
 		await expect(page.getByText('Fruit Type')).toBeVisible();
 		await expect(page.getByText('Fruit Count')).toBeVisible();

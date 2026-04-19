@@ -48,7 +48,7 @@ test.describe('app shell sidebar (anonymous)', () => {
 			page.locator('[data-slot="card-title"]', { hasText: name });
 		await expect(cardTitle('Shape')).toBeVisible();
 		await expect(cardTitle('Geometry')).toBeVisible();
-		await expect(cardTitle('Growables')).toBeVisible();
-		await expect(cardTitle('Trunk & Branches')).toBeVisible();
+		await expect(cardTitle('Trunk')).toBeVisible();
+		await expect(cardTitle('Branches')).toBeVisible();
 	});
 });
