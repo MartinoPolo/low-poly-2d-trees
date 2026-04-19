@@ -11,7 +11,7 @@
 		readonly lightness: number;
 	}
 
-	// REQUIREMENTS.md §2.7 — Trunk color preset swatches.
+	// .mpx/REQUIREMENTS.md §3.9 — Trunk color preset swatches.
 	const TRUNK_PRESETS: readonly TrunkPreset[] = [
 		{ name: 'Light birch', hue: 40, saturation: 20, lightness: 75 },
 		{ name: 'Warm brown', hue: 25, saturation: 50, lightness: 35 },

@@ -198,7 +198,7 @@ export const DEFAULT_TREE_CONFIG: TreeConfig = {
 } as const;
 
 /**
- * Per-shape defaults from REQUIREMENTS.md §2.5. `custom` is intentionally
+ * Per-shape defaults from .mpx/REQUIREMENTS.md §3.7. `custom` is intentionally
  * excluded — the custom editor retains whatever the user has configured.
  */
 export const SHAPE_DEFAULTS = {
