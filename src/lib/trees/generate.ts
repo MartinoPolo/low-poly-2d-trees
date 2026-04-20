@@ -120,7 +120,7 @@ function isTriangleInsideRegion(
 	return test(cx, cy);
 }
 
-const ROOTS_DEPTH_PX = 25;
+const ROOTS_DEPTH_PX = 15;
 const FRUIT_SLOTS_SEED_OFFSET = 54321;
 const FRUIT_COUNT_CAP = 7;
 /** Calibrated for 2× fruit render scale (FRUIT_RENDER_SCALE in LowPolyTree.svelte). */

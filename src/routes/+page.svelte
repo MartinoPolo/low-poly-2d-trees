@@ -18,7 +18,7 @@
 	import OverlaysCard from '$lib/components/composed/OverlaysCard.svelte';
 	import { createTreeConfigContext } from '$lib/trees/tree_config.context.svelte.js';
 	import { createSceneConfigContext } from '$lib/scene/scene_config.context.svelte.js';
-	import { generateSceneLayout } from '$lib/scene/scene_layout.js';
+	import { generateSceneLayout, computeGroundHeightPercent } from '$lib/scene/scene_layout.js';
 	import { SCENE_LIMITS } from '$lib/scene/scene_config.js';
 	import { createEnvironmentConfigContext } from '$lib/environment/environment_config.context.svelte.js';
 	import { ENVIRONMENT_LIMITS } from '$lib/environment/environment_config.js';
@@ -75,6 +75,10 @@
 			depthSpread: sceneConfig.depthSpread,
 			baseSeed: treeConfig.current.seed,
 		}),
+	);
+
+	const groundHeightPercent = $derived(
+		computeGroundHeightPercent(sceneConfig.depthSpread, sceneConfig.treeCount),
 	);
 
 	function randomizeSeed() {
@@ -191,7 +195,8 @@
 		{/if}
 
 		<div
-			class="pointer-events-none absolute inset-x-0 bottom-0 h-[12%] bg-linear-to-t from-[#5c4033]/80 to-transparent dark:from-[#2d1b0e]/80 dark:to-transparent"
+			class="pointer-events-none absolute inset-x-0 bottom-0 bg-linear-to-t from-[#5c4033]/80 via-[#4a7c3f]/80 to-transparent dark:from-[#2d1b0e]/80 dark:via-[#2d4a25]/80 dark:to-transparent"
+			style="height: {groundHeightPercent}%"
 		></div>
 
 		<EnvironmentOverlay config={environmentConfig} lightAngle={treeConfig.current.lightAngle} />
@@ -413,20 +418,18 @@
 				</p>
 			</SectionCard>
 
-			<div class="col-span-full grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-6">
-				<CanopyColorCard
-					bind:lightColor={treeConfig.current.canopyLightColor}
-					bind:darkColor={treeConfig.current.canopyDarkColor}
-					disabled={usePerShapeDefaults.current}
-				/>
+			<CanopyColorCard
+				bind:lightColor={treeConfig.current.canopyLightColor}
+				bind:darkColor={treeConfig.current.canopyDarkColor}
+				disabled={usePerShapeDefaults.current}
+			/>
 
-				<TrunkColorCard
-					bind:hue={treeConfig.current.trunkHue}
-					bind:saturation={treeConfig.current.trunkSaturation}
-					bind:lightness={treeConfig.current.trunkLightness}
-					disabled={usePerShapeDefaults.current}
-				/>
-			</div>
+			<TrunkColorCard
+				bind:hue={treeConfig.current.trunkHue}
+				bind:saturation={treeConfig.current.trunkSaturation}
+				bind:lightness={treeConfig.current.trunkLightness}
+				disabled={usePerShapeDefaults.current}
+			/>
 
 			{#if isIntermediate}
 				<SectionCard title="Environment" contentClass="space-y-4">
