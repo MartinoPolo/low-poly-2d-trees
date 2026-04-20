@@ -21,8 +21,10 @@ Sections marked **[NOT IMPLEMENTED]** are planned but not yet built.
 
 ### 2.1 SVG Output
 
-- **REQ-R-01** Render each tree as a single `<svg>` element with a fixed viewBox of `300x300`.
+- **REQ-R-01** Render each tree as a single `<svg>` element with a fixed viewBox of `500x500`.
   SVG overflow is hidden — content beyond the viewBox is clipped.
+  Geometry constants are scaled to 300-equivalent so visual size is unchanged; the larger
+  viewBox provides headroom for overlays.
 - **REQ-R-02** The SVG contains five z-order render layers for branching shapes (painter's order):
   back branches, trunk quads, front branches, back canopy blobs, front canopy blobs.
   Branchless shapes retain the original 3-layer model: `trunk`, `branches`, `canopy`.
@@ -808,7 +810,7 @@ Works correctly with `branchAngle` slider (shifting fork angle up/down), `branch
 
 - **REQ-O-01** `TreeGeometry` has the shape:
     ```ts
-    { triangles: Triangle[]; anchors: TreeAnchors; viewBox: { width: 300; height: 300 } }
+    { triangles: Triangle[]; anchors: TreeAnchors; viewBox: { width: 500; height: 500 } }
     ```
 - **REQ-O-02** `TreeAnchors` exposes four points:
     - `trunkTop` — where trunk meets canopy (top of trunk geometry).
@@ -1067,14 +1069,15 @@ Reusable SVG overlays. Visual shapes only — consumer applies semantics.
   from `DEFAULT_TREE_CONFIG`.
 - **REQ-UI-02** Additional props:
 
-| Prop           | Type                             | Default | Description                              |
-| -------------- | -------------------------------- | ------- | ---------------------------------------- |
-| `showAnchors`  | `boolean`                        | `false` | Render coloured dots at anchor positions |
-| `showCanopy`   | `boolean`                        | `true`  | Toggle `<g class="canopy">` rendering    |
-| `showBranches` | `boolean`                        | `true`  | Toggle `<g class="branches">` rendering  |
-| `showTrunk`    | `boolean`                        | `true`  | Toggle `<g class="trunk">` rendering     |
-| `class`        | `string`                         | `''`    | CSS class forwarded to `<svg>`           |
-| `onanchors`    | `(anchors: TreeAnchors) => void` | ---     | Callback fired when anchors are computed |
+| Prop           | Type                             | Default | Description                                                        |
+| -------------- | -------------------------------- | ------- | ------------------------------------------------------------------ |
+| `showAnchors`  | `boolean`                        | `false` | Render coloured dots at anchor positions                           |
+| `showCanopy`   | `boolean`                        | `true`  | Toggle `<g class="canopy">` rendering                              |
+| `showBranches` | `boolean`                        | `true`  | Toggle `<g class="branches">` rendering                            |
+| `showTrunk`    | `boolean`                        | `true`  | Toggle `<g class="trunk">` rendering                               |
+| `showViewBox`  | `boolean`                        | `false` | Debug overlay: red dashed viewBox border, center axis, ground line |
+| `class`        | `string`                         | `''`    | CSS class forwarded to `<svg>`                                     |
+| `onanchors`    | `(anchors: TreeAnchors) => void` | ---     | Callback fired when anchors are computed                           |
 
 Note: `showCanopy`, `showBranches`, `showTrunk` are display-only toggles. Generation still
 runs for all layers so that anchors remain correct.
@@ -1274,17 +1277,22 @@ Persistent per session.
 
 ## 25. Sidebar Navigation
 
-- **REQ-NAV-01** The application uses the shadcn-svelte **`sidebar-07`** block (icon-collapsible
-  sidebar with a footer user section). Install via
-  `pnpm dlx shadcn-svelte@latest add sidebar` and integrate into `src/routes/+layout.svelte`,
-  wrapping `{@render children()}`.
+- **REQ-NAV-01** The application uses the shadcn-svelte **`sidebar-07`** block with
+  `collapsible="offcanvas"` (full-hide — sidebar disappears completely when collapsed, not
+  icon-only). Integrated into `src/routes/+layout.svelte` wrapping `{@render children()}`.
+  Collapsed/expanded state persisted in a cookie (`+layout.server.ts` reads it on load).
 - **REQ-NAV-02** Sidebar includes links to all pages:
     - Single Tree Editor (`/showcase`)
     - Scene Editor (`/showcase/scene`)
     - Gallery (`/gallery`)
 - **REQ-NAV-03** Sidebar has a bottom user section:
-    - When signed out: "Sign in" button linking to `/auth`
+    - When signed out: guest avatar dropdown with "Sign in" link to `/auth`
     - When signed in: user avatar, name, sign-out button (posts to `/auth/sign-out`)
+    - Both signed-in and guest dropdowns include a theme submenu (Light / Dark / System) via
+      `mode-watcher`. Selecting a theme applies immediately.
+- **REQ-NAV-05** The sidebar toggle is a floating trigger in the page inset (not in the
+  sidebar header). Icon switches between `PanelLeft` (collapsed) and `PanelLeftClose`
+  (expanded).
 - **REQ-NAV-04** The sidebar renders on **every route**, including `/`, `/auth`, `/showcase`,
   `/showcase/scene`, and `/gallery`. Navigation links are always visible; the Gallery link
   redirects anonymous users to `/auth` server-side. The bottom user section swaps based on
