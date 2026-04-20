@@ -413,20 +413,18 @@
 				</p>
 			</SectionCard>
 
-			<div class="col-span-full grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-6">
-				<CanopyColorCard
-					bind:lightColor={treeConfig.current.canopyLightColor}
-					bind:darkColor={treeConfig.current.canopyDarkColor}
-					disabled={usePerShapeDefaults.current}
-				/>
+			<CanopyColorCard
+				bind:lightColor={treeConfig.current.canopyLightColor}
+				bind:darkColor={treeConfig.current.canopyDarkColor}
+				disabled={usePerShapeDefaults.current}
+			/>
 
-				<TrunkColorCard
-					bind:hue={treeConfig.current.trunkHue}
-					bind:saturation={treeConfig.current.trunkSaturation}
-					bind:lightness={treeConfig.current.trunkLightness}
-					disabled={usePerShapeDefaults.current}
-				/>
-			</div>
+			<TrunkColorCard
+				bind:hue={treeConfig.current.trunkHue}
+				bind:saturation={treeConfig.current.trunkSaturation}
+				bind:lightness={treeConfig.current.trunkLightness}
+				disabled={usePerShapeDefaults.current}
+			/>
 
 			{#if isIntermediate}
 				<SectionCard title="Environment" contentClass="space-y-4">
