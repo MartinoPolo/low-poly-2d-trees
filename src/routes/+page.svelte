@@ -24,6 +24,7 @@
 	import { ENVIRONMENT_LIMITS } from '$lib/environment/environment_config.js';
 	import EnvironmentOverlay from '$lib/environment/EnvironmentOverlay.svelte';
 	import { createOverlayConfigContext } from '$lib/trees/overlays/overlay_config.context.svelte.js';
+	import SceneBackground from '$lib/scene/SceneBackground.svelte';
 	import RootConnection from '$lib/scene/RootConnection.svelte';
 	import { CONNECTION_STATES } from '$lib/scene/root_connection_types.js';
 	import type { Point2D } from '$lib/trees/types/core.js';
@@ -106,10 +107,9 @@
 
 <main class="grid h-dvh grid-rows-[1fr_1fr] overflow-hidden bg-background text-foreground">
 	<!-- Scene Preview -->
-	<div
-		data-testid="scene-canvas"
-		class="relative overflow-hidden border border-border bg-linear-to-b from-sky-200 to-white dark:from-[#0a1628] dark:to-[#1a2744]"
-	>
+	<div data-testid="scene-canvas" class="relative overflow-hidden border border-border">
+		<SceneBackground {groundHeightPercent} />
+
 		{#each scenePlacements as placement, index (index)}
 			{@const shapeDefaults = SHAPE_DEFAULTS[placement.shape]}
 			<div
@@ -117,7 +117,7 @@
 				class="absolute bottom-0"
 				style="
 						left: {placement.x}%;
-						bottom: {placement.y}%;
+						bottom: calc({placement.y}% + 30px);
 						transform: scale({placement.scale}) translateX(-50%);
 						transform-origin: bottom center;
 						width: {320 * placement.scale}px;
@@ -193,11 +193,6 @@
 				{/each}
 			</svg>
 		{/if}
-
-		<div
-			class="pointer-events-none absolute inset-x-0 bottom-0 bg-linear-to-t from-[#5c4033]/80 via-[#4a7c3f]/80 to-transparent dark:from-[#2d1b0e]/80 dark:via-[#2d4a25]/80 dark:to-transparent"
-			style="height: {groundHeightPercent}%"
-		></div>
 
 		<EnvironmentOverlay config={environmentConfig} lightAngle={treeConfig.current.lightAngle} />
 

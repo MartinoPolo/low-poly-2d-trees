@@ -5,6 +5,7 @@
 	import Trees from '@lucide/svelte/icons/trees';
 	import Images from '@lucide/svelte/icons/images';
 	import Crosshair from '@lucide/svelte/icons/crosshair';
+	import Presentation from '@lucide/svelte/icons/presentation';
 	import Settings from '@lucide/svelte/icons/settings';
 	import LogIn from '@lucide/svelte/icons/log-in';
 	import LogOut from '@lucide/svelte/icons/log-out';
@@ -20,6 +21,7 @@
 	const editorPath = resolve('/editor');
 	const galleryPath = resolve('/gallery');
 	const pointEditorPath = resolve('/point-editor');
+	const showcasePath = resolve('/showcase');
 	const settingsPath = resolve('/settings');
 	const authPath = resolve('/auth/sign-in');
 	const signOutPath = resolve('/auth/sign-out');
@@ -107,6 +109,19 @@
 								<a href={pointEditorPath} {...props}>
 									<Crosshair />
 									<span>Point Editor</span>
+								</a>
+							{/snippet}
+						</Sidebar.MenuButton>
+					</Sidebar.MenuItem>
+					<Sidebar.MenuItem>
+						<Sidebar.MenuButton
+							isActive={page.url.pathname === showcasePath}
+							tooltipContent="Showcase"
+						>
+							{#snippet child({ props })}
+								<a href={showcasePath} {...props}>
+									<Presentation />
+									<span>Showcase</span>
 								</a>
 							{/snippet}
 						</Sidebar.MenuButton>

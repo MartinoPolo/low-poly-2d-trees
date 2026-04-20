@@ -248,7 +248,7 @@
 </script>
 
 <div class="flex h-full flex-col gap-4 p-4">
-	<h1 class="text-2xl font-bold">Point Editor</h1>
+	<h1 class="text-2xl font-bold pl-10">Point Editor</h1>
 
 	<Tabs.Root value={activeTab} onValueChange={handleTabChange}>
 		<Tabs.List>

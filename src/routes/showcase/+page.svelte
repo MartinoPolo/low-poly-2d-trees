@@ -60,10 +60,9 @@
 	<title>Stage Showcase</title>
 </svelte:head>
 
-<main class="min-h-dvh bg-background p-6 text-foreground">
+<main class="flex h-full flex-col gap-4 p-4">
+	<h1 class="text-2xl font-bold pl-10">Tree Lifecycle Stages</h1>
 	<div class="mx-auto max-w-7xl space-y-8">
-		<h1 class="text-2xl font-bold">Tree Lifecycle Stages</h1>
-
 		<div class="flex items-end gap-4">
 			<div class="w-48">
 				<LabeledSelect
