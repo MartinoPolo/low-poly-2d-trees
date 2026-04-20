@@ -42,6 +42,8 @@
 		/>
 		<Sidebar.Trigger
 			data-testid="desktop-sidebar-trigger"
+			variant="ghost"
+			size="icon"
 			class="hidden md:flex absolute top-3 left-3 z-10"
 		/>
 		{@render children()}

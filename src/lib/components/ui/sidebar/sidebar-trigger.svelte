@@ -10,6 +10,8 @@
 		ref = $bindable(null),
 		class: className,
 		onclick,
+		variant = 'ghost',
+		size = 'icon-sm',
 		...restProps
 	}: ComponentProps<typeof Button> & {
 		onclick?: (e: MouseEvent) => void;
@@ -23,8 +25,8 @@
 	bind:ref
 	data-sidebar="trigger"
 	data-slot="sidebar-trigger"
-	variant="ghost"
-	size="icon-sm"
+	{variant}
+	{size}
 	class={cn('cn-sidebar-trigger', className)}
 	type="button"
 	onclick={(e) => {

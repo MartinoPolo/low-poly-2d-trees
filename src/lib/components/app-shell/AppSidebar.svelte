@@ -244,5 +244,4 @@
 			</Sidebar.Menu>
 		{/if}
 	</Sidebar.Footer>
-	<Sidebar.Rail />
 </Sidebar.Root>
