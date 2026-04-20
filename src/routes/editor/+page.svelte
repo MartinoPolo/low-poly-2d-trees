@@ -443,18 +443,16 @@
 				</Card.Root>
 			{/if}
 
-			<div class="col-span-full grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-6">
-				<CanopyColorCard
-					bind:lightColor={treeConfig.current.canopyLightColor}
-					bind:darkColor={treeConfig.current.canopyDarkColor}
-				/>
+			<CanopyColorCard
+				bind:lightColor={treeConfig.current.canopyLightColor}
+				bind:darkColor={treeConfig.current.canopyDarkColor}
+			/>
 
-				<TrunkColorCard
-					bind:hue={treeConfig.current.trunkHue}
-					bind:saturation={treeConfig.current.trunkSaturation}
-					bind:lightness={treeConfig.current.trunkLightness}
-				/>
-			</div>
+			<TrunkColorCard
+				bind:hue={treeConfig.current.trunkHue}
+				bind:saturation={treeConfig.current.trunkSaturation}
+				bind:lightness={treeConfig.current.trunkLightness}
+			/>
 
 			<Card.Root>
 				<Card.Header>
