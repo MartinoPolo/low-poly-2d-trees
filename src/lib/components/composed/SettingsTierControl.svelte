@@ -17,7 +17,7 @@
 
 <div
 	data-testid="settings-tier-control"
-	class="tier-toggle sticky top-0 z-10 bg-background py-4 px-px"
+	class="tier-toggle sticky top-0 z-10 bg-background py-4 -mx-6 px-6"
 >
 	<ToggleGroup.Root
 		type="single"

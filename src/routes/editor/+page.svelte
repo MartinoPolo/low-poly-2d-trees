@@ -44,6 +44,8 @@
 	import SceneFloatingButtons from '$lib/components/app-shell/SceneFloatingButtons.svelte';
 	import SettingsTierControl from '$lib/components/composed/SettingsTierControl.svelte';
 	import { use_settings_tier, tierAtLeast } from '$lib/context/settings_tier.context.svelte.js';
+	import Button from '$lib/components/ui/button/button.svelte';
+	import Shuffle from '@lucide/svelte/icons/shuffle';
 
 	const user = $derived(page.data.user);
 	const signedIn = $derived(user !== null);
@@ -352,7 +354,16 @@
 					{#if isAdvanced}
 						<div class="space-y-2">
 							<Label>Seed</Label>
-							<Input type="number" bind:value={treeConfig.current.seed} />
+							<div class="flex gap-2">
+								<Input
+									type="number"
+									bind:value={treeConfig.current.seed}
+									class="flex-1"
+								/>
+								<Button variant="outline" size="icon" onclick={randomizeSeed}>
+									<Shuffle />
+								</Button>
+							</div>
 						</div>
 					{/if}
 				</Card.Content>
