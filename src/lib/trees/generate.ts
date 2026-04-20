@@ -442,6 +442,12 @@ function generateTrunkQuads(
 		}
 	}
 
+	// Enforce monotonically decreasing widths from base to top so flare
+	// never makes the trunk wider than the junction below it.
+	for (let j = 1; j < junctionCount; j++) {
+		junctionWidths[j] = Math.min(junctionWidths[j]!, junctionWidths[j - 1]!);
+	}
+
 	// Compute junction strip ratios (REQ-EV2-S-01)
 	const stripRatios = computeJunctionStripRatios(
 		config.seed,
@@ -1235,8 +1241,14 @@ function generateTreeCore(config: TreeConfig, flags: StageFlags): TreeGeometry {
 	}));
 	const allBranches = [...branches, ...extraBranches];
 
-	// Rule L validation (REQ-EV2-L-01): trunk tip must connect to branch or canopy
-	const topJunction = trunkJunctions[trunkJunctions.length - 1]!;
+	// Rule L validation (REQ-EV2-L-01): trunk tip must connect to branch or canopy.
+	// When trunkFork is active, the effective tip is at the fork junction (second-
+	// to-last) since the topmost junction is not rendered.
+	const effectiveTipIndex =
+		config.trunkFork && trunkJunctions.length >= 3
+			? trunkJunctions.length - 2
+			: trunkJunctions.length - 1;
+	const topJunction = trunkJunctions[effectiveTipIndex]!;
 	const tipInsideCanopy =
 		isPointInBlobs(topJunction.x, topJunction.y, blobs) ||
 		tiers.some((t) => isPointInTier(topJunction.x, topJunction.y, t));
