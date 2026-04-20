@@ -15,7 +15,7 @@
 	}
 </script>
 
-<div data-testid="settings-tier-control" class="sticky top-0 z-10 bg-background pb-4">
+<div data-testid="settings-tier-control" class="sticky top-0 z-10 bg-background py-4 px-px">
 	<ToggleGroup.Root
 		type="single"
 		value={tier.current}

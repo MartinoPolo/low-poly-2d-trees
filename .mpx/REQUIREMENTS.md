@@ -1664,7 +1664,7 @@ Persistent per session.
 - **REQ-PRD7-17** Add sky gradient background and ground representation to both editors:
 
     **Single tree editor:**
-    - Same sky gradient as scene editor (`bg-gradient-to-b from-sky-200 to-white`, dark mode: `from-[#0a1628] to-[#1a2744]`)
+    - Same sky gradient as scene editor (`bg-linear-to-b from-sky-200 to-white`, dark mode: `from-[#0a1628] to-[#1a2744]`)
     - Simple horizontal ground band at `GROUND_LINE_Y` — earth-colored rectangle filling the bottom of the viewport
     - Subtle gradient: earth/grass color at bottom, fading to transparent ~20% up
 

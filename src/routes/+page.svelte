@@ -104,7 +104,7 @@
 	<!-- Scene Preview -->
 	<div
 		data-testid="scene-canvas"
-		class="relative overflow-hidden border border-border bg-gradient-to-b from-sky-200 to-white dark:from-[#0a1628] dark:to-[#1a2744]"
+		class="relative overflow-hidden border border-border bg-linear-to-b from-sky-200 to-white dark:from-[#0a1628] dark:to-[#1a2744]"
 	>
 		{#each scenePlacements as placement, index (index)}
 			{@const shapeDefaults = SHAPE_DEFAULTS[placement.shape]}
@@ -191,7 +191,7 @@
 		{/if}
 
 		<div
-			class="pointer-events-none absolute inset-x-0 bottom-0 h-[12%] bg-gradient-to-t from-[#5c4033]/80 to-transparent dark:from-[#2d1b0e]/80 dark:to-transparent"
+			class="pointer-events-none absolute inset-x-0 bottom-0 h-[12%] bg-linear-to-t from-[#5c4033]/80 to-transparent dark:from-[#2d1b0e]/80 dark:to-transparent"
 		></div>
 
 		<EnvironmentOverlay config={environmentConfig} lightAngle={treeConfig.current.lightAngle} />
@@ -200,9 +200,9 @@
 	</div>
 
 	<!-- Shared Controls -->
-	<aside data-testid="scene-controls" class="select-none overflow-y-auto p-6">
+	<aside data-testid="scene-controls" class="select-none overflow-y-auto px-6 pb-6">
 		<SettingsTierControl />
-		<div class="grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-6">
+		<div class="grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-6 p-px">
 			<SectionCard title="Scene Settings" contentClass="space-y-4">
 				<LabeledSelect
 					label="Life Stage"

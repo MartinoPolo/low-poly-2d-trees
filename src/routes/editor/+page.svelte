@@ -113,32 +113,33 @@
 		);
 	});
 
-	// Clamp current slider values when dynamic max drops below current range
-	$effect(() => {
-		const max1 = branchMaximums.maxLevel1;
-		const max2 = branchMaximums.maxLevel2;
-		const max3 = branchMaximums.maxLevel3;
-		const cfg = treeConfig.current;
+	function clampBranchRangesToMaximums() {
+		const raw = computeMaxBranches(treeConfig.current.shape, treeConfig.current.trunkHeight);
+		const maxes = clampBranchMaximums(
+			raw,
+			treeConfig.current.branchMirroring,
+			treeConfig.current.trunkFork,
+		);
 
-		if (cfg.branchesLevel1Range[1] > max1) {
+		if (treeConfig.current.branchesLevel1Range[1] > maxes.maxLevel1) {
 			treeConfig.current.branchesLevel1Range = [
-				Math.min(cfg.branchesLevel1Range[0], max1),
-				max1,
+				Math.min(treeConfig.current.branchesLevel1Range[0], maxes.maxLevel1),
+				maxes.maxLevel1,
 			];
 		}
-		if (cfg.branchesLevel2Range[1] > max2) {
+		if (treeConfig.current.branchesLevel2Range[1] > maxes.maxLevel2) {
 			treeConfig.current.branchesLevel2Range = [
-				Math.min(cfg.branchesLevel2Range[0], max2),
-				max2,
+				Math.min(treeConfig.current.branchesLevel2Range[0], maxes.maxLevel2),
+				maxes.maxLevel2,
 			];
 		}
-		if (cfg.branchesLevel3Range[1] > max3) {
+		if (treeConfig.current.branchesLevel3Range[1] > maxes.maxLevel3) {
 			treeConfig.current.branchesLevel3Range = [
-				Math.min(cfg.branchesLevel3Range[0], max3),
-				max3,
+				Math.min(treeConfig.current.branchesLevel3Range[0], maxes.maxLevel3),
+				maxes.maxLevel3,
 			];
 		}
-	});
+	}
 
 	const savedId = $derived(page.url.searchParams.get('saved'));
 	const savedTreeQuery = $derived(savedId === null ? null : getSavedTree(savedId));
@@ -218,6 +219,7 @@
 		if ('branchWidthVariance' in defaults) {
 			treeConfig.current.branchWidthVariance = defaults.branchWidthVariance as number;
 		}
+		clampBranchRangesToMaximums();
 	}
 
 	function onBlobCountChange(value: number) {
@@ -256,9 +258,12 @@
 				return;
 			}
 			treeConfig.applyConfig(data.config);
+			clampBranchRangesToMaximums();
 			hydratedId = currentSavedId;
 		})();
 	});
+
+	clampBranchRangesToMaximums();
 </script>
 
 <svelte:head>
@@ -268,10 +273,10 @@
 <main class="grid h-dvh grid-rows-[1fr_1fr] overflow-hidden bg-background text-foreground">
 	<!-- Preview -->
 	<div
-		class="relative flex items-center justify-center overflow-hidden border border-border bg-gradient-to-b from-sky-200 to-white p-8 dark:from-[#0a1628] dark:to-[#1a2744]"
+		class="relative flex items-center justify-center overflow-hidden border border-border bg-linear-to-b from-sky-200 to-white p-8 dark:from-[#0a1628] dark:to-[#1a2744]"
 	>
 		<div
-			class="pointer-events-none absolute inset-x-0 bottom-0 h-[12%] bg-gradient-to-t from-[#5c4033]/80 to-transparent dark:from-[#2d1b0e]/80 dark:to-transparent"
+			class="pointer-events-none absolute inset-x-0 bottom-0 h-[12%] bg-linear-to-t from-[#5c4033]/80 to-transparent dark:from-[#2d1b0e]/80 dark:to-transparent"
 		></div>
 		<div class="w-full" style="max-width: min(576px, calc(50dvh - 4rem))">
 			<LowPolyTree
@@ -295,7 +300,10 @@
 		</div>
 
 		<SceneFloatingButtons
-			onReset={() => treeConfig.resetToShapeDefaults()}
+			onReset={() => {
+				treeConfig.resetToShapeDefaults();
+				clampBranchRangesToMaximums();
+			}}
 			onRandomize={randomizeSeed}
 			showSave={true}
 			onSave={triggerSave}
@@ -304,9 +312,9 @@
 	</div>
 
 	<!-- Controls -->
-	<aside class="select-none overflow-y-auto p-6">
+	<aside class="select-none overflow-y-auto px-6 pb-6">
 		<SettingsTierControl />
-		<div class="grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-6">
+		<div class="grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-6 p-px">
 			<Card.Root>
 				<Card.Header>
 					<Card.Title>Shape</Card.Title>
@@ -459,6 +467,7 @@
 						max={150}
 						unit="%"
 						bind:value={treeConfig.current.trunkHeight}
+						onValueChange={() => clampBranchRangesToMaximums()}
 					/>
 					<LabeledSlider
 						label="Trunk Thickness"
@@ -570,6 +579,7 @@
 							onValueChange={(v) => {
 								if (isBranchMirroring(v)) {
 									treeConfig.current.branchMirroring = v;
+									clampBranchRangesToMaximums();
 								}
 							}}
 							disabled={level1Disabled}
@@ -577,7 +587,10 @@
 						<div class="flex items-center gap-2">
 							<Checkbox
 								checked={treeConfig.current.trunkFork}
-								onCheckedChange={(v) => (treeConfig.current.trunkFork = v === true)}
+								onCheckedChange={(v) => {
+									treeConfig.current.trunkFork = v === true;
+									clampBranchRangesToMaximums();
+								}}
 								disabled={level1Disabled}
 							/>
 							<Label>Trunk Fork</Label>
