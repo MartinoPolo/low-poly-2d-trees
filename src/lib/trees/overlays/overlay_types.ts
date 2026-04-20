@@ -15,8 +15,14 @@ export interface WiltingConfig {
 export interface GlowConfig {
 	readonly enabled: boolean;
 	readonly color: string;
+	readonly intensity: number;
 	readonly pulse: boolean;
 }
+
+export const GLOW_LIMITS = {
+	intensityMin: 1,
+	intensityMax: 5,
+} as const;
 
 export interface OverlayConfig {
 	readonly stormCloud: StormCloudConfig;
@@ -29,7 +35,7 @@ export const OVERLAY_DEFAULTS: OverlayConfig = {
 	stormCloud: { enabled: false, showRain: true },
 	speechBubble: { enabled: false, text: '' },
 	wilting: { enabled: false },
-	glow: { enabled: false, color: '#ffd700', pulse: false },
+	glow: { enabled: false, color: '#ffd700', intensity: 3, pulse: false },
 } as const;
 
 export interface StormCloudTriangle {

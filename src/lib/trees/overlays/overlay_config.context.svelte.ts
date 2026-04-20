@@ -8,6 +8,7 @@ class OverlayConfigState {
 	wiltingEnabled = $state(OVERLAY_DEFAULTS.wilting.enabled);
 	glowEnabled = $state(OVERLAY_DEFAULTS.glow.enabled);
 	glowColor = $state(OVERLAY_DEFAULTS.glow.color);
+	glowIntensity = $state(OVERLAY_DEFAULTS.glow.intensity);
 	glowPulse = $state(OVERLAY_DEFAULTS.glow.pulse);
 	groundEnabled = $state(false);
 
@@ -27,6 +28,7 @@ class OverlayConfigState {
 			glow: {
 				enabled: this.glowEnabled,
 				color: this.glowColor,
+				intensity: this.glowIntensity,
 				pulse: this.glowPulse,
 			},
 		};

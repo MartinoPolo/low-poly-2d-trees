@@ -239,7 +239,6 @@
 	overflow="hidden"
 	class={className}
 	style={hasReadyGlow && !hasOverlayGlow ? 'filter: drop-shadow(0 0 8px gold)' : undefined}
-	filter={hasOverlayGlow ? `url(#${glowFilterId})` : undefined}
 >
 	<GlowEffect config={overlayConfig.glow} filterId={glowFilterId} />
 	{#if showViewBox}
@@ -334,39 +333,95 @@
 			</g>
 		{/snippet}
 
-		<!-- REQ-EV2-Z-04: 5-layer rendering for branching shapes -->
-		<!-- Layer 1: Back branches (behind trunk) -->
-		{#if showBranches && backRootBranches.length > 0}
-			<g class="back-branches">
-				{#each backRootBranches as { group, index: groupIndex } (groupIndex)}
-					{@render branchGroupSnippet(group, groupIndex)}
-				{/each}
-			</g>
-		{/if}
-
-		<!-- Layer 2: Trunk -->
-		{#if showTrunk}
-			<g class="trunk">
-				{#if stageSvgComponent}
-					{@const StageSvg = stageSvgComponent}
-					<g
-						transform="translate({geometry.anchors.trunkBase.x},{geometry.anchors
-							.trunkBase.y})"
-					>
-						<StageSvg />
-					</g>
-				{:else}
-					{#each geometry.trunkQuads as quad (quad)}
-						<polygon
-							points="{quad.points[0].x},{quad.points[0].y} {quad.points[1].x},{quad
-								.points[1].y} {quad.points[2].x},{quad.points[2].y} {quad.points[3]
-								.x},{quad.points[3].y}"
-							fill={quad.color}
-							stroke={quad.color}
-							stroke-width="0.5"
-						/>
+		{#snippet treeBodyContent()}
+			<!-- REQ-EV2-Z-04: 5-layer rendering for branching shapes -->
+			<!-- Layer 1: Back branches (behind trunk) -->
+			{#if showBranches && backRootBranches.length > 0}
+				<g class="back-branches">
+					{#each backRootBranches as { group, index: groupIndex } (groupIndex)}
+						{@render branchGroupSnippet(group, groupIndex)}
 					{/each}
-					{#each geometry.trunkTriangles as tri (tri)}
+				</g>
+			{/if}
+
+			<!-- Layer 2: Trunk -->
+			{#if showTrunk}
+				<g class="trunk">
+					{#if stageSvgComponent}
+						{@const StageSvg = stageSvgComponent}
+						<g
+							transform="translate({geometry.anchors.trunkBase.x},{geometry.anchors
+								.trunkBase.y})"
+						>
+							<StageSvg />
+						</g>
+					{:else}
+						{#each geometry.trunkQuads as quad (quad)}
+							<polygon
+								points="{quad.points[0].x},{quad.points[0].y} {quad.points[1]
+									.x},{quad.points[1].y} {quad.points[2].x},{quad.points[2]
+									.y} {quad.points[3].x},{quad.points[3].y}"
+								fill={quad.color}
+								stroke={quad.color}
+								stroke-width="0.5"
+							/>
+						{/each}
+						{#each geometry.trunkTriangles as tri (tri)}
+							<polygon
+								points="{tri.points[0].x},{tri.points[0].y} {tri.points[1].x},{tri
+									.points[1].y} {tri.points[2].x},{tri.points[2].y}"
+								fill={tri.color}
+								stroke={tri.color}
+								stroke-width="0.5"
+							/>
+						{/each}
+						{#each geometry.birchStripes as stripe (stripe)}
+							<rect
+								x={stripe.centerX - stripe.width / 2}
+								y={stripe.y - stripe.height / 2}
+								width={stripe.width}
+								height={stripe.height}
+								fill={stripe.color}
+							/>
+						{/each}
+					{/if}
+				</g>
+			{/if}
+
+			<!-- Layer 3: Front branches -->
+			{#if showBranches}
+				<g class="branches">
+					{#each frontRootBranches as { group, index: groupIndex } (groupIndex)}
+						{@render branchGroupSnippet(group, groupIndex)}
+					{/each}
+				</g>
+			{/if}
+
+			<!-- Layer 4: Back canopy blobs -->
+			{#if showCanopy && !stageSvgComponent && backCanopyBlobs.length > 0}
+				<WiltingEffect enabled={overlayConfig.wilting.enabled}>
+					<g class="back-canopy">
+						{#each backCanopyBlobs as { blob, index: blobIndex } (blob)}
+							{@render canopyBlobSnippet(blob, blobIndex)}
+						{/each}
+					</g>
+				</WiltingEffect>
+			{/if}
+
+			<!-- Layer 5: Front canopy blobs -->
+			{#if showCanopy && !stageSvgComponent}
+				<WiltingEffect enabled={overlayConfig.wilting.enabled}>
+					<g class="canopy">
+						{#each frontCanopyBlobs as { blob, index: blobIndex } (blob)}
+							{@render canopyBlobSnippet(blob, blobIndex)}
+						{/each}
+					</g>
+				</WiltingEffect>
+			{/if}
+
+			{#if geometry.stakeTriangles.length > 0}
+				<g class="stakes">
+					{#each geometry.stakeTriangles as tri (tri)}
 						<polygon
 							points="{tri.points[0].x},{tri.points[0].y} {tri.points[1].x},{tri
 								.points[1].y} {tri.points[2].x},{tri.points[2].y}"
@@ -375,101 +430,55 @@
 							stroke-width="0.5"
 						/>
 					{/each}
-					{#each geometry.birchStripes as stripe (stripe)}
-						<rect
-							x={stripe.centerX - stripe.width / 2}
-							y={stripe.y - stripe.height / 2}
-							width={stripe.width}
-							height={stripe.height}
-							fill={stripe.color}
-						/>
-					{/each}
-				{/if}
-			</g>
-		{/if}
+				</g>
+			{/if}
 
-		<!-- Layer 3: Front branches -->
-		{#if showBranches}
-			<g class="branches">
-				{#each frontRootBranches as { group, index: groupIndex } (groupIndex)}
-					{@render branchGroupSnippet(group, groupIndex)}
-				{/each}
-			</g>
-		{/if}
-
-		<!-- Layer 4: Back canopy blobs -->
-		{#if showCanopy && !stageSvgComponent && backCanopyBlobs.length > 0}
-			<WiltingEffect enabled={overlayConfig.wilting.enabled}>
-				<g class="back-canopy">
-					{#each backCanopyBlobs as { blob, index: blobIndex } (blob)}
-						{@render canopyBlobSnippet(blob, blobIndex)}
+			{#if showFruit && fruitComponent && geometry.fruitSlots.length > 0}
+				{@const FruitSvg = fruitComponent}
+				<g class="fruit">
+					{#each geometry.fruitSlots as slot (slot)}
+						<g transform="translate({slot.x},{slot.y}) scale({FRUIT_RENDER_SCALE})">
+							<FruitSvg />
+						</g>
 					{/each}
 				</g>
-			</WiltingEffect>
-		{/if}
+			{/if}
 
-		<!-- Layer 5: Front canopy blobs -->
-		{#if showCanopy && !stageSvgComponent}
-			<WiltingEffect enabled={overlayConfig.wilting.enabled}>
-				<g class="canopy">
-					{#each frontCanopyBlobs as { blob, index: blobIndex } (blob)}
-						{@render canopyBlobSnippet(blob, blobIndex)}
+			{#if flowerComponent && geometry.flowerSlots.length > 0}
+				{@const FlowerSvg = flowerComponent}
+				<g class="flowers">
+					{#each geometry.flowerSlots as slot (slot)}
+						<g transform="translate({slot.x},{slot.y})">
+							<FlowerSvg />
+						</g>
 					{/each}
 				</g>
-			</WiltingEffect>
-		{/if}
+			{/if}
 
-		{#if geometry.stakeTriangles.length > 0}
-			<g class="stakes">
-				{#each geometry.stakeTriangles as tri (tri)}
-					<polygon
-						points="{tri.points[0].x},{tri.points[0].y} {tri.points[1].x},{tri.points[1]
-							.y} {tri.points[2].x},{tri.points[2].y}"
-						fill={tri.color}
-						stroke={tri.color}
-						stroke-width="0.5"
-					/>
-				{/each}
+			{#if fallingLeaves.length > 0}
+				<g class="falling-leaves">
+					{#each fallingLeaves as leaf (leaf.id)}
+						<g
+							class="falling-leaf"
+							class:falling-leaf-landed={leaf.state === FALLING_LEAF_STATES.landed}
+							class:falling-leaf-fading={leaf.state === FALLING_LEAF_STATES.fading}
+							style="--leaf-start-x: {leaf.x}px; --leaf-start-y: {leaf.y}px; --leaf-land-y: {leaf.landedY}px; --leaf-land-x: {leaf.x +
+								leaf.scatterX}px; --leaf-duration: {leaf.fallDuration}s; --leaf-rotation: {leaf.rotation}deg; --leaf-fade-duration: {FALLING_LEAF_CONFIG.fadeDurationMs}ms;"
+						>
+							<LeafSvg color={leaf.color} />
+						</g>
+					{/each}
+				</g>
+			{/if}
+		{/snippet}
+
+		{#if hasOverlayGlow}
+			<g filter="url(#{glowFilterId})" class:glow-pulse={overlayConfig.glow.pulse}>
+				{@render treeBodyContent()}
 			</g>
 		{/if}
 
-		{#if showFruit && fruitComponent && geometry.fruitSlots.length > 0}
-			{@const FruitSvg = fruitComponent}
-			<g class="fruit">
-				{#each geometry.fruitSlots as slot (slot)}
-					<g transform="translate({slot.x},{slot.y}) scale({FRUIT_RENDER_SCALE})">
-						<FruitSvg />
-					</g>
-				{/each}
-			</g>
-		{/if}
-
-		{#if flowerComponent && geometry.flowerSlots.length > 0}
-			{@const FlowerSvg = flowerComponent}
-			<g class="flowers">
-				{#each geometry.flowerSlots as slot (slot)}
-					<g transform="translate({slot.x},{slot.y})">
-						<FlowerSvg />
-					</g>
-				{/each}
-			</g>
-		{/if}
-
-		{#if fallingLeaves.length > 0}
-			<g class="falling-leaves">
-				{#each fallingLeaves as leaf (leaf.id)}
-					<g
-						class="falling-leaf"
-						class:falling-leaf-landed={leaf.state === FALLING_LEAF_STATES.landed}
-						class:falling-leaf-fading={leaf.state === FALLING_LEAF_STATES.fading}
-						style="--leaf-start-x: {leaf.x}px; --leaf-start-y: {leaf.y}px; --leaf-land-y: {leaf.landedY}px; --leaf-land-x: {leaf.x +
-							leaf.scatterX}px; --leaf-duration: {leaf.fallDuration}s; --leaf-rotation: {leaf.rotation}deg; --leaf-fade-duration: {FALLING_LEAF_CONFIG.fadeDurationMs}ms;"
-					>
-						<LeafSvg color={leaf.color} />
-					</g>
-				{/each}
-			</g>
-		{/if}
+		{@render treeBodyContent()}
 
 		{#if groundElements}
 			<GroundElements seed={config.seed} trunkBase={geometry.anchors.trunkBase} />
@@ -699,5 +708,20 @@
 		opacity: 0;
 		animation: none;
 		transition: opacity var(--leaf-fade-duration) ease-out;
+	}
+
+	@keyframes glow-pulse {
+		0%,
+		100% {
+			opacity: 1;
+		}
+
+		50% {
+			opacity: 0.1;
+		}
+	}
+
+	.glow-pulse {
+		animation: glow-pulse 2s ease-in-out infinite;
 	}
 </style>

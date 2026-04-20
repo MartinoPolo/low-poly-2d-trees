@@ -2,8 +2,10 @@
 	import { Checkbox } from '$lib/components/ui/checkbox/index.js';
 	import { Label } from '$lib/components/ui/label/index.js';
 	import { Input } from '$lib/components/ui/input/index.js';
+	import LabeledSlider from '$lib/components/composed/LabeledSlider.svelte';
 	import SectionCard from '$lib/components/composed/SectionCard.svelte';
 	import type { createOverlayConfigContext } from '$lib/trees/overlays/overlay_config.context.svelte.js';
+	import { GLOW_LIMITS } from '$lib/trees/overlays/overlay_types.js';
 
 	interface Props {
 		overlayConfig: ReturnType<typeof createOverlayConfigContext>;
@@ -70,6 +72,13 @@
 	</div>
 	{#if overlayConfig.glowEnabled}
 		<div class="ml-6 space-y-2">
+			<LabeledSlider
+				label="Intensity"
+				min={GLOW_LIMITS.intensityMin}
+				max={GLOW_LIMITS.intensityMax}
+				step={0.5}
+				bind:value={overlayConfig.glowIntensity}
+			/>
 			<div class="flex items-center gap-2">
 				<Label class="text-xs">Color</Label>
 				<input

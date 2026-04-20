@@ -7,22 +7,32 @@
 	}
 
 	let { config, filterId }: Props = $props();
+
+	const floodOpacity = $derived(Math.min(0.6 * config.intensity, 1.0));
+	const stdDeviation = $derived(4 * config.intensity);
+	const filterMargin = $derived(30 + (config.intensity - 1) * 15);
+	const filterSize = $derived(100 + 2 * filterMargin);
 </script>
 
 {#if config.enabled}
 	<defs>
-		<filter id={filterId} x="-30%" y="-30%" width="160%" height="160%">
-			<feFlood flood-color={config.color} flood-opacity="0.6" result="flood" />
+		<filter
+			id={filterId}
+			x="-{filterMargin}%"
+			y="-{filterMargin}%"
+			width="{filterSize}%"
+			height="{filterSize}%"
+		>
+			<feFlood flood-color={config.color} flood-opacity={floodOpacity} result="flood" />
 			<feComposite in="flood" in2="SourceGraphic" operator="in" result="masked" />
-			<feGaussianBlur in="masked" stdDeviation="4" result="blur" />
-			<feMerge>
-				<feMergeNode in="blur" />
-				<feMergeNode in="SourceGraphic" />
-			</feMerge>
+			<feGaussianBlur in="masked" {stdDeviation} result="blur" />
+			{#if config.intensity >= 3}
+				<feGaussianBlur in="masked" stdDeviation={stdDeviation * 1.5} result="blur2" />
+				<feMerge>
+					<feMergeNode in="blur2" />
+					<feMergeNode in="blur" />
+				</feMerge>
+			{/if}
 		</filter>
 	</defs>
-{/if}
-
-{#if config.enabled && config.pulse}
-	<!-- Pulse animation is applied via CSS on the element that references this filter -->
 {/if}
