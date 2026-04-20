@@ -57,6 +57,7 @@
 		showFruit?: boolean;
 		showAnchors?: boolean;
 		showEnvelope?: boolean;
+		showViewBox?: boolean;
 		animateCanopySway?: boolean;
 		animateBranches?: boolean;
 		animateGrowth?: boolean;
@@ -78,6 +79,7 @@
 		showFruit = true,
 		showAnchors = false,
 		showEnvelope = false,
+		showViewBox = false,
 		animateCanopySway = false,
 		animateBranches = false,
 		animateGrowth = false,
@@ -240,38 +242,39 @@
 	filter={hasOverlayGlow ? `url(#${glowFilterId})` : undefined}
 >
 	<GlowEffect config={overlayConfig.glow} filterId={glowFilterId} />
-	<!-- DEBUG: viewBox boundary visualization -->
-	<rect
-		x="0"
-		y="0"
-		width={geometry.viewBox.width}
-		height={geometry.viewBox.height}
-		fill="none"
-		stroke="red"
-		stroke-width="2"
-		stroke-dasharray="8 4"
-		opacity="0.5"
-	/>
-	<line
-		x1={geometry.viewBox.width / 2}
-		y1="0"
-		x2={geometry.viewBox.width / 2}
-		y2={geometry.viewBox.height}
-		stroke="red"
-		stroke-width="1"
-		stroke-dasharray="4 4"
-		opacity="0.3"
-	/>
-	<line
-		x1="0"
-		y1={geometry.viewBox.height * 0.95}
-		x2={geometry.viewBox.width}
-		y2={geometry.viewBox.height * 0.95}
-		stroke="green"
-		stroke-width="1"
-		stroke-dasharray="4 4"
-		opacity="0.5"
-	/>
+	{#if showViewBox}
+		<rect
+			x="0"
+			y="0"
+			width={geometry.viewBox.width}
+			height={geometry.viewBox.height}
+			fill="none"
+			stroke="red"
+			stroke-width="2"
+			stroke-dasharray="8 4"
+			opacity="0.5"
+		/>
+		<line
+			x1={geometry.viewBox.width / 2}
+			y1="0"
+			x2={geometry.viewBox.width / 2}
+			y2={geometry.viewBox.height}
+			stroke="red"
+			stroke-width="1"
+			stroke-dasharray="4 4"
+			opacity="0.3"
+		/>
+		<line
+			x1="0"
+			y1={geometry.viewBox.height * 0.95}
+			x2={geometry.viewBox.width}
+			y2={geometry.viewBox.height * 0.95}
+			stroke="green"
+			stroke-width="1"
+			stroke-dasharray="4 4"
+			opacity="0.5"
+		/>
+	{/if}
 	<g class="tree-root">
 		{#snippet branchGroupSnippet(branchGroup: BranchGeometry, branchIndex: number)}
 			<g

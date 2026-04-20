@@ -48,6 +48,7 @@
 		defaultValue: true,
 	});
 	let showAnchors = $state(false);
+	let showViewBox = $state(false);
 	let showCanopy = $state(true);
 	let showBranches = $state(true);
 	let showTrunk = $state(true);
@@ -161,6 +162,7 @@
 					{showBranches}
 					{showTrunk}
 					{showAnchors}
+					{showViewBox}
 					{animateCanopySway}
 					{animateBranches}
 					{animateGrowth}
@@ -529,6 +531,13 @@
 						onCheckedChange={(v) => (showAnchors = v === true)}
 					/>
 					<Label>Show Anchor Points</Label>
+				</div>
+				<div class="flex items-center gap-2">
+					<Checkbox
+						checked={showViewBox}
+						onCheckedChange={(v) => (showViewBox = v === true)}
+					/>
+					<Label>Show View Box</Label>
 				</div>
 			</SectionCard>
 

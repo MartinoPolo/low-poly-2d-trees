@@ -287,7 +287,7 @@
 					<div class="flex flex-col gap-4 lg:col-span-2">
 						<!-- Asset Selector -->
 						<Card.Root>
-							<Card.Content class="pt-4">
+							<Card.Content>
 								<div class="flex items-center gap-4">
 									<Label>Asset</Label>
 									<Select.Root

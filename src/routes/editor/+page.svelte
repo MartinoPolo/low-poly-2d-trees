@@ -58,6 +58,7 @@
 	let showTrunk = $state(true);
 	let showFruit = $state(true);
 	let showEnvelope = $state(false);
+	let showViewBox = $state(false);
 	let animateCanopySway = $state(false);
 	let animateBranches = $state(false);
 	let animateGrowth = $state(false);
@@ -284,6 +285,7 @@
 				{showFruit}
 				{showAnchors}
 				{showEnvelope}
+				{showViewBox}
 				{animateCanopySway}
 				{animateBranches}
 				{animateGrowth}
@@ -729,6 +731,13 @@
 							onCheckedChange={(v) => (showEnvelope = v === true)}
 						/>
 						<Label>Show Envelope</Label>
+					</div>
+					<div class="flex items-center gap-2">
+						<Checkbox
+							checked={showViewBox}
+							onCheckedChange={(v) => (showViewBox = v === true)}
+						/>
+						<Label>Show View Box</Label>
 					</div>
 				</Card.Content>
 			</Card.Root>

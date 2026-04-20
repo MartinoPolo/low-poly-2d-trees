@@ -1,5 +1,5 @@
 import type { TreeConfig, Point2D, CrookednessMode } from '../types.js';
-import { BRANCH_MIRRORING, CROOKEDNESS_MODES, VIEWBOX_WIDTH } from '../types.js';
+import { BRANCH_MIRRORING, CROOKEDNESS_MODES } from '../types.js';
 import { randomInRange } from '../prng.js';
 import { sampleTrunkCenterX, computeZoneSplit } from './trunk.js';
 import { isPointInSingleBlob, getBlobsBounds } from './shape_bounds.js';
@@ -8,6 +8,7 @@ import {
 	resolveBranchLengthRange,
 	raySegmentEllipseIntersection,
 } from './geometry.js';
+import { treeSizeW } from './blob_generators.js';
 import type { Blob, BranchSegment } from './shape_types.js';
 
 // ---------------------------------------------------------------------------
@@ -213,9 +214,9 @@ const CHILD_LENGTH_RATIO_MAX = 0.68;
 // repeatedly fail overlap checks. A higher retry budget recovers these.
 const BRANCH_RETRY_ATTEMPTS = 15;
 
-// Base length ranges for branches at branchLength=100 (proportional to viewport).
-const TRUNK_BRANCH_BASE_MIN = VIEWBOX_WIDTH * 0.2;
-const TRUNK_BRANCH_BASE_MAX = VIEWBOX_WIDTH * 0.4;
+// Base length ranges for branches at branchLength=100 (scaled to 300-equivalent tree size).
+const TRUNK_BRANCH_BASE_MIN = treeSizeW(0.2);
+const TRUNK_BRANCH_BASE_MAX = treeSizeW(0.4);
 
 // ---------------------------------------------------------------------------
 // Public enriched branch type

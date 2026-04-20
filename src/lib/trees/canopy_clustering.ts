@@ -48,7 +48,7 @@ const KMEANS_MAX_ITERATIONS = 15;
 const CLUSTER_SIZE_BONUS_FLOOR = 0.5;
 
 /** Branch widthEnd (in px) that saturates the width bonus to 1.0. */
-const WIDTH_BONUS_SATURATION_PX = 7;
+const WIDTH_BONUS_SATURATION_PX = 4;
 
 /** Base multiplier applied to envelope-budget radius before cluster modulation. */
 const SIZE_MODULATION_BASE = 0.85;

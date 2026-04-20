@@ -47,6 +47,7 @@ import {
 	CUSTOM_BLOB_CANOPY_CENTER_Y,
 	CUSTOM_BLOB_SPREAD_RADIUS,
 	TRUNK_ENTRY_MIN_PX,
+	treeSizeW,
 	type Blob,
 	type BranchSegment,
 	trimBranchTipsToBlobs,
@@ -1115,7 +1116,7 @@ function generateTreeCore(config: TreeConfig, flags: StageFlags): TreeGeometry {
 		blobs = shapeDef.generateBlobs(rng, config.blobCount);
 		applyBlobSizeVariance(blobs, config.blobSizeVariance);
 		if (blobs.length > 1) {
-			const spreadRadius = VIEWBOX_WIDTH * 0.22;
+			const spreadRadius = treeSizeW(0.22);
 			applyBlobCloseness(blobs, config.blobCloseness, spreadRadius);
 		}
 		applyCanopySize(blobs, config.canopySize);
