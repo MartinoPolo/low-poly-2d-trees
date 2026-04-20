@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { Button } from '$lib/components/ui/button/index.js';
-	import PanelLeftIcon from '@lucide/svelte/icons/panel-left';
+	import PanelLeft from '@lucide/svelte/icons/panel-left';
+	import PanelLeftClose from '@lucide/svelte/icons/panel-left-close';
 	import { cn } from '$lib/utils.js';
 	import type { ComponentProps } from 'svelte';
 	import { useSidebar } from './context.svelte.js';
@@ -15,6 +16,7 @@
 	} = $props();
 
 	const sidebar = useSidebar();
+	const TriggerIcon = $derived(sidebar.state === 'expanded' ? PanelLeftClose : PanelLeft);
 </script>
 
 <Button
@@ -31,6 +33,6 @@
 	}}
 	{...restProps}
 >
-	<PanelLeftIcon />
+	<TriggerIcon />
 	<span class="sr-only">Toggle Sidebar</span>
 </Button>

@@ -1,8 +1,6 @@
 <script lang="ts">
 	import * as Sidebar from '$lib/components/ui/sidebar/index.js';
 	import * as DropdownMenu from '$lib/components/ui/dropdown-menu/index.js';
-	import { Button } from '$lib/components/ui/button/index.js';
-	import { useSidebar } from '$lib/components/ui/sidebar/context.svelte.js';
 	import TreePine from '@lucide/svelte/icons/tree-pine';
 	import Trees from '@lucide/svelte/icons/trees';
 	import Images from '@lucide/svelte/icons/images';
@@ -10,17 +8,13 @@
 	import Settings from '@lucide/svelte/icons/settings';
 	import LogIn from '@lucide/svelte/icons/log-in';
 	import LogOut from '@lucide/svelte/icons/log-out';
+	import User from '@lucide/svelte/icons/user';
+	import Sun from '@lucide/svelte/icons/sun';
 	import ChevronsUpDown from '@lucide/svelte/icons/chevrons-up-down';
-	import PanelLeftOpen from '@lucide/svelte/icons/panel-left-open';
-	import PanelLeftClose from '@lucide/svelte/icons/panel-left-close';
+	import { userPrefersMode, setMode } from 'mode-watcher';
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
-
-	const sidebar = useSidebar();
-	const isExpanded = $derived(sidebar.state === 'expanded');
-	const ToggleIcon = $derived(isExpanded ? PanelLeftClose : PanelLeftOpen);
-	const toggleLabel = $derived(isExpanded ? 'Collapse sidebar' : 'Expand sidebar');
 
 	const rootPath = resolve('/');
 	const editorPath = resolve('/editor');
@@ -35,22 +29,31 @@
 	let signOutFormElement = $state<HTMLFormElement>();
 </script>
 
-<Sidebar.Root collapsible="icon">
+{#snippet themeSubmenu()}
+	<DropdownMenu.Sub>
+		<DropdownMenu.SubTrigger data-testid="sidebar-theme-trigger">
+			<Sun />
+			Theme
+		</DropdownMenu.SubTrigger>
+		<DropdownMenu.SubContent>
+			<DropdownMenu.RadioGroup
+				value={userPrefersMode.current}
+				onValueChange={(v) => setMode(v as Parameters<typeof setMode>[0])}
+			>
+				<DropdownMenu.RadioItem value="light">Light</DropdownMenu.RadioItem>
+				<DropdownMenu.RadioItem value="dark">Dark</DropdownMenu.RadioItem>
+				<DropdownMenu.RadioItem value="system">System</DropdownMenu.RadioItem>
+			</DropdownMenu.RadioGroup>
+		</DropdownMenu.SubContent>
+	</DropdownMenu.Sub>
+{/snippet}
+
+<Sidebar.Root collapsible="offcanvas">
 	<Sidebar.Header>
 		<a href={rootPath} class="flex items-center gap-2 px-2 py-1.5">
 			<TreePine class="size-5 text-primary" />
-			<span class="font-semibold group-data-[collapsible=icon]:hidden">Low-Poly Trees</span>
+			<span class="font-semibold">Low-Poly Trees</span>
 		</a>
-		<Button
-			variant="ghost"
-			size="icon"
-			class="hidden md:inline-flex"
-			onclick={sidebar.toggle}
-			aria-label={toggleLabel}
-			data-testid="sidebar-toggle"
-		>
-			<ToggleIcon class="size-4" />
-		</Button>
 	</Sidebar.Header>
 	<Sidebar.Content>
 		<Sidebar.Group>
@@ -141,7 +144,7 @@
 												</div>
 											{/if}
 											<div
-												class="grid flex-1 text-left text-sm leading-tight group-data-[collapsible=icon]:hidden"
+												class="grid flex-1 text-left text-sm leading-tight"
 											>
 												<span class="truncate font-medium">{user.name}</span
 												>
@@ -149,9 +152,7 @@
 													>{user.email}</span
 												>
 											</div>
-											<ChevronsUpDown
-												class="ml-auto size-4 group-data-[collapsible=icon]:hidden"
-											/>
+											<ChevronsUpDown class="ml-auto size-4" />
 										</div>
 									{/snippet}
 								</Sidebar.MenuButton>
@@ -175,6 +176,7 @@
 								<Settings />
 								Settings
 							</DropdownMenu.Item>
+							{@render themeSubmenu()}
 							<DropdownMenu.Separator />
 							<DropdownMenu.Item
 								data-testid="sidebar-dropdown-sign-out"
@@ -196,14 +198,48 @@
 		{:else}
 			<Sidebar.Menu>
 				<Sidebar.MenuItem>
-					<Sidebar.MenuButton data-testid="sidebar-sign-in" tooltipContent="Sign in">
-						{#snippet child({ props })}
-							<a href={authPath} {...props}>
+					<DropdownMenu.Root>
+						<DropdownMenu.Trigger>
+							{#snippet child({ props: triggerProps })}
+								<Sidebar.MenuButton
+									size="lg"
+									class="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
+									tooltipContent="Guest"
+									{...triggerProps}
+								>
+									{#snippet child({ props })}
+										<div data-testid="sidebar-guest-trigger" {...props}>
+											<div
+												class="flex size-8 items-center justify-center rounded-full bg-muted"
+											>
+												<User class="size-4 text-muted-foreground" />
+											</div>
+											<div
+												class="grid flex-1 text-left text-sm leading-tight"
+											>
+												<span class="truncate font-medium">Guest</span>
+											</div>
+											<ChevronsUpDown class="ml-auto size-4" />
+										</div>
+									{/snippet}
+								</Sidebar.MenuButton>
+							{/snippet}
+						</DropdownMenu.Trigger>
+						<DropdownMenu.Content
+							side="top"
+							class="w-(--bits-dropdown-menu-anchor-width)"
+						>
+							{@render themeSubmenu()}
+							<DropdownMenu.Separator />
+							<DropdownMenu.Item
+								data-testid="sidebar-dropdown-sign-in"
+								onclick={() => goto(authPath)}
+							>
 								<LogIn />
-								<span>Sign in</span>
-							</a>
-						{/snippet}
-					</Sidebar.MenuButton>
+								Sign in
+							</DropdownMenu.Item>
+						</DropdownMenu.Content>
+					</DropdownMenu.Root>
 				</Sidebar.MenuItem>
 			</Sidebar.Menu>
 		{/if}

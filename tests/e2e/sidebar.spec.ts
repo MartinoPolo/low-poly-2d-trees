@@ -1,37 +1,52 @@
 import { expect, test } from '@playwright/test';
 
 test.describe('app shell sidebar (anonymous)', () => {
-	test('renders the sidebar with navigation links and a sign-in button on /editor', async ({
-		page,
-	}) => {
+	test('sidebar starts expanded by default on desktop (no cookie)', async ({ page }) => {
 		await page.goto('/editor');
+		const sidebar = page.locator('[data-slot="sidebar"]');
+		await expect(sidebar).toHaveAttribute('data-state', 'expanded');
+	});
 
-		// Sidebar is collapsed by default — expand it first
-		await page.keyboard.press('Control+b');
-		await page.waitForTimeout(300);
-
+	test('renders the sidebar with navigation links on /editor', async ({ page }) => {
+		await page.goto('/editor');
 		await expect(page.getByRole('link', { name: 'Single Editor' })).toBeVisible();
 		await expect(page.getByRole('link', { name: 'Scene Editor' })).toBeVisible();
 		await expect(page.getByRole('link', { name: 'Gallery' })).toBeVisible();
-		await expect(page.getByTestId('sidebar-sign-in')).toBeVisible();
 	});
 
 	test('renders the sidebar on the landing page', async ({ page }) => {
 		await page.goto('/');
-		// Sidebar is collapsed by default — expand it first
-		await page.keyboard.press('Control+b');
-		await page.waitForTimeout(300);
-		await expect(page.getByTestId('sidebar-sign-in')).toBeVisible();
+		const sidebar = page.locator('[data-slot="sidebar"]');
+		await expect(sidebar).toHaveAttribute('data-state', 'expanded');
 	});
 
 	test('nav link to Gallery redirects anonymous users to /auth', async ({ page }) => {
 		await page.goto('/editor');
-		// Sidebar is collapsed by default — expand it first
-		await page.keyboard.press('Control+b');
-		await page.waitForTimeout(300);
 		await page.getByRole('link', { name: 'Gallery' }).click();
 		await page.waitForURL(/\/auth/);
 		await expect(page).toHaveURL(/\/auth/);
+	});
+
+	test('sidebar-toggle button no longer exists in the DOM', async ({ page }) => {
+		await page.goto('/editor');
+		await expect(page.getByTestId('sidebar-toggle')).toHaveCount(0);
+	});
+
+	test('sidebar uses offcanvas collapsible mode (visible when collapsed)', async ({ page }) => {
+		await page.goto('/editor');
+		await page.waitForLoadState('networkidle');
+		const sidebar = page.locator('[data-slot="sidebar"]');
+		await expect(sidebar).toHaveAttribute('data-state', 'expanded');
+		const trigger = page.getByTestId('desktop-sidebar-trigger');
+		await expect(trigger).toBeVisible();
+		await trigger.click();
+		await expect(sidebar).toHaveAttribute('data-state', 'collapsed', { timeout: 5000 });
+		await expect(sidebar).toHaveAttribute('data-collapsible', 'offcanvas');
+	});
+
+	test('desktop sidebar trigger is visible on desktop viewport', async ({ page }) => {
+		await page.goto('/editor');
+		await expect(page.getByTestId('desktop-sidebar-trigger')).toBeVisible();
 	});
 
 	test('floating save button in single editor is disabled for anonymous users', async ({
