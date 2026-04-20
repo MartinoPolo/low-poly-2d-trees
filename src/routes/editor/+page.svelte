@@ -40,6 +40,7 @@
 	import { getSavedTree, saveTree } from '$lib/trees/saved_trees.remote.js';
 	import { createTreeConfigContext } from '$lib/trees/tree_config.context.svelte.js';
 	import { createOverlayConfigContext } from '$lib/trees/overlays/overlay_config.context.svelte.js';
+	import { createEditorViewStateContext } from '$lib/config/editor_view_state.context.svelte.js';
 	import { page } from '$app/state';
 	import SceneFloatingButtons from '$lib/components/app-shell/SceneFloatingButtons.svelte';
 	import SettingsTierControl from '$lib/components/composed/SettingsTierControl.svelte';
@@ -54,19 +55,9 @@
 
 	const treeConfig = createTreeConfigContext();
 
-	let showAnchors = $state(false);
-	let showCanopy = $state(true);
-	let showBranches = $state(true);
-	let showTrunk = $state(true);
-	let showFruit = $state(true);
-	let showEnvelope = $state(false);
-	let showViewBox = $state(false);
-	let animateCanopySway = $state(false);
-	let animateBranches = $state(false);
-	let animateGrowth = $state(false);
-	let growthVariance = $state(50);
+	const editorView = createEditorViewStateContext();
+
 	let toolVisibility: ToolVisibility = $state(createDefaultToolVisibility());
-	let animateTools = $state(false);
 
 	const { tier } = use_settings_tier();
 	const isIntermediate = $derived(tierAtLeast(tier.current, 'intermediate'));
@@ -281,19 +272,19 @@
 		<div class="relative w-full" style="max-width: min(576px, calc(50dvh - 4rem))">
 			<LowPolyTree
 				config={treeConfig.configForTree}
-				{showCanopy}
-				{showBranches}
-				{showTrunk}
-				{showFruit}
-				{showAnchors}
-				{showEnvelope}
-				{showViewBox}
-				{animateCanopySway}
-				{animateBranches}
-				{animateGrowth}
-				{growthVariance}
+				showCanopy={editorView.showCanopy}
+				showBranches={editorView.showBranches}
+				showTrunk={editorView.showTrunk}
+				showFruit={editorView.showFruit}
+				showAnchors={editorView.showAnchors}
+				showEnvelope={editorView.showEnvelope}
+				showViewBox={editorView.showViewBox}
+				animateCanopySway={editorView.animateCanopySway}
+				animateBranches={editorView.animateBranches}
+				animateGrowth={editorView.animateGrowth}
+				growthVariance={editorView.growthVariance}
 				{toolVisibility}
-				{animateTools}
+				animateTools={editorView.animateTools}
 				overlayConfig={overlayConfig.config}
 				groundElements={overlayConfig.groundEnabled}
 				class="h-auto w-full"
@@ -693,7 +684,10 @@
 			</SectionCard>
 
 			{#if isIntermediate}
-				<ToolAccessoriesCard bind:toolVisibility bind:animateTools />
+				<ToolAccessoriesCard
+					bind:toolVisibility
+					bind:animateTools={editorView.animateTools}
+				/>
 			{/if}
 
 			<Card.Root>
@@ -703,50 +697,50 @@
 				<Card.Content class="space-y-4">
 					<div class="flex items-center gap-2">
 						<Checkbox
-							checked={showCanopy}
-							onCheckedChange={(v) => (showCanopy = v === true)}
+							checked={editorView.showCanopy}
+							onCheckedChange={(v) => (editorView.showCanopy = v === true)}
 						/>
 						<Label>Show Canopy</Label>
 					</div>
 					<div class="flex items-center gap-2">
 						<Checkbox
-							checked={showBranches}
-							onCheckedChange={(v) => (showBranches = v === true)}
+							checked={editorView.showBranches}
+							onCheckedChange={(v) => (editorView.showBranches = v === true)}
 						/>
 						<Label>Show Branches</Label>
 					</div>
 					<div class="flex items-center gap-2">
 						<Checkbox
-							checked={showTrunk}
-							onCheckedChange={(v) => (showTrunk = v === true)}
+							checked={editorView.showTrunk}
+							onCheckedChange={(v) => (editorView.showTrunk = v === true)}
 						/>
 						<Label>Show Trunk</Label>
 					</div>
 					<div class="flex items-center gap-2">
 						<Checkbox
-							checked={showFruit}
-							onCheckedChange={(v) => (showFruit = v === true)}
+							checked={editorView.showFruit}
+							onCheckedChange={(v) => (editorView.showFruit = v === true)}
 						/>
 						<Label>Show Fruit</Label>
 					</div>
 					<div class="flex items-center gap-2">
 						<Checkbox
-							checked={showAnchors}
-							onCheckedChange={(v) => (showAnchors = v === true)}
+							checked={editorView.showAnchors}
+							onCheckedChange={(v) => (editorView.showAnchors = v === true)}
 						/>
 						<Label>Show Anchor Points</Label>
 					</div>
 					<div class="flex items-center gap-2">
 						<Checkbox
-							checked={showEnvelope}
-							onCheckedChange={(v) => (showEnvelope = v === true)}
+							checked={editorView.showEnvelope}
+							onCheckedChange={(v) => (editorView.showEnvelope = v === true)}
 						/>
 						<Label>Show Envelope</Label>
 					</div>
 					<div class="flex items-center gap-2">
 						<Checkbox
-							checked={showViewBox}
-							onCheckedChange={(v) => (showViewBox = v === true)}
+							checked={editorView.showViewBox}
+							onCheckedChange={(v) => (editorView.showViewBox = v === true)}
 						/>
 						<Label>Show View Box</Label>
 					</div>
@@ -762,35 +756,35 @@
 						<div class="flex items-center gap-2">
 							<Checkbox
 								data-testid="animate-canopy-sway"
-								checked={animateCanopySway}
-								onCheckedChange={(v) => (animateCanopySway = v === true)}
+								checked={editorView.animateCanopySway}
+								onCheckedChange={(v) => (editorView.animateCanopySway = v === true)}
 							/>
 							<Label>Canopy Sway</Label>
 						</div>
 						<div class="mt-4 flex items-center gap-2">
 							<Checkbox
 								data-testid="animate-branches"
-								checked={animateBranches}
-								onCheckedChange={(v) => (animateBranches = v === true)}
+								checked={editorView.animateBranches}
+								onCheckedChange={(v) => (editorView.animateBranches = v === true)}
 							/>
 							<Label>Branch Movement</Label>
 						</div>
 						<div class="mt-4 flex items-center gap-2">
 							<Checkbox
 								data-testid="animate-growth"
-								checked={animateGrowth}
-								onCheckedChange={(v) => (animateGrowth = v === true)}
+								checked={editorView.animateGrowth}
+								onCheckedChange={(v) => (editorView.animateGrowth = v === true)}
 							/>
 							<Label>Growth</Label>
 						</div>
-						{#if animateGrowth}
+						{#if editorView.animateGrowth}
 							<LabeledSlider
 								label="Growth Variance"
 								min={0}
 								max={100}
 								step={5}
 								unit="%"
-								bind:value={growthVariance}
+								bind:value={editorView.growthVariance}
 							/>
 						{/if}
 					</div>

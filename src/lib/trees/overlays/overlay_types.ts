@@ -38,6 +38,30 @@ export const OVERLAY_DEFAULTS: OverlayConfig = {
 	glow: { enabled: false, color: '#ffd700', intensity: 3, pulse: false },
 } as const;
 
+export interface OverlayPersistedState {
+	readonly stormCloudEnabled: boolean;
+	readonly stormCloudShowRain: boolean;
+	readonly speechBubbleEnabled: boolean;
+	readonly wiltingEnabled: boolean;
+	readonly glowEnabled: boolean;
+	readonly glowColor: string;
+	readonly glowIntensity: number;
+	readonly glowPulse: boolean;
+	readonly groundEnabled: boolean;
+}
+
+export const OVERLAY_PERSISTED_DEFAULTS: OverlayPersistedState = {
+	stormCloudEnabled: false,
+	stormCloudShowRain: true,
+	speechBubbleEnabled: false,
+	wiltingEnabled: false,
+	glowEnabled: false,
+	glowColor: '#ffd700',
+	glowIntensity: 3,
+	glowPulse: false,
+	groundEnabled: false,
+} as const;
+
 export interface StormCloudTriangle {
 	readonly points: string;
 	readonly color: string;

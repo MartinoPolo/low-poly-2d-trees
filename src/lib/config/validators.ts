@@ -7,6 +7,8 @@ import {
 } from '$lib/trees/types.js';
 import type { SceneConfig } from '$lib/scene/scene_config.js';
 import type { EnvironmentConfig } from '$lib/environment/environment_config.js';
+import type { OverlayPersistedState } from '$lib/trees/overlays/overlay_types.js';
+import type { EditorViewState } from '$lib/config/editor_view_state.js';
 
 const TREE_SHAPE_VALUES = new Set<string>(Object.values(TREE_SHAPES));
 const CROOKEDNESS_MODE_VALUES = new Set<string>(Object.values(CROOKEDNESS_MODES));
@@ -114,6 +116,43 @@ export function isValidEnvironmentConfig(value: unknown): value is EnvironmentCo
 		hasBoolean(value, 'sunRaysEnabled') &&
 		hasBoolean(value, 'cloudsEnabled') &&
 		hasNumber(value, 'rainIntensity')
+	);
+}
+
+export function isValidOverlayPersistedState(value: unknown): value is OverlayPersistedState {
+	if (!isObject(value)) {
+		return false;
+	}
+	return (
+		hasBoolean(value, 'stormCloudEnabled') &&
+		hasBoolean(value, 'stormCloudShowRain') &&
+		hasBoolean(value, 'speechBubbleEnabled') &&
+		hasBoolean(value, 'wiltingEnabled') &&
+		hasBoolean(value, 'glowEnabled') &&
+		hasString(value, 'glowColor') &&
+		hasNumber(value, 'glowIntensity') &&
+		hasBoolean(value, 'glowPulse') &&
+		hasBoolean(value, 'groundEnabled')
+	);
+}
+
+export function isValidEditorViewState(value: unknown): value is EditorViewState {
+	if (!isObject(value)) {
+		return false;
+	}
+	return (
+		hasBoolean(value, 'showCanopy') &&
+		hasBoolean(value, 'showBranches') &&
+		hasBoolean(value, 'showTrunk') &&
+		hasBoolean(value, 'showFruit') &&
+		hasBoolean(value, 'showAnchors') &&
+		hasBoolean(value, 'showEnvelope') &&
+		hasBoolean(value, 'showViewBox') &&
+		hasBoolean(value, 'animateCanopySway') &&
+		hasBoolean(value, 'animateBranches') &&
+		hasBoolean(value, 'animateGrowth') &&
+		hasNumber(value, 'growthVariance') &&
+		hasBoolean(value, 'animateTools')
 	);
 }
 
