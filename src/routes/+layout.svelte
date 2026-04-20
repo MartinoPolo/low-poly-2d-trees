@@ -8,7 +8,7 @@
 	import notoSansLatinUrl from '@fontsource-variable/noto-sans/files/noto-sans-latin-wght-normal.woff2?url';
 	import { set_settings_tier_context } from '$lib/context/settings_tier.context.svelte.js';
 
-	let { children } = $props();
+	let { data, children } = $props();
 
 	set_settings_tier_context();
 </script>
@@ -33,12 +33,16 @@
 	/>
 </svelte:head>
 
-<Sidebar.Provider open={false}>
+<Sidebar.Provider open={data.sidebarOpen}>
 	<AppSidebar />
 	<Sidebar.Inset>
 		<Sidebar.Trigger
 			data-testid="mobile-sidebar-trigger"
 			class="fixed top-2 left-2 z-50 md:hidden"
+		/>
+		<Sidebar.Trigger
+			data-testid="desktop-sidebar-trigger"
+			class="hidden md:flex absolute top-3 left-3 z-10"
 		/>
 		{@render children()}
 	</Sidebar.Inset>

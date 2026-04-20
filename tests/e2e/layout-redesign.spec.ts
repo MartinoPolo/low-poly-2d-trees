@@ -2,26 +2,20 @@ import { expect, test } from '@playwright/test';
 
 test.describe('Issue #125 — Layout redesign', () => {
 	test.describe('Cycle 1: Sidebar changes', () => {
-		test('sidebar defaults to collapsed state', async ({ page }) => {
+		test('sidebar defaults to expanded state', async ({ page }) => {
 			await page.goto('/');
 			await page.waitForLoadState('networkidle');
 
-			// Sidebar should have collapsed data attribute
-			const sidebar = page.locator('[data-sidebar="sidebar"]');
-			await expect(sidebar).toBeVisible();
-			// When collapsed, the sidebar provider sets data-state="collapsed"
+			// Sidebar should be expanded by default (no cookie = open)
 			const provider = page.locator('[data-slot="sidebar"]');
-			await expect(provider).toHaveAttribute('data-state', 'collapsed');
+			await expect(provider).toHaveAttribute('data-state', 'expanded');
 		});
 
 		test('no "Navigation" group label in sidebar', async ({ page }) => {
 			await page.goto('/');
 			await page.waitForLoadState('networkidle');
 
-			// Expand sidebar first to see all content
-			await page.keyboard.press('Control+b');
-			await page.waitForTimeout(300);
-
+			// Sidebar starts expanded by default
 			await expect(page.getByText('Navigation', { exact: true })).not.toBeVisible();
 		});
 
@@ -147,12 +141,15 @@ test.describe('Issue #125 — Layout redesign', () => {
 		});
 	});
 
-	test.describe('Cycle 5: Theme toggle removed from sidebar', () => {
-		test('sidebar no longer has theme dropdown trigger', async ({ page }) => {
+	test.describe('Cycle 5: Theme toggle in sidebar dropdown', () => {
+		test('theme trigger is hidden until dropdown is opened', async ({ page }) => {
 			await page.goto('/editor');
 			await page.waitForLoadState('networkidle');
 
 			await expect(page.getByTestId('sidebar-theme-trigger')).not.toBeVisible();
+
+			await page.getByTestId('sidebar-guest-trigger').click();
+			await expect(page.getByTestId('sidebar-theme-trigger')).toBeVisible();
 		});
 	});
 });

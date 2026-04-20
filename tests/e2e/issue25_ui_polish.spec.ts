@@ -114,10 +114,14 @@ test.describe('Issue #25 — UI polish: color picker styling + layout swap', () 
 		await page.goto('/');
 		await page.waitForLoadState('networkidle');
 
+		// Collapse sidebar so controls get full width minus offcanvas (0px)
+		await page.keyboard.press('Control+b');
+		await page.waitForTimeout(300);
+
 		const controls = page.locator('[data-testid="scene-controls"]');
 		const width = await controls.evaluate((el) => (el as HTMLElement).offsetWidth);
 
-		// Controls should span nearly full width (minus sidebar)
+		// Controls should span nearly full width (sidebar is offcanvas, fully hidden)
 		expect(width).toBeGreaterThanOrEqual(900);
 	});
 });
