@@ -42,12 +42,12 @@ describe('generateTiers — tier base overlaps trunk top', () => {
 		expect(bottomTier.baseRightY).toBeGreaterThanOrEqual(firTrunkTopY);
 	});
 
-	it('top tier tipY remains near H * 0.05 (unchanged by trunk junction fix)', () => {
+	it('top tier tipY remains near treeY(0.05) = 205 (scaled from ground)', () => {
 		const rng = createPrng(42);
 		const tiers = generateTiers(rng, 3, pineJunctions, 50, 1, 100, 0);
 		const topTier = tiers[0]!;
-		// tipY should be near H * 0.05 = 15 (with possible overlap offset for non-first tiers)
-		expect(topTier.tipY).toBeCloseTo(H * 0.05, 0);
+		// treeY(0.05) = 475 - (475 - 25)*0.6 = 205
+		expect(topTier.tipY).toBeCloseTo(205, 0);
 	});
 
 	it('verticalShift shifts tiers correctly', () => {

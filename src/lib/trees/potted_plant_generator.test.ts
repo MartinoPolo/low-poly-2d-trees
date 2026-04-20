@@ -192,8 +192,8 @@ describe('pot is wide planter style', () => {
 describe('anchors are pot-relative', () => {
 	it('trunkBase is at pot rim (where stem emerges)', () => {
 		const geo = generatePottedPlant(makeConfig({ stage: POTTED_PLANT_STAGES.sprout }));
-		// potTopY = GROUND_LINE_Y - 67 = 475 - 67 = 408
-		expect(geo.anchors.trunkBase.y).toBe(408);
+		// potTopY = GROUND_LINE_Y - 40 = 475 - 40 = 435
+		expect(geo.anchors.trunkBase.y).toBe(435);
 		expect(geo.anchors.trunkBase.x).toBe(250); // cx = 500/2
 	});
 

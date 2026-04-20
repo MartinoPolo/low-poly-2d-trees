@@ -6,15 +6,15 @@ import { GROUND_LINE_Y } from './constants.js';
 export function generateSproutingGeometry(): TreeGeometry {
 	const cx = VIEWBOX_WIDTH / 2;
 	const groundY = GROUND_LINE_Y;
-	const stemTop = groundY - 50;
+	const stemTop = groundY - 30;
 
 	const anchors = {
 		trunkTop: { x: cx, y: stemTop },
 		trunkMiddle: { x: cx, y: (groundY + stemTop) / 2 },
 		trunkBase: { x: cx, y: groundY },
-		crownCenter: { x: cx, y: stemTop - 5 },
-		crownTop: { x: cx, y: stemTop - 17 },
-		roots: { x: cx, y: groundY + 25 },
+		crownCenter: { x: cx, y: stemTop - 3 },
+		crownTop: { x: cx, y: stemTop - 10 },
+		roots: { x: cx, y: groundY + 15 },
 		branchTips: [],
 		fruitSlots: [],
 	};

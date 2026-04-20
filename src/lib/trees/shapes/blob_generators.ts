@@ -8,6 +8,28 @@ const W = VIEWBOX_WIDTH;
 const H = VIEWBOX_HEIGHT;
 
 // ---------------------------------------------------------------------------
+// Tree scale helpers — compress 500-viewbox geometry to 300-equivalent size
+// ---------------------------------------------------------------------------
+
+export const TREE_SCALE = 0.6;
+const TRUNK_BASE_Y = H * 0.95;
+
+/** Map a fractional Y position into scaled tree space, anchored at the ground. */
+export function treeY(fraction: number): number {
+	return TRUNK_BASE_Y - (TRUNK_BASE_Y - H * fraction) * TREE_SCALE;
+}
+
+/** Scale a vertical size (H * fraction) by TREE_SCALE. */
+export function treeSizeH(fraction: number): number {
+	return H * fraction * TREE_SCALE;
+}
+
+/** Scale a horizontal size (W * fraction) by TREE_SCALE. */
+export function treeSizeW(fraction: number): number {
+	return W * fraction * TREE_SCALE;
+}
+
+// ---------------------------------------------------------------------------
 // Shared helpers
 // ---------------------------------------------------------------------------
 
@@ -54,14 +76,14 @@ const OAK_NON_PRIMARY_ANGLE_MAX_ATTEMPTS = 5;
 function generateOakBlobs(rng: () => number, blobCount: number): Blob[] {
 	const blobs: Blob[] = [];
 	const centerX = W / 2;
-	const canopyCenterY = H * 0.3;
-	const spreadRadius = W * 0.22;
-	const minAxisDistance = W * OAK_NON_PRIMARY_MIN_AXIS_DISTANCE_FACTOR;
+	const canopyCenterY = treeY(0.3);
+	const spreadRadius = treeSizeW(0.22);
+	const minAxisDistance = treeSizeW(OAK_NON_PRIMARY_MIN_AXIS_DISTANCE_FACTOR);
 
 	// D9: primary blob anchored on the trunk axis.
 	if (blobCount >= 1) {
-		const rx = randomInRange(rng, W * 0.2275, W * 0.385);
-		const ry = randomInRange(rng, H * 0.14, H * 0.2625);
+		const rx = randomInRange(rng, treeSizeW(0.2275), treeSizeW(0.385));
+		const ry = randomInRange(rng, treeSizeH(0.14), treeSizeH(0.2625));
 		blobs.push({
 			cx: centerX,
 			cy: canopyCenterY,
@@ -98,8 +120,8 @@ function generateOakBlobs(rng: () => number, blobCount: number): Blob[] {
 				const sign = acceptedCx >= centerX ? 1 : -1;
 				acceptedCx = centerX + sign * minAxisDistance;
 			}
-			const rx = randomInRange(rng, W * 0.2275, W * 0.385);
-			const ry = randomInRange(rng, H * 0.14, H * 0.2625);
+			const rx = randomInRange(rng, treeSizeW(0.2275), treeSizeW(0.385));
+			const ry = randomInRange(rng, treeSizeH(0.14), treeSizeH(0.2625));
 			blobs.push({
 				cx: acceptedCx,
 				cy: acceptedCy,
@@ -125,12 +147,12 @@ function generateOakBlobs(rng: () => number, blobCount: number): Blob[] {
 function generateBirchBlobs(rng: () => number, blobCount: number): Blob[] {
 	const blobs: Blob[] = [];
 	const centerX = W / 2;
-	const canopyCenterY = H * 0.25;
+	const canopyCenterY = treeY(0.25);
 
 	// Primary blob centered on trunk axis
 	if (blobCount >= 1) {
-		const rx = randomInRange(rng, W * 0.12, W * 0.22);
-		const ry = randomInRange(rng, H * 0.18, H * 0.32);
+		const rx = randomInRange(rng, treeSizeW(0.12), treeSizeW(0.22));
+		const ry = randomInRange(rng, treeSizeH(0.18), treeSizeH(0.32));
 		blobs.push({
 			cx: centerX,
 			cy: canopyCenterY,
@@ -143,12 +165,12 @@ function generateBirchBlobs(rng: () => number, blobCount: number): Blob[] {
 	// Non-primary blobs: wider horizontal spread with varied sizes
 	for (let i = 1; i < blobCount; i++) {
 		const side = i % 2 === 0 ? 1 : -1;
-		const verticalOffset = randomInRange(rng, -H * 0.1, H * 0.1);
-		const horizontalOffset = randomInRange(rng, W * 0.06, W * 0.18) * side;
+		const verticalOffset = randomInRange(rng, -treeSizeH(0.1), treeSizeH(0.1));
+		const horizontalOffset = randomInRange(rng, treeSizeW(0.06), treeSizeW(0.18)) * side;
 		const cx = centerX + horizontalOffset;
 		const cy = canopyCenterY + verticalOffset;
-		const rx = randomInRange(rng, W * 0.1, W * 0.2);
-		const ry = randomInRange(rng, H * 0.15, H * 0.28);
+		const rx = randomInRange(rng, treeSizeW(0.1), treeSizeW(0.2));
+		const ry = randomInRange(rng, treeSizeH(0.15), treeSizeH(0.28));
 		blobs.push({
 			cx,
 			cy,
@@ -173,22 +195,28 @@ function generateBirchBlobs(rng: () => number, blobCount: number): Blob[] {
 function generateMapleBlobs(rng: () => number, blobCount: number): Blob[] {
 	const blobs: Blob[] = [];
 	const centerX = W / 2;
-	const canopyCenterY = H * 0.3;
+	const canopyCenterY = treeY(0.3);
 
 	// Place blobs at Y-fork positions: center-top, upper-left, upper-right,
 	// then extra blobs fill gaps between main positions
 	const positions: Array<{ x: number; y: number }> = [
-		{ x: centerX, y: canopyCenterY - H * 0.05 },
-		{ x: centerX - W * 0.15, y: canopyCenterY + randomInRange(rng, -5, 5) },
-		{ x: centerX + W * 0.15, y: canopyCenterY + randomInRange(rng, -5, 5) },
-		{ x: centerX - W * 0.08, y: canopyCenterY - H * 0.08 + randomInRange(rng, -3, 3) },
-		{ x: centerX + W * 0.08, y: canopyCenterY - H * 0.08 + randomInRange(rng, -3, 3) },
+		{ x: centerX, y: canopyCenterY - treeSizeH(0.05) },
+		{ x: centerX - treeSizeW(0.15), y: canopyCenterY + randomInRange(rng, -5, 5) },
+		{ x: centerX + treeSizeW(0.15), y: canopyCenterY + randomInRange(rng, -5, 5) },
+		{
+			x: centerX - treeSizeW(0.08),
+			y: canopyCenterY - treeSizeH(0.08) + randomInRange(rng, -3, 3),
+		},
+		{
+			x: centerX + treeSizeW(0.08),
+			y: canopyCenterY - treeSizeH(0.08) + randomInRange(rng, -3, 3),
+		},
 	];
 
 	for (let i = 0; i < blobCount && i < positions.length; i++) {
 		const pos = positions[i]!;
-		const rx = randomInRange(rng, W * 0.12, W * 0.18);
-		const ry = randomInRange(rng, H * 0.09, H * 0.14);
+		const rx = randomInRange(rng, treeSizeW(0.12), treeSizeW(0.18));
+		const ry = randomInRange(rng, treeSizeH(0.09), treeSizeH(0.14));
 		blobs.push({
 			cx: pos.x + randomInRange(rng, -2, 2),
 			cy: pos.y,
@@ -201,9 +229,9 @@ function generateMapleBlobs(rng: () => number, blobCount: number): Blob[] {
 	// Extra blobs beyond the 5 main positions: scatter radially
 	for (let i = positions.length; i < blobCount; i++) {
 		const angle = rng() * Math.PI * 2;
-		const dist = randomInRange(rng, W * 0.08, W * 0.2);
-		const rx = randomInRange(rng, W * 0.1, W * 0.15);
-		const ry = randomInRange(rng, H * 0.07, H * 0.12);
+		const dist = randomInRange(rng, treeSizeW(0.08), treeSizeW(0.2));
+		const rx = randomInRange(rng, treeSizeW(0.1), treeSizeW(0.15));
+		const ry = randomInRange(rng, treeSizeH(0.07), treeSizeH(0.12));
 		blobs.push({
 			cx: centerX + Math.cos(angle) * dist,
 			cy: canopyCenterY + Math.sin(angle) * dist * 0.6,
@@ -230,13 +258,13 @@ function generateMapleBlobs(rng: () => number, blobCount: number): Blob[] {
 function generateWillowBlobs(rng: () => number, blobCount: number): Blob[] {
 	const blobs: Blob[] = [];
 	const centerX = W / 2;
-	const canopyCenterY = H * 0.38;
-	const spreadRadius = W * 0.26;
+	const canopyCenterY = treeY(0.38);
+	const spreadRadius = treeSizeW(0.26);
 
 	// Primary blob at canopy center (slightly smaller than oak)
 	if (blobCount >= 1) {
-		const rx = randomInRange(rng, W * 0.18, W * 0.28);
-		const ry = randomInRange(rng, H * 0.1, H * 0.18);
+		const rx = randomInRange(rng, treeSizeW(0.18), treeSizeW(0.28));
+		const ry = randomInRange(rng, treeSizeH(0.1), treeSizeH(0.18));
 		blobs.push({
 			cx: centerX,
 			cy: canopyCenterY,
@@ -253,9 +281,11 @@ function generateWillowBlobs(rng: () => number, blobCount: number): Blob[] {
 		const cx = centerX + Math.cos(angle) * dist;
 		// Push blobs lower (higher cy) for drooping effect
 		const cy =
-			canopyCenterY + Math.abs(Math.sin(angle)) * H * 0.08 + randomInRange(rng, 0, H * 0.05);
-		const rx = randomInRange(rng, W * 0.12, W * 0.22);
-		const ry = randomInRange(rng, H * 0.08, H * 0.14);
+			canopyCenterY +
+			Math.abs(Math.sin(angle)) * treeSizeH(0.08) +
+			randomInRange(rng, 0, treeSizeH(0.05));
+		const rx = randomInRange(rng, treeSizeW(0.12), treeSizeW(0.22));
+		const ry = randomInRange(rng, treeSizeH(0.08), treeSizeH(0.14));
 		blobs.push({
 			cx,
 			cy,
@@ -284,9 +314,9 @@ function generateCypressBlobs(rng: () => number, blobCount: number): Blob[] {
 	// Primary teardrop — tall and narrow, centered high
 	blobs.push({
 		cx: centerX,
-		cy: H * 0.22,
-		rx: W * 0.1,
-		ry: H * 0.22,
+		cy: treeY(0.22),
+		rx: treeSizeW(0.1),
+		ry: treeSizeH(0.22),
 		boundary: BOUNDARY_KINDS.teardrop,
 		rotationDeg: 0,
 	});
@@ -295,9 +325,9 @@ function generateCypressBlobs(rng: () => number, blobCount: number): Blob[] {
 	if (effectiveCount >= 2) {
 		blobs.push({
 			cx: centerX + randomInRange(rng, -2, 2),
-			cy: H * 0.4,
-			rx: W * 0.12,
-			ry: H * 0.18,
+			cy: treeY(0.4),
+			rx: treeSizeW(0.12),
+			ry: treeSizeH(0.18),
 			boundary: BOUNDARY_KINDS.teardrop,
 			rotationDeg: 0,
 		});
@@ -307,9 +337,9 @@ function generateCypressBlobs(rng: () => number, blobCount: number): Blob[] {
 	if (effectiveCount >= 3) {
 		blobs.push({
 			cx: centerX + randomInRange(rng, -3, 3),
-			cy: H * 0.32,
-			rx: W * 0.08,
-			ry: H * 0.14,
+			cy: treeY(0.32),
+			rx: treeSizeW(0.08),
+			ry: treeSizeH(0.14),
 			boundary: BOUNDARY_KINDS.circle,
 		});
 	}
@@ -328,11 +358,11 @@ function generateCypressBlobs(rng: () => number, blobCount: number): Blob[] {
 function generateAppleBlobs(rng: () => number, blobCount: number): Blob[] {
 	const blobs: Blob[] = [];
 	const centerX = W / 2;
-	const canopyCenterY = H * 0.32;
+	const canopyCenterY = treeY(0.32);
 	const effectiveCount = Math.max(1, Math.min(blobCount, 4));
 
 	// Primary large round blob
-	const r = randomInRange(rng, W * 0.22, W * 0.3);
+	const r = randomInRange(rng, treeSizeW(0.22), treeSizeW(0.3));
 	blobs.push({
 		cx: centerX,
 		cy: canopyCenterY,
@@ -344,10 +374,10 @@ function generateAppleBlobs(rng: () => number, blobCount: number): Blob[] {
 	// Secondary blobs tightly clustered around center
 	for (let i = 1; i < effectiveCount; i++) {
 		const angle = ((i - 1) / Math.max(1, effectiveCount - 1)) * Math.PI * 2;
-		const dist = randomInRange(rng, W * 0.05, W * 0.12);
+		const dist = randomInRange(rng, treeSizeW(0.05), treeSizeW(0.12));
 		const cx = centerX + Math.cos(angle) * dist;
 		const cy = canopyCenterY + Math.sin(angle) * dist * 0.6;
-		const r = randomInRange(rng, W * 0.15, W * 0.22);
+		const r = randomInRange(rng, treeSizeW(0.15), treeSizeW(0.22));
 		blobs.push({
 			cx,
 			cy,
@@ -372,18 +402,18 @@ function generateAppleBlobs(rng: () => number, blobCount: number): Blob[] {
 function generateCherryBlobs(rng: () => number, blobCount: number): Blob[] {
 	const blobs: Blob[] = [];
 	const centerX = W / 2;
-	const canopyCenterY = H * 0.32;
+	const canopyCenterY = treeY(0.32);
 	const effectiveCount = Math.max(2, Math.min(blobCount, 6));
-	const spreadX = W * 0.35;
+	const spreadX = treeSizeW(0.35);
 
 	for (let i = 0; i < effectiveCount; i++) {
 		// Distribute along a horizontal arc
 		const t = effectiveCount === 1 ? 0.5 : i / (effectiveCount - 1);
 		const x = centerX + (t - 0.5) * 2 * spreadX + randomInRange(rng, -5, 5);
-		const y = canopyCenterY + randomInRange(rng, -H * 0.04, H * 0.04);
+		const y = canopyCenterY + randomInRange(rng, -treeSizeH(0.04), treeSizeH(0.04));
 		// Wider than tall for horizontal spread
-		const rx = randomInRange(rng, W * 0.15, W * 0.25);
-		const ry = randomInRange(rng, H * 0.08, H * 0.14);
+		const rx = randomInRange(rng, treeSizeW(0.15), treeSizeW(0.25));
+		const ry = randomInRange(rng, treeSizeH(0.08), treeSizeH(0.14));
 		blobs.push({
 			cx: x,
 			cy: y,
@@ -408,24 +438,24 @@ function generateCherryBlobs(rng: () => number, blobCount: number): Blob[] {
 function generateBushBlobs(rng: () => number, blobCount: number): Blob[] {
 	const blobs: Blob[] = [];
 	const centerX = W / 2;
-	const groundY = H * 0.82;
+	const groundY = treeY(0.82);
 	const effectiveCount = Math.max(1, Math.min(blobCount, 3));
 
 	blobs.push({
 		cx: centerX,
 		cy: groundY,
-		rx: randomInRange(rng, W * 0.18, W * 0.26),
-		ry: randomInRange(rng, H * 0.1, H * 0.16),
+		rx: randomInRange(rng, treeSizeW(0.18), treeSizeW(0.26)),
+		ry: randomInRange(rng, treeSizeH(0.1), treeSizeH(0.16)),
 		boundary: BOUNDARY_KINDS.circle,
 	});
 
 	if (effectiveCount >= 2) {
 		const side = rng() < 0.5 ? -1 : 1;
 		blobs.push({
-			cx: centerX + side * randomInRange(rng, W * 0.06, W * 0.14),
-			cy: groundY + randomInRange(rng, -H * 0.02, H * 0.02),
-			rx: randomInRange(rng, W * 0.14, W * 0.2),
-			ry: randomInRange(rng, H * 0.08, H * 0.12),
+			cx: centerX + side * randomInRange(rng, treeSizeW(0.06), treeSizeW(0.14)),
+			cy: groundY + randomInRange(rng, -treeSizeH(0.02), treeSizeH(0.02)),
+			rx: randomInRange(rng, treeSizeW(0.14), treeSizeW(0.2)),
+			ry: randomInRange(rng, treeSizeH(0.08), treeSizeH(0.12)),
 			boundary: BOUNDARY_KINDS.circle,
 		});
 	}
@@ -433,10 +463,10 @@ function generateBushBlobs(rng: () => number, blobCount: number): Blob[] {
 	if (effectiveCount >= 3) {
 		const side = rng() < 0.5 ? -1 : 1;
 		blobs.push({
-			cx: centerX + side * randomInRange(rng, W * 0.04, W * 0.1),
-			cy: groundY + randomInRange(rng, -H * 0.01, H * 0.01),
-			rx: randomInRange(rng, W * 0.1, W * 0.16),
-			ry: randomInRange(rng, H * 0.06, H * 0.1),
+			cx: centerX + side * randomInRange(rng, treeSizeW(0.04), treeSizeW(0.1)),
+			cy: groundY + randomInRange(rng, -treeSizeH(0.01), treeSizeH(0.01)),
+			rx: randomInRange(rng, treeSizeW(0.1), treeSizeW(0.16)),
+			ry: randomInRange(rng, treeSizeH(0.06), treeSizeH(0.1)),
 			boundary: BOUNDARY_KINDS.circle,
 		});
 	}
@@ -455,19 +485,19 @@ function generateBushBlobs(rng: () => number, blobCount: number): Blob[] {
 function generateBaobabBlobs(rng: () => number, blobCount: number): Blob[] {
 	const blobs: Blob[] = [];
 	const centerX = W / 2;
-	const topY = H * 0.15;
+	const topY = treeY(0.15);
 	const effectiveCount = Math.max(1, Math.min(blobCount, 4));
 
 	for (let i = 0; i < effectiveCount; i++) {
 		const angle = (i / effectiveCount) * Math.PI * 2;
-		const dist = i === 0 ? 0 : randomInRange(rng, W * 0.06, W * 0.14);
+		const dist = i === 0 ? 0 : randomInRange(rng, treeSizeW(0.06), treeSizeW(0.14));
 		const cx = centerX + Math.cos(angle) * dist;
 		const cy = topY + Math.sin(angle) * dist * 0.5 + randomInRange(rng, -3, 3);
 		blobs.push({
 			cx,
 			cy,
-			rx: randomInRange(rng, W * 0.1, W * 0.16),
-			ry: randomInRange(rng, H * 0.06, H * 0.1),
+			rx: randomInRange(rng, treeSizeW(0.1), treeSizeW(0.16)),
+			ry: randomInRange(rng, treeSizeH(0.06), treeSizeH(0.1)),
 			boundary: BOUNDARY_KINDS.circle,
 		});
 	}
@@ -486,17 +516,17 @@ function generateBaobabBlobs(rng: () => number, blobCount: number): Blob[] {
 function generateAcaciaBlobs(rng: () => number, blobCount: number): Blob[] {
 	const blobs: Blob[] = [];
 	const centerX = W / 2;
-	const canopyY = H * 0.2;
+	const canopyY = treeY(0.2);
 	const effectiveCount = Math.max(2, Math.min(blobCount, 5));
-	const spreadX = W * 0.38;
+	const spreadX = treeSizeW(0.38);
 
 	for (let i = 0; i < effectiveCount; i++) {
 		const t = effectiveCount === 1 ? 0.5 : i / (effectiveCount - 1);
 		const x = centerX + (t - 0.5) * 2 * spreadX + randomInRange(rng, -3, 3);
-		const y = canopyY + randomInRange(rng, -H * 0.02, H * 0.02);
+		const y = canopyY + randomInRange(rng, -treeSizeH(0.02), treeSizeH(0.02));
 		// Very wide, very flat blobs
-		const rx = randomInRange(rng, W * 0.2, W * 0.3);
-		const ry = randomInRange(rng, H * 0.04, H * 0.07);
+		const rx = randomInRange(rng, treeSizeW(0.2), treeSizeW(0.3));
+		const ry = randomInRange(rng, treeSizeH(0.04), treeSizeH(0.07));
 		blobs.push({
 			cx: x,
 			cy: y,
@@ -513,11 +543,11 @@ function generateAcaciaBlobs(rng: () => number, blobCount: number): Blob[] {
 // Custom shape blob generator (issue #10)
 // ---------------------------------------------------------------------------
 
-const CUSTOM_BLOB_BASE_RX = W * 0.2275;
-const CUSTOM_BLOB_BASE_RY = H * 0.1925;
-export const CUSTOM_BLOB_SPREAD_RADIUS = W * 0.22;
+const CUSTOM_BLOB_BASE_RX = treeSizeW(0.2275);
+const CUSTOM_BLOB_BASE_RY = treeSizeH(0.1925);
+export const CUSTOM_BLOB_SPREAD_RADIUS = treeSizeW(0.22);
 export const CUSTOM_BLOB_CANOPY_CENTER_X = W / 2;
-export const CUSTOM_BLOB_CANOPY_CENTER_Y = H * 0.3;
+export const CUSTOM_BLOB_CANOPY_CENTER_Y = treeY(0.3);
 const CUSTOM_BLOB_SEED_OFFSET = 3333;
 
 /**
@@ -591,14 +621,14 @@ export function growCustomBlobs(
 // Shape definition registry
 // ---------------------------------------------------------------------------
 
-export const TRUNK_ENTRY_MIN_PX = 25;
+export const TRUNK_ENTRY_MIN_PX = 15;
 
 const shapeDefinitions: Record<TreeShape, ShapeDefinition> = {
 	oak: {
-		trunkBaseWidth: 53,
-		trunkTopWidth: 33,
+		trunkBaseWidth: 32,
+		trunkTopWidth: 20,
 		trunkBottom: H * 0.95,
-		defaultTrunkTop: H * 0.45,
+		defaultTrunkTop: treeY(0.45),
 		generateBlobs: generateOakBlobs,
 		styleParameters: {
 			blobRxRyRatio: 1.2,
@@ -608,25 +638,25 @@ const shapeDefinitions: Record<TreeShape, ShapeDefinition> = {
 			trunkTipWeight: 1.0,
 		},
 		envelopeDefaults: {
-			canopyCenterY: H * 0.3,
-			baseRadiusX: W * 0.576,
-			baseRadiusY: H * 0.396,
+			canopyCenterY: treeY(0.3),
+			baseRadiusX: treeSizeW(0.576),
+			baseRadiusY: treeSizeH(0.396),
 		},
 	},
 	pine: {
-		trunkBaseWidth: 35,
-		trunkTopWidth: 20,
+		trunkBaseWidth: 21,
+		trunkTopWidth: 12,
 		trunkBottom: H * 0.95,
-		defaultTrunkTop: H * 0.8,
+		defaultTrunkTop: treeY(0.8),
 		generateBlobs() {
 			return [];
 		},
 	},
 	birch: {
-		trunkBaseWidth: 27,
-		trunkTopWidth: 15,
+		trunkBaseWidth: 16,
+		trunkTopWidth: 9,
 		trunkBottom: H * 0.95,
-		defaultTrunkTop: H * 0.45,
+		defaultTrunkTop: treeY(0.45),
 		generateBlobs: generateBirchBlobs,
 		styleParameters: {
 			blobRxRyRatio: 1.5,
@@ -636,25 +666,25 @@ const shapeDefinitions: Record<TreeShape, ShapeDefinition> = {
 			trunkTipWeight: 0.7,
 		},
 		envelopeDefaults: {
-			canopyCenterY: H * 0.25,
-			baseRadiusX: W * 0.504,
-			baseRadiusY: H * 0.504,
+			canopyCenterY: treeY(0.25),
+			baseRadiusX: treeSizeW(0.504),
+			baseRadiusY: treeSizeH(0.504),
 		},
 	},
 	fir: {
-		trunkBaseWidth: 32,
-		trunkTopWidth: 18,
+		trunkBaseWidth: 19,
+		trunkTopWidth: 11,
 		trunkBottom: H * 0.95,
-		defaultTrunkTop: H * 0.82,
+		defaultTrunkTop: treeY(0.82),
 		generateBlobs() {
 			return [];
 		},
 	},
 	maple: {
-		trunkBaseWidth: 47,
-		trunkTopWidth: 29,
+		trunkBaseWidth: 28,
+		trunkTopWidth: 18,
 		trunkBottom: H * 0.95,
-		defaultTrunkTop: H * 0.45,
+		defaultTrunkTop: treeY(0.45),
 		generateBlobs: generateMapleBlobs,
 		styleParameters: {
 			blobRxRyRatio: 1.1,
@@ -664,16 +694,16 @@ const shapeDefinitions: Record<TreeShape, ShapeDefinition> = {
 			trunkTipWeight: 0.0,
 		},
 		envelopeDefaults: {
-			canopyCenterY: H * 0.3,
-			baseRadiusX: W * 0.54,
-			baseRadiusY: H * 0.36,
+			canopyCenterY: treeY(0.3),
+			baseRadiusX: treeSizeW(0.54),
+			baseRadiusY: treeSizeH(0.36),
 		},
 	},
 	willow: {
-		trunkBaseWidth: 47,
-		trunkTopWidth: 29,
+		trunkBaseWidth: 28,
+		trunkTopWidth: 18,
 		trunkBottom: H * 0.95,
-		defaultTrunkTop: H * 0.45,
+		defaultTrunkTop: treeY(0.45),
 		generateBlobs: generateWillowBlobs,
 		styleParameters: {
 			blobRxRyRatio: 1.3,
@@ -683,23 +713,23 @@ const shapeDefinitions: Record<TreeShape, ShapeDefinition> = {
 			trunkTipWeight: 0.5,
 		},
 		envelopeDefaults: {
-			canopyCenterY: H * 0.38,
-			baseRadiusX: W * 0.576,
-			baseRadiusY: H * 0.36,
+			canopyCenterY: treeY(0.38),
+			baseRadiusX: treeSizeW(0.576),
+			baseRadiusY: treeSizeH(0.36),
 		},
 	},
 	cypress: {
-		trunkBaseWidth: 23,
-		trunkTopWidth: 13,
+		trunkBaseWidth: 14,
+		trunkTopWidth: 8,
 		trunkBottom: H * 0.95,
-		defaultTrunkTop: H * 0.2,
+		defaultTrunkTop: treeY(0.2),
 		generateBlobs: generateCypressBlobs,
 	},
 	apple: {
-		trunkBaseWidth: 53,
-		trunkTopWidth: 37,
+		trunkBaseWidth: 32,
+		trunkTopWidth: 22,
 		trunkBottom: H * 0.95,
-		defaultTrunkTop: H * 0.55,
+		defaultTrunkTop: treeY(0.55),
 		generateBlobs: generateAppleBlobs,
 		styleParameters: {
 			blobRxRyRatio: 1.0,
@@ -709,16 +739,16 @@ const shapeDefinitions: Record<TreeShape, ShapeDefinition> = {
 			trunkTipWeight: 0.8,
 		},
 		envelopeDefaults: {
-			canopyCenterY: H * 0.32,
-			baseRadiusX: W * 0.504,
-			baseRadiusY: H * 0.396,
+			canopyCenterY: treeY(0.32),
+			baseRadiusX: treeSizeW(0.504),
+			baseRadiusY: treeSizeH(0.396),
 		},
 	},
 	cherry: {
-		trunkBaseWidth: 37,
-		trunkTopWidth: 23,
+		trunkBaseWidth: 22,
+		trunkTopWidth: 14,
 		trunkBottom: H * 0.95,
-		defaultTrunkTop: H * 0.45,
+		defaultTrunkTop: treeY(0.45),
 		generateBlobs: generateCherryBlobs,
 		styleParameters: {
 			blobRxRyRatio: 1.8,
@@ -728,23 +758,23 @@ const shapeDefinitions: Record<TreeShape, ShapeDefinition> = {
 			trunkTipWeight: 0.5,
 		},
 		envelopeDefaults: {
-			canopyCenterY: H * 0.32,
-			baseRadiusX: W * 0.72,
-			baseRadiusY: H * 0.288,
+			canopyCenterY: treeY(0.32),
+			baseRadiusX: treeSizeW(0.72),
+			baseRadiusY: treeSizeH(0.288),
 		},
 	},
 	bush: {
-		trunkBaseWidth: 17,
-		trunkTopWidth: 10,
+		trunkBaseWidth: 10,
+		trunkTopWidth: 6,
 		trunkBottom: H * 0.92,
-		defaultTrunkTop: H * 0.88,
+		defaultTrunkTop: treeY(0.88),
 		generateBlobs: generateBushBlobs,
 	},
 	baobab: {
-		trunkBaseWidth: 83,
-		trunkTopWidth: 33,
+		trunkBaseWidth: 50,
+		trunkTopWidth: 20,
 		trunkBottom: H * 0.95,
-		defaultTrunkTop: H * 0.25,
+		defaultTrunkTop: treeY(0.25),
 		generateBlobs: generateBaobabBlobs,
 		styleParameters: {
 			blobRxRyRatio: 1.2,
@@ -754,16 +784,16 @@ const shapeDefinitions: Record<TreeShape, ShapeDefinition> = {
 			trunkTipWeight: 0.8,
 		},
 		envelopeDefaults: {
-			canopyCenterY: H * 0.15,
-			baseRadiusX: W * 0.396,
-			baseRadiusY: H * 0.216,
+			canopyCenterY: treeY(0.15),
+			baseRadiusX: treeSizeW(0.396),
+			baseRadiusY: treeSizeH(0.216),
 		},
 	},
 	acacia: {
-		trunkBaseWidth: 27,
-		trunkTopWidth: 17,
+		trunkBaseWidth: 16,
+		trunkTopWidth: 10,
 		trunkBottom: H * 0.95,
-		defaultTrunkTop: H * 0.35,
+		defaultTrunkTop: treeY(0.35),
 		generateBlobs: generateAcaciaBlobs,
 		styleParameters: {
 			blobRxRyRatio: 3.5,
@@ -773,16 +803,16 @@ const shapeDefinitions: Record<TreeShape, ShapeDefinition> = {
 			trunkTipWeight: 0.5,
 		},
 		envelopeDefaults: {
-			canopyCenterY: H * 0.2,
-			baseRadiusX: W * 0.756,
-			baseRadiusY: H * 0.18,
+			canopyCenterY: treeY(0.2),
+			baseRadiusX: treeSizeW(0.756),
+			baseRadiusY: treeSizeH(0.18),
 		},
 	},
 	custom: {
-		trunkBaseWidth: 47,
-		trunkTopWidth: 29,
+		trunkBaseWidth: 28,
+		trunkTopWidth: 18,
 		trunkBottom: H * 0.95,
-		defaultTrunkTop: H * 0.45,
+		defaultTrunkTop: treeY(0.45),
 		generateBlobs() {
 			return [];
 		},

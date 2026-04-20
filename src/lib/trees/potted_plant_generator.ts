@@ -18,8 +18,8 @@ const DRIED_CANOPY_DARK = '#8b6914';
 
 const POT_TOP_WIDTH = VIEWBOX_WIDTH * 0.6;
 const POT_BOTTOM_WIDTH = VIEWBOX_WIDTH * 0.5;
-const POT_HEIGHT = 67;
-const STEM_HEIGHT = 83;
+const POT_HEIGHT = 40;
+const STEM_HEIGHT = 50;
 
 /** Build the trapezoidal pot + soil surface triangles. */
 function buildPotTriangles(cx: number, potTopY: number, potBottomY: number): Triangle[] {
@@ -47,9 +47,9 @@ function buildPotTriangles(cx: number, potTopY: number, potBottomY: number): Tri
 		},
 		{
 			points: [
-				{ x: cx - halfTopW + 7, y: potTopY },
-				{ x: cx + halfTopW - 7, y: potTopY },
-				{ x: cx, y: potTopY - 7 },
+				{ x: cx - halfTopW + 4, y: potTopY },
+				{ x: cx + halfTopW - 4, y: potTopY },
+				{ x: cx, y: potTopY - 4 },
 			],
 			color: SOIL_COLOR,
 			group: GEOMETRY_GROUPS.pot,
@@ -80,18 +80,18 @@ function buildSproutLeaves(
 	const leafTriangles: Triangle[] = [
 		{
 			points: [
-				{ x: cx, y: stemTopY + 7 },
-				{ x: cx - 20, y: stemTopY - 7 },
-				{ x: cx - 3, y: stemTopY - 17 },
+				{ x: cx, y: stemTopY + 4 },
+				{ x: cx - 12, y: stemTopY - 4 },
+				{ x: cx - 3, y: stemTopY - 10 },
 			],
 			color: lightColor,
 			group: GEOMETRY_GROUPS.canopy,
 		},
 		{
 			points: [
-				{ x: cx, y: stemTopY + 7 },
-				{ x: cx + 20, y: stemTopY - 7 },
-				{ x: cx + 3, y: stemTopY - 17 },
+				{ x: cx, y: stemTopY + 4 },
+				{ x: cx + 12, y: stemTopY - 4 },
+				{ x: cx + 3, y: stemTopY - 10 },
 			],
 			color: darkColor,
 			group: GEOMETRY_GROUPS.canopy,
@@ -100,7 +100,7 @@ function buildSproutLeaves(
 
 	return {
 		triangles: leafTriangles,
-		center: { x: cx, y: stemTopY - 5 },
+		center: { x: cx, y: stemTopY - 3 },
 		depth: 0,
 	};
 }
@@ -153,14 +153,14 @@ function generateFruitSlotPositions(
 	rng: () => number,
 ): Point2D[] {
 	const slots: Point2D[] = [];
-	const radius = 33;
+	const radius = 20;
 
 	for (let i = 0; i < count; i++) {
 		const angle = (i / count) * Math.PI * 2;
 		const r = radius * (0.6 + rng() * 0.4);
 		slots.push({
 			x: cx + Math.cos(angle) * r,
-			y: stemTopY - 17 + Math.sin(angle) * r,
+			y: stemTopY - 10 + Math.sin(angle) * r,
 		});
 	}
 
@@ -200,10 +200,10 @@ export function generatePottedPlant(config: PottedPlantConfig): TreeGeometry {
 		// 1-2 small canopy blobs with ~6 triangles each
 		const blobCount = rng() > 0.5 ? 2 : 1;
 		for (let i = 0; i < blobCount; i++) {
-			const offsetX = blobCount === 2 ? (i === 0 ? -25 : 25) : 0;
+			const offsetX = blobCount === 2 ? (i === 0 ? -15 : 15) : 0;
 			const offsetY = blobCount === 2 ? randomInRange(rng, -8, 8) : 0;
-			const blobCenter: Point2D = { x: cx + offsetX, y: stemTopY - 17 + offsetY };
-			canopyBlobs.push(buildCanopyBlob(blobCenter, 30, 6, canopyLight, canopyDark, rng, i));
+			const blobCenter: Point2D = { x: cx + offsetX, y: stemTopY - 10 + offsetY };
+			canopyBlobs.push(buildCanopyBlob(blobCenter, 18, 6, canopyLight, canopyDark, rng, i));
 		}
 		// 1-2 fruit slots
 		const slotCount = rng() > 0.5 ? 2 : 1;
@@ -218,10 +218,10 @@ export function generatePottedPlant(config: PottedPlantConfig): TreeGeometry {
 		const blobCount = rng() > 0.5 ? 3 : 2;
 		for (let i = 0; i < blobCount; i++) {
 			const angle = (i / blobCount) * Math.PI * 2;
-			const offsetX = Math.cos(angle) * 25;
-			const offsetY = Math.sin(angle) * 17;
-			const blobCenter: Point2D = { x: cx + offsetX, y: stemTopY - 25 + offsetY };
-			canopyBlobs.push(buildCanopyBlob(blobCenter, 37, 7, canopyLight, canopyDark, rng, i));
+			const offsetX = Math.cos(angle) * 15;
+			const offsetY = Math.sin(angle) * 10;
+			const blobCenter: Point2D = { x: cx + offsetX, y: stemTopY - 15 + offsetY };
+			canopyBlobs.push(buildCanopyBlob(blobCenter, 22, 7, canopyLight, canopyDark, rng, i));
 		}
 		// 3-5 fruit slots
 		const slotCount = 3 + Math.floor(rng() * 3); // 3, 4, or 5
@@ -236,7 +236,7 @@ export function generatePottedPlant(config: PottedPlantConfig): TreeGeometry {
 		? canopyBlobs.reduce((sum, b) => sum + b.center.y, 0) / canopyBlobs.length
 		: effectiveStemTop;
 	const crownTopY = hasCanopy
-		? Math.min(...canopyBlobs.map((b) => b.center.y - 33))
+		? Math.min(...canopyBlobs.map((b) => b.center.y - 20))
 		: effectiveStemTop;
 
 	const anchors: TreeAnchors = {

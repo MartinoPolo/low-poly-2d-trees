@@ -945,8 +945,8 @@ export function generateBranches(
 			y1: originY,
 			x2: blob.cx,
 			y2: blob.cy,
-			widthStart: randomInRange(rng, 8.75, 14.58) * branchThicknessScale,
-			widthEnd: randomInRange(rng, 2.92, 5.83) * branchThicknessScale,
+			widthStart: randomInRange(rng, 5.25, 8.75) * branchThicknessScale,
+			widthEnd: randomInRange(rng, 1.75, 3.5) * branchThicknessScale,
 		};
 		// Fallback branches are straight (no crookedness) — emergency connectors
 		branches.push({

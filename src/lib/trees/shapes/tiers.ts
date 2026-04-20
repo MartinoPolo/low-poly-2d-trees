@@ -2,13 +2,13 @@ import type { Tier, Point2D } from '../types.js';
 import { VIEWBOX_WIDTH, VIEWBOX_HEIGHT } from '../types.js';
 import { randomInRange } from '../prng.js';
 import { sampleTrunkCenterX } from './trunk.js';
+import { TREE_SCALE, treeY } from './blob_generators.js';
 
 function lerp(a: number, b: number, t: number): number {
 	return a + (b - a) * t;
 }
 
 const W = VIEWBOX_WIDTH;
-const H = VIEWBOX_HEIGHT;
 
 // ---------------------------------------------------------------------------
 // Tier (pine) — triangular shapes
@@ -27,7 +27,7 @@ export function generateTiers(
 	const count = Math.max(1, blobCount);
 	const centerX = W / 2;
 	const trunkTopY = trunkJunctions[trunkJunctions.length - 1]!.y;
-	const tipY = H * 0.05 + verticalShift;
+	const tipY = treeY(0.05) + verticalShift * TREE_SCALE;
 	const tierTrunkOverlap = 0.1;
 	const overlapAmount = (trunkTopY - tipY) * tierTrunkOverlap;
 	const baseY = trunkTopY + overlapAmount;
@@ -48,7 +48,7 @@ export function generateTiers(
 		const topScale = 1 / blobSizeVariance;
 		const widthScale = lerp(topScale, 1.0, widthT);
 
-		const baseHalfWidth = (W * 0.084 + t1 * W * 0.308) * widthScale * canopyScale;
+		const baseHalfWidth = (W * 0.084 + t1 * W * 0.308) * TREE_SCALE * widthScale * canopyScale;
 
 		// D10: tiers follow trunk path (sampled from junctions). For y values
 		// above the topmost junction, sampling clamps to topJunction.x so tiers
