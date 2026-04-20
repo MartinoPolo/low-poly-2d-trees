@@ -8,6 +8,8 @@ export interface GroundPlacement {
 }
 
 export const GROUND_ELEMENT_COUNTS = {
-	stones: 3,
-	grass: 2,
+	stones: 5,
+	grass: 4,
 } as const;
+
+export const GROUND_MIN_SPACING_RATIO = 0.5;

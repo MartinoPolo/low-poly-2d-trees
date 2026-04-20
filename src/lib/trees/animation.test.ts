@@ -5,6 +5,12 @@ import {
 	computeBranchDelay,
 	computeCanopyBottomY,
 	computeGrowthScales,
+	GROWTH_DURATION_SECONDS,
+	createFallingLeaf,
+	advanceFallingLeaves,
+	FALLING_LEAF_STATES,
+	FALLING_LEAF_CONFIG,
+	type FallingLeaf,
 } from './animation.js';
 import type { BlobGeometry } from './types/core.js';
 
@@ -103,6 +109,13 @@ describe('Animation helpers', () => {
 		});
 	});
 
+	describe('GROWTH_DURATION_SECONDS', () => {
+		it('is a positive number used for synchronized growth', () => {
+			expect(GROWTH_DURATION_SECONDS).toBeGreaterThan(0);
+			expect(typeof GROWTH_DURATION_SECONDS).toBe('number');
+		});
+	});
+
 	describe('computeGrowthScales', () => {
 		it('returns scale 1.0 at 0% variance (no oscillation)', () => {
 			const scales = computeGrowthScales(0);
@@ -133,6 +146,97 @@ describe('Animation helpers', () => {
 		it('effect clearly visible at 50%+ (amplitude ≥ 0.25)', () => {
 			const scales = computeGrowthScales(50);
 			expect(scales.maxScale - scales.minScale).toBeGreaterThanOrEqual(0.5);
+		});
+	});
+
+	describe('createFallingLeaf', () => {
+		const crownCenter = { x: 250, y: 200 };
+		const canopyBottomY = 300;
+		const groundLineY = 475;
+
+		it('creates a leaf in falling state', () => {
+			const leaf = createFallingLeaf(0, crownCenter, canopyBottomY, groundLineY, 42, 1000);
+			expect(leaf.state).toBe(FALLING_LEAF_STATES.falling);
+			expect(leaf.stateStartTime).toBe(1000);
+		});
+
+		it('sets landedY to groundLineY', () => {
+			const leaf = createFallingLeaf(0, crownCenter, canopyBottomY, groundLineY, 42, 0);
+			expect(leaf.landedY).toBe(groundLineY);
+		});
+
+		it('scatter is between 10-20px magnitude', () => {
+			for (let id = 0; id < 20; id++) {
+				const leaf = createFallingLeaf(id, crownCenter, canopyBottomY, groundLineY, 42, 0);
+				const absScatter = Math.abs(leaf.scatterX);
+				expect(absScatter).toBeGreaterThanOrEqual(FALLING_LEAF_CONFIG.scatterMinPx);
+				expect(absScatter).toBeLessThanOrEqual(FALLING_LEAF_CONFIG.scatterMaxPx);
+			}
+		});
+
+		it('is deterministic (same inputs produce same leaf)', () => {
+			const a = createFallingLeaf(0, crownCenter, canopyBottomY, groundLineY, 42, 0);
+			const b = createFallingLeaf(0, crownCenter, canopyBottomY, groundLineY, 42, 0);
+			expect(a).toEqual(b);
+		});
+	});
+
+	describe('advanceFallingLeaves', () => {
+		function makeLeaf(overrides: Partial<FallingLeaf> = {}): FallingLeaf {
+			return {
+				id: 0,
+				x: 250,
+				y: 200,
+				landedY: 475,
+				scatterX: 15,
+				fallDuration: 3,
+				rotation: 45,
+				color: '#E8A028',
+				state: FALLING_LEAF_STATES.falling,
+				stateStartTime: 0,
+				...overrides,
+			};
+		}
+
+		it('keeps falling leaves that have not reached ground', () => {
+			const leaves = [makeLeaf({ fallDuration: 3, stateStartTime: 0 })];
+			const result = advanceFallingLeaves(leaves, 2000);
+			expect(result).toHaveLength(1);
+			expect(result[0]!.state).toBe(FALLING_LEAF_STATES.falling);
+		});
+
+		it('transitions falling to landed after fallDuration', () => {
+			const leaves = [makeLeaf({ fallDuration: 3, stateStartTime: 0 })];
+			const result = advanceFallingLeaves(leaves, 3000);
+			expect(result).toHaveLength(1);
+			expect(result[0]!.state).toBe(FALLING_LEAF_STATES.landed);
+		});
+
+		it('keeps landed leaves for 10 seconds', () => {
+			const leaves = [makeLeaf({ state: FALLING_LEAF_STATES.landed, stateStartTime: 0 })];
+			const result = advanceFallingLeaves(leaves, 9000);
+			expect(result).toHaveLength(1);
+			expect(result[0]!.state).toBe(FALLING_LEAF_STATES.landed);
+		});
+
+		it('transitions landed to fading after 10 seconds', () => {
+			const leaves = [makeLeaf({ state: FALLING_LEAF_STATES.landed, stateStartTime: 0 })];
+			const result = advanceFallingLeaves(leaves, 10_000);
+			expect(result).toHaveLength(1);
+			expect(result[0]!.state).toBe(FALLING_LEAF_STATES.fading);
+		});
+
+		it('removes fading leaves after fade duration', () => {
+			const leaves = [makeLeaf({ state: FALLING_LEAF_STATES.fading, stateStartTime: 0 })];
+			const result = advanceFallingLeaves(leaves, FALLING_LEAF_CONFIG.fadeDurationMs);
+			expect(result).toHaveLength(0);
+		});
+
+		it('keeps fading leaves before fade duration completes', () => {
+			const leaves = [makeLeaf({ state: FALLING_LEAF_STATES.fading, stateStartTime: 0 })];
+			const result = advanceFallingLeaves(leaves, FALLING_LEAF_CONFIG.fadeDurationMs - 100);
+			expect(result).toHaveLength(1);
+			expect(result[0]!.state).toBe(FALLING_LEAF_STATES.fading);
 		});
 	});
 });
