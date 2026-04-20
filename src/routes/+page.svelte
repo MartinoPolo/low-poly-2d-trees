@@ -190,6 +190,10 @@
 			</svg>
 		{/if}
 
+		<div
+			class="pointer-events-none absolute inset-x-0 bottom-0 h-[12%] bg-gradient-to-t from-[#5c4033]/80 to-transparent dark:from-[#2d1b0e]/80 dark:to-transparent"
+		></div>
+
 		<EnvironmentOverlay config={environmentConfig} lightAngle={treeConfig.current.lightAngle} />
 
 		<SceneFloatingButtons onReset={resetAll} onRandomize={randomizeSeed} />

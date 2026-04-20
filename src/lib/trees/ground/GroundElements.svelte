@@ -10,13 +10,13 @@
 		spreadWidth?: number;
 	}
 
-	let { seed, trunkBase, spreadWidth = 50 }: Props = $props();
+	let { seed, trunkBase, spreadWidth = 100 }: Props = $props();
 
 	const placements = $derived(generateGroundPlacements(seed, trunkBase, spreadWidth));
 </script>
 
 <g class="ground-elements">
-	{#each placements as placement (placement)}
+	{#each placements as placement, i (i)}
 		<g
 			transform="translate({placement.x}, {placement.y}) scale({placement.scale}) rotate({placement.rotation})"
 		>

@@ -17,7 +17,14 @@
 		computeBranchDelay,
 		computeCanopyBottomY,
 		computeGrowthScales,
+		GROWTH_DURATION_SECONDS,
+		createFallingLeaf,
+		advanceFallingLeaves,
+		FALLING_LEAF_STATES,
+		FALLING_LEAF_CONFIG,
+		type FallingLeaf,
 	} from '$lib/trees/animation.js';
+	import { GROUND_LINE_Y } from '$lib/trees/stages/constants.js';
 	import TreeTool from '$lib/trees/TreeTool.svelte';
 	import {
 		TOOL_TYPES,
@@ -26,7 +33,6 @@
 	} from '$lib/trees/tools/tool_types.js';
 	import { FRUIT_SVG_COMPONENTS } from '$lib/trees/shapes/fruit_geometry.js';
 	import { FLOWER_SVG_COMPONENTS } from '$lib/trees/shapes/flower_geometry.js';
-	import { createPrng, randomInRange } from '$lib/trees/prng.js';
 	import { SvelteMap } from 'svelte/reactivity';
 	import TreeOverlay from '$lib/trees/overlays/TreeOverlay.svelte';
 	import GlowEffect from '$lib/trees/overlays/GlowEffect.svelte';
@@ -183,38 +189,41 @@
 		return FLOWER_SVG_COMPONENTS[config.shape as Exclude<TreeShape, 'custom'>];
 	});
 
-	/** Falling leaf particle data for autumn stage. */
-	const fallingLeaves = $derived.by(() => {
+	let fallingLeaves = $state<FallingLeaf[]>([]);
+	let leafIdCounter = 0;
+
+	$effect(() => {
 		if (!geometry.showFallingLeaves) {
-			return [];
+			fallingLeaves = [];
+			leafIdCounter = 0;
+			return;
 		}
-		const rng = createPrng(config.seed + 99999);
-		const count = 8;
-		const leaves: {
-			x: number;
-			y: number;
-			delay: number;
-			duration: number;
-			rotation: number;
-			color: string;
-		}[] = [];
-		const bounds = geometry.anchors;
-		const minX = bounds.crownCenter.x - 30;
-		const maxX = bounds.crownCenter.x + 30;
-		const startY =
-			(geometry.anchors.crownCenter.y + computeCanopyBottomY(geometry.canopyBlobs)) / 2;
-		const colors = ['#E8A028', '#C47020', '#8B2010', '#A05020', '#D08030'];
-		for (let i = 0; i < count; i++) {
-			leaves.push({
-				x: randomInRange(rng, minX, maxX),
-				y: startY + randomInRange(rng, -5, 15),
-				delay: randomInRange(rng, 0, 4),
-				duration: randomInRange(rng, 2, 4),
-				rotation: randomInRange(rng, -180, 180),
-				color: colors[Math.floor(rng() * colors.length)]!,
-			});
-		}
-		return leaves;
+
+		const canopyBottom = computeCanopyBottomY(geometry.canopyBlobs);
+		const crownCenter = geometry.anchors.crownCenter;
+		const seed = config.seed;
+
+		const interval = setInterval(() => {
+			const now = Date.now();
+			let updated = advanceFallingLeaves(fallingLeaves, now);
+
+			if (updated.length < FALLING_LEAF_CONFIG.maxLeaves) {
+				const newLeaf = createFallingLeaf(
+					leafIdCounter,
+					crownCenter,
+					canopyBottom,
+					GROUND_LINE_Y,
+					seed,
+					now,
+				);
+				updated = [...updated, newLeaf];
+				leafIdCounter++;
+			}
+
+			fallingLeaves = updated;
+		}, FALLING_LEAF_CONFIG.spawnIntervalMs);
+
+		return () => clearInterval(interval);
 	});
 
 	$effect(() => {
@@ -241,7 +250,7 @@
 					branchIndex
 				]}s; --branch-delay: {branchDelays[branchIndex]}s; --branch-origin-x: {branchGroup
 					.origin.x}px; --branch-origin-y: {branchGroup.origin
-					.y}px; --growth-min-scale: {growthScales.minScale}; --growth-max-scale: {growthScales.maxScale};"
+					.y}px; --growth-min-scale: {growthScales.minScale}; --growth-max-scale: {growthScales.maxScale}; --growth-duration: {GROWTH_DURATION_SECONDS}s;"
 			>
 				{#each branchGroup.quads as quad (quad)}
 					<polygon
@@ -276,7 +285,7 @@
 				class:animate-canopy-pulse={shouldAnimateGrowth}
 				style="--sway-delay: {canopySwayDelay + blobIndex * 0.15}s; --sway-origin-x: {blob
 					.center.x}px; --sway-origin-y: {blob.center
-					.y}px; --canopy-min-scale: {growthScales.canopyMinScale}; --canopy-max-scale: {growthScales.canopyMaxScale};"
+					.y}px; --canopy-min-scale: {growthScales.canopyMinScale}; --canopy-max-scale: {growthScales.canopyMaxScale}; --growth-duration: {GROWTH_DURATION_SECONDS}s;"
 			>
 				{#each blob.triangles as tri (tri)}
 					<polygon
@@ -413,10 +422,13 @@
 
 		{#if fallingLeaves.length > 0}
 			<g class="falling-leaves">
-				{#each fallingLeaves as leaf, i (i)}
+				{#each fallingLeaves as leaf (leaf.id)}
 					<g
 						class="falling-leaf"
-						style="--leaf-start-x: {leaf.x}px; --leaf-start-y: {leaf.y}px; --leaf-delay: {leaf.delay}s; --leaf-duration: {leaf.duration}s; --leaf-rotation: {leaf.rotation}deg;"
+						class:falling-leaf-landed={leaf.state === FALLING_LEAF_STATES.landed}
+						class:falling-leaf-fading={leaf.state === FALLING_LEAF_STATES.fading}
+						style="--leaf-start-x: {leaf.x}px; --leaf-start-y: {leaf.y}px; --leaf-land-y: {leaf.landedY}px; --leaf-land-x: {leaf.x +
+							leaf.scatterX}px; --leaf-duration: {leaf.fallDuration}s; --leaf-rotation: {leaf.rotation}deg; --leaf-fade-duration: {FALLING_LEAF_CONFIG.fadeDurationMs}ms;"
 					>
 						<LeafSvg color={leaf.color} />
 					</g>
@@ -602,9 +614,9 @@
 		}
 
 		100% {
-			transform: translate(calc(var(--leaf-start-x) + 10px), calc(var(--leaf-start-y) + 60px))
+			transform: translate(var(--leaf-land-x), var(--leaf-land-y))
 				rotate(var(--leaf-rotation));
-			opacity: 0;
+			opacity: 0.85;
 		}
 	}
 
@@ -623,22 +635,34 @@
 	}
 
 	.branch-group.animate-branch-growth {
-		animation: branch-growth-oscillation 3s ease-in-out infinite;
-		animation-delay: var(--branch-delay);
+		animation: branch-growth-oscillation var(--growth-duration) ease-in-out infinite;
+		animation-delay: 0s;
 		transform-origin: var(--branch-origin-x) var(--branch-origin-y);
 		will-change: transform;
 	}
 
 	.canopy-blob.animate-canopy-pulse {
-		animation: canopy-pulse 4s ease-in-out infinite;
-		animation-delay: var(--sway-delay);
+		animation: canopy-pulse var(--growth-duration) ease-in-out infinite;
+		animation-delay: 0s;
 		transform-origin: var(--sway-origin-x) var(--sway-origin-y);
 		will-change: transform;
 	}
 
 	.falling-leaf {
-		animation: leaf-fall var(--leaf-duration) ease-in-out infinite;
-		animation-delay: var(--leaf-delay);
+		animation: leaf-fall var(--leaf-duration) ease-in forwards;
 		will-change: transform, opacity;
+	}
+
+	.falling-leaf.falling-leaf-landed {
+		transform: translate(var(--leaf-land-x), var(--leaf-land-y)) rotate(var(--leaf-rotation));
+		opacity: 0.85;
+		animation: none;
+	}
+
+	.falling-leaf.falling-leaf-fading {
+		transform: translate(var(--leaf-land-x), var(--leaf-land-y)) rotate(var(--leaf-rotation));
+		opacity: 0;
+		animation: none;
+		transition: opacity var(--leaf-fade-duration) ease-out;
 	}
 </style>

@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { generateGroundPlacements } from './ground_generators.js';
-import { GROUND_ELEMENT_COUNTS } from './ground_types.js';
+import { GROUND_ELEMENT_COUNTS, GROUND_MIN_SPACING_RATIO } from './ground_types.js';
 
-const TRUNK_BASE = { x: 150, y: 270 };
-const SPREAD = 60;
+const TRUNK_BASE = { x: 250, y: 475 };
+const SPREAD = 100;
 
 describe('generateGroundPlacements', () => {
 	it('is deterministic — same seed produces same output', () => {
@@ -76,6 +76,28 @@ describe('generateGroundPlacements', () => {
 		for (const grass of grasses) {
 			expect(grass.scale).toBeGreaterThanOrEqual(1.75);
 			expect(grass.scale).toBeLessThanOrEqual(3.25);
+		}
+	});
+
+	it('no two same-type elements overlap more than 50% of estimated width', () => {
+		for (const seed of [42, 99, 1234, 7777]) {
+			const placements = generateGroundPlacements(seed, TRUNK_BASE, SPREAD);
+			const stones = placements.filter((p) => p.type === 'stone');
+			const grasses = placements.filter((p) => p.type === 'grass');
+
+			for (const group of [stones, grasses]) {
+				for (let i = 0; i < group.length; i++) {
+					for (let j = i + 1; j < group.length; j++) {
+						const largerScale = Math.max(group[i]!.scale, group[j]!.scale);
+						const minSpacing = largerScale * 10 * GROUND_MIN_SPACING_RATIO;
+						const distance = Math.abs(group[i]!.x - group[j]!.x);
+						expect(
+							distance,
+							`Seed ${seed}: ${group[i]!.type}s at indices ${i},${j} too close (${distance.toFixed(1)} < ${minSpacing.toFixed(1)})`,
+						).toBeGreaterThanOrEqual(minSpacing);
+					}
+				}
+			}
 		}
 	});
 });
