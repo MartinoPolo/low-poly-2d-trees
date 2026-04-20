@@ -276,7 +276,7 @@
 		class="relative flex items-center justify-center overflow-hidden border border-border bg-linear-to-b from-sky-200 to-white p-8 dark:from-[#0a1628] dark:to-[#1a2744]"
 	>
 		<div
-			class="pointer-events-none absolute inset-x-0 bottom-0 h-[12%] bg-linear-to-t from-[#5c4033]/80 to-transparent dark:from-[#2d1b0e]/80 dark:to-transparent"
+			class="pointer-events-none absolute inset-x-0 bottom-0 h-[12%] bg-linear-to-t from-[#5c4033]/80 via-[#4a7c3f]/80 to-transparent dark:from-[#2d1b0e]/80 dark:via-[#2d4a25]/80 dark:to-transparent"
 		></div>
 		<div class="w-full" style="max-width: min(576px, calc(50dvh - 4rem))">
 			<LowPolyTree

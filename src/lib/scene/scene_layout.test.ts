@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { generateSceneLayout, computeRowShifts } from './scene_layout.js';
+import {
+	generateSceneLayout,
+	computeRowShifts,
+	computeGroundHeightPercent,
+} from './scene_layout.js';
 import {
 	SCENE_SHAPES,
 	LAYER_COUNT,
@@ -335,5 +339,30 @@ describe('computeRowShifts', () => {
 	it('single layer returns [0]', () => {
 		const shifts = computeRowShifts(1, 42);
 		expect(shifts).toEqual([0]);
+	});
+});
+
+describe('computeGroundHeightPercent', () => {
+	it('depthSpread=0, any treeCount: returns 12 (baseline)', () => {
+		expect(computeGroundHeightPercent(0, 10)).toBe(12);
+		expect(computeGroundHeightPercent(0, 50)).toBe(12);
+		expect(computeGroundHeightPercent(0, 100)).toBe(12);
+	});
+
+	it('single layer (treeCount<=10): returns 12 regardless of depthSpread', () => {
+		expect(computeGroundHeightPercent(50, 1)).toBe(12);
+		expect(computeGroundHeightPercent(100, 10)).toBe(12);
+	});
+
+	it('depthSpread=10, treeCount=20 (2 layers): 12 + (10*1)/2 = 17', () => {
+		expect(computeGroundHeightPercent(10, 20)).toBe(17);
+	});
+
+	it('depthSpread=50, treeCount=30 (3 layers): 12 + (50*2)/2 = 62', () => {
+		expect(computeGroundHeightPercent(50, 30)).toBe(62);
+	});
+
+	it('never returns less than 12', () => {
+		expect(computeGroundHeightPercent(-10, 20)).toBe(12);
 	});
 });
