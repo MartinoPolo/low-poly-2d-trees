@@ -1,37 +1,116 @@
 import { describe, it, expect } from 'vitest';
-import { getShapeDefinition } from './blob_generators.js';
+import {
+	getShapeDefinition,
+	TREE_SCALE,
+	treeY,
+	treeSizeH,
+	treeSizeW,
+	TRUNK_ENTRY_MIN_PX,
+} from './blob_generators.js';
 import { VIEWBOX_WIDTH, VIEWBOX_HEIGHT } from '../types.js';
+import type { TreeShape } from '../types.js';
 
 const W = VIEWBOX_WIDTH;
 const H = VIEWBOX_HEIGHT;
 
-describe('Envelope defaults — 1.8× scale (issue #110)', () => {
-	const leafySpecies = [
-		{ shape: 'oak' as const, oldRxFactor: 0.32, oldRyFactor: 0.22 },
-		{ shape: 'birch' as const, oldRxFactor: 0.28, oldRyFactor: 0.28 },
-		{ shape: 'maple' as const, oldRxFactor: 0.3, oldRyFactor: 0.2 },
-		{ shape: 'willow' as const, oldRxFactor: 0.32, oldRyFactor: 0.2 },
-		{ shape: 'apple' as const, oldRxFactor: 0.28, oldRyFactor: 0.22 },
-		{ shape: 'cherry' as const, oldRxFactor: 0.4, oldRyFactor: 0.16 },
-		{ shape: 'baobab' as const, oldRxFactor: 0.22, oldRyFactor: 0.12 },
-		{ shape: 'acacia' as const, oldRxFactor: 0.42, oldRyFactor: 0.1 },
-	];
+// ---------------------------------------------------------------------------
+// Group 1: TREE_SCALE helpers
+// ---------------------------------------------------------------------------
 
-	for (const { shape, oldRxFactor, oldRyFactor } of leafySpecies) {
-		it(`${shape} envelope baseRadiusX >= 1.75× old value`, () => {
-			const def = getShapeDefinition(shape);
-			expect(def.envelopeDefaults).toBeDefined();
-			expect(def.envelopeDefaults!.baseRadiusX).toBeGreaterThanOrEqual(
-				W * oldRxFactor * 1.75,
-			);
+describe('TREE_SCALE helpers', () => {
+	it('TREE_SCALE = 0.6', () => {
+		expect(TREE_SCALE).toBe(0.6);
+	});
+
+	it('treeY(0.05) = 205 — top of canopy scaled toward ground', () => {
+		// TRUNK_BASE_Y = 500 * 0.95 = 475
+		// treeY(0.05) = 475 - (475 - 500*0.05) * 0.6 = 475 - (475 - 25)*0.6 = 475 - 270 = 205
+		expect(treeY(0.05)).toBe(205);
+	});
+
+	it('treeY(0.95) = 475 — ground stays fixed', () => {
+		// treeY(0.95) = 475 - (475 - 475)*0.6 = 475
+		expect(treeY(0.95)).toBe(475);
+	});
+
+	it('treeSizeH(0.5) = 150', () => {
+		// 500 * 0.5 * 0.6 = 150
+		expect(treeSizeH(0.5)).toBe(150);
+	});
+
+	it('treeSizeW(0.22) = 66', () => {
+		// 500 * 0.22 * 0.6 = 66
+		expect(treeSizeW(0.22)).toBe(66);
+	});
+});
+
+// ---------------------------------------------------------------------------
+// Group 2: Trunk widths (reverted to 300-equivalent)
+// ---------------------------------------------------------------------------
+
+describe('Trunk widths — reverted to 300-equivalent', () => {
+	const expectedWidths: Record<string, { base: number; top: number }> = {
+		oak: { base: 32, top: 20 },
+		pine: { base: 21, top: 12 },
+		birch: { base: 16, top: 9 },
+		fir: { base: 19, top: 11 },
+		maple: { base: 28, top: 18 },
+		willow: { base: 28, top: 18 },
+		cypress: { base: 14, top: 8 },
+		apple: { base: 32, top: 22 },
+		cherry: { base: 22, top: 14 },
+		bush: { base: 10, top: 6 },
+		baobab: { base: 50, top: 20 },
+		acacia: { base: 16, top: 10 },
+		custom: { base: 28, top: 18 },
+	};
+
+	for (const [shape, expected] of Object.entries(expectedWidths)) {
+		it(`${shape}: trunkBaseWidth = ${expected.base}`, () => {
+			const def = getShapeDefinition(shape as TreeShape);
+			expect(def.trunkBaseWidth).toBe(expected.base);
 		});
 
-		it(`${shape} envelope baseRadiusY >= 1.75× old value`, () => {
+		it(`${shape}: trunkTopWidth = ${expected.top}`, () => {
+			const def = getShapeDefinition(shape as TreeShape);
+			expect(def.trunkTopWidth).toBe(expected.top);
+		});
+	}
+});
+
+// ---------------------------------------------------------------------------
+// Group 3: TRUNK_ENTRY_MIN_PX
+// ---------------------------------------------------------------------------
+
+describe('TRUNK_ENTRY_MIN_PX', () => {
+	it('equals 15', () => {
+		expect(TRUNK_ENTRY_MIN_PX).toBe(15);
+	});
+});
+
+describe('Envelope defaults — TREE_SCALE applied (issue #152)', () => {
+	const species = [
+		{ shape: 'oak' as const, rxFactor: 0.576, ryFactor: 0.396 },
+		{ shape: 'birch' as const, rxFactor: 0.504, ryFactor: 0.504 },
+		{ shape: 'maple' as const, rxFactor: 0.54, ryFactor: 0.36 },
+		{ shape: 'willow' as const, rxFactor: 0.576, ryFactor: 0.36 },
+		{ shape: 'apple' as const, rxFactor: 0.504, ryFactor: 0.396 },
+		{ shape: 'cherry' as const, rxFactor: 0.72, ryFactor: 0.288 },
+		{ shape: 'baobab' as const, rxFactor: 0.396, ryFactor: 0.216 },
+		{ shape: 'acacia' as const, rxFactor: 0.756, ryFactor: 0.18 },
+	];
+
+	for (const { shape, rxFactor, ryFactor } of species) {
+		it(`${shape} envelope baseRadiusX = treeSizeW(${rxFactor})`, () => {
 			const def = getShapeDefinition(shape);
 			expect(def.envelopeDefaults).toBeDefined();
-			expect(def.envelopeDefaults!.baseRadiusY).toBeGreaterThanOrEqual(
-				H * oldRyFactor * 1.75,
-			);
+			expect(def.envelopeDefaults!.baseRadiusX).toBeCloseTo(W * rxFactor * 0.6, 1);
+		});
+
+		it(`${shape} envelope baseRadiusY = treeSizeH(${ryFactor})`, () => {
+			const def = getShapeDefinition(shape);
+			expect(def.envelopeDefaults).toBeDefined();
+			expect(def.envelopeDefaults!.baseRadiusY).toBeCloseTo(H * ryFactor * 0.6, 1);
 		});
 	}
 });

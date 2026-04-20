@@ -1041,7 +1041,7 @@ describe('generateBranches — multi-junction paths (issue #105)', () => {
 describe('REQ-C-18: oak radial blob distribution', () => {
 	const shapeDef = getShapeDefinition('oak');
 	const W = VIEWBOX_WIDTH;
-	const minAxisDistance = W * 0.15;
+	const minAxisDistance = W * 0.15 * 0.6;
 
 	it('at most one blob sits on the trunk axis (the primary anchor)', () => {
 		// REQ-C-18: non-primary blobs are pushed at least 0.15·W off-axis.
@@ -1117,21 +1117,21 @@ describe('REQ-C-19: birch canopy rx range (#62 redesign)', () => {
 	const shapeDef = getShapeDefinition('birch');
 	const W = VIEWBOX_WIDTH;
 
-	it('birch blobs at seed 42 include at least one rx ≥ W*0.1', () => {
+	it('birch blobs at seed 42 include at least one rx ≥ W*0.1*0.6', () => {
 		const blobs = shapeDef.generateBlobs(createPrng(42), 6);
-		const hasMinRx = blobs.some((b) => b.rx >= W * 0.1 - 1e-9);
+		const hasMinRx = blobs.some((b) => b.rx >= W * 0.1 * 0.6 - 1e-9);
 		expect(hasMinRx).toBe(true);
 	});
 
-	it('all birch blobs have rx within [W*0.1, W*0.22]', () => {
+	it('all birch blobs have rx within [W*0.1*0.6, W*0.22*0.6]', () => {
 		const blobs = shapeDef.generateBlobs(createPrng(42), 6);
 		for (const b of blobs) {
-			expect(b.rx).toBeGreaterThanOrEqual(W * 0.1 - 1e-9);
-			expect(b.rx).toBeLessThanOrEqual(W * 0.22 + 1e-9);
+			expect(b.rx).toBeGreaterThanOrEqual(W * 0.1 * 0.6 - 1e-9);
+			expect(b.rx).toBeLessThanOrEqual(W * 0.22 * 0.6 + 1e-9);
 		}
 	});
 
-	it('across many seeds, max rx approaches W*0.2', () => {
+	it('across many seeds, max rx approaches W*0.2*0.6', () => {
 		let maxRx = -Infinity;
 		for (let seed = 1; seed <= 100; seed++) {
 			const blobs = shapeDef.generateBlobs(createPrng(seed), 6);
@@ -1141,7 +1141,7 @@ describe('REQ-C-19: birch canopy rx range (#62 redesign)', () => {
 				}
 			}
 		}
-		expect(maxRx).toBeGreaterThan(W * 0.18);
+		expect(maxRx).toBeGreaterThan(W * 0.18 * 0.6);
 	});
 });
 
@@ -1186,12 +1186,12 @@ describe('REQ-C-21: maple canopy arc layout', () => {
 		expect(blobs.length).toBe(5);
 	});
 
-	it('maple blobs span at least 0.30·W horizontally (full arc)', () => {
+	it('maple blobs span at least 0.18·W horizontally (full arc, scaled)', () => {
 		const blobs = shapeDef.generateBlobs(createPrng(42), 5);
 		const minCx = Math.min(...blobs.map((b) => b.cx));
 		const maxCx = Math.max(...blobs.map((b) => b.cx));
-		expect(minCx).toBeLessThan(W / 2 - 0.15 * W);
-		expect(maxCx).toBeGreaterThan(W / 2 + 0.15 * W);
+		expect(minCx).toBeLessThan(W / 2 - 0.09 * W);
+		expect(maxCx).toBeGreaterThan(W / 2 + 0.09 * W);
 	});
 
 	it('every maple blob uses circle boundary', () => {
@@ -1499,21 +1499,22 @@ describe('B2: oak redesign', () => {
 		}
 	});
 
-	it('oak primary blob (index 0) is centered near W/2, canopy center y ~H*0.3', () => {
+	it('oak primary blob (index 0) is centered near W/2, canopy center y ~treeY(0.3)', () => {
 		const blobs = shapeDef.generateBlobs(createPrng(42), 5);
 		expect(Math.abs(blobs[0]!.cx - W / 2)).toBeLessThan(5);
-		expect(Math.abs(blobs[0]!.cy - H * 0.3)).toBeLessThan(H * 0.1);
+		// treeY(0.3) = 475 - (475 - 150)*0.6 = 280
+		expect(Math.abs(blobs[0]!.cy - 280)).toBeLessThan(H * 0.1);
 	});
 
-	it('all oak blobs have rx >= W*0.2 (large blobs)', () => {
+	it('all oak blobs have rx >= W*0.2*0.6 (large blobs, scaled)', () => {
 		const blobs = shapeDef.generateBlobs(createPrng(42), 5);
 		for (const b of blobs) {
-			expect(b.rx).toBeGreaterThanOrEqual(W * 0.2);
+			expect(b.rx).toBeGreaterThanOrEqual(W * 0.2 * 0.6);
 		}
 	});
 
-	it('oak trunkBaseWidth is 53 (thick trunk)', () => {
-		expect(shapeDef.trunkBaseWidth).toBe(53);
+	it('oak trunkBaseWidth is 32 (reverted trunk)', () => {
+		expect(shapeDef.trunkBaseWidth).toBe(32);
 	});
 });
 
@@ -1562,9 +1563,9 @@ describe('B4: maple redesign', () => {
 		}
 	});
 
-	it('maple blobs: most spread across upper half (cy < H*0.5)', () => {
+	it('maple blobs: most spread above trunk midpoint (cy < H*0.7)', () => {
 		const blobs = shapeDef.generateBlobs(createPrng(42), 5);
-		const upperCount = blobs.filter((b) => b.cy < H * 0.5).length;
+		const upperCount = blobs.filter((b) => b.cy < H * 0.7).length;
 		expect(upperCount).toBeGreaterThanOrEqual(3);
 	});
 });

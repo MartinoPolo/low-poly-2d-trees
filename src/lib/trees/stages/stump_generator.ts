@@ -6,15 +6,15 @@ import { GROUND_LINE_Y } from './constants.js';
 export function generateStumpGeometry(): TreeGeometry {
 	const cx = VIEWBOX_WIDTH / 2;
 	const groundY = GROUND_LINE_Y;
-	const stumpTop = groundY - 33;
+	const stumpTop = groundY - 20;
 
 	const anchors = {
-		trunkTop: { x: cx, y: stumpTop - 5 },
+		trunkTop: { x: cx, y: stumpTop - 3 },
 		trunkMiddle: { x: cx, y: (groundY + stumpTop) / 2 },
 		trunkBase: { x: cx, y: groundY },
-		crownCenter: { x: cx, y: stumpTop - 5 },
-		crownTop: { x: cx, y: stumpTop - 5 },
-		roots: { x: cx, y: groundY + 25 },
+		crownCenter: { x: cx, y: stumpTop - 3 },
+		crownTop: { x: cx, y: stumpTop - 3 },
+		roots: { x: cx, y: groundY + 15 },
 		branchTips: [],
 		fruitSlots: [],
 	};
