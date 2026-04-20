@@ -45,6 +45,15 @@ export function computeRowShifts(layerCount: number, baseSeed: number): number[]
 }
 
 /**
+ * Compute ground band height percentage based on depth spread and tree count.
+ * Grows with the number of layers so back-row trees never float above the ground.
+ */
+export function computeGroundHeightPercent(depthSpread: number, treeCount: number): number {
+	const actualLayers = Math.ceil(treeCount / TREES_PER_LAYER);
+	return Math.max(12, 12 + (depthSpread * (actualLayers - 1)) / 2);
+}
+
+/**
  * Generate deterministic scene tree placements using a 10-layer sequential system.
  *
  * Trees fill layers sequentially: trees 1-10 → layer 1, 11-20 → layer 2, etc.
