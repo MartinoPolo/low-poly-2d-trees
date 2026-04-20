@@ -10,12 +10,46 @@ import {
 	type SceneTreePlacement,
 } from './scene_config.js';
 
+const ROW_SHIFT_SEED_OFFSET = 77777;
+const ROW_SHIFT_MIN = 15;
+const ROW_SHIFT_MAX = 45;
+
+/**
+ * Compute seeded random horizontal shift percentages per row.
+ * Row 0 (front) is always 0%. Rows 1+ get 15-45% with the constraint
+ * that no two rows within ±3 indices share position within 10%.
+ *
+ * Uses a seeded permutation of 4 well-spaced base values {15,25,35,45}
+ * cycled across rows. The seed controls which permutation is chosen,
+ * giving different arrangements per scene.
+ */
+export function computeRowShifts(layerCount: number, baseSeed: number): number[] {
+	if (layerCount <= 0) {
+		return [];
+	}
+	const rng = createPrng(baseSeed + ROW_SHIFT_SEED_OFFSET);
+	const shifts: number[] = [0];
+
+	const bases = [ROW_SHIFT_MIN, 25, 35, ROW_SHIFT_MAX];
+	const permuted = [...bases];
+	for (let k = permuted.length - 1; k > 0; k--) {
+		const j = Math.floor(rng() * (k + 1));
+		[permuted[k], permuted[j]] = [permuted[j]!, permuted[k]!];
+	}
+
+	for (let i = 1; i < layerCount; i++) {
+		shifts.push(permuted[(i - 1) % permuted.length]!);
+	}
+
+	return shifts;
+}
+
 /**
  * Generate deterministic scene tree placements using a 10-layer sequential system.
  *
  * Trees fill layers sequentially: trees 1-10 → layer 1, 11-20 → layer 2, etc.
- * Odd layers share x alignment with layer 1; even layers are staggered by half
- * the inter-tree distance. Output sorted descending by y (painter's algorithm).
+ * Rows 2+ are staggered by a seeded random 15-45% shift of the inter-tree distance.
+ * Output sorted descending by y (painter's algorithm).
  */
 export function generateSceneLayout(config: SceneConfig): SceneTreePlacement[] {
 	const { treeCount, depthSpread, baseSeed } = config;
@@ -38,6 +72,9 @@ export function generateSceneLayout(config: SceneConfig): SceneTreePlacement[] {
 		return { shape, seed };
 	});
 
+	const totalLayers = Math.ceil(treeCount / TREES_PER_LAYER);
+	const rowShifts = computeRowShifts(totalLayers, baseSeed);
+
 	const placements: SceneTreePlacement[] = [];
 
 	for (let i = 0; i < treeCount; i++) {
@@ -52,9 +89,8 @@ export function generateSceneLayout(config: SceneConfig): SceneTreePlacement[] {
 		const interTreeDistance = 100 / (countInLayer + 1);
 		const baseX = (slotInLayer + 1) * interTreeDistance;
 
-		// Even layers get horizontal offset of half inter-tree distance
-		const isEvenLayer = layerNumber % 2 === 0;
-		const horizontalOffset = isEvenLayer ? interTreeDistance / 2 : 0;
+		const shiftPercent = rowShifts[layerNumber - 1] ?? 0;
+		const horizontalOffset = (shiftPercent / 100) * interTreeDistance;
 		const x = baseX + horizontalOffset;
 
 		// Y offset: depthSpread * (layerNumber - 1) / 2

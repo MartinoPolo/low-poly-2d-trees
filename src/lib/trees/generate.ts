@@ -120,7 +120,7 @@ function isTriangleInsideRegion(
 	return test(cx, cy);
 }
 
-const ROOTS_DEPTH_PX = 15;
+const ROOTS_DEPTH_PX = 25;
 const FRUIT_SLOTS_SEED_OFFSET = 54321;
 const FRUIT_COUNT_CAP = 7;
 /** Calibrated for 2× fruit render scale (FRUIT_RENDER_SCALE in LowPolyTree.svelte). */
@@ -460,8 +460,10 @@ function generateTrunkQuads(
 	);
 
 	const quads: Quad[] = [];
+	const segmentEnd =
+		config.trunkFork && junctionCount >= 3 ? junctionCount - 2 : junctionCount - 1;
 
-	for (let i = 0; i < junctionCount - 1; i++) {
+	for (let i = 0; i < segmentEnd; i++) {
 		const bottomPoints = junctionEdgePoints[i]!;
 		const topPoints = junctionEdgePoints[i + 1]!;
 

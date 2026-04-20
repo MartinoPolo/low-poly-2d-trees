@@ -209,7 +209,7 @@ export const SHAPE_DEFAULTS = {
 		branchesLevel2Range: [1, 2] as readonly [number, number],
 		branchesLevel3Range: [0, 1] as readonly [number, number],
 		branchAngle: 50,
-		branchMirroring: BRANCH_MIRRORING.off,
+		branchMirroring: BRANCH_MIRRORING.allowed,
 		trunkFork: false,
 		trunkTwist: 35,
 		blobSizeVariance: 2.5,
@@ -261,7 +261,7 @@ export const SHAPE_DEFAULTS = {
 		branchesLevel2Range: [1, 2] as readonly [number, number],
 		branchesLevel3Range: [0, 1] as readonly [number, number],
 		branchAngle: 60,
-		branchMirroring: BRANCH_MIRRORING.off,
+		branchMirroring: BRANCH_MIRRORING.allowed,
 		trunkFork: false,
 		trunkTwist: 25,
 		blobSizeVariance: 2.5,
@@ -313,7 +313,7 @@ export const SHAPE_DEFAULTS = {
 		branchesLevel2Range: [1, 2] as readonly [number, number],
 		branchesLevel3Range: [0, 1] as readonly [number, number],
 		branchAngle: 40,
-		branchMirroring: BRANCH_MIRRORING.off,
+		branchMirroring: BRANCH_MIRRORING.allowed,
 		trunkFork: false,
 		trunkTwist: 30,
 		blobSizeVariance: 1.3,
@@ -339,7 +339,7 @@ export const SHAPE_DEFAULTS = {
 		branchesLevel2Range: [1, 2] as readonly [number, number],
 		branchesLevel3Range: [0, 1] as readonly [number, number],
 		branchAngle: 15,
-		branchMirroring: BRANCH_MIRRORING.off,
+		branchMirroring: BRANCH_MIRRORING.allowed,
 		trunkFork: false,
 		trunkTwist: 35,
 		blobSizeVariance: 2.0,
@@ -391,7 +391,7 @@ export const SHAPE_DEFAULTS = {
 		branchesLevel2Range: [0, 0] as readonly [number, number],
 		branchesLevel3Range: [0, 0] as readonly [number, number],
 		branchAngle: 50,
-		branchMirroring: BRANCH_MIRRORING.off,
+		branchMirroring: BRANCH_MIRRORING.allowed,
 		trunkFork: false,
 		trunkTwist: 25,
 		blobSizeVariance: 2.0,
@@ -469,7 +469,7 @@ export const SHAPE_DEFAULTS = {
 		branchesLevel2Range: [0, 0] as readonly [number, number],
 		branchesLevel3Range: [0, 0] as readonly [number, number],
 		branchAngle: 40,
-		branchMirroring: BRANCH_MIRRORING.off,
+		branchMirroring: BRANCH_MIRRORING.allowed,
 		trunkFork: false,
 		trunkTwist: 40,
 		blobSizeVariance: 1.5,
@@ -546,8 +546,8 @@ export const SHAPE_DEFAULTS = {
 		Partial<Pick<TreeConfig, 'trunkStripCount' | 'branchWidthVariance'>>
 >;
 
-export const VIEWBOX_WIDTH = 300;
-export const VIEWBOX_HEIGHT = 300;
+export const VIEWBOX_WIDTH = 500;
+export const VIEWBOX_HEIGHT = 500;
 
 export function isTreeStage(value: string): value is TreeStage {
 	return (Object.values(TREE_STAGES) as readonly string[]).includes(value);

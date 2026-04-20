@@ -3,22 +3,22 @@ import { generateTiers } from './tiers.js';
 import { createPrng } from '../prng.js';
 import { VIEWBOX_HEIGHT, VIEWBOX_WIDTH } from '../types.js';
 
-const H = VIEWBOX_HEIGHT; // 300
-const W = VIEWBOX_WIDTH; // 300
+const H = VIEWBOX_HEIGHT; // 500
+const W = VIEWBOX_WIDTH; // 500
 
 describe('generateTiers — tier base overlaps trunk top', () => {
-	// Pine trunk top at H*0.8 = 240, trunk bottom at H*0.95 = 285
-	const pineTrunkTopY = H * 0.8; // 240
-	const pineTrunkBottomY = H * 0.95; // 285
+	// Pine trunk top at H*0.8 = 400, trunk bottom at H*0.95 = 475
+	const pineTrunkTopY = H * 0.8; // 400
+	const pineTrunkBottomY = H * 0.95; // 475
 	const pineJunctions = [
 		{ x: W / 2, y: pineTrunkBottomY },
 		{ x: W / 2, y: (pineTrunkBottomY + pineTrunkTopY) / 2 },
 		{ x: W / 2, y: pineTrunkTopY },
 	];
 
-	// Fir trunk top at H*0.82 = 246, trunk bottom at H*0.95 = 285
-	const firTrunkTopY = H * 0.82; // 246
-	const firTrunkBottomY = H * 0.95; // 285
+	// Fir trunk top at H*0.82 = 410, trunk bottom at H*0.95 = 475
+	const firTrunkTopY = H * 0.82; // 410
+	const firTrunkBottomY = H * 0.95; // 475
 	const firJunctions = [
 		{ x: W / 2, y: firTrunkBottomY },
 		{ x: W / 2, y: (firTrunkBottomY + firTrunkTopY) / 2 },
