@@ -1,5 +1,5 @@
 export function labelToInputId(label: string, fallbackId?: string): string {
-	if (fallbackId) {
+	if (fallbackId !== undefined && fallbackId !== '') {
 		return fallbackId;
 	}
 	return `input-${label

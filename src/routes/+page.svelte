@@ -16,7 +16,6 @@
 	import {
 		DEFAULT_TREE_CONFIG,
 		SHAPE_DEFAULTS,
-		TREE_SHAPES,
 		isTreeStage,
 		isTreeShape,
 		type TreeShape,

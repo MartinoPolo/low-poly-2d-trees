@@ -11,6 +11,7 @@ const config: KnipConfig = {
 		'src/lib/trees/assets/*/index.ts',
 	],
 	project: ['src/**/*.{ts,svelte}'],
+	ignoreBinaries: ['tsx'],
 	ignoreDependencies: [
 		'@typescript-eslint/parser',
 		'@node-rs/argon2',

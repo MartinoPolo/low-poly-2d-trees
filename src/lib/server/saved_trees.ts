@@ -37,7 +37,7 @@ export async function createSavedTree(input: CreateSavedTreeInput): Promise<Save
 			config: input.config,
 		})
 		.returning();
-	if (!row) {
+	if (row === undefined) {
 		throw new Error('INSERT returned no rows');
 	}
 	return row;

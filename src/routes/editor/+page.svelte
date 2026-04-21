@@ -18,10 +18,7 @@
 
 	import {
 		TREE_SHAPES,
-		TREE_SHAPE_OPTIONS,
-		TREE_STAGE_OPTIONS,
 		FRUIT_TYPES,
-		FRUIT_TYPE_OPTIONS,
 		isTreeStage,
 		isTreeShape,
 		isFruitType,

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { SvelteMap } from 'svelte/reactivity';
 	import { generateTree } from '$lib/trees/generate.js';
 	import {
 		DEFAULT_TREE_CONFIG,
@@ -135,7 +136,7 @@
 	);
 
 	const childBranchesByParent = $derived.by(() => {
-		const map = new Map<number, { group: BranchGeometry; index: number }[]>();
+		const map = new SvelteMap<number, { group: BranchGeometry; index: number }[]>();
 		for (let i = 0; i < geometry.branchGroups.length; i++) {
 			const group = geometry.branchGroups[i]!;
 			if (group.parentIndex !== null) {
