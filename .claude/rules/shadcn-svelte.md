@@ -1,1 +1,1 @@
-C:/\_MP_projects/mpx-claude-code/rules-per-project/shadcn-svelte.md
+C:/_MP_projects/mpx-claude-code/rules-per-project/shadcn-svelte.md
