@@ -4,17 +4,20 @@
 
 ![Tree Editor](docs/screenshot.png)
 
-A procedural **low-poly tree generator and visual editor** — companion project for [BamGit](https://github.com/MartinP/bamgit). Design customizable polygon-based trees across 11 lifecycle stages, save them to a gallery, and compose multi-tree scenes.
+A procedural **low-poly tree generator and visual editor** — companion project for [BamGit](https://github.com/MartinoPolo/bamgit). Design customizable polygon-based trees of multiple shapes across lifecycle stages, save them to a gallery, and compose multi-tree scenes.
 
 ## Features
 
 - **Tree Editor** — 30+ parameters: shape, canopy geometry, branch depth, trunk structure, fruit, colors
-- **7 tree shapes** — oak, pine, birch, fir, maple, willow, custom
-- **11 lifecycle stages** — seed → sprouting → sapling → … → bare → dead → stump
-- **Scene Editor** — multi-tree composition with lighting and depth
+- **Tree shapes** — oak, pine, birch, fir, maple, willow, cypress, apple, cherry, bush, baobab, acacia, custom
+- **Lifecycle stages** — seed → sprouting → sapling → growing → leafy → flowering → fruiting → autumn → ready → bare → dead → stump
+- **Animations** — canopy sway, growth oscillation, falling leaves, tool idle animations
+- **Environment effects** — rain, snow, lightning, fireflies, wind particles, sun rays, clouds
+- **Overlays** — glow, speech bubble, storm cloud, wilting effect
+- **Scene Editor** — multi-tree composition with depth layering and stage selector
 - **Gallery** — save, rename, and reload named tree configurations
 - **Stage Showcase** — all lifecycle stages side by side
-- **Auth** — email/password + Google OAuth
+- **Auth** — email/password, Google OAuth, GitHub OAuth, Passkeys
 - **i18n** — English and Czech
 
 ## Stack
@@ -47,12 +50,15 @@ pnpm run dev
 | `AUTH_SECRET`          | Yes      | `openssl rand -base64 32`    |
 | `GOOGLE_CLIENT_ID`     | No       | Google OAuth                 |
 | `GOOGLE_CLIENT_SECRET` | No       | Google OAuth                 |
+| `GITHUB_CLIENT_ID`     | No       | GitHub OAuth                 |
+| `GITHUB_CLIENT_SECRET` | No       | GitHub OAuth                 |
 
 ## Scripts
 
 ```sh
 pnpm run dev          # dev server
-pnpm run check:all    # format + lint + typecheck
+pnpm run check        # typecheck + sveltecheck
+pnpm run check:all    # format + lint + typecheck + dead code + style
 pnpm run test         # unit tests
 pnpm run test:e2e     # E2E tests
 pnpm run db:studio    # Drizzle Studio GUI
