@@ -21,6 +21,7 @@
 	} from '$lib/trees/tools/tool_types.js';
 	import ToolAccessoriesCard from '$lib/components/composed/ToolAccessoriesCard.svelte';
 	import OverlaysCard from '$lib/components/composed/OverlaysCard.svelte';
+	import AnimationsCard from '$lib/components/composed/AnimationsCard.svelte';
 	import { createTreeConfigContext } from '$lib/trees/tree_config.context.svelte.js';
 	import { createSceneConfigContext } from '$lib/scene/scene_config.context.svelte.js';
 	import { generateSceneLayout, computeGroundHeightPercent } from '$lib/scene/scene_layout.js';
@@ -48,6 +49,26 @@
 	const sceneConfig = createSceneConfigContext();
 	const environmentConfig = createEnvironmentConfigContext();
 	const overlayConfig = createOverlayConfigContext();
+	const { tier } = use_settings_tier();
+
+	const ENVIRONMENT_TOGGLES: ReadonlyArray<{
+		readonly key:
+			| 'lightningEnabled'
+			| 'snowEnabled'
+			| 'firefliesEnabled'
+			| 'windParticlesEnabled'
+			| 'sunRaysEnabled'
+			| 'cloudsEnabled';
+		readonly label: string;
+		readonly testId: string;
+	}> = [
+		{ key: 'lightningEnabled', label: 'Lightning', testId: 'env-lightning-toggle' },
+		{ key: 'snowEnabled', label: 'Snow', testId: 'env-snow-toggle' },
+		{ key: 'firefliesEnabled', label: 'Fireflies', testId: 'env-fireflies-toggle' },
+		{ key: 'windParticlesEnabled', label: 'Wind Particles', testId: 'env-wind-toggle' },
+		{ key: 'sunRaysEnabled', label: 'Sun Rays', testId: 'env-sun-rays-toggle' },
+		{ key: 'cloudsEnabled', label: 'Clouds', testId: 'env-clouds-toggle' },
+	];
 
 	const usePerShapeDefaults = new Persisted<boolean>({
 		key: USE_PER_SHAPE_DEFAULTS_KEY,
@@ -68,7 +89,6 @@
 	let showRootConnections = $state(false);
 	let treeAnchorsMap = new SvelteMap<number, { roots: Point2D }>();
 
-	const { tier } = use_settings_tier();
 	const isIntermediate = $derived(tierAtLeast(tier.current, 'intermediate'));
 	const isAdvanced = $derived(tierAtLeast(tier.current, 'advanced'));
 
@@ -249,90 +269,66 @@
 							</Button>
 						</div>
 					</div>
-					<div class="space-y-2">
-						<Label>Polygons Per Blob: {treeConfig.current.polygonsPerBlob}</Label>
-						<input
-							type="range"
-							min="4"
-							max="30"
-							bind:value={treeConfig.current.polygonsPerBlob}
-							class="w-full accent-primary"
-						/>
-					</div>
-					<div class="space-y-2">
-						<Label>Trunk Strips: {treeConfig.current.trunkStripCount}</Label>
-						<input
-							type="range"
-							min="2"
-							max="4"
-							bind:value={treeConfig.current.trunkStripCount}
-							class="w-full accent-primary"
-						/>
-					</div>
+					<LabeledSlider
+						label="Polygons Per Blob"
+						min={4}
+						max={30}
+						bind:value={treeConfig.current.polygonsPerBlob}
+					/>
+					<LabeledSlider
+						label="Trunk Strips"
+						min={2}
+						max={4}
+						bind:value={treeConfig.current.trunkStripCount}
+					/>
 				{/if}
 			</SectionCard>
 
 			<SectionCard title="Canopy" contentClass="space-y-4">
-				<div class="space-y-2">
-					<Label>Canopy Size: {treeConfig.current.canopySize}%</Label>
-					<input
-						type="range"
-						min="25"
-						max="400"
-						step="5"
-						bind:value={treeConfig.current.canopySize}
-						class="w-full accent-primary"
-					/>
-				</div>
+				<LabeledSlider
+					label="Canopy Size"
+					min={25}
+					max={400}
+					step={5}
+					unit="%"
+					bind:value={treeConfig.current.canopySize}
+				/>
 				{#if isAdvanced}
-					<div class="space-y-2">
-						<Label>
-							Blob Size Variance: {treeConfig.current.blobSizeVariance.toFixed(1)}x
-						</Label>
-						<input
-							type="range"
-							min="1"
-							max="10"
-							step="0.1"
-							bind:value={treeConfig.current.blobSizeVariance}
-							class="w-full accent-primary"
-						/>
-					</div>
-					<div class="space-y-2">
-						<Label>Blob Closeness: {treeConfig.current.blobCloseness}%</Label>
-						<input
-							type="range"
-							min="0"
-							max="100"
-							bind:value={treeConfig.current.blobCloseness}
-							class="w-full accent-primary"
-						/>
-					</div>
+					<LabeledSlider
+						label="Blob Size Variance"
+						min={1}
+						max={10}
+						step={0.1}
+						format={(v) => v.toFixed(1)}
+						unit="x"
+						bind:value={treeConfig.current.blobSizeVariance}
+					/>
+					<LabeledSlider
+						label="Blob Closeness"
+						min={0}
+						max={100}
+						unit="%"
+						bind:value={treeConfig.current.blobCloseness}
+					/>
 				{/if}
 			</SectionCard>
 
 			<SectionCard title="Trunk" contentClass="space-y-4">
-				<div class="space-y-2">
-					<Label>Trunk Height: {treeConfig.current.trunkHeight}%</Label>
-					<input
-						type="range"
-						min="50"
-						max="150"
-						bind:value={treeConfig.current.trunkHeight}
-						class="w-full accent-primary"
-					/>
-				</div>
-				<div class="space-y-2">
-					<Label>Trunk Thickness: {treeConfig.current.trunkThickness}%</Label>
-					<input
-						type="range"
-						min="25"
-						max="400"
-						step="5"
-						bind:value={treeConfig.current.trunkThickness}
-						class="w-full accent-primary"
-					/>
-				</div>
+				<LabeledSlider
+					label="Trunk Height"
+					min={50}
+					max={150}
+					unit="%"
+					bind:value={treeConfig.current.trunkHeight}
+				/>
+				<LabeledSlider
+					label="Trunk Thickness"
+					min={25}
+					max={400}
+					step={5}
+					unit="%"
+					bind:value={treeConfig.current.trunkThickness}
+				/>
 				{#if isIntermediate}
 					<LabeledSlider
 						label="Trunk Lean"
@@ -363,17 +359,14 @@
 
 			{#if isIntermediate}
 				<SectionCard title="Branches" contentClass="space-y-4">
-					<div class="space-y-2">
-						<Label>Branch Thickness: {treeConfig.current.branchThickness}%</Label>
-						<input
-							type="range"
-							min="25"
-							max="400"
-							step="5"
-							bind:value={treeConfig.current.branchThickness}
-							class="w-full accent-primary"
-						/>
-					</div>
+					<LabeledSlider
+						label="Branch Thickness"
+						min={25}
+						max={400}
+						step={5}
+						unit="%"
+						bind:value={treeConfig.current.branchThickness}
+					/>
 					<LabeledSlider
 						label="Branch Length"
 						min={25}
@@ -404,16 +397,13 @@
 			{/if}
 
 			<SectionCard title="Lighting" contentClass="space-y-4">
-				<div class="space-y-2">
-					<Label>Light Angle: {treeConfig.current.lightAngle}°</Label>
-					<input
-						type="range"
-						min="0"
-						max="360"
-						bind:value={treeConfig.current.lightAngle}
-						class="w-full accent-primary"
-					/>
-				</div>
+				<LabeledSlider
+					label="Light Angle"
+					min={0}
+					max={360}
+					unit="°"
+					bind:value={treeConfig.current.lightAngle}
+				/>
 			</SectionCard>
 
 			<SectionCard title="Color Mode" contentClass="space-y-4">
@@ -463,57 +453,17 @@
 							id="rain-intensity"
 						/>
 					{/if}
-					<div class="flex items-center gap-2">
-						<Checkbox
-							data-testid="env-lightning-toggle"
-							checked={environmentConfig.lightningEnabled}
-							onCheckedChange={(v) =>
-								(environmentConfig.lightningEnabled = v === true)}
-						/>
-						<Label>Lightning</Label>
-					</div>
-					<div class="flex items-center gap-2">
-						<Checkbox
-							data-testid="env-snow-toggle"
-							checked={environmentConfig.snowEnabled}
-							onCheckedChange={(v) => (environmentConfig.snowEnabled = v === true)}
-						/>
-						<Label>Snow</Label>
-					</div>
-					<div class="flex items-center gap-2">
-						<Checkbox
-							data-testid="env-fireflies-toggle"
-							checked={environmentConfig.firefliesEnabled}
-							onCheckedChange={(v) =>
-								(environmentConfig.firefliesEnabled = v === true)}
-						/>
-						<Label>Fireflies</Label>
-					</div>
-					<div class="flex items-center gap-2">
-						<Checkbox
-							data-testid="env-wind-toggle"
-							checked={environmentConfig.windParticlesEnabled}
-							onCheckedChange={(v) =>
-								(environmentConfig.windParticlesEnabled = v === true)}
-						/>
-						<Label>Wind Particles</Label>
-					</div>
-					<div class="flex items-center gap-2">
-						<Checkbox
-							data-testid="env-sun-rays-toggle"
-							checked={environmentConfig.sunRaysEnabled}
-							onCheckedChange={(v) => (environmentConfig.sunRaysEnabled = v === true)}
-						/>
-						<Label>Sun Rays</Label>
-					</div>
-					<div class="flex items-center gap-2">
-						<Checkbox
-							data-testid="env-clouds-toggle"
-							checked={environmentConfig.cloudsEnabled}
-							onCheckedChange={(v) => (environmentConfig.cloudsEnabled = v === true)}
-						/>
-						<Label>Clouds</Label>
-					</div>
+					{#each ENVIRONMENT_TOGGLES as toggle (toggle.key)}
+						<div class="flex items-center gap-2">
+							<Checkbox
+								data-testid={toggle.testId}
+								checked={environmentConfig[toggle.key]}
+								onCheckedChange={(v) =>
+									(environmentConfig[toggle.key] = v === true)}
+							/>
+							<Label>{toggle.label}</Label>
+						</div>
+					{/each}
 				</SectionCard>
 			{/if}
 
@@ -557,44 +507,12 @@
 				</div>
 			</SectionCard>
 
-			<SectionCard title="Animations" contentClass="space-y-4">
-				<div data-testid="animation-controls">
-					<div class="flex items-center gap-2">
-						<Checkbox
-							data-testid="animate-canopy-sway"
-							checked={animateCanopySway}
-							onCheckedChange={(v) => (animateCanopySway = v === true)}
-						/>
-						<Label>Canopy Sway</Label>
-					</div>
-					<div class="mt-4 flex items-center gap-2">
-						<Checkbox
-							data-testid="animate-branches"
-							checked={animateBranches}
-							onCheckedChange={(v) => (animateBranches = v === true)}
-						/>
-						<Label>Branch Movement</Label>
-					</div>
-					<div class="mt-4 flex items-center gap-2">
-						<Checkbox
-							data-testid="animate-growth"
-							checked={animateGrowth}
-							onCheckedChange={(v) => (animateGrowth = v === true)}
-						/>
-						<Label>Growth</Label>
-					</div>
-					{#if animateGrowth}
-						<LabeledSlider
-							label="Growth Variance"
-							min={0}
-							max={100}
-							step={5}
-							unit="%"
-							bind:value={growthVariance}
-						/>
-					{/if}
-				</div>
-			</SectionCard>
+			<AnimationsCard
+				bind:animateCanopySway
+				bind:animateBranches
+				bind:animateGrowth
+				bind:growthVariance
+			/>
 
 			<OverlaysCard {overlayConfig} />
 
