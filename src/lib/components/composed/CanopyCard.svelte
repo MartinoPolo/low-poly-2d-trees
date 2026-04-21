@@ -3,17 +3,17 @@
 	import SectionCard from './SectionCard.svelte';
 	import LabeledSlider from './LabeledSlider.svelte';
 	import { use_settings_tier, tierAtLeast } from '$lib/context/settings_tier.context.svelte.js';
-	import type { createTreeConfigContext } from '$lib/trees/tree_config.context.svelte.js';
+	import { useTreeConfig } from '$lib/trees/tree_config.context.svelte.js';
 
 	interface Props {
-		treeConfig: ReturnType<typeof createTreeConfigContext>;
 		mode: EditorMode;
 		sceneShapeIsRandom?: boolean;
 		onBlobCountChange?: (value: number) => void;
 	}
 
-	let { treeConfig, mode, sceneShapeIsRandom = false, onBlobCountChange }: Props = $props();
+	let { mode, sceneShapeIsRandom = false, onBlobCountChange }: Props = $props();
 
+	const treeConfig = useTreeConfig();
 	const { tier } = use_settings_tier();
 
 	const isAdvanced = $derived(tierAtLeast(tier.current, 'advanced'));

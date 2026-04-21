@@ -30,17 +30,17 @@
 	} from '$lib/trees/tools/tool_types.js';
 	import { growCustomBlobs } from '$lib/trees/shapes.js';
 	import { getSavedTree, saveTree } from '$lib/trees/saved_trees.remote.js';
-	import { createTreeConfigContext } from '$lib/trees/tree_config.context.svelte.js';
-	import { createOverlayConfigContext } from '$lib/trees/overlays/overlay_config.context.svelte.js';
-	import { createEditorViewStateContext } from '$lib/config/editor_view_state.context.svelte.js';
+	import { setTreeConfigContext } from '$lib/trees/tree_config.context.svelte.js';
+	import { setOverlayConfigContext } from '$lib/trees/overlays/overlay_config.context.svelte.js';
+	import { setEditorViewStateContext } from '$lib/config/editor_view_state.context.svelte.js';
 	import { page } from '$app/state';
 	import SceneFloatingButtons from '$lib/components/app-shell/SceneFloatingButtons.svelte';
 	import SettingsTierControl from '$lib/components/composed/SettingsTierControl.svelte';
 	import { use_settings_tier, tierAtLeast } from '$lib/context/settings_tier.context.svelte.js';
 
-	const overlayConfig = createOverlayConfigContext();
-	const treeConfig = createTreeConfigContext();
-	const editorView = createEditorViewStateContext();
+	const overlayConfig = setOverlayConfigContext();
+	const treeConfig = setTreeConfigContext();
+	const editorView = setEditorViewStateContext();
 	const { tier } = use_settings_tier();
 
 	const user = $derived(page.data.user);
@@ -77,8 +77,8 @@
 		}
 		treeConfig.current.shape = value;
 		if (value === TREE_SHAPES.custom) {
-			treeConfig.customBlobs = growCustomBlobs(
-				treeConfig.customBlobs,
+			treeConfig.customBlobs.current = growCustomBlobs(
+				treeConfig.customBlobs.current,
 				treeConfig.current.blobCount,
 				treeConfig.current.seed,
 				treeConfig.current.blobCloseness,
@@ -91,8 +91,8 @@
 	function onBlobCountChange(value: number) {
 		treeConfig.current.blobCount = value;
 		if (treeConfig.current.shape === TREE_SHAPES.custom) {
-			treeConfig.customBlobs = growCustomBlobs(
-				treeConfig.customBlobs,
+			treeConfig.customBlobs.current = growCustomBlobs(
+				treeConfig.customBlobs.current,
 				value,
 				treeConfig.current.seed,
 				treeConfig.current.blobCloseness,
@@ -141,22 +141,22 @@
 		<SceneBackground />
 		<div class="relative w-full" style="max-width: min(576px, calc(50dvh - 4rem))">
 			<LowPolyTree
-				config={treeConfig.configForTree}
-				showCanopy={editorView.showCanopy}
-				showBranches={editorView.showBranches}
-				showTrunk={editorView.showTrunk}
-				showFruit={editorView.showFruit}
-				showAnchors={editorView.showAnchors}
-				showEnvelope={editorView.showEnvelope}
-				showViewBox={editorView.showViewBox}
-				animateCanopySway={editorView.animateCanopySway}
-				animateBranches={editorView.animateBranches}
-				animateGrowth={editorView.animateGrowth}
-				growthVariance={editorView.growthVariance}
+				config={treeConfig.configForTree.current}
+				showCanopy={editorView.showCanopy.current}
+				showBranches={editorView.showBranches.current}
+				showTrunk={editorView.showTrunk.current}
+				showFruit={editorView.showFruit.current}
+				showAnchors={editorView.showAnchors.current}
+				showEnvelope={editorView.showEnvelope.current}
+				showViewBox={editorView.showViewBox.current}
+				animateCanopySway={editorView.animateCanopySway.current}
+				animateBranches={editorView.animateBranches.current}
+				animateGrowth={editorView.animateGrowth.current}
+				growthVariance={editorView.growthVariance.current}
 				{toolVisibility}
-				animateTools={editorView.animateTools}
-				overlayConfig={overlayConfig.config}
-				groundElements={overlayConfig.groundEnabled}
+				animateTools={editorView.animateTools.current}
+				overlayConfig={overlayConfig.config.current}
+				groundElements={overlayConfig.groundEnabled.current}
 				class="h-auto w-full"
 			/>
 		</div>
@@ -177,7 +177,6 @@
 		<SettingsTierControl />
 		<div class="grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-6 p-px">
 			<ShapeCard
-				{treeConfig}
 				mode="single"
 				{onShapeChange}
 				{onStageChange}
@@ -202,18 +201,18 @@
 				{/snippet}
 			</ShapeCard>
 
-			<CanopyCard {treeConfig} mode="single" {onBlobCountChange} />
+			<CanopyCard mode="single" {onBlobCountChange} />
 
 			{#if isAdvanced && treeConfig.current.shape === TREE_SHAPES.custom}
 				<CustomBlobsEditor
-					customBlobs={treeConfig.customBlobs}
+					customBlobs={treeConfig.customBlobs.current}
 					blobCount={treeConfig.current.blobCount}
-					onchange={(blobs) => (treeConfig.customBlobs = blobs)}
+					onchange={(blobs) => (treeConfig.customBlobs.current = blobs)}
 				/>
 			{/if}
 
 			{#if treeConfig.current.shape === TREE_SHAPES.custom}
-				<GrowablesCard {treeConfig} {onFruitTypeChange} />
+				<GrowablesCard {onFruitTypeChange} />
 			{/if}
 
 			<CanopyColorCard
@@ -226,9 +225,9 @@
 				bind:lightness={treeConfig.current.trunkLightness}
 			/>
 
-			<TrunkCard {treeConfig} mode="single" />
+			<TrunkCard mode="single" />
 
-			<BranchesCard {treeConfig} mode="single" />
+			<BranchesCard mode="single" />
 
 			<LightingCard
 				bind:lightAngle={treeConfig.current.lightAngle}
@@ -238,29 +237,29 @@
 			{#if isIntermediate}
 				<ToolAccessoriesCard
 					bind:toolVisibility
-					bind:animateTools={editorView.animateTools}
+					bind:animateTools={editorView.animateTools.current}
 				/>
 			{/if}
 
 			<DebugCard
 				mode="single"
-				bind:showCanopy={editorView.showCanopy}
-				bind:showBranches={editorView.showBranches}
-				bind:showTrunk={editorView.showTrunk}
-				bind:showFruit={editorView.showFruit}
-				bind:showAnchors={editorView.showAnchors}
-				bind:showEnvelope={editorView.showEnvelope}
-				bind:showViewBox={editorView.showViewBox}
+				bind:showCanopy={editorView.showCanopy.current}
+				bind:showBranches={editorView.showBranches.current}
+				bind:showTrunk={editorView.showTrunk.current}
+				bind:showFruit={editorView.showFruit.current}
+				bind:showAnchors={editorView.showAnchors.current}
+				bind:showEnvelope={editorView.showEnvelope.current}
+				bind:showViewBox={editorView.showViewBox.current}
 			/>
 
 			<AnimationsCard
-				bind:animateCanopySway={editorView.animateCanopySway}
-				bind:animateBranches={editorView.animateBranches}
-				bind:animateGrowth={editorView.animateGrowth}
-				bind:growthVariance={editorView.growthVariance}
+				bind:animateCanopySway={editorView.animateCanopySway.current}
+				bind:animateBranches={editorView.animateBranches.current}
+				bind:animateGrowth={editorView.animateGrowth.current}
+				bind:growthVariance={editorView.growthVariance.current}
 			/>
 
-			<OverlaysCard {overlayConfig} />
+			<OverlaysCard />
 		</div>
 	</aside>
 </main>

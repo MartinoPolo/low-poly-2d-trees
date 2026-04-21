@@ -4,14 +4,15 @@
 	import SectionCard from './SectionCard.svelte';
 	import { FRUIT_TYPE_OPTIONS } from '$lib/trees/types.js';
 	import { isParamDisabled } from '$lib/trees/disabled_params.js';
-	import type { createTreeConfigContext } from '$lib/trees/tree_config.context.svelte.js';
+	import { useTreeConfig } from '$lib/trees/tree_config.context.svelte.js';
 
 	interface Props {
-		treeConfig: ReturnType<typeof createTreeConfigContext>;
 		onFruitTypeChange?: (value: string) => void;
 	}
 
-	let { treeConfig, onFruitTypeChange }: Props = $props();
+	let { onFruitTypeChange }: Props = $props();
+
+	const treeConfig = useTreeConfig();
 
 	const fruitCountDisabled = $derived(
 		isParamDisabled(treeConfig.current.shape, 'fruitCount', {

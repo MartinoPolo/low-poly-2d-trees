@@ -32,13 +32,13 @@
 	import ToolAccessoriesCard from '$lib/components/composed/ToolAccessoriesCard.svelte';
 	import OverlaysCard from '$lib/components/composed/OverlaysCard.svelte';
 	import AnimationsCard from '$lib/components/composed/AnimationsCard.svelte';
-	import { createTreeConfigContext } from '$lib/trees/tree_config.context.svelte.js';
-	import { createSceneConfigContext } from '$lib/scene/scene_config.context.svelte.js';
+	import { setTreeConfigContext } from '$lib/trees/tree_config.context.svelte.js';
+	import { setSceneConfigContext } from '$lib/scene/scene_config.context.svelte.js';
 	import { generateSceneLayout, computeGroundHeightPercent } from '$lib/scene/scene_layout.js';
-	import { createEnvironmentConfigContext } from '$lib/environment/environment_config.context.svelte.js';
+	import { setEnvironmentConfigContext } from '$lib/environment/environment_config.context.svelte.js';
 	import { ENVIRONMENT_LIMITS } from '$lib/environment/environment_config.js';
 	import EnvironmentOverlay from '$lib/environment/EnvironmentOverlay.svelte';
-	import { createOverlayConfigContext } from '$lib/trees/overlays/overlay_config.context.svelte.js';
+	import { setOverlayConfigContext } from '$lib/trees/overlays/overlay_config.context.svelte.js';
 	import SceneBackground from '$lib/scene/SceneBackground.svelte';
 	import RootConnection from '$lib/scene/RootConnection.svelte';
 	import { CONNECTION_STATES } from '$lib/scene/root_connection_types.js';
@@ -52,10 +52,10 @@
 
 	const USE_PER_SHAPE_DEFAULTS_KEY = 'use-per-shape-defaults';
 
-	const treeConfig = createTreeConfigContext();
-	const sceneConfig = createSceneConfigContext();
-	const environmentConfig = createEnvironmentConfigContext();
-	const overlayConfig = createOverlayConfigContext();
+	const treeConfig = setTreeConfigContext();
+	const sceneConfig = setSceneConfigContext();
+	const environmentConfig = setEnvironmentConfigContext();
+	const overlayConfig = setOverlayConfigContext();
 	const { tier } = use_settings_tier();
 
 	const ENVIRONMENT_TOGGLES: ReadonlyArray<{
@@ -99,19 +99,19 @@
 	const isIntermediate = $derived(tierAtLeast(tier.current, 'intermediate'));
 	const isAdvanced = $derived(tierAtLeast(tier.current, 'advanced'));
 
-	const sceneShapeIsRandom = $derived(sceneConfig.sceneShape === SCENE_SHAPE_RANDOM);
+	const sceneShapeIsRandom = $derived(sceneConfig.sceneShape.current === SCENE_SHAPE_RANDOM);
 
 	const scenePlacements = $derived(
 		generateSceneLayout({
-			treeCount: sceneConfig.treeCount,
-			depthSpread: sceneConfig.depthSpread,
+			treeCount: sceneConfig.treeCount.current,
+			depthSpread: sceneConfig.depthSpread.current,
 			baseSeed: treeConfig.current.seed,
-			sceneShape: sceneConfig.sceneShape,
+			sceneShape: sceneConfig.sceneShape.current,
 		}),
 	);
 
 	const groundHeightPercent = $derived(
-		computeGroundHeightPercent(sceneConfig.depthSpread, sceneConfig.treeCount),
+		computeGroundHeightPercent(sceneConfig.depthSpread.current, sceneConfig.treeCount.current),
 	);
 
 	function randomizeSeed() {
@@ -127,14 +127,13 @@
 
 	function onSceneShapeChange(value: string) {
 		if (value === SCENE_SHAPE_RANDOM) {
-			sceneConfig.sceneShape = SCENE_SHAPE_RANDOM;
+			sceneConfig.sceneShape.current = SCENE_SHAPE_RANDOM;
 			return;
 		}
 		if (!isSceneShapeSelection(value)) {
 			return;
 		}
-		sceneConfig.sceneShape = value;
-		// Reset treeConfig to new shape defaults
+		sceneConfig.sceneShape.current = value;
 		if (isTreeShape(value)) {
 			treeConfig.current.shape = value;
 			treeConfig.applyShapeDefaults(value as Exclude<TreeShape, 'custom'>);
@@ -234,8 +233,8 @@
 					{growthVariance}
 					{toolVisibility}
 					{animateTools}
-					overlayConfig={overlayConfig.config}
-					groundElements={overlayConfig.groundEnabled}
+					overlayConfig={overlayConfig.config.current}
+					groundElements={overlayConfig.groundEnabled.current}
 					onanchors={(anchors) => {
 						treeAnchorsMap.set(index, { roots: anchors.roots });
 					}}
@@ -261,7 +260,10 @@
 			</svg>
 		{/if}
 
-		<EnvironmentOverlay config={environmentConfig} lightAngle={treeConfig.current.lightAngle} />
+		<EnvironmentOverlay
+			config={environmentConfig.config.current}
+			lightAngle={treeConfig.current.lightAngle}
+		/>
 
 		<SceneFloatingButtons onReset={resetAll} onRandomize={randomizeSeed} />
 	</div>
@@ -276,7 +278,7 @@
 					label="Tree Count"
 					min={SCENE_LIMITS.treeCountMin}
 					max={SCENE_LIMITS.treeCountMax}
-					bind:value={sceneConfig.treeCount}
+					bind:value={sceneConfig.treeCount.current}
 					id="tree-count"
 				/>
 				{#if isIntermediate}
@@ -284,7 +286,7 @@
 						label="Depth Spread"
 						min={SCENE_LIMITS.depthSpreadMin}
 						max={SCENE_LIMITS.depthSpreadMax}
-						bind:value={sceneConfig.depthSpread}
+						bind:value={sceneConfig.depthSpread.current}
 						id="depth-spread"
 					/>
 				{/if}
@@ -292,9 +294,8 @@
 
 			<!-- Shape -->
 			<ShapeCard
-				{treeConfig}
 				mode="scene"
-				sceneShapeSelection={sceneConfig.sceneShape}
+				sceneShapeSelection={sceneConfig.sceneShape.current}
 				bind:usePerShapeDefaults={usePerShapeDefaults.current}
 				{onSceneShapeChange}
 				{onStageChange}
@@ -302,7 +303,6 @@
 			/>
 
 			<CanopyCard
-				{treeConfig}
 				mode="scene"
 				{sceneShapeIsRandom}
 				onBlobCountChange={(v) => (treeConfig.current.blobCount = v)}
@@ -321,9 +321,9 @@
 				disabled={usePerShapeDefaults.current && sceneShapeIsRandom}
 			/>
 
-			<TrunkCard {treeConfig} mode="scene" {sceneShapeIsRandom} />
+			<TrunkCard mode="scene" {sceneShapeIsRandom} />
 
-			<BranchesCard {treeConfig} mode="scene" {sceneShapeIsRandom} />
+			<BranchesCard mode="scene" {sceneShapeIsRandom} />
 
 			<LightingCard
 				bind:lightAngle={treeConfig.current.lightAngle}
@@ -335,17 +335,18 @@
 					<div class="flex items-center gap-2">
 						<Checkbox
 							data-testid="env-rain-toggle"
-							checked={environmentConfig.rainEnabled}
-							onCheckedChange={(v) => (environmentConfig.rainEnabled = v === true)}
+							checked={environmentConfig.rainEnabled.current}
+							onCheckedChange={(v) =>
+								(environmentConfig.rainEnabled.current = v === true)}
 						/>
 						<Label>Rain</Label>
 					</div>
-					{#if isAdvanced && environmentConfig.rainEnabled}
+					{#if isAdvanced && environmentConfig.rainEnabled.current}
 						<LabeledSlider
 							label="Rain Intensity"
 							min={ENVIRONMENT_LIMITS.rainIntensityMin}
 							max={ENVIRONMENT_LIMITS.rainIntensityMax}
-							bind:value={environmentConfig.rainIntensity}
+							bind:value={environmentConfig.rainIntensity.current}
 							id="rain-intensity"
 						/>
 					{/if}
@@ -353,9 +354,9 @@
 						<div class="flex items-center gap-2">
 							<Checkbox
 								data-testid={toggle.testId}
-								checked={environmentConfig[toggle.key]}
+								checked={environmentConfig[toggle.key].current}
 								onCheckedChange={(v) =>
-									(environmentConfig[toggle.key] = v === true)}
+									(environmentConfig[toggle.key].current = v === true)}
 							/>
 							<Label>{toggle.label}</Label>
 						</div>
@@ -381,7 +382,7 @@
 				bind:growthVariance
 			/>
 
-			<OverlaysCard {overlayConfig} />
+			<OverlaysCard />
 
 			<SectionCard title="Connections" contentClass="space-y-4">
 				<LabeledCheckbox

@@ -1,5 +1,8 @@
+import { createContext } from 'svelte';
 import { browser } from '$app/environment';
 import { Persisted, jsonSerde } from '$lib/reactivity/persisted.svelte.js';
+import { StateRaw } from '$lib/reactivity/state.svelte.js';
+import { Derived } from '$lib/reactivity/derived.svelte.js';
 import { isValidOverlayPersistedState } from '$lib/config/validators.js';
 import {
 	OVERLAY_DEFAULTS,
@@ -8,96 +11,92 @@ import {
 	type OverlayPersistedState,
 } from './overlay_types.js';
 
-const OVERLAY_CONFIG_KEY = 'overlay-config';
+type OverlayConfigContext = ReturnType<typeof createOverlayConfigContext>;
 
-class OverlayConfigState {
-	stormCloudEnabled = $state(OVERLAY_DEFAULTS.stormCloud.enabled);
-	stormCloudShowRain = $state(OVERLAY_DEFAULTS.stormCloud.showRain);
-	speechBubbleEnabled = $state(OVERLAY_DEFAULTS.speechBubble.enabled);
-	speechBubbleText = $state(OVERLAY_DEFAULTS.speechBubble.text);
-	wiltingEnabled = $state(OVERLAY_DEFAULTS.wilting.enabled);
-	glowEnabled = $state(OVERLAY_DEFAULTS.glow.enabled);
-	glowColor = $state(OVERLAY_DEFAULTS.glow.color);
-	glowIntensity = $state(OVERLAY_DEFAULTS.glow.intensity);
-	glowPulse = $state(OVERLAY_DEFAULTS.glow.pulse);
-	groundEnabled = $state(false);
+const [useOverlayConfig, setOverlayConfigInternal] = createContext<OverlayConfigContext>();
+export { useOverlayConfig };
 
-	get config(): OverlayConfig {
-		return {
-			stormCloud: {
-				enabled: this.stormCloudEnabled,
-				showRain: this.stormCloudShowRain,
-			},
-			speechBubble: {
-				enabled: this.speechBubbleEnabled,
-				text: this.speechBubbleText,
-			},
-			wilting: {
-				enabled: this.wiltingEnabled,
-			},
-			glow: {
-				enabled: this.glowEnabled,
-				color: this.glowColor,
-				intensity: this.glowIntensity,
-				pulse: this.glowPulse,
-			},
-		};
-	}
-
-	snapshot(): OverlayPersistedState {
-		return {
-			stormCloudEnabled: this.stormCloudEnabled,
-			stormCloudShowRain: this.stormCloudShowRain,
-			speechBubbleEnabled: this.speechBubbleEnabled,
-			speechBubbleText: this.speechBubbleText,
-			wiltingEnabled: this.wiltingEnabled,
-			glowEnabled: this.glowEnabled,
-			glowColor: this.glowColor,
-			glowIntensity: this.glowIntensity,
-			glowPulse: this.glowPulse,
-			groundEnabled: this.groundEnabled,
-		};
-	}
-
-	apply(state: OverlayPersistedState) {
-		this.stormCloudEnabled = state.stormCloudEnabled;
-		this.stormCloudShowRain = state.stormCloudShowRain;
-		this.speechBubbleEnabled = state.speechBubbleEnabled;
-		this.speechBubbleText = state.speechBubbleText ?? OVERLAY_DEFAULTS.speechBubble.text;
-		this.wiltingEnabled = state.wiltingEnabled;
-		this.glowEnabled = state.glowEnabled;
-		this.glowColor = state.glowColor;
-		this.glowIntensity = state.glowIntensity;
-		this.glowPulse = state.glowPulse;
-		this.groundEnabled = state.groundEnabled;
-	}
+export function setOverlayConfigContext() {
+	const ctx = createOverlayConfigContext();
+	setOverlayConfigInternal(ctx);
+	return ctx;
 }
 
-export function createOverlayConfigContext() {
+function createOverlayConfigContext() {
 	const persisted = new Persisted<OverlayPersistedState>({
-		key: OVERLAY_CONFIG_KEY,
+		key: 'overlay-config',
 		serde: jsonSerde(isValidOverlayPersistedState),
 		defaultValue: OVERLAY_PERSISTED_DEFAULTS,
 	});
+	const init = persisted.current;
 
-	const state = new OverlayConfigState();
-	state.apply(persisted.current);
+	const stormCloudEnabled = new StateRaw(init.stormCloudEnabled, { isEqual: Object.is });
+	const stormCloudShowRain = new StateRaw(init.stormCloudShowRain, { isEqual: Object.is });
+	const speechBubbleEnabled = new StateRaw(init.speechBubbleEnabled, { isEqual: Object.is });
+	const speechBubbleText = new StateRaw(
+		init.speechBubbleText ?? OVERLAY_DEFAULTS.speechBubble.text,
+		{ isEqual: Object.is },
+	);
+	const wiltingEnabled = new StateRaw(init.wiltingEnabled, { isEqual: Object.is });
+	const glowEnabled = new StateRaw(init.glowEnabled, { isEqual: Object.is });
+	const glowColor = new StateRaw(init.glowColor, { isEqual: Object.is });
+	const glowIntensity = new StateRaw(init.glowIntensity, { isEqual: Object.is });
+	const glowPulse = new StateRaw(init.glowPulse, { isEqual: Object.is });
+	const groundEnabled = new StateRaw(init.groundEnabled, { isEqual: Object.is });
+
+	const config = new Derived<OverlayConfig>(() => ({
+		stormCloud: { enabled: stormCloudEnabled.current, showRain: stormCloudShowRain.current },
+		speechBubble: { enabled: speechBubbleEnabled.current, text: speechBubbleText.current },
+		wilting: { enabled: wiltingEnabled.current },
+		glow: {
+			enabled: glowEnabled.current,
+			color: glowColor.current,
+			intensity: glowIntensity.current,
+			pulse: glowPulse.current,
+		},
+	}));
 
 	if (browser) {
 		$effect(() => {
-			persisted.current = state.snapshot();
-		});
-
-		$effect(() => {
-			const handler = (e: StorageEvent) => {
-				if (e.key === OVERLAY_CONFIG_KEY) {
-					state.apply(persisted.current);
-				}
+			persisted.current = {
+				stormCloudEnabled: stormCloudEnabled.current,
+				stormCloudShowRain: stormCloudShowRain.current,
+				speechBubbleEnabled: speechBubbleEnabled.current,
+				speechBubbleText: speechBubbleText.current,
+				wiltingEnabled: wiltingEnabled.current,
+				glowEnabled: glowEnabled.current,
+				glowColor: glowColor.current,
+				glowIntensity: glowIntensity.current,
+				glowPulse: glowPulse.current,
+				groundEnabled: groundEnabled.current,
 			};
-			window.addEventListener('storage', handler);
-			return () => window.removeEventListener('storage', handler);
+		});
+		$effect(() => {
+			const snap = persisted.current;
+			stormCloudEnabled.current = snap.stormCloudEnabled;
+			stormCloudShowRain.current = snap.stormCloudShowRain;
+			speechBubbleEnabled.current = snap.speechBubbleEnabled;
+			speechBubbleText.current = snap.speechBubbleText ?? OVERLAY_DEFAULTS.speechBubble.text;
+			wiltingEnabled.current = snap.wiltingEnabled;
+			glowEnabled.current = snap.glowEnabled;
+			glowColor.current = snap.glowColor;
+			glowIntensity.current = snap.glowIntensity;
+			glowPulse.current = snap.glowPulse;
+			groundEnabled.current = snap.groundEnabled;
 		});
 	}
 
-	return state;
+	return {
+		stormCloudEnabled,
+		stormCloudShowRain,
+		speechBubbleEnabled,
+		speechBubbleText,
+		wiltingEnabled,
+		glowEnabled,
+		glowColor,
+		glowIntensity,
+		glowPulse,
+		groundEnabled,
+		config,
+	};
 }

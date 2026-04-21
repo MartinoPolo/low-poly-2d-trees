@@ -6,17 +6,17 @@
 	import { CROOKEDNESS_MODES, CROOKEDNESS_MODE_OPTIONS } from '$lib/trees/types.js';
 	import { isParamDisabled } from '$lib/trees/disabled_params.js';
 	import { use_settings_tier, tierAtLeast } from '$lib/context/settings_tier.context.svelte.js';
-	import type { createTreeConfigContext } from '$lib/trees/tree_config.context.svelte.js';
+	import { useTreeConfig } from '$lib/trees/tree_config.context.svelte.js';
 
 	interface Props {
-		treeConfig: ReturnType<typeof createTreeConfigContext>;
 		mode: EditorMode;
 		sceneShapeIsRandom?: boolean;
 		onTrunkHeightChange?: () => void;
 	}
 
-	let { treeConfig, mode, sceneShapeIsRandom = false, onTrunkHeightChange }: Props = $props();
+	let { mode, sceneShapeIsRandom = false, onTrunkHeightChange }: Props = $props();
 
+	const treeConfig = useTreeConfig();
 	const { tier } = use_settings_tier();
 
 	const isIntermediate = $derived(tierAtLeast(tier.current, 'intermediate'));
