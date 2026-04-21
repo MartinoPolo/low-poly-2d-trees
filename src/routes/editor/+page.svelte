@@ -36,6 +36,7 @@
 	} from '$lib/trees/tools/tool_types.js';
 	import ToolAccessoriesCard from '$lib/components/composed/ToolAccessoriesCard.svelte';
 	import OverlaysCard from '$lib/components/composed/OverlaysCard.svelte';
+	import AnimationsCard from '$lib/components/composed/AnimationsCard.svelte';
 	import { growCustomBlobs, computeMaxBranches, clampBranchMaximums } from '$lib/trees/shapes.js';
 	import { isParamDisabled } from '$lib/trees/disabled_params.js';
 	import { getSavedTree, saveTree } from '$lib/trees/saved_trees.remote.js';
@@ -49,18 +50,15 @@
 	import Button from '$lib/components/ui/button/button.svelte';
 	import Shuffle from '@lucide/svelte/icons/shuffle';
 
+	const overlayConfig = createOverlayConfigContext();
+	const treeConfig = createTreeConfigContext();
+	const editorView = createEditorViewStateContext();
+	const { tier } = use_settings_tier();
+
 	const user = $derived(page.data.user);
 	const signedIn = $derived(user !== null);
-
-	const overlayConfig = createOverlayConfigContext();
-
-	const treeConfig = createTreeConfigContext();
-
-	const editorView = createEditorViewStateContext();
-
 	let toolVisibility: ToolVisibility = $state(createDefaultToolVisibility());
-
-	const { tier } = use_settings_tier();
+	let saveFormElement = $state<HTMLFormElement>();
 	const isIntermediate = $derived(tierAtLeast(tier.current, 'intermediate'));
 	const isAdvanced = $derived(tierAtLeast(tier.current, 'advanced'));
 
@@ -229,8 +227,6 @@
 	function randomizeSeed() {
 		treeConfig.current.seed = Math.floor(Math.random() * 100000);
 	}
-
-	let saveFormElement = $state<HTMLFormElement>();
 
 	function triggerSave() {
 		saveFormElement?.requestSubmit();
@@ -744,49 +740,12 @@
 				</Card.Content>
 			</Card.Root>
 
-			<Card.Root>
-				<Card.Header>
-					<Card.Title>Animations</Card.Title>
-				</Card.Header>
-				<Card.Content class="space-y-4">
-					<div data-testid="animation-controls">
-						<div class="flex items-center gap-2">
-							<Checkbox
-								data-testid="animate-canopy-sway"
-								checked={editorView.animateCanopySway}
-								onCheckedChange={(v) => (editorView.animateCanopySway = v === true)}
-							/>
-							<Label>Canopy Sway</Label>
-						</div>
-						<div class="mt-4 flex items-center gap-2">
-							<Checkbox
-								data-testid="animate-branches"
-								checked={editorView.animateBranches}
-								onCheckedChange={(v) => (editorView.animateBranches = v === true)}
-							/>
-							<Label>Branch Movement</Label>
-						</div>
-						<div class="mt-4 flex items-center gap-2">
-							<Checkbox
-								data-testid="animate-growth"
-								checked={editorView.animateGrowth}
-								onCheckedChange={(v) => (editorView.animateGrowth = v === true)}
-							/>
-							<Label>Growth</Label>
-						</div>
-						{#if editorView.animateGrowth}
-							<LabeledSlider
-								label="Growth Variance"
-								min={0}
-								max={100}
-								step={5}
-								unit="%"
-								bind:value={editorView.growthVariance}
-							/>
-						{/if}
-					</div>
-				</Card.Content>
-			</Card.Root>
+			<AnimationsCard
+				bind:animateCanopySway={editorView.animateCanopySway}
+				bind:animateBranches={editorView.animateBranches}
+				bind:animateGrowth={editorView.animateGrowth}
+				bind:growthVariance={editorView.growthVariance}
+			/>
 
 			<OverlaysCard {overlayConfig} />
 		</div>
