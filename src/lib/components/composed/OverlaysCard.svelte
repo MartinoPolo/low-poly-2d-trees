@@ -1,7 +1,7 @@
 <script lang="ts">
-	import { Checkbox } from '$lib/components/ui/checkbox/index.js';
 	import { Label } from '$lib/components/ui/label/index.js';
 	import { Input } from '$lib/components/ui/input/index.js';
+	import LabeledCheckbox from '$lib/components/composed/LabeledCheckbox.svelte';
 	import LabeledSlider from '$lib/components/composed/LabeledSlider.svelte';
 	import SectionCard from '$lib/components/composed/SectionCard.svelte';
 	import type { createOverlayConfigContext } from '$lib/trees/overlays/overlay_config.context.svelte.js';
@@ -15,33 +15,29 @@
 </script>
 
 <SectionCard title="Overlays" contentClass="space-y-4">
-	<div class="flex items-center gap-2">
-		<Checkbox
-			data-testid="overlay-storm-cloud"
-			checked={overlayConfig.stormCloudEnabled}
-			onCheckedChange={(v) => (overlayConfig.stormCloudEnabled = v === true)}
-		/>
-		<Label>Storm Cloud</Label>
-	</div>
+	<LabeledCheckbox
+		label="Storm Cloud"
+		checked={overlayConfig.stormCloudEnabled}
+		onchange={(v) => (overlayConfig.stormCloudEnabled = v)}
+		testId="overlay-storm-cloud"
+	/>
 	{#if overlayConfig.stormCloudEnabled}
-		<div class="ml-6 flex items-center gap-2">
-			<Checkbox
-				data-testid="overlay-storm-rain"
-				checked={overlayConfig.stormCloudShowRain}
-				onCheckedChange={(v) => (overlayConfig.stormCloudShowRain = v === true)}
-			/>
-			<Label class="text-xs">Show Rain</Label>
-		</div>
+		<LabeledCheckbox
+			label="Show Rain"
+			checked={overlayConfig.stormCloudShowRain}
+			onchange={(v) => (overlayConfig.stormCloudShowRain = v)}
+			testId="overlay-storm-rain"
+			labelClass="text-xs"
+			class="ml-6"
+		/>
 	{/if}
 
-	<div class="flex items-center gap-2">
-		<Checkbox
-			data-testid="overlay-speech-bubble"
-			checked={overlayConfig.speechBubbleEnabled}
-			onCheckedChange={(v) => (overlayConfig.speechBubbleEnabled = v === true)}
-		/>
-		<Label>Speech Bubble</Label>
-	</div>
+	<LabeledCheckbox
+		label="Speech Bubble"
+		checked={overlayConfig.speechBubbleEnabled}
+		onchange={(v) => (overlayConfig.speechBubbleEnabled = v)}
+		testId="overlay-speech-bubble"
+	/>
 	{#if overlayConfig.speechBubbleEnabled}
 		<div class="ml-6">
 			<Input
@@ -53,23 +49,19 @@
 		</div>
 	{/if}
 
-	<div class="flex items-center gap-2">
-		<Checkbox
-			data-testid="overlay-wilting"
-			checked={overlayConfig.wiltingEnabled}
-			onCheckedChange={(v) => (overlayConfig.wiltingEnabled = v === true)}
-		/>
-		<Label>Wilting</Label>
-	</div>
+	<LabeledCheckbox
+		label="Wilting"
+		checked={overlayConfig.wiltingEnabled}
+		onchange={(v) => (overlayConfig.wiltingEnabled = v)}
+		testId="overlay-wilting"
+	/>
 
-	<div class="flex items-center gap-2">
-		<Checkbox
-			data-testid="overlay-glow"
-			checked={overlayConfig.glowEnabled}
-			onCheckedChange={(v) => (overlayConfig.glowEnabled = v === true)}
-		/>
-		<Label>Glow</Label>
-	</div>
+	<LabeledCheckbox
+		label="Glow"
+		checked={overlayConfig.glowEnabled}
+		onchange={(v) => (overlayConfig.glowEnabled = v)}
+		testId="overlay-glow"
+	/>
 	{#if overlayConfig.glowEnabled}
 		<div class="ml-6 space-y-2">
 			<LabeledSlider
@@ -87,23 +79,20 @@
 					class="h-6 w-8 cursor-pointer rounded border"
 				/>
 			</div>
-			<div class="flex items-center gap-2">
-				<Checkbox
-					data-testid="overlay-glow-pulse"
-					checked={overlayConfig.glowPulse}
-					onCheckedChange={(v) => (overlayConfig.glowPulse = v === true)}
-				/>
-				<Label class="text-xs">Pulse</Label>
-			</div>
+			<LabeledCheckbox
+				label="Pulse"
+				checked={overlayConfig.glowPulse}
+				onchange={(v) => (overlayConfig.glowPulse = v)}
+				testId="overlay-glow-pulse"
+				labelClass="text-xs"
+			/>
 		</div>
 	{/if}
 
-	<div class="flex items-center gap-2">
-		<Checkbox
-			data-testid="overlay-ground"
-			checked={overlayConfig.groundEnabled}
-			onCheckedChange={(v) => (overlayConfig.groundEnabled = v === true)}
-		/>
-		<Label>Ground Elements</Label>
-	</div>
+	<LabeledCheckbox
+		label="Ground Elements"
+		checked={overlayConfig.groundEnabled}
+		onchange={(v) => (overlayConfig.groundEnabled = v)}
+		testId="overlay-ground"
+	/>
 </SectionCard>

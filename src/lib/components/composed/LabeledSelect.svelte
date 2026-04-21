@@ -35,9 +35,7 @@
 		customItems,
 	}: Props = $props();
 
-	const triggerText = $derived(
-		browser ? (options.find((o) => o.value === value)?.label ?? placeholder) : '\u00A0',
-	);
+	const triggerText = $derived(options.find((o) => o.value === value)?.label ?? placeholder);
 </script>
 
 <div class="space-y-2 {className ?? ''}">
