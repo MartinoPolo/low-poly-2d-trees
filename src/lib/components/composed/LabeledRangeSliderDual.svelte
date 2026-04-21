@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { Label } from '$lib/components/ui/label/index.js';
 	import { Slider } from '$lib/components/ui/slider/index.js';
+	import { labelToInputId } from '$lib/utils/id.js';
 
 	interface Props {
 		label: string;
@@ -30,15 +31,8 @@
 		class: className,
 	}: Props = $props();
 
-	const inputId = $derived(
-		id ??
-			`slider-${label
-				.toLowerCase()
-				.replace(/[^a-z0-9]+/g, '-')
-				.replace(/^-|-$/g, '')}`,
-	);
+	const inputId = $derived(labelToInputId(label, id));
 	const displayValue = $derived(format ? format(value) : `${value[0]}\u2013${value[1]}`);
-	const suffix = $derived(unit ?? '');
 
 	function handleValueChange(values: number[]) {
 		const newValue: [number, number] = [values[0] ?? min, values[1] ?? max];
@@ -48,7 +42,7 @@
 </script>
 
 <div class="space-y-2 {className ?? ''}">
-	<Label for={inputId}>{label}: {displayValue}{suffix}</Label>
+	<Label for={inputId}>{label}: {displayValue}{unit ?? ''}</Label>
 	<Slider
 		id={inputId}
 		type="multiple"
