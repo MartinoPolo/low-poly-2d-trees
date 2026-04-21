@@ -19,10 +19,14 @@ const paraglideHandle: Handle = ({ event, resolve }) =>
 	});
 
 const authHandle: Handle = async ({ event, resolve }) => {
-	const sessionData = await auth.api.getSession({ headers: event.request.headers });
-
-	event.locals.session = sessionData?.session ?? null;
-	event.locals.user = sessionData?.user ?? null;
+	try {
+		const sessionData = await auth.api.getSession({ headers: event.request.headers });
+		event.locals.session = sessionData?.session ?? null;
+		event.locals.user = sessionData?.user ?? null;
+	} catch {
+		event.locals.session = null;
+		event.locals.user = null;
+	}
 
 	return svelteKitHandler({ event, resolve, auth, building });
 };
@@ -33,6 +37,6 @@ export const handleError: HandleServerError = ({ error, status }) => {
 	if (status === 404) {
 		return { message: 'Not found' };
 	}
-	console.error(error);
+	console.error(error instanceof Error ? error.message : 'Unknown error');
 	return { message: 'An unexpected error occurred' };
 };

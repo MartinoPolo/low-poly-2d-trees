@@ -1,4 +1,4 @@
-import type { TreeShape } from '$lib/trees/types.js';
+import { TREE_SHAPE_OPTIONS, type TreeShape } from '$lib/trees/types.js';
 
 /** Non-custom tree shapes eligible for random scene assignment. */
 export type SceneTreeShape = Exclude<TreeShape, 'custom'>;
@@ -19,17 +19,38 @@ export const SCENE_SHAPES: readonly SceneTreeShape[] = [
 	'acacia',
 ] as const;
 
+export const SCENE_SHAPE_RANDOM = 'random' as const;
+
+export type SceneShapeSelection = SceneTreeShape | typeof SCENE_SHAPE_RANDOM;
+
+export const SCENE_SHAPE_OPTIONS: readonly { value: SceneShapeSelection; label: string }[] = [
+	{ value: SCENE_SHAPE_RANDOM, label: 'Random' },
+	...TREE_SHAPE_OPTIONS.filter(
+		(o): o is { value: SceneTreeShape; label: string } => o.value !== 'custom',
+	),
+] as const;
+
+const SCENE_SHAPE_VALUES = new Set<string>([SCENE_SHAPE_RANDOM, ...SCENE_SHAPES]);
+
+export function isSceneShapeSelection(value: unknown): value is SceneShapeSelection {
+	return typeof value === 'string' && SCENE_SHAPE_VALUES.has(value);
+}
+
 export interface SceneConfig {
 	readonly treeCount: number;
 	readonly depthSpread: number;
 	readonly baseSeed: number;
+	readonly sceneShape?: SceneShapeSelection;
 	readonly trees?: readonly SceneTreeInput[];
 }
 
-export const SCENE_DEFAULTS: SceneConfig = {
+export const SCENE_DEFAULTS: Required<
+	Pick<SceneConfig, 'treeCount' | 'depthSpread' | 'baseSeed' | 'sceneShape'>
+> = {
 	treeCount: 10,
 	depthSpread: 0,
 	baseSeed: 42,
+	sceneShape: SCENE_SHAPE_RANDOM,
 } as const;
 
 export const SCENE_LIMITS = {

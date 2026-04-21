@@ -32,9 +32,16 @@ export {
 	VIEWBOX_WIDTH,
 	VIEWBOX_HEIGHT,
 	isTreeStage,
+	isTreeShape,
 } from './types/config.js';
 
-export { FRUIT_TYPES, type FruitType, FRUIT_TYPE_OPTIONS, SHAPE_FRUIT_MAP } from './types/fruit.js';
+export {
+	FRUIT_TYPES,
+	type FruitType,
+	FRUIT_TYPE_OPTIONS,
+	SHAPE_FRUIT_MAP,
+	isFruitType,
+} from './types/fruit.js';
 
 export {
 	CUSTOM_BLOB_BOUNDARY_KINDS,

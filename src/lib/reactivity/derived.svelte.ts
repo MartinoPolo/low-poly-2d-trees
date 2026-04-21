@@ -8,8 +8,4 @@ export class Derived<T> {
 	get current() {
 		return this.#current;
 	}
-
-	set current(value: T) {
-		this.#current = value;
-	}
 }

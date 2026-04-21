@@ -1,6 +1,7 @@
 import { createPrng } from '$lib/trees/prng.js';
 import {
 	SCENE_SHAPES,
+	SCENE_SHAPE_RANDOM,
 	LAYER_COUNT,
 	TREES_PER_LAYER,
 	SCALE_FRONT,
@@ -74,9 +75,17 @@ export function generateSceneLayout(config: SceneConfig): SceneTreePlacement[] {
 		(_, i) => config.trees?.[i] ?? {},
 	);
 
-	// Assign shapes and seeds upfront using PRNG for determinism
+	const fixedShape =
+		config.sceneShape !== undefined && config.sceneShape !== SCENE_SHAPE_RANDOM
+			? config.sceneShape
+			: null;
+
+	// Assign shapes and seeds upfront using PRNG for determinism.
+	// Always consume the shape RNG call so fixed-shape mode stays aligned
+	// with random mode for the same baseSeed.
 	const shapeSeeds = inputs.map((_, i) => {
-		const shape = SCENE_SHAPES[Math.floor(rng() * SCENE_SHAPES.length)];
+		const shapeFromRng = SCENE_SHAPES[Math.floor(rng() * SCENE_SHAPES.length)]!;
+		const shape = fixedShape ?? shapeFromRng;
 		const seed = baseSeed + i * 1000 + Math.floor(rng() * 999);
 		return { shape, seed };
 	});

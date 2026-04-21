@@ -5,7 +5,7 @@ import {
 	FRUIT_TYPES,
 	type TreeConfig,
 } from '$lib/trees/types.js';
-import type { SceneConfig } from '$lib/scene/scene_config.js';
+import { isSceneShapeSelection, type SceneConfig } from '$lib/scene/scene_config.js';
 import type { EnvironmentConfig } from '$lib/environment/environment_config.js';
 import type { OverlayPersistedState } from '$lib/trees/overlays/overlay_types.js';
 import type { EditorViewState } from '$lib/config/editor_view_state.js';
@@ -99,7 +99,8 @@ export function isValidSceneConfig(value: unknown): value is SceneConfig {
 	return (
 		hasNumber(value, 'treeCount') &&
 		hasNumber(value, 'depthSpread') &&
-		hasNumber(value, 'baseSeed')
+		hasNumber(value, 'baseSeed') &&
+		(value.sceneShape === undefined || isSceneShapeSelection(value.sceneShape))
 	);
 }
 

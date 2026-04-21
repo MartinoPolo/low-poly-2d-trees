@@ -42,6 +42,7 @@ export interface OverlayPersistedState {
 	readonly stormCloudEnabled: boolean;
 	readonly stormCloudShowRain: boolean;
 	readonly speechBubbleEnabled: boolean;
+	readonly speechBubbleText?: string;
 	readonly wiltingEnabled: boolean;
 	readonly glowEnabled: boolean;
 	readonly glowColor: string;
@@ -54,6 +55,7 @@ export const OVERLAY_PERSISTED_DEFAULTS: OverlayPersistedState = {
 	stormCloudEnabled: false,
 	stormCloudShowRain: true,
 	speechBubbleEnabled: false,
+	speechBubbleText: '',
 	wiltingEnabled: false,
 	glowEnabled: false,
 	glowColor: '#ffd700',

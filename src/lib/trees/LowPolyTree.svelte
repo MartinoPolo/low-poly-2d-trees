@@ -33,7 +33,6 @@
 	} from '$lib/trees/tools/tool_types.js';
 	import { FRUIT_SVG_COMPONENTS } from '$lib/trees/shapes/fruit_geometry.js';
 	import { FLOWER_SVG_COMPONENTS } from '$lib/trees/shapes/flower_geometry.js';
-	import { SvelteMap } from 'svelte/reactivity';
 	import TreeOverlay from '$lib/trees/overlays/TreeOverlay.svelte';
 	import GlowEffect from '$lib/trees/overlays/GlowEffect.svelte';
 	import WiltingEffect from '$lib/trees/overlays/WiltingEffect.svelte';
@@ -64,7 +63,6 @@
 		growthVariance?: number;
 		toolVisibility?: ToolVisibility;
 		animateTools?: boolean;
-		reviewerCount?: number;
 		overlayConfig?: OverlayConfig;
 		groundElements?: boolean;
 		class?: string;
@@ -86,7 +84,6 @@
 		growthVariance = 50,
 		toolVisibility,
 		animateTools = false,
-		reviewerCount = 0,
 		overlayConfig = OVERLAY_DEFAULTS,
 		groundElements = false,
 		class: className = '',
@@ -119,13 +116,17 @@
 
 	const canopySwayDelay = $derived(computeAnimationDelay(config.seed));
 
-	const branchDurations = $derived(
-		geometry.branchGroups.map((_, i) => computeBranchDuration(config.seed, i)),
-	);
+	const branchDurations = $derived.by(() => {
+		const count = geometry.branchGroups.length;
+		const seed = config.seed;
+		return Array.from({ length: count }, (_, i) => computeBranchDuration(seed, i));
+	});
 
-	const branchDelays = $derived(
-		geometry.branchGroups.map((_, i) => computeBranchDelay(config.seed, i)),
-	);
+	const branchDelays = $derived.by(() => {
+		const count = geometry.branchGroups.length;
+		const seed = config.seed;
+		return Array.from({ length: count }, (_, i) => computeBranchDelay(seed, i));
+	});
 
 	const rootBranches = $derived(
 		geometry.branchGroups
@@ -134,7 +135,7 @@
 	);
 
 	const childBranchesByParent = $derived.by(() => {
-		const map = new SvelteMap<number, { group: BranchGeometry; index: number }[]>();
+		const map = new Map<number, { group: BranchGeometry; index: number }[]>();
 		for (let i = 0; i < geometry.branchGroups.length; i++) {
 			const group = geometry.branchGroups[i]!;
 			if (group.parentIndex !== null) {
@@ -162,23 +163,20 @@
 	);
 
 	// Split canopy blobs into back/front for 5-layer rendering
-	const backCanopyBlobs = $derived(
-		hasZOrdering
-			? geometry.canopyBlobs
-					.map((blob, i) => ({ blob, index: i }))
-					.filter(({ blob }) => blob.zOrder === Z_ORDER_LAYERS.backCanopy)
-			: [],
-	);
-	const frontCanopyBlobs = $derived(
-		hasZOrdering
-			? geometry.canopyBlobs
-					.map((blob, i) => ({ blob, index: i }))
-					.filter(
-						({ blob }) =>
-							blob.zOrder === Z_ORDER_LAYERS.frontCanopy || blob.zOrder === undefined,
-					)
-			: geometry.canopyBlobs.map((blob, i) => ({ blob, index: i })),
-	);
+	const { backCanopyBlobs, frontCanopyBlobs } = $derived.by(() => {
+		const back: { blob: (typeof geometry.canopyBlobs)[0]; index: number }[] = [];
+		const front: { blob: (typeof geometry.canopyBlobs)[0]; index: number }[] = [];
+		for (let i = 0; i < geometry.canopyBlobs.length; i++) {
+			const blob = geometry.canopyBlobs[i]!;
+			const entry = { blob, index: i };
+			if (hasZOrdering && blob.zOrder === Z_ORDER_LAYERS.backCanopy) {
+				back.push(entry);
+			} else {
+				front.push(entry);
+			}
+		}
+		return { backCanopyBlobs: back, frontCanopyBlobs: front };
+	});
 
 	const fruitComponent = $derived(
 		config.fruitType !== FRUIT_TYPES.none ? FRUIT_SVG_COMPONENTS[config.fruitType] : null,
@@ -476,9 +474,9 @@
 			<g filter="url(#{glowFilterId})" class:glow-pulse={overlayConfig.glow.pulse}>
 				{@render treeBodyContent()}
 			</g>
+		{:else}
+			{@render treeBodyContent()}
 		{/if}
-
-		{@render treeBodyContent()}
 
 		{#if groundElements}
 			<GroundElements seed={config.seed} trunkBase={geometry.anchors.trunkBase} />
@@ -493,7 +491,6 @@
 							anchor={geometry.anchors[TOOL_ANCHOR_MAP[toolType]]}
 							size={toolVisibility[toolType].size}
 							animate={animateTools}
-							{reviewerCount}
 						/>
 					{/if}
 				{/each}

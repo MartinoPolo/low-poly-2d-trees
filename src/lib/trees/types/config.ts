@@ -393,3 +393,7 @@ export const VIEWBOX_HEIGHT = 500;
 export function isTreeStage(value: string): value is TreeStage {
 	return (Object.values(TREE_STAGES) as readonly string[]).includes(value);
 }
+
+export function isTreeShape(value: string): value is TreeShape {
+	return (Object.values(TREE_SHAPES) as readonly string[]).includes(value);
+}

@@ -2,7 +2,8 @@ import * as v from 'valibot';
 import { error } from '@sveltejs/kit';
 import { command, form, getRequestEvent, query } from '$app/server';
 import * as savedTreesDb from '$lib/server/saved_trees.js';
-import { DEFAULT_TREE_CONFIG, TREE_SHAPES, type TreeConfig } from '$lib/trees/types.js';
+import { DEFAULT_TREE_CONFIG, TREE_SHAPES, type TreeShape } from '$lib/trees/types.js';
+import { isValidTreeConfig } from '$lib/config/validators.js';
 
 function requireUser() {
 	const { locals } = getRequestEvent();
@@ -19,7 +20,7 @@ export const listSavedTrees = query(async () => {
 	const rows = await savedTreesDb.listSavedTrees(user.id);
 	return rows.map((row) => ({
 		...row,
-		config: { ...DEFAULT_TREE_CONFIG, ...(row.config as TreeConfig) },
+		config: { ...DEFAULT_TREE_CONFIG, ...(isValidTreeConfig(row.config) ? row.config : {}) },
 	}));
 });
 
@@ -31,7 +32,7 @@ export const getSavedTree = query(v.string(), async (id) => {
 	}
 	return {
 		...row,
-		config: { ...DEFAULT_TREE_CONFIG, ...(row.config as TreeConfig) },
+		config: { ...DEFAULT_TREE_CONFIG, ...(isValidTreeConfig(row.config) ? row.config : {}) },
 	};
 });
 
@@ -41,7 +42,11 @@ export const saveTree = form(
 			v.string(),
 			v.transform((s) => {
 				try {
-					return JSON.parse(s) as TreeConfig;
+					const parsed: unknown = JSON.parse(s);
+					if (!isValidTreeConfig(parsed)) {
+						throw new Error('Invalid tree configuration');
+					}
+					return parsed;
 				} catch {
 					throw new Error('Invalid tree configuration');
 				}
@@ -50,7 +55,12 @@ export const saveTree = form(
 	}),
 	async ({ config }) => {
 		const user = requireUser();
-		const shape = v.parse(treeShapeSchema, config.shape);
+		let shape: TreeShape;
+		try {
+			shape = v.parse(treeShapeSchema, config.shape);
+		} catch {
+			throw error(400, 'Invalid tree shape');
+		}
 		const saved = await savedTreesDb.createSavedTree({
 			userId: user.id,
 			shape,

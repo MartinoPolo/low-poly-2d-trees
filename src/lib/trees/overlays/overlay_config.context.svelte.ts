@@ -49,6 +49,7 @@ class OverlayConfigState {
 			stormCloudEnabled: this.stormCloudEnabled,
 			stormCloudShowRain: this.stormCloudShowRain,
 			speechBubbleEnabled: this.speechBubbleEnabled,
+			speechBubbleText: this.speechBubbleText,
 			wiltingEnabled: this.wiltingEnabled,
 			glowEnabled: this.glowEnabled,
 			glowColor: this.glowColor,
@@ -62,6 +63,7 @@ class OverlayConfigState {
 		this.stormCloudEnabled = state.stormCloudEnabled;
 		this.stormCloudShowRain = state.stormCloudShowRain;
 		this.speechBubbleEnabled = state.speechBubbleEnabled;
+		this.speechBubbleText = state.speechBubbleText ?? OVERLAY_DEFAULTS.speechBubble.text;
 		this.wiltingEnabled = state.wiltingEnabled;
 		this.glowEnabled = state.glowEnabled;
 		this.glowColor = state.glowColor;

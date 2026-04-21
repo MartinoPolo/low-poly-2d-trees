@@ -1,34 +1,22 @@
 import { and, desc, eq, like } from 'drizzle-orm';
 import { db } from './db/index.js';
 import { savedTrees } from './db/saved_trees.schema.js';
-import { TREE_SHAPES, type TreeConfig, type TreeShape } from '$lib/trees/types.js';
-
-const SHAPE_LABELS: Record<TreeShape, string> = {
-	[TREE_SHAPES.oak]: 'Oak',
-	[TREE_SHAPES.pine]: 'Pine',
-	[TREE_SHAPES.birch]: 'Birch',
-	[TREE_SHAPES.fir]: 'Fir',
-	[TREE_SHAPES.maple]: 'Maple',
-	[TREE_SHAPES.willow]: 'Willow',
-	[TREE_SHAPES.cypress]: 'Cypress',
-	[TREE_SHAPES.apple]: 'Apple',
-	[TREE_SHAPES.cherry]: 'Cherry',
-	[TREE_SHAPES.bush]: 'Bush',
-	[TREE_SHAPES.baobab]: 'Baobab',
-	[TREE_SHAPES.acacia]: 'Acacia',
-	[TREE_SHAPES.custom]: 'Custom',
-} as const;
+import { TREE_SHAPE_OPTIONS, type TreeConfig, type TreeShape } from '$lib/trees/types.js';
 
 type SavedTreeRow = typeof savedTrees.$inferSelect;
 
 async function nextAutoName(userId: string, shape: TreeShape): Promise<string> {
-	const label = SHAPE_LABELS[shape];
+	const label = TREE_SHAPE_OPTIONS.find((o) => o.value === shape)?.label ?? shape;
 	const rows = await db
-		.select({ id: savedTrees.id })
+		.select({ name: savedTrees.name })
 		.from(savedTrees)
 		.where(and(eq(savedTrees.userId, userId), like(savedTrees.name, `${label} #%`)))
 		.orderBy(savedTrees.id);
-	return `${label} #${rows.length + 1}`;
+	const maxNumber = rows.reduce((max, row) => {
+		const match = row.name.match(/#(\d+)$/);
+		return match ? Math.max(max, parseInt(match[1], 10)) : max;
+	}, 0);
+	return `${label} #${maxNumber + 1}`;
 }
 
 interface CreateSavedTreeInput {
@@ -49,6 +37,9 @@ export async function createSavedTree(input: CreateSavedTreeInput): Promise<Save
 			config: input.config,
 		})
 		.returning();
+	if (!row) {
+		throw new Error('INSERT returned no rows');
+	}
 	return row;
 }
 

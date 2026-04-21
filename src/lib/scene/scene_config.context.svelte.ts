@@ -1,7 +1,12 @@
 import { browser } from '$app/environment';
 import { Persisted, jsonSerde } from '$lib/reactivity/persisted.svelte.js';
 import { isValidSceneConfig } from '$lib/config/validators.js';
-import { SCENE_DEFAULTS, type SceneConfig } from './scene_config.js';
+import {
+	SCENE_DEFAULTS,
+	SCENE_SHAPE_RANDOM,
+	type SceneConfig,
+	type SceneShapeSelection,
+} from './scene_config.js';
 
 const SCENE_CONFIG_KEY = 'scene-config';
 
@@ -9,12 +14,14 @@ class SceneConfigState {
 	treeCount = $state(SCENE_DEFAULTS.treeCount);
 	depthSpread = $state(SCENE_DEFAULTS.depthSpread);
 	baseSeed = $state(SCENE_DEFAULTS.baseSeed);
+	sceneShape: SceneShapeSelection = $state(SCENE_DEFAULTS.sceneShape);
 
 	snapshot(): SceneConfig {
 		return {
 			treeCount: this.treeCount,
 			depthSpread: this.depthSpread,
 			baseSeed: this.baseSeed,
+			sceneShape: this.sceneShape,
 		};
 	}
 
@@ -22,6 +29,7 @@ class SceneConfigState {
 		this.treeCount = config.treeCount;
 		this.depthSpread = config.depthSpread;
 		this.baseSeed = config.baseSeed;
+		this.sceneShape = config.sceneShape ?? SCENE_SHAPE_RANDOM;
 	}
 
 	resetToDefaults() {

@@ -1,15 +1,8 @@
 import type { Point2D } from '../types.js';
 import { CROOKEDNESS_MODES, VIEWBOX_WIDTH, type CrookednessMode } from '../types.js';
 import { randomInRange } from '../prng.js';
+import { lerp } from '../math.js';
 import type { ShapeDefinition } from './shape_types.js';
-
-// ---------------------------------------------------------------------------
-// Utilities
-// ---------------------------------------------------------------------------
-
-function lerp(a: number, b: number, t: number): number {
-	return a + (b - a) * t;
-}
 
 // ---------------------------------------------------------------------------
 // Trunk helpers

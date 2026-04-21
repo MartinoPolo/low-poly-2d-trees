@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { Checkbox } from '$lib/components/ui/checkbox/index.js';
 	import { Label } from '$lib/components/ui/label/index.js';
+	import { labelToInputId } from '$lib/utils/id.js';
 
 	interface Props {
 		label: string;
@@ -22,6 +23,8 @@
 		class: className,
 	}: Props = $props();
 
+	const inputId = $derived(labelToInputId(label));
+
 	function handleChange(v: boolean | 'indeterminate') {
 		const newValue = v === true;
 		if (onchange) {
@@ -33,6 +36,12 @@
 </script>
 
 <div class="flex items-center gap-2 {className ?? ''}">
-	<Checkbox data-testid={testId} {checked} {disabled} onCheckedChange={handleChange} />
-	<Label class={labelClass}>{label}</Label>
+	<Checkbox
+		id={inputId}
+		data-testid={testId}
+		{checked}
+		{disabled}
+		onCheckedChange={handleChange}
+	/>
+	<Label for={inputId} class={labelClass}>{label}</Label>
 </div>

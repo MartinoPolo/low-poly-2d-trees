@@ -1,12 +1,9 @@
 import { VIEWBOX_WIDTH } from '../types.js';
 import { BOUNDARIES } from '../boundaries.js';
+import { lerp } from '../math.js';
 import type { Blob } from './shape_types.js';
 
 const W = VIEWBOX_WIDTH;
-
-function lerp(a: number, b: number, t: number): number {
-	return a + (b - a) * t;
-}
 
 // ---------------------------------------------------------------------------
 // Blob depth ordering

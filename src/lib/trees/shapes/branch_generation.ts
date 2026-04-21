@@ -9,15 +9,8 @@ import {
 	raySegmentEllipseIntersection,
 } from './geometry.js';
 import { treeSizeW } from './blob_generators.js';
+import { lerp } from '../math.js';
 import type { Blob, BranchSegment } from './shape_types.js';
-
-// ---------------------------------------------------------------------------
-// Utilities
-// ---------------------------------------------------------------------------
-
-function lerp(a: number, b: number, t: number): number {
-	return a + (b - a) * t;
-}
 
 // ---------------------------------------------------------------------------
 // Branch path building (issue #105 — multi-junction branches)
@@ -159,8 +152,6 @@ export function samplePointAlongPath(path: readonly Point2D[], t: number): Point
 		return path[path.length - 1]!;
 	}
 
-	const clampedT = t;
-
 	// Compute cumulative segment lengths
 	let totalLength = 0;
 	const segmentLengths: number[] = [];
@@ -176,7 +167,7 @@ export function samplePointAlongPath(path: readonly Point2D[], t: number): Point
 		return path[0]!;
 	}
 
-	const targetDistance = clampedT * totalLength;
+	const targetDistance = t * totalLength;
 	let accumulated = 0;
 
 	for (let i = 0; i < segmentLengths.length; i++) {

@@ -40,20 +40,26 @@ export class Persisted<T> implements MutableState<T> {
 	#subscribe;
 	#update: (() => void) | undefined = undefined;
 	#serde: Serde<T>;
+	#cached: T;
 
 	constructor({ key, serde, defaultValue }: PersistedOptions<T>) {
 		this.#key = key;
 		this.#defaultValue = defaultValue;
 		this.#serde = serde;
+		this.#cached = defaultValue;
 
 		if (!browser) {
 			return;
 		}
 
+		// Read initial value from localStorage
+		this.#cached = this.#readFromStorage();
+
 		this.#subscribe = createSubscriber((update) => {
 			this.#update = update;
 			const cleanup = on(window, 'storage', (e) => {
 				if (e.key === key) {
+					this.#cached = this.#readFromStorage();
 					update();
 				}
 			});
@@ -64,15 +70,7 @@ export class Persisted<T> implements MutableState<T> {
 		});
 	}
 
-	#setToStorage(value: T) {
-		localStorage.setItem(this.#key, this.#serde.serialize(value));
-	}
-
-	get current(): T {
-		if (!browser) {
-			return this.#defaultValue;
-		}
-		this.#subscribe?.();
+	#readFromStorage(): T {
 		const val = localStorage.getItem(this.#key);
 		if (val == null) {
 			return this.#defaultValue;
@@ -85,12 +83,30 @@ export class Persisted<T> implements MutableState<T> {
 		return parsed.data;
 	}
 
+	#setToStorage(value: T) {
+		try {
+			localStorage.setItem(this.#key, this.#serde.serialize(value));
+		} catch {
+			// QuotaExceededError or similar — in-memory value is still valid
+		}
+	}
+
+	get current(): T {
+		if (!browser) {
+			return this.#defaultValue;
+		}
+		this.#subscribe?.();
+		return this.#cached;
+	}
+
 	set current(newValue: T) {
+		this.#cached = newValue;
 		this.#setToStorage(newValue);
 		this.#update?.();
 	}
 
 	setDefaultValue(): void {
+		this.#cached = this.#defaultValue;
 		this.#setToStorage(this.#defaultValue);
 		this.#update?.();
 	}

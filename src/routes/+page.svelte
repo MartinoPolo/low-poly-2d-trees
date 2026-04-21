@@ -1,20 +1,31 @@
 <script lang="ts">
 	import LowPolyTree from '$lib/trees/LowPolyTree.svelte';
-	import { Label } from '$lib/components/ui/label/index.js';
-	import { Input } from '$lib/components/ui/input/index.js';
 	import { Checkbox } from '$lib/components/ui/checkbox/index.js';
+	import { Label } from '$lib/components/ui/label/index.js';
 	import SectionCard from '$lib/components/composed/SectionCard.svelte';
 	import LabeledSlider from '$lib/components/composed/LabeledSlider.svelte';
-	import LabeledSelect from '$lib/components/composed/LabeledSelect.svelte';
+	import LabeledCheckbox from '$lib/components/composed/LabeledCheckbox.svelte';
 	import CanopyColorCard from '$lib/components/composed/CanopyColorCard.svelte';
 	import TrunkColorCard from '$lib/components/composed/TrunkColorCard.svelte';
+	import ShapeCard from '$lib/components/composed/ShapeCard.svelte';
+	import CanopyCard from '$lib/components/composed/CanopyCard.svelte';
+	import TrunkCard from '$lib/components/composed/TrunkCard.svelte';
+	import BranchesCard from '$lib/components/composed/BranchesCard.svelte';
+	import LightingCard from '$lib/components/composed/LightingCard.svelte';
+	import DebugCard from '$lib/components/composed/DebugCard.svelte';
 	import {
 		DEFAULT_TREE_CONFIG,
 		SHAPE_DEFAULTS,
-		TREE_STAGE_OPTIONS,
+		TREE_SHAPES,
 		isTreeStage,
+		isTreeShape,
+		type TreeShape,
 	} from '$lib/trees/types.js';
-	import { isParamDisabled } from '$lib/trees/disabled_params.js';
+	import {
+		SCENE_SHAPE_RANDOM,
+		SCENE_LIMITS,
+		isSceneShapeSelection,
+	} from '$lib/scene/scene_config.js';
 	import {
 		createDefaultToolVisibility,
 		type ToolVisibility,
@@ -25,7 +36,6 @@
 	import { createTreeConfigContext } from '$lib/trees/tree_config.context.svelte.js';
 	import { createSceneConfigContext } from '$lib/scene/scene_config.context.svelte.js';
 	import { generateSceneLayout, computeGroundHeightPercent } from '$lib/scene/scene_layout.js';
-	import { SCENE_LIMITS } from '$lib/scene/scene_config.js';
 	import { createEnvironmentConfigContext } from '$lib/environment/environment_config.context.svelte.js';
 	import { ENVIRONMENT_LIMITS } from '$lib/environment/environment_config.js';
 	import EnvironmentOverlay from '$lib/environment/EnvironmentOverlay.svelte';
@@ -40,8 +50,6 @@
 	import { use_settings_tier, tierAtLeast } from '$lib/context/settings_tier.context.svelte.js';
 	import { Persisted, jsonSerde } from '$lib/reactivity/persisted.svelte.js';
 	import { isValidBoolean } from '$lib/config/validators.js';
-	import Button from '$lib/components/ui/button/button.svelte';
-	import Shuffle from '@lucide/svelte/icons/shuffle';
 
 	const USE_PER_SHAPE_DEFAULTS_KEY = 'use-per-shape-defaults';
 
@@ -92,17 +100,14 @@
 	const isIntermediate = $derived(tierAtLeast(tier.current, 'intermediate'));
 	const isAdvanced = $derived(tierAtLeast(tier.current, 'advanced'));
 
-	const trunkCrookednessDisabled = $derived(
-		isParamDisabled('custom', 'trunkCrookedness', {
-			trunkSegments: treeConfig.current.trunkSegments,
-		}),
-	);
+	const sceneShapeIsRandom = $derived(sceneConfig.sceneShape === SCENE_SHAPE_RANDOM);
 
 	const scenePlacements = $derived(
 		generateSceneLayout({
 			treeCount: sceneConfig.treeCount,
 			depthSpread: sceneConfig.depthSpread,
 			baseSeed: treeConfig.current.seed,
+			sceneShape: sceneConfig.sceneShape,
 		}),
 	);
 
@@ -119,6 +124,22 @@
 			return;
 		}
 		treeConfig.current.stage = value;
+	}
+
+	function onSceneShapeChange(value: string) {
+		if (value === SCENE_SHAPE_RANDOM) {
+			sceneConfig.sceneShape = SCENE_SHAPE_RANDOM;
+			return;
+		}
+		if (!isSceneShapeSelection(value)) {
+			return;
+		}
+		sceneConfig.sceneShape = value;
+		// Reset treeConfig to new shape defaults
+		if (isTreeShape(value)) {
+			treeConfig.current.shape = value;
+			treeConfig.applyShapeDefaults(value as Exclude<TreeShape, 'custom'>);
+		}
 	}
 
 	function resetAll() {
@@ -139,7 +160,10 @@
 		<SceneBackground {groundHeightPercent} />
 
 		{#each scenePlacements as placement, index (index)}
-			{@const shapeDefaults = { ...DEFAULT_TREE_CONFIG, ...SHAPE_DEFAULTS[placement.shape] }}
+			{@const useDefaults = sceneShapeIsRandom}
+			{@const shapeDefaults = useDefaults
+				? { ...DEFAULT_TREE_CONFIG, ...SHAPE_DEFAULTS[placement.shape] }
+				: null}
 			<div
 				data-testid="scene-tree"
 				class="absolute bottom-0"
@@ -156,34 +180,49 @@
 						...treeConfig.current,
 						shape: placement.shape,
 						seed: placement.seed,
-						blobCount: shapeDefaults.blobCount,
-						branchDepth: shapeDefaults.branchDepth,
-						branchesLevel1Range: shapeDefaults.branchesLevel1Range,
-						branchesLevel2Range: shapeDefaults.branchesLevel2Range,
-						branchesLevel3Range: shapeDefaults.branchesLevel3Range,
-						branchAngle: shapeDefaults.branchAngle,
-						blobSizeVariance: shapeDefaults.blobSizeVariance,
-						blobCloseness: shapeDefaults.blobCloseness,
-						branchThickness: shapeDefaults.branchThickness,
-						trunkSegments: shapeDefaults.trunkSegments,
-						trunkCrookedness: shapeDefaults.trunkCrookedness,
-						branchLength: shapeDefaults.branchLength,
-						branchLengthVariance: shapeDefaults.branchLengthVariance,
-						canopyLightColor: usePerShapeDefaults.current
-							? shapeDefaults.canopyLightColor
-							: treeConfig.current.canopyLightColor,
-						canopyDarkColor: usePerShapeDefaults.current
-							? shapeDefaults.canopyDarkColor
-							: treeConfig.current.canopyDarkColor,
-						trunkHue: usePerShapeDefaults.current
-							? shapeDefaults.trunkHue
-							: treeConfig.current.trunkHue,
-						trunkSaturation: usePerShapeDefaults.current
-							? shapeDefaults.trunkSaturation
-							: treeConfig.current.trunkSaturation,
-						trunkLightness: usePerShapeDefaults.current
-							? shapeDefaults.trunkLightness
-							: treeConfig.current.trunkLightness,
+						...(useDefaults && shapeDefaults
+							? {
+									blobCount: shapeDefaults.blobCount,
+									branchDepth: shapeDefaults.branchDepth,
+									branchesLevel1Range: shapeDefaults.branchesLevel1Range,
+									branchesLevel2Range: shapeDefaults.branchesLevel2Range,
+									branchesLevel3Range: shapeDefaults.branchesLevel3Range,
+									branchAngle: shapeDefaults.branchAngle,
+									blobSizeVariance: shapeDefaults.blobSizeVariance,
+									blobCloseness: shapeDefaults.blobCloseness,
+									branchThickness: shapeDefaults.branchThickness,
+									trunkSegments: shapeDefaults.trunkSegments,
+									trunkCrookedness: shapeDefaults.trunkCrookedness,
+									trunkTwist: shapeDefaults.trunkTwist,
+									crookednessMode: shapeDefaults.crookednessMode,
+									branchLength: shapeDefaults.branchLength,
+									branchLengthVariance: shapeDefaults.branchLengthVariance,
+								}
+							: {}),
+						canopyLightColor:
+							usePerShapeDefaults.current && useDefaults
+								? (shapeDefaults?.canopyLightColor ??
+									treeConfig.current.canopyLightColor)
+								: treeConfig.current.canopyLightColor,
+						canopyDarkColor:
+							usePerShapeDefaults.current && useDefaults
+								? (shapeDefaults?.canopyDarkColor ??
+									treeConfig.current.canopyDarkColor)
+								: treeConfig.current.canopyDarkColor,
+						trunkHue:
+							usePerShapeDefaults.current && useDefaults
+								? (shapeDefaults?.trunkHue ?? treeConfig.current.trunkHue)
+								: treeConfig.current.trunkHue,
+						trunkSaturation:
+							usePerShapeDefaults.current && useDefaults
+								? (shapeDefaults?.trunkSaturation ??
+									treeConfig.current.trunkSaturation)
+								: treeConfig.current.trunkSaturation,
+						trunkLightness:
+							usePerShapeDefaults.current && useDefaults
+								? (shapeDefaults?.trunkLightness ??
+									treeConfig.current.trunkLightness)
+								: treeConfig.current.trunkLightness,
 					}}
 					{showCanopy}
 					{showBranches}
@@ -232,13 +271,8 @@
 	<aside data-testid="scene-controls" class="select-none overflow-y-auto px-6 pb-6">
 		<SettingsTierControl />
 		<div class="grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-6 p-px">
-			<SectionCard title="Scene Settings" contentClass="space-y-4">
-				<LabeledSelect
-					label="Life Stage"
-					options={TREE_STAGE_OPTIONS}
-					value={treeConfig.current.stage}
-					onValueChange={onStageChange}
-				/>
+			<!-- Scene Layout -->
+			<SectionCard title="Scene" contentClass="space-y-4">
 				<LabeledSlider
 					label="Tree Count"
 					min={SCENE_LIMITS.treeCountMin}
@@ -255,183 +289,46 @@
 						id="depth-spread"
 					/>
 				{/if}
-				{#if isAdvanced}
-					<div class="space-y-2">
-						<Label>Seed</Label>
-						<div class="flex gap-2">
-							<Input
-								type="number"
-								bind:value={treeConfig.current.seed}
-								class="flex-1"
-							/>
-							<Button variant="outline" size="icon" onclick={randomizeSeed}>
-								<Shuffle />
-							</Button>
-						</div>
-					</div>
-					<LabeledSlider
-						label="Polygons Per Blob"
-						min={4}
-						max={30}
-						bind:value={treeConfig.current.polygonsPerBlob}
-					/>
-					<LabeledSlider
-						label="Trunk Strips"
-						min={2}
-						max={4}
-						bind:value={treeConfig.current.trunkStripCount}
-					/>
-				{/if}
 			</SectionCard>
 
-			<SectionCard title="Canopy" contentClass="space-y-4">
-				<LabeledSlider
-					label="Canopy Size"
-					min={25}
-					max={400}
-					step={5}
-					unit="%"
-					bind:value={treeConfig.current.canopySize}
-				/>
-				{#if isAdvanced}
-					<LabeledSlider
-						label="Blob Size Variance"
-						min={1}
-						max={10}
-						step={0.1}
-						format={(v) => v.toFixed(1)}
-						unit="x"
-						bind:value={treeConfig.current.blobSizeVariance}
-					/>
-					<LabeledSlider
-						label="Blob Closeness"
-						min={0}
-						max={100}
-						unit="%"
-						bind:value={treeConfig.current.blobCloseness}
-					/>
-				{/if}
-			</SectionCard>
+			<!-- Shape -->
+			<ShapeCard
+				{treeConfig}
+				mode="scene"
+				sceneShapeSelection={sceneConfig.sceneShape}
+				bind:usePerShapeDefaults={usePerShapeDefaults.current}
+				{onSceneShapeChange}
+				{onStageChange}
+				onRandomizeSeed={randomizeSeed}
+			/>
 
-			<SectionCard title="Trunk" contentClass="space-y-4">
-				<LabeledSlider
-					label="Trunk Height"
-					min={50}
-					max={150}
-					unit="%"
-					bind:value={treeConfig.current.trunkHeight}
-				/>
-				<LabeledSlider
-					label="Trunk Thickness"
-					min={25}
-					max={400}
-					step={5}
-					unit="%"
-					bind:value={treeConfig.current.trunkThickness}
-				/>
-				{#if isIntermediate}
-					<LabeledSlider
-						label="Trunk Lean"
-						min={-45}
-						max={45}
-						step={1}
-						unit="°"
-						bind:value={treeConfig.current.trunkLean}
-					/>
-					<LabeledSlider
-						label="Trunk Segments"
-						min={1}
-						max={5}
-						step={1}
-						bind:value={treeConfig.current.trunkSegments}
-					/>
-					<LabeledSlider
-						label="Trunk Crookedness"
-						min={0}
-						max={100}
-						step={5}
-						unit="%"
-						bind:value={treeConfig.current.trunkCrookedness}
-						disabled={trunkCrookednessDisabled}
-					/>
-				{/if}
-			</SectionCard>
-
-			{#if isIntermediate}
-				<SectionCard title="Branches" contentClass="space-y-4">
-					<LabeledSlider
-						label="Branch Thickness"
-						min={25}
-						max={400}
-						step={5}
-						unit="%"
-						bind:value={treeConfig.current.branchThickness}
-					/>
-					<LabeledSlider
-						label="Branch Length"
-						min={25}
-						max={400}
-						step={5}
-						unit="%"
-						bind:value={treeConfig.current.branchLength}
-					/>
-					<LabeledSlider
-						label="Branch Length Variance"
-						min={0}
-						max={100}
-						step={5}
-						unit="%"
-						bind:value={treeConfig.current.branchLengthVariance}
-					/>
-					{#if isAdvanced}
-						<LabeledSlider
-							label="Depth Variance"
-							min={0}
-							max={2}
-							step={0.1}
-							format={(v) => v.toFixed(1)}
-							bind:value={treeConfig.current.depthVariance}
-						/>
-					{/if}
-				</SectionCard>
-			{/if}
-
-			<SectionCard title="Lighting" contentClass="space-y-4">
-				<LabeledSlider
-					label="Light Angle"
-					min={0}
-					max={360}
-					unit="°"
-					bind:value={treeConfig.current.lightAngle}
-				/>
-			</SectionCard>
-
-			<SectionCard title="Color Mode" contentClass="space-y-4">
-				<div class="flex items-center gap-2">
-					<Checkbox
-						id="use-per-shape-defaults"
-						checked={usePerShapeDefaults.current}
-						onCheckedChange={(v) => (usePerShapeDefaults.current = v === true)}
-					/>
-					<Label for="use-per-shape-defaults">Use per-shape default colors</Label>
-				</div>
-				<p class="text-xs text-muted-foreground">
-					When enabled, each tree uses its shape's default palette and the shared color
-					controls below are disabled.
-				</p>
-			</SectionCard>
+			<CanopyCard
+				{treeConfig}
+				mode="scene"
+				{sceneShapeIsRandom}
+				onBlobCountChange={(v) => (treeConfig.current.blobCount = v)}
+			/>
 
 			<CanopyColorCard
 				bind:lightColor={treeConfig.current.canopyLightColor}
 				bind:darkColor={treeConfig.current.canopyDarkColor}
-				disabled={usePerShapeDefaults.current}
+				disabled={usePerShapeDefaults.current && sceneShapeIsRandom}
 			/>
 
 			<TrunkColorCard
 				bind:hue={treeConfig.current.trunkHue}
 				bind:saturation={treeConfig.current.trunkSaturation}
 				bind:lightness={treeConfig.current.trunkLightness}
-				disabled={usePerShapeDefaults.current}
+				disabled={usePerShapeDefaults.current && sceneShapeIsRandom}
+			/>
+
+			<TrunkCard {treeConfig} mode="scene" {sceneShapeIsRandom} />
+
+			<BranchesCard {treeConfig} mode="scene" {sceneShapeIsRandom} />
+
+			<LightingCard
+				bind:lightAngle={treeConfig.current.lightAngle}
+				bind:depthVariance={treeConfig.current.depthVariance}
 			/>
 
 			{#if isIntermediate}
@@ -469,43 +366,14 @@
 
 			<ToolAccessoriesCard bind:toolVisibility bind:animateTools />
 
-			<SectionCard title="Debug" contentClass="space-y-4">
-				<div class="flex items-center gap-2">
-					<Checkbox
-						checked={showCanopy}
-						onCheckedChange={(v) => (showCanopy = v === true)}
-					/>
-					<Label>Show Canopy</Label>
-				</div>
-				<div class="flex items-center gap-2">
-					<Checkbox
-						checked={showBranches}
-						onCheckedChange={(v) => (showBranches = v === true)}
-					/>
-					<Label>Show Branches</Label>
-				</div>
-				<div class="flex items-center gap-2">
-					<Checkbox
-						checked={showTrunk}
-						onCheckedChange={(v) => (showTrunk = v === true)}
-					/>
-					<Label>Show Trunk</Label>
-				</div>
-				<div class="flex items-center gap-2">
-					<Checkbox
-						checked={showAnchors}
-						onCheckedChange={(v) => (showAnchors = v === true)}
-					/>
-					<Label>Show Anchor Points</Label>
-				</div>
-				<div class="flex items-center gap-2">
-					<Checkbox
-						checked={showViewBox}
-						onCheckedChange={(v) => (showViewBox = v === true)}
-					/>
-					<Label>Show View Box</Label>
-				</div>
-			</SectionCard>
+			<DebugCard
+				mode="scene"
+				bind:showCanopy
+				bind:showBranches
+				bind:showTrunk
+				bind:showAnchors
+				bind:showViewBox
+			/>
 
 			<AnimationsCard
 				bind:animateCanopySway
@@ -517,14 +385,11 @@
 			<OverlaysCard {overlayConfig} />
 
 			<SectionCard title="Connections" contentClass="space-y-4">
-				<div class="flex items-center gap-2">
-					<Checkbox
-						data-testid="root-connections-toggle"
-						checked={showRootConnections}
-						onCheckedChange={(v) => (showRootConnections = v === true)}
-					/>
-					<Label>Root Connections</Label>
-				</div>
+				<LabeledCheckbox
+					label="Root Connections"
+					testId="root-connections-toggle"
+					bind:checked={showRootConnections}
+				/>
 			</SectionCard>
 		</div>
 	</aside>

@@ -52,3 +52,7 @@ export const SHAPE_FRUIT_MAP = {
 	baobab: FRUIT_TYPES.baobab_fruit,
 	acacia: FRUIT_TYPES.seed_pod,
 } as const satisfies Record<Exclude<TreeShape, 'custom'>, FruitType>;
+
+export function isFruitType(value: string): value is FruitType {
+	return (Object.values(FRUIT_TYPES) as readonly string[]).includes(value);
+}

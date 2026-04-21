@@ -1,12 +1,9 @@
 import type { Tier, Point2D } from '../types.js';
 import { VIEWBOX_WIDTH, VIEWBOX_HEIGHT } from '../types.js';
 import { randomInRange } from '../prng.js';
+import { lerp } from '../math.js';
 import { sampleTrunkCenterX } from './trunk.js';
 import { TREE_SCALE, treeY } from './blob_generators.js';
-
-function lerp(a: number, b: number, t: number): number {
-	return a + (b - a) * t;
-}
 
 const W = VIEWBOX_WIDTH;
 

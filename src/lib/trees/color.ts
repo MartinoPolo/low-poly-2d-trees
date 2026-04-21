@@ -9,6 +9,8 @@
  * Hex outputs are always lowercase.
  */
 
+import { lerp } from './math.js';
+
 interface HslColor {
 	readonly h: number;
 	readonly s: number;
@@ -99,10 +101,6 @@ export function hslToHex(h: number, s: number, l: number): string {
 			.toString(16)
 			.padStart(2, '0');
 	return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
-}
-
-function lerp(a: number, b: number, t: number): number {
-	return a + (b - a) * t;
 }
 
 /**

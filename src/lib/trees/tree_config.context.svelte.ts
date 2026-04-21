@@ -52,6 +52,42 @@ class TreeConfigState {
 		this.current = { ...DEFAULT_TREE_CONFIG, ...defaults, seed, shape } as Mutable<TreeConfig>;
 	}
 
+	/**
+	 * Assign all shape-relevant fields from SHAPE_DEFAULTS[shape] onto `current`.
+	 * Does not touch `seed` or `stage` (user-controlled, not shape defaults).
+	 * Intended for callers that need to keep other `current` state references intact
+	 * (as opposed to `resetToShapeDefaults` which replaces the whole object).
+	 */
+	applyShapeDefaults(shape: Exclude<TreeShape, 'custom'>) {
+		const defaults = { ...DEFAULT_TREE_CONFIG, ...SHAPE_DEFAULTS[shape] };
+		this.current.blobCount = defaults.blobCount;
+		this.current.branchDepth = defaults.branchDepth;
+		this.current.branchesLevel1Range = [...defaults.branchesLevel1Range];
+		this.current.branchesLevel2Range = [...defaults.branchesLevel2Range];
+		this.current.branchesLevel3Range = [...defaults.branchesLevel3Range];
+		this.current.branchAngle = defaults.branchAngle;
+		this.current.blobSizeVariance = defaults.blobSizeVariance;
+		this.current.blobCloseness = defaults.blobCloseness;
+		this.current.branchThickness = defaults.branchThickness;
+		this.current.trunkSegments = defaults.trunkSegments;
+		this.current.trunkCrookedness = defaults.trunkCrookedness;
+		this.current.crookednessMode = defaults.crookednessMode;
+		this.current.branchLength = defaults.branchLength;
+		this.current.branchLengthVariance = defaults.branchLengthVariance;
+		this.current.canopyLightColor = defaults.canopyLightColor;
+		this.current.canopyDarkColor = defaults.canopyDarkColor;
+		this.current.trunkHue = defaults.trunkHue;
+		this.current.trunkSaturation = defaults.trunkSaturation;
+		this.current.trunkLightness = defaults.trunkLightness;
+		this.current.trunkTwist = defaults.trunkTwist;
+		this.current.branchMirroring = defaults.branchMirroring;
+		this.current.trunkFork = defaults.trunkFork;
+		this.current.fruitType = defaults.fruitType;
+		this.current.fruitCount = defaults.fruitCount;
+		this.current.trunkStripCount = defaults.trunkStripCount;
+		this.current.branchWidthVariance = defaults.branchWidthVariance;
+	}
+
 	applyConfig(config: TreeConfig) {
 		// Migrate old saved configs that used branchCount/trunkBranchRatio
 		const legacy = config as TreeConfig & {

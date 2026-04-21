@@ -6,6 +6,7 @@ import {
 } from './scene_layout.js';
 import {
 	SCENE_SHAPES,
+	SCENE_SHAPE_RANDOM,
 	LAYER_COUNT,
 	SCALE_FRONT,
 	SCALE_BACK,
@@ -274,7 +275,59 @@ describe('generateSceneLayout', () => {
 		});
 	});
 
-	describe('Group 7: Backward compatibility (config without trees, ID passthrough)', () => {
+	describe('Group 7: Fixed scene shape', () => {
+		it('sceneShape=oak: all trees get oak shape', () => {
+			const result = generateSceneLayout({
+				...BASE_CONFIG,
+				treeCount: 10,
+				sceneShape: 'oak',
+			});
+			for (const tree of result) {
+				expect(tree.shape).toBe('oak');
+			}
+		});
+
+		it('sceneShape=random: trees get varied shapes from SCENE_SHAPES', () => {
+			const result = generateSceneLayout({
+				...BASE_CONFIG,
+				treeCount: 20,
+				sceneShape: SCENE_SHAPE_RANDOM,
+			});
+			const shapes = new Set(result.map((t) => t.shape));
+			expect(shapes.size).toBeGreaterThan(1);
+			for (const tree of result) {
+				expect(SCENE_SHAPES).toContain(tree.shape);
+			}
+		});
+
+		it('sceneShape=undefined defaults to random shapes', () => {
+			const result = generateSceneLayout({
+				...BASE_CONFIG,
+				treeCount: 20,
+			});
+			const shapes = new Set(result.map((t) => t.shape));
+			expect(shapes.size).toBeGreaterThan(1);
+		});
+
+		it('fixed shape preserves unique seeds per tree', () => {
+			const result = generateSceneLayout({
+				...BASE_CONFIG,
+				treeCount: 10,
+				sceneShape: 'pine',
+			});
+			const seeds = result.map((t) => t.seed);
+			expect(new Set(seeds).size).toBe(seeds.length);
+		});
+
+		it('fixed shape is deterministic with same seed', () => {
+			const config = { ...BASE_CONFIG, treeCount: 10, sceneShape: 'birch' as const };
+			const a = generateSceneLayout(config);
+			const b = generateSceneLayout(config);
+			expect(a).toEqual(b);
+		});
+	});
+
+	describe('Group 8: Backward compatibility (config without trees, ID passthrough)', () => {
 		it('config without trees field works', () => {
 			const config: SceneConfig = { treeCount: 5, depthSpread: 0, baseSeed: 42 };
 			const result = generateSceneLayout(config);
