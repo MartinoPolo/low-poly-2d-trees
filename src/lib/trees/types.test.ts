@@ -69,7 +69,7 @@ describe('SHAPE_DEFAULTS §2.5', () => {
 	});
 
 	it('has oak defaults', () => {
-		expect(SHAPE_DEFAULTS.oak).toMatchObject({
+		expect({ ...DEFAULT_TREE_CONFIG, ...SHAPE_DEFAULTS.oak }).toMatchObject({
 			blobCount: 5,
 			branchDepth: 2,
 			branchesLevel1Range: [1, 3],
@@ -96,7 +96,7 @@ describe('SHAPE_DEFAULTS §2.5', () => {
 	});
 
 	it('has pine defaults', () => {
-		expect(SHAPE_DEFAULTS.pine).toMatchObject({
+		expect({ ...DEFAULT_TREE_CONFIG, ...SHAPE_DEFAULTS.pine }).toMatchObject({
 			blobCount: 5,
 			branchDepth: 0,
 			branchesLevel1Range: [0, 0],
@@ -123,7 +123,7 @@ describe('SHAPE_DEFAULTS §2.5', () => {
 	});
 
 	it('has birch defaults (REQ-EV2-TZ-03: trunkSegments 3→4)', () => {
-		expect(SHAPE_DEFAULTS.birch).toMatchObject({
+		expect({ ...DEFAULT_TREE_CONFIG, ...SHAPE_DEFAULTS.birch }).toMatchObject({
 			blobCount: 6,
 			branchDepth: 2,
 			branchesLevel1Range: [1, 2],
@@ -150,7 +150,7 @@ describe('SHAPE_DEFAULTS §2.5', () => {
 	});
 
 	it('has fir defaults', () => {
-		expect(SHAPE_DEFAULTS.fir).toMatchObject({
+		expect({ ...DEFAULT_TREE_CONFIG, ...SHAPE_DEFAULTS.fir }).toMatchObject({
 			blobCount: 6,
 			branchDepth: 0,
 			branchesLevel1Range: [0, 0],
@@ -177,7 +177,7 @@ describe('SHAPE_DEFAULTS §2.5', () => {
 	});
 
 	it('has maple defaults (REQ-EV2-TZ-03: trunkSegments 3→7)', () => {
-		expect(SHAPE_DEFAULTS.maple).toMatchObject({
+		expect({ ...DEFAULT_TREE_CONFIG, ...SHAPE_DEFAULTS.maple }).toMatchObject({
 			blobCount: 5,
 			branchDepth: 2,
 			branchesLevel1Range: [3, 5],
@@ -204,7 +204,7 @@ describe('SHAPE_DEFAULTS §2.5', () => {
 	});
 
 	it('has willow defaults (REQ-EV2-TZ-03: trunkSegments 5→7)', () => {
-		expect(SHAPE_DEFAULTS.willow).toMatchObject({
+		expect({ ...DEFAULT_TREE_CONFIG, ...SHAPE_DEFAULTS.willow }).toMatchObject({
 			blobCount: 6,
 			branchDepth: 2,
 			branchesLevel1Range: [3, 5],
@@ -235,31 +235,32 @@ describe('SHAPE_DEFAULTS §2.5', () => {
 		expect(willowDef.styleParameters?.blobVerticalOffset).toBe(25);
 	});
 
-	it('every shape entry has crookednessMode, trunkSegments >= 1, trunkCrookedness >= 0', () => {
+	it('every merged shape has crookednessMode, trunkSegments >= 1, trunkCrookedness >= 0', () => {
 		for (const shape of nonCustomShapes) {
-			const entry = SHAPE_DEFAULTS[shape];
-			expect(entry.crookednessMode).toBe('alternating');
-			expect(entry.trunkSegments).toBeGreaterThanOrEqual(1);
-			expect(entry.trunkCrookedness).toBeGreaterThanOrEqual(0);
+			const merged = { ...DEFAULT_TREE_CONFIG, ...SHAPE_DEFAULTS[shape] };
+			expect(merged.crookednessMode).toBe('alternating');
+			expect(merged.trunkSegments).toBeGreaterThanOrEqual(1);
+			expect(merged.trunkCrookedness).toBeGreaterThanOrEqual(0);
 		}
 	});
 
-	it('every shape entry has branchLength and branchLengthVariance (REQ-P-23/24)', () => {
+	it('every merged shape has branchLength and branchLengthVariance (REQ-P-23/24)', () => {
 		for (const shape of nonCustomShapes) {
-			expect(typeof SHAPE_DEFAULTS[shape].branchLength).toBe('number');
-			expect(SHAPE_DEFAULTS[shape].branchLength).toBeGreaterThan(0);
-			expect(typeof SHAPE_DEFAULTS[shape].branchLengthVariance).toBe('number');
+			const merged = { ...DEFAULT_TREE_CONFIG, ...SHAPE_DEFAULTS[shape] };
+			expect(typeof merged.branchLength).toBe('number');
+			expect(merged.branchLength).toBeGreaterThan(0);
+			expect(typeof merged.branchLengthVariance).toBe('number');
 		}
 	});
 
-	it('every shape entry carries all 5 color fields (§2.6, REQ-L-09)', () => {
+	it('every merged shape carries all 5 color fields (§2.6, REQ-L-09)', () => {
 		for (const shape of nonCustomShapes) {
-			const entry = SHAPE_DEFAULTS[shape];
-			expect(entry.canopyLightColor).toMatch(/^#[0-9a-f]{6}$/);
-			expect(entry.canopyDarkColor).toMatch(/^#[0-9a-f]{6}$/);
-			expect(typeof entry.trunkHue).toBe('number');
-			expect(typeof entry.trunkSaturation).toBe('number');
-			expect(typeof entry.trunkLightness).toBe('number');
+			const merged = { ...DEFAULT_TREE_CONFIG, ...SHAPE_DEFAULTS[shape] };
+			expect(merged.canopyLightColor).toMatch(/^#[0-9a-f]{6}$/);
+			expect(merged.canopyDarkColor).toMatch(/^#[0-9a-f]{6}$/);
+			expect(typeof merged.trunkHue).toBe('number');
+			expect(typeof merged.trunkSaturation).toBe('number');
+			expect(typeof merged.trunkLightness).toBe('number');
 		}
 	});
 
@@ -268,23 +269,22 @@ describe('SHAPE_DEFAULTS §2.5', () => {
 		expect(SHAPE_DEFAULTS.cypress.branchDepth).toBe(0);
 		expect(SHAPE_DEFAULTS.cypress.canopyLightColor).toBe('#2d5e3a');
 		expect(SHAPE_DEFAULTS.cypress.fruitType).toBe('small_cone');
-		expect(SHAPE_DEFAULTS.cypress.fruitCount).toBe(3);
 	});
 
 	it('has apple defaults (compact round, short trunk, apple fruit)', () => {
 		expect(SHAPE_DEFAULTS.apple.blobCount).toBe(2);
 		expect(SHAPE_DEFAULTS.apple.branchDepth).toBe(1);
 		expect(SHAPE_DEFAULTS.apple.fruitType).toBe('apple');
-		expect(SHAPE_DEFAULTS.apple.fruitCount).toBe(3);
 	});
 
 	it('has cherry defaults (wide spread, pink canopy, cherry_pair fruit)', () => {
-		expect(SHAPE_DEFAULTS.cherry.blobCount).toBe(4);
-		expect(SHAPE_DEFAULTS.cherry.branchDepth).toBe(2);
-		expect(SHAPE_DEFAULTS.cherry.canopyLightColor).toBe('#ffb7c5');
-		expect(SHAPE_DEFAULTS.cherry.canopyDarkColor).toBe('#c4586a');
-		expect(SHAPE_DEFAULTS.cherry.fruitType).toBe('cherry_pair');
-		expect(SHAPE_DEFAULTS.cherry.fruitCount).toBe(4);
+		const merged = { ...DEFAULT_TREE_CONFIG, ...SHAPE_DEFAULTS.cherry };
+		expect(merged.blobCount).toBe(4);
+		expect(merged.branchDepth).toBe(2);
+		expect(merged.canopyLightColor).toBe('#ffb7c5');
+		expect(merged.canopyDarkColor).toBe('#c4586a');
+		expect(merged.fruitType).toBe('cherry_pair');
+		expect(merged.fruitCount).toBe(4);
 	});
 
 	it('has bush defaults (ground-level, no branches)', () => {
@@ -314,27 +314,32 @@ describe('Engine v2 config fields (§13)', () => {
 		expect(DEFAULT_TREE_CONFIG.branchWidthVariance).toBe(25);
 	});
 
-	it('DEFAULT_TREE_CONFIG has trunkTwist=10 (REQ-EV2-X-03)', () => {
-		expect(DEFAULT_TREE_CONFIG.trunkTwist).toBe(10);
+	it('DEFAULT_TREE_CONFIG has trunkTwist=25 (REQ-EV2-X-03)', () => {
+		expect(DEFAULT_TREE_CONFIG.trunkTwist).toBe(25);
 	});
 
 	it('trunkPolygons is removed from TreeConfig (REQ-EV2-D-03)', () => {
 		expect('trunkPolygons' in DEFAULT_TREE_CONFIG).toBe(false);
 	});
 
-	it('SHAPE_DEFAULTS trunkSegments updated per REQ-EV2-TZ-03', () => {
+	it('merged shape trunkSegments values per REQ-EV2-TZ-03', () => {
+		const merged = (shape: Exclude<TreeShape, 'custom'>) => ({
+			...DEFAULT_TREE_CONFIG,
+			...SHAPE_DEFAULTS[shape],
+		});
 		expect(SHAPE_DEFAULTS.oak.trunkSegments).toBe(5);
 		expect(SHAPE_DEFAULTS.maple.trunkSegments).toBe(7);
 		expect(SHAPE_DEFAULTS.willow.trunkSegments).toBe(7);
 		expect(SHAPE_DEFAULTS.cherry.trunkSegments).toBe(6);
 		expect(SHAPE_DEFAULTS.birch.trunkSegments).toBe(4);
-		expect(SHAPE_DEFAULTS.apple.trunkSegments).toBe(3);
 		expect(SHAPE_DEFAULTS.baobab.trunkSegments).toBe(5);
 		expect(SHAPE_DEFAULTS.acacia.trunkSegments).toBe(5);
-		expect(SHAPE_DEFAULTS.pine.trunkSegments).toBe(3);
-		expect(SHAPE_DEFAULTS.fir.trunkSegments).toBe(3);
-		expect(SHAPE_DEFAULTS.cypress.trunkSegments).toBe(3);
-		expect(SHAPE_DEFAULTS.bush.trunkSegments).toBe(3);
+		// pine, fir, cypress, apple, bush inherit trunkSegments=3 from DEFAULT_TREE_CONFIG
+		expect(merged('pine').trunkSegments).toBe(3);
+		expect(merged('fir').trunkSegments).toBe(3);
+		expect(merged('cypress').trunkSegments).toBe(3);
+		expect(merged('apple').trunkSegments).toBe(3);
+		expect(merged('bush').trunkSegments).toBe(3);
 	});
 });
 

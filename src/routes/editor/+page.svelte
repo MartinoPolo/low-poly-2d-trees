@@ -18,6 +18,7 @@
 		TREE_SHAPE_OPTIONS,
 		TREE_STAGE_OPTIONS,
 		SHAPE_DEFAULTS,
+		DEFAULT_TREE_CONFIG,
 		CROOKEDNESS_MODES,
 		CROOKEDNESS_MODE_OPTIONS,
 		BRANCH_MIRRORING,
@@ -183,7 +184,7 @@
 			);
 			return;
 		}
-		const defaults = SHAPE_DEFAULTS[value];
+		const defaults = { ...DEFAULT_TREE_CONFIG, ...SHAPE_DEFAULTS[value] };
 		treeConfig.current.blobCount = defaults.blobCount;
 		treeConfig.current.branchDepth = defaults.branchDepth;
 		treeConfig.current.branchesLevel1Range = [...defaults.branchesLevel1Range];
@@ -208,12 +209,8 @@
 		treeConfig.current.trunkFork = defaults.trunkFork;
 		treeConfig.current.fruitType = defaults.fruitType;
 		treeConfig.current.fruitCount = defaults.fruitCount;
-		if ('trunkStripCount' in defaults) {
-			treeConfig.current.trunkStripCount = defaults.trunkStripCount as number;
-		}
-		if ('branchWidthVariance' in defaults) {
-			treeConfig.current.branchWidthVariance = defaults.branchWidthVariance as number;
-		}
+		treeConfig.current.trunkStripCount = defaults.trunkStripCount;
+		treeConfig.current.branchWidthVariance = defaults.branchWidthVariance;
 		clampBranchRangesToMaximums();
 	}
 

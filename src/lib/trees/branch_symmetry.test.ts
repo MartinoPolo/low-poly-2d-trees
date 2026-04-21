@@ -22,15 +22,15 @@ function makeConfig(overrides: Partial<TreeConfig> = {}): TreeConfig {
 
 describe('Branch symmetry species defaults', () => {
 	it('cherry defaults to branchMirroring=preferred, trunkFork=false', () => {
-		const defaults = SHAPE_DEFAULTS[TREE_SHAPES.cherry];
-		expect(defaults.branchMirroring).toBe(BRANCH_MIRRORING.preferred);
-		expect(defaults.trunkFork).toBe(false);
+		const merged = { ...DEFAULT_TREE_CONFIG, ...SHAPE_DEFAULTS[TREE_SHAPES.cherry] };
+		expect(merged.branchMirroring).toBe(BRANCH_MIRRORING.preferred);
+		expect(merged.trunkFork).toBe(false);
 	});
 
 	it('acacia defaults to branchMirroring=preferred, trunkFork=true', () => {
-		const defaults = SHAPE_DEFAULTS[TREE_SHAPES.acacia];
-		expect(defaults.branchMirroring).toBe(BRANCH_MIRRORING.preferred);
-		expect(defaults.trunkFork).toBe(true);
+		const merged = { ...DEFAULT_TREE_CONFIG, ...SHAPE_DEFAULTS[TREE_SHAPES.acacia] };
+		expect(merged.branchMirroring).toBe(BRANCH_MIRRORING.preferred);
+		expect(merged.trunkFork).toBe(true);
 	});
 
 	it('oak, birch, maple, willow, apple, baobab default to branchMirroring=allowed', () => {
@@ -43,9 +43,9 @@ describe('Branch symmetry species defaults', () => {
 			TREE_SHAPES.baobab,
 		] as const;
 		for (const shape of allowedShapes) {
-			const defaults = SHAPE_DEFAULTS[shape];
-			expect(defaults.branchMirroring).toBe(BRANCH_MIRRORING.allowed);
-			expect(defaults.trunkFork).toBe(false);
+			const merged = { ...DEFAULT_TREE_CONFIG, ...SHAPE_DEFAULTS[shape] };
+			expect(merged.branchMirroring).toBe(BRANCH_MIRRORING.allowed);
+			expect(merged.trunkFork).toBe(false);
 		}
 	});
 
@@ -57,9 +57,9 @@ describe('Branch symmetry species defaults', () => {
 			TREE_SHAPES.bush,
 		] as const;
 		for (const shape of offShapes) {
-			const defaults = SHAPE_DEFAULTS[shape];
-			expect(defaults.branchMirroring).toBe(BRANCH_MIRRORING.off);
-			expect(defaults.trunkFork).toBe(false);
+			const merged = { ...DEFAULT_TREE_CONFIG, ...SHAPE_DEFAULTS[shape] };
+			expect(merged.branchMirroring).toBe(BRANCH_MIRRORING.off);
+			expect(merged.trunkFork).toBe(false);
 		}
 	});
 });
@@ -70,7 +70,7 @@ describe('Branch symmetry species defaults', () => {
 
 describe('Config migration', () => {
 	it('DEFAULT_TREE_CONFIG includes branchMirroring and trunkFork', () => {
-		expect(DEFAULT_TREE_CONFIG.branchMirroring).toBe(BRANCH_MIRRORING.off);
+		expect(DEFAULT_TREE_CONFIG.branchMirroring).toBe(BRANCH_MIRRORING.allowed);
 		expect(DEFAULT_TREE_CONFIG.trunkFork).toBe(false);
 	});
 
@@ -79,7 +79,7 @@ describe('Config migration', () => {
 		delete oldConfig['branchMirroring'];
 		delete oldConfig['trunkFork'];
 		const migrated = { ...DEFAULT_TREE_CONFIG, ...oldConfig };
-		expect(migrated.branchMirroring).toBe(BRANCH_MIRRORING.off);
+		expect(migrated.branchMirroring).toBe(BRANCH_MIRRORING.allowed);
 		expect(migrated.trunkFork).toBe(false);
 	});
 });

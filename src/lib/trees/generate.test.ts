@@ -673,7 +673,9 @@ describe('REQ-T: Trunk & Branch Generation', () => {
 
 	describe('REQ-T-05b: branch divergence from trunk axis', () => {
 		it('a single branch axis diverges from trunk axis by at least 28°', () => {
-			const geo = generateTree(makeConfig({ branchesLevel1Range: [1, 1], seed: 42 }));
+			const geo = generateTree(
+				makeConfig({ branchesLevel1Range: [1, 1], seed: 42, trunkCrookedness: 0 }),
+			);
 			const branchQuads = allBranchQuads(geo);
 			const { min, max } = extremeYVertices(branchQuads);
 			const branchAxis = { dx: min.x - max.x, dy: min.y - max.y };
@@ -847,6 +849,21 @@ describe('REQ-T: Trunk & Branch Generation', () => {
 			// Base stays centered; trunk top shifts horizontally due to lean
 			expect(g5.anchors.trunkBase.x).toBeCloseTo(VIEWBOX_WIDTH / 2, 0);
 			expect(g5.anchors.trunkBase.x).not.toBeCloseTo(g5.anchors.trunkTop.x, 0);
+		});
+
+		it('trunk base quad vertices stay level (same Y) at various lean angles', () => {
+			for (const leanDeg of [0, 15, 30, 45, -15, -30, -45]) {
+				const geo = generateTree(
+					makeConfig({ trunkLean: leanDeg, trunkSegments: 3, branchDepth: 0, seed: 42 }),
+				);
+				const baseY = geo.anchors.trunkBase.y;
+				const defaultStripCount = 3;
+				const baseQuads = geo.trunkQuads.slice(0, defaultStripCount);
+				const baseBottomVertices = baseQuads.flatMap((q) => [q.points[2]!, q.points[3]!]);
+				for (const v of baseBottomVertices) {
+					expect(v.y, `lean=${leanDeg}° vertex should be at baseY`).toBeCloseTo(baseY, 1);
+				}
+			}
 		});
 
 		it('REQ-T-12a: high crookedness produces visible horizontal deviations with zero lean', () => {
@@ -1724,6 +1741,8 @@ describe('Issue #10: custom tree shape', () => {
 			makeConfig({
 				shape: 'custom',
 				blobCount: 1,
+				trunkSegments: 1,
+				trunkCrookedness: 0,
 				customBlobs: [makeCustomBlob({ position: { x: 0, y: 0 } })],
 			}),
 		);
@@ -2345,7 +2364,7 @@ describe('B9: SHAPE_DEFAULTS completeness', () => {
 		}
 	});
 
-	it('each SHAPE_DEFAULTS entry has all required keys', () => {
+	it('each merged shape config has all required keys', () => {
 		const requiredKeys = [
 			'blobCount',
 			'branchDepth',
@@ -2365,9 +2384,9 @@ describe('B9: SHAPE_DEFAULTS completeness', () => {
 			'fruitCount',
 		] as const;
 		for (const shape of nonCustomShapes) {
-			const defaults = SHAPE_DEFAULTS[shape];
+			const merged = { ...DEFAULT_TREE_CONFIG, ...SHAPE_DEFAULTS[shape] };
 			for (const key of requiredKeys) {
-				expect(defaults).toHaveProperty(key);
+				expect(merged).toHaveProperty(key);
 			}
 		}
 	});

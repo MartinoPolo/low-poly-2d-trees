@@ -8,7 +8,12 @@
 	import LabeledSelect from '$lib/components/composed/LabeledSelect.svelte';
 	import CanopyColorCard from '$lib/components/composed/CanopyColorCard.svelte';
 	import TrunkColorCard from '$lib/components/composed/TrunkColorCard.svelte';
-	import { SHAPE_DEFAULTS, TREE_STAGE_OPTIONS, isTreeStage } from '$lib/trees/types.js';
+	import {
+		DEFAULT_TREE_CONFIG,
+		SHAPE_DEFAULTS,
+		TREE_STAGE_OPTIONS,
+		isTreeStage,
+	} from '$lib/trees/types.js';
 	import { isParamDisabled } from '$lib/trees/disabled_params.js';
 	import {
 		createDefaultToolVisibility,
@@ -114,7 +119,7 @@
 		<SceneBackground {groundHeightPercent} />
 
 		{#each scenePlacements as placement, index (index)}
-			{@const shapeDefaults = SHAPE_DEFAULTS[placement.shape]}
+			{@const shapeDefaults = { ...DEFAULT_TREE_CONFIG, ...SHAPE_DEFAULTS[placement.shape] }}
 			<div
 				data-testid="scene-tree"
 				class="absolute bottom-0"

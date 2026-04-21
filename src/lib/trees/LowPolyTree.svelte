@@ -465,7 +465,7 @@
 							style="--leaf-start-x: {leaf.x}px; --leaf-start-y: {leaf.y}px; --leaf-land-y: {leaf.landedY}px; --leaf-land-x: {leaf.x +
 								leaf.scatterX}px; --leaf-duration: {leaf.fallDuration}s; --leaf-rotation: {leaf.rotation}deg; --leaf-fade-duration: {FALLING_LEAF_CONFIG.fadeDurationMs}ms;"
 						>
-							<LeafSvg color={leaf.color} />
+							<g transform="scale(2)"><LeafSvg color={leaf.color} /></g>
 						</g>
 					{/each}
 				</g>
