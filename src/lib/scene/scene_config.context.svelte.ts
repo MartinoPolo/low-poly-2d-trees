@@ -1,5 +1,7 @@
+import { createContext } from 'svelte';
 import { browser } from '$app/environment';
 import { Persisted, jsonSerde } from '$lib/reactivity/persisted.svelte.js';
+import { StateRaw } from '$lib/reactivity/state.svelte.js';
 import { isValidSceneConfig } from '$lib/config/validators.js';
 import {
 	SCENE_DEFAULTS,
@@ -8,60 +10,57 @@ import {
 	type SceneShapeSelection,
 } from './scene_config.js';
 
-const SCENE_CONFIG_KEY = 'scene-config';
+type SceneConfigContext = ReturnType<typeof createSceneConfigContext>;
 
-class SceneConfigState {
-	treeCount = $state(SCENE_DEFAULTS.treeCount);
-	depthSpread = $state(SCENE_DEFAULTS.depthSpread);
-	baseSeed = $state(SCENE_DEFAULTS.baseSeed);
-	sceneShape: SceneShapeSelection = $state(SCENE_DEFAULTS.sceneShape);
+const [useSceneConfig, setSceneConfigInternal] = createContext<SceneConfigContext>();
+/** @knipignore */
+export { useSceneConfig };
 
-	snapshot(): SceneConfig {
-		return {
-			treeCount: this.treeCount,
-			depthSpread: this.depthSpread,
-			baseSeed: this.baseSeed,
-			sceneShape: this.sceneShape,
-		};
-	}
-
-	apply(config: SceneConfig) {
-		this.treeCount = config.treeCount;
-		this.depthSpread = config.depthSpread;
-		this.baseSeed = config.baseSeed;
-		this.sceneShape = config.sceneShape ?? SCENE_SHAPE_RANDOM;
-	}
-
-	resetToDefaults() {
-		this.apply(SCENE_DEFAULTS);
-	}
+export function setSceneConfigContext() {
+	const ctx = createSceneConfigContext();
+	setSceneConfigInternal(ctx);
+	return ctx;
 }
 
-export function createSceneConfigContext() {
+function createSceneConfigContext() {
 	const persisted = new Persisted<SceneConfig>({
-		key: SCENE_CONFIG_KEY,
+		key: 'scene-config',
 		serde: jsonSerde(isValidSceneConfig),
 		defaultValue: SCENE_DEFAULTS,
 	});
+	const init = persisted.current;
 
-	const state = new SceneConfigState();
-	state.apply(persisted.current);
+	const treeCount = new StateRaw(init.treeCount, { isEqual: Object.is });
+	const depthSpread = new StateRaw(init.depthSpread, { isEqual: Object.is });
+	const baseSeed = new StateRaw(init.baseSeed, { isEqual: Object.is });
+	const sceneShape = new StateRaw<SceneShapeSelection>(init.sceneShape ?? SCENE_SHAPE_RANDOM, {
+		isEqual: Object.is,
+	});
 
 	if (browser) {
 		$effect(() => {
-			persisted.current = state.snapshot();
-		});
-
-		$effect(() => {
-			const handler = (e: StorageEvent) => {
-				if (e.key === SCENE_CONFIG_KEY) {
-					state.apply(persisted.current);
-				}
+			persisted.current = {
+				treeCount: treeCount.current,
+				depthSpread: depthSpread.current,
+				baseSeed: baseSeed.current,
+				sceneShape: sceneShape.current,
 			};
-			window.addEventListener('storage', handler);
-			return () => window.removeEventListener('storage', handler);
+		});
+		$effect(() => {
+			const snap = persisted.current;
+			treeCount.current = snap.treeCount;
+			depthSpread.current = snap.depthSpread;
+			baseSeed.current = snap.baseSeed;
+			sceneShape.current = snap.sceneShape ?? SCENE_SHAPE_RANDOM;
 		});
 	}
 
-	return state;
+	function resetToDefaults() {
+		treeCount.current = SCENE_DEFAULTS.treeCount;
+		depthSpread.current = SCENE_DEFAULTS.depthSpread;
+		baseSeed.current = SCENE_DEFAULTS.baseSeed;
+		sceneShape.current = SCENE_DEFAULTS.sceneShape;
+	}
+
+	return { treeCount, depthSpread, baseSeed, sceneShape, resetToDefaults };
 }

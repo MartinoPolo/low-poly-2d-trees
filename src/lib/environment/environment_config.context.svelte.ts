@@ -1,74 +1,99 @@
+import { createContext } from 'svelte';
 import { browser } from '$app/environment';
 import { Persisted, jsonSerde } from '$lib/reactivity/persisted.svelte.js';
+import { StateRaw } from '$lib/reactivity/state.svelte.js';
+import { Derived } from '$lib/reactivity/derived.svelte.js';
 import { isValidEnvironmentConfig } from '$lib/config/validators.js';
 import { ENVIRONMENT_DEFAULTS, type EnvironmentConfig } from './environment_config.js';
 
-const ENVIRONMENT_CONFIG_KEY = 'environment-config';
+type EnvironmentConfigContext = ReturnType<typeof createEnvironmentConfigContext>;
 
-class EnvironmentConfigState {
-	rainEnabled = $state(ENVIRONMENT_DEFAULTS.rainEnabled);
-	lightningEnabled = $state(ENVIRONMENT_DEFAULTS.lightningEnabled);
-	firefliesEnabled = $state(ENVIRONMENT_DEFAULTS.firefliesEnabled);
-	windParticlesEnabled = $state(ENVIRONMENT_DEFAULTS.windParticlesEnabled);
-	snowEnabled = $state(ENVIRONMENT_DEFAULTS.snowEnabled);
-	sunRaysEnabled = $state(ENVIRONMENT_DEFAULTS.sunRaysEnabled);
-	cloudsEnabled = $state(ENVIRONMENT_DEFAULTS.cloudsEnabled);
-	rainIntensity = $state(ENVIRONMENT_DEFAULTS.rainIntensity);
+const [useEnvironmentConfig, setEnvironmentConfigInternal] =
+	createContext<EnvironmentConfigContext>();
+/** @knipignore */
+export { useEnvironmentConfig };
 
-	snapshot(): EnvironmentConfig {
-		return {
-			rainEnabled: this.rainEnabled,
-			lightningEnabled: this.lightningEnabled,
-			firefliesEnabled: this.firefliesEnabled,
-			windParticlesEnabled: this.windParticlesEnabled,
-			snowEnabled: this.snowEnabled,
-			sunRaysEnabled: this.sunRaysEnabled,
-			cloudsEnabled: this.cloudsEnabled,
-			rainIntensity: this.rainIntensity,
-		};
-	}
-
-	apply(config: EnvironmentConfig) {
-		this.rainEnabled = config.rainEnabled;
-		this.lightningEnabled = config.lightningEnabled;
-		this.firefliesEnabled = config.firefliesEnabled;
-		this.windParticlesEnabled = config.windParticlesEnabled;
-		this.snowEnabled = config.snowEnabled;
-		this.sunRaysEnabled = config.sunRaysEnabled;
-		this.cloudsEnabled = config.cloudsEnabled;
-		this.rainIntensity = config.rainIntensity;
-	}
-
-	resetToDefaults() {
-		this.apply(ENVIRONMENT_DEFAULTS);
-	}
+export function setEnvironmentConfigContext() {
+	const ctx = createEnvironmentConfigContext();
+	setEnvironmentConfigInternal(ctx);
+	return ctx;
 }
 
-export function createEnvironmentConfigContext() {
+function createEnvironmentConfigContext() {
 	const persisted = new Persisted<EnvironmentConfig>({
-		key: ENVIRONMENT_CONFIG_KEY,
+		key: 'environment-config',
 		serde: jsonSerde(isValidEnvironmentConfig),
 		defaultValue: ENVIRONMENT_DEFAULTS,
 	});
+	const init = persisted.current;
 
-	const state = new EnvironmentConfigState();
-	state.apply(persisted.current);
+	const rainEnabled = new StateRaw(init.rainEnabled, { isEqual: Object.is });
+	const lightningEnabled = new StateRaw(init.lightningEnabled, { isEqual: Object.is });
+	const firefliesEnabled = new StateRaw(init.firefliesEnabled, { isEqual: Object.is });
+	const windParticlesEnabled = new StateRaw(init.windParticlesEnabled, { isEqual: Object.is });
+	const snowEnabled = new StateRaw(init.snowEnabled, { isEqual: Object.is });
+	const sunRaysEnabled = new StateRaw(init.sunRaysEnabled, { isEqual: Object.is });
+	const cloudsEnabled = new StateRaw(init.cloudsEnabled, { isEqual: Object.is });
+	const rainIntensity = new StateRaw(init.rainIntensity, { isEqual: Object.is });
+
+	const config = new Derived<EnvironmentConfig>(() => ({
+		rainEnabled: rainEnabled.current,
+		lightningEnabled: lightningEnabled.current,
+		firefliesEnabled: firefliesEnabled.current,
+		windParticlesEnabled: windParticlesEnabled.current,
+		snowEnabled: snowEnabled.current,
+		sunRaysEnabled: sunRaysEnabled.current,
+		cloudsEnabled: cloudsEnabled.current,
+		rainIntensity: rainIntensity.current,
+	}));
 
 	if (browser) {
 		$effect(() => {
-			persisted.current = state.snapshot();
-		});
-
-		$effect(() => {
-			const handler = (e: StorageEvent) => {
-				if (e.key === ENVIRONMENT_CONFIG_KEY) {
-					state.apply(persisted.current);
-				}
+			persisted.current = {
+				rainEnabled: rainEnabled.current,
+				lightningEnabled: lightningEnabled.current,
+				firefliesEnabled: firefliesEnabled.current,
+				windParticlesEnabled: windParticlesEnabled.current,
+				snowEnabled: snowEnabled.current,
+				sunRaysEnabled: sunRaysEnabled.current,
+				cloudsEnabled: cloudsEnabled.current,
+				rainIntensity: rainIntensity.current,
 			};
-			window.addEventListener('storage', handler);
-			return () => window.removeEventListener('storage', handler);
+		});
+		$effect(() => {
+			const snap = persisted.current;
+			rainEnabled.current = snap.rainEnabled;
+			lightningEnabled.current = snap.lightningEnabled;
+			firefliesEnabled.current = snap.firefliesEnabled;
+			windParticlesEnabled.current = snap.windParticlesEnabled;
+			snowEnabled.current = snap.snowEnabled;
+			sunRaysEnabled.current = snap.sunRaysEnabled;
+			cloudsEnabled.current = snap.cloudsEnabled;
+			rainIntensity.current = snap.rainIntensity;
 		});
 	}
 
-	return state;
+	function resetToDefaults() {
+		rainEnabled.current = ENVIRONMENT_DEFAULTS.rainEnabled;
+		lightningEnabled.current = ENVIRONMENT_DEFAULTS.lightningEnabled;
+		firefliesEnabled.current = ENVIRONMENT_DEFAULTS.firefliesEnabled;
+		windParticlesEnabled.current = ENVIRONMENT_DEFAULTS.windParticlesEnabled;
+		snowEnabled.current = ENVIRONMENT_DEFAULTS.snowEnabled;
+		sunRaysEnabled.current = ENVIRONMENT_DEFAULTS.sunRaysEnabled;
+		cloudsEnabled.current = ENVIRONMENT_DEFAULTS.cloudsEnabled;
+		rainIntensity.current = ENVIRONMENT_DEFAULTS.rainIntensity;
+	}
+
+	return {
+		rainEnabled,
+		lightningEnabled,
+		firefliesEnabled,
+		windParticlesEnabled,
+		snowEnabled,
+		sunRaysEnabled,
+		cloudsEnabled,
+		rainIntensity,
+		config,
+		resetToDefaults,
+	};
 }

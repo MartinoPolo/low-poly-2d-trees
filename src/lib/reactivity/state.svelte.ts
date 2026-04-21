@@ -9,6 +9,7 @@ export interface ReadableState<T> {
 	get current(): T;
 }
 
+/** @knipignore */
 export interface StateUpdateOptions<T> {
 	isEqual?: (previousValue: NoInfer<T>, newValue: NoInfer<T>) => boolean;
 	transform?: (value: NoInfer<T>) => NoInfer<T>;
@@ -59,6 +60,7 @@ export class ReadonlyState<T> implements ReadableState<T> {
 	}
 }
 
+/** @knipignore */
 export class ProtectedState<T> implements ReadableState<T> {
 	#state;
 

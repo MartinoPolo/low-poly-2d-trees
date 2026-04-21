@@ -1,82 +1,89 @@
+import { createContext } from 'svelte';
 import { browser } from '$app/environment';
 import { Persisted, jsonSerde } from '$lib/reactivity/persisted.svelte.js';
+import { StateRaw } from '$lib/reactivity/state.svelte.js';
 import { isValidEditorViewState } from '$lib/config/validators.js';
 import { EDITOR_VIEW_DEFAULTS, type EditorViewState } from './editor_view_state.js';
 
-const EDITOR_VIEW_STATE_KEY = 'editor-view-state';
+type EditorViewStateContext = ReturnType<typeof createEditorViewStateContext>;
 
-class EditorViewConfigState {
-	showCanopy = $state(EDITOR_VIEW_DEFAULTS.showCanopy);
-	showBranches = $state(EDITOR_VIEW_DEFAULTS.showBranches);
-	showTrunk = $state(EDITOR_VIEW_DEFAULTS.showTrunk);
-	showFruit = $state(EDITOR_VIEW_DEFAULTS.showFruit);
-	showAnchors = $state(EDITOR_VIEW_DEFAULTS.showAnchors);
-	showEnvelope = $state(EDITOR_VIEW_DEFAULTS.showEnvelope);
-	showViewBox = $state(EDITOR_VIEW_DEFAULTS.showViewBox);
-	animateCanopySway = $state(EDITOR_VIEW_DEFAULTS.animateCanopySway);
-	animateBranches = $state(EDITOR_VIEW_DEFAULTS.animateBranches);
-	animateGrowth = $state(EDITOR_VIEW_DEFAULTS.animateGrowth);
-	growthVariance = $state(EDITOR_VIEW_DEFAULTS.growthVariance);
-	animateTools = $state(EDITOR_VIEW_DEFAULTS.animateTools);
+const [useEditorViewState, setEditorViewStateInternal] = createContext<EditorViewStateContext>();
+/** @knipignore */
+export { useEditorViewState };
 
-	snapshot(): EditorViewState {
-		return {
-			showCanopy: this.showCanopy,
-			showBranches: this.showBranches,
-			showTrunk: this.showTrunk,
-			showFruit: this.showFruit,
-			showAnchors: this.showAnchors,
-			showEnvelope: this.showEnvelope,
-			showViewBox: this.showViewBox,
-			animateCanopySway: this.animateCanopySway,
-			animateBranches: this.animateBranches,
-			animateGrowth: this.animateGrowth,
-			growthVariance: this.growthVariance,
-			animateTools: this.animateTools,
-		};
-	}
-
-	apply(state: EditorViewState) {
-		this.showCanopy = state.showCanopy;
-		this.showBranches = state.showBranches;
-		this.showTrunk = state.showTrunk;
-		this.showFruit = state.showFruit;
-		this.showAnchors = state.showAnchors;
-		this.showEnvelope = state.showEnvelope;
-		this.showViewBox = state.showViewBox;
-		this.animateCanopySway = state.animateCanopySway;
-		this.animateBranches = state.animateBranches;
-		this.animateGrowth = state.animateGrowth;
-		this.growthVariance = state.growthVariance;
-		this.animateTools = state.animateTools;
-	}
+export function setEditorViewStateContext() {
+	const ctx = createEditorViewStateContext();
+	setEditorViewStateInternal(ctx);
+	return ctx;
 }
 
-export function createEditorViewStateContext() {
+function createEditorViewStateContext() {
 	const persisted = new Persisted<EditorViewState>({
-		key: EDITOR_VIEW_STATE_KEY,
+		key: 'editor-view-state',
 		serde: jsonSerde(isValidEditorViewState),
 		defaultValue: EDITOR_VIEW_DEFAULTS,
 	});
+	const init = persisted.current;
 
-	const state = new EditorViewConfigState();
-	state.apply(persisted.current);
+	const showCanopy = new StateRaw(init.showCanopy, { isEqual: Object.is });
+	const showBranches = new StateRaw(init.showBranches, { isEqual: Object.is });
+	const showTrunk = new StateRaw(init.showTrunk, { isEqual: Object.is });
+	const showFruit = new StateRaw(init.showFruit, { isEqual: Object.is });
+	const showAnchors = new StateRaw(init.showAnchors, { isEqual: Object.is });
+	const showEnvelope = new StateRaw(init.showEnvelope, { isEqual: Object.is });
+	const showViewBox = new StateRaw(init.showViewBox, { isEqual: Object.is });
+	const animateCanopySway = new StateRaw(init.animateCanopySway, { isEqual: Object.is });
+	const animateBranches = new StateRaw(init.animateBranches, { isEqual: Object.is });
+	const animateGrowth = new StateRaw(init.animateGrowth, { isEqual: Object.is });
+	const growthVariance = new StateRaw(init.growthVariance, { isEqual: Object.is });
+	const animateTools = new StateRaw(init.animateTools, { isEqual: Object.is });
 
 	if (browser) {
 		$effect(() => {
-			persisted.current = state.snapshot();
-		});
-
-		$effect(() => {
-			const handler = (e: StorageEvent) => {
-				if (e.key === EDITOR_VIEW_STATE_KEY) {
-					state.apply(persisted.current);
-				}
+			persisted.current = {
+				showCanopy: showCanopy.current,
+				showBranches: showBranches.current,
+				showTrunk: showTrunk.current,
+				showFruit: showFruit.current,
+				showAnchors: showAnchors.current,
+				showEnvelope: showEnvelope.current,
+				showViewBox: showViewBox.current,
+				animateCanopySway: animateCanopySway.current,
+				animateBranches: animateBranches.current,
+				animateGrowth: animateGrowth.current,
+				growthVariance: growthVariance.current,
+				animateTools: animateTools.current,
 			};
-			window.addEventListener('storage', handler);
-			return () => window.removeEventListener('storage', handler);
+		});
+		$effect(() => {
+			const snap = persisted.current;
+			showCanopy.current = snap.showCanopy;
+			showBranches.current = snap.showBranches;
+			showTrunk.current = snap.showTrunk;
+			showFruit.current = snap.showFruit;
+			showAnchors.current = snap.showAnchors;
+			showEnvelope.current = snap.showEnvelope;
+			showViewBox.current = snap.showViewBox;
+			animateCanopySway.current = snap.animateCanopySway;
+			animateBranches.current = snap.animateBranches;
+			animateGrowth.current = snap.animateGrowth;
+			growthVariance.current = snap.growthVariance;
+			animateTools.current = snap.animateTools;
 		});
 	}
 
-	return state;
+	return {
+		showCanopy,
+		showBranches,
+		showTrunk,
+		showFruit,
+		showAnchors,
+		showEnvelope,
+		showViewBox,
+		animateCanopySway,
+		animateBranches,
+		animateGrowth,
+		growthVariance,
+		animateTools,
+	};
 }
