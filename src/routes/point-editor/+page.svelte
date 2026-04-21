@@ -63,6 +63,10 @@
 
 	type AssetCategory = keyof typeof CATEGORY_ASSET_OPTIONS;
 
+	const EDITOR_VIEWBOX_SIZE = 200;
+	const EDITOR_CENTER = EDITOR_VIEWBOX_SIZE / 2;
+	const EDITOR_DISPLAY_SCALE_FACTOR = 2;
+
 	let activeTab = $state<AssetCategory>('tools');
 	let selectedAssets = $state<Record<AssetCategory, string>>({
 		tools: TOOL_TYPES.shovel,
@@ -76,9 +80,13 @@
 	let snapOffset = $state({ x: 0, y: 0 });
 	let pivotPoint = $state({ x: 0, y: 0 });
 	let assetScale = $state(1);
+	let svgEditorElement = $state<SVGSVGElement>();
+	let isDraggingSnap = $state(false);
+	let isDraggingPivot = $state(false);
 
 	const selectedAsset = $derived(selectedAssets[activeTab]);
 	const assetOptions = $derived(CATEGORY_ASSET_OPTIONS[activeTab]);
+	const isDev = import.meta.env.DEV;
 
 	function selectAsset(value: string) {
 		selectedAssets[activeTab] = value;
@@ -190,16 +198,6 @@
 				return base;
 		}
 	});
-
-	const isDev = import.meta.env.DEV;
-
-	let svgEditorElement = $state<SVGSVGElement>();
-	let isDraggingSnap = $state(false);
-	let isDraggingPivot = $state(false);
-
-	const EDITOR_VIEWBOX_SIZE = 200;
-	const EDITOR_CENTER = EDITOR_VIEWBOX_SIZE / 2;
-	const EDITOR_DISPLAY_SCALE_FACTOR = 2;
 
 	function handleEditorPointerDown(event: PointerEvent, handleType: 'snap' | 'pivot') {
 		if (handleType === 'snap') {
