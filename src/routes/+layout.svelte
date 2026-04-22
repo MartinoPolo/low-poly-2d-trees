@@ -7,10 +7,19 @@
 	import figtreeLatinUrl from '@fontsource-variable/figtree/files/figtree-latin-wght-normal.woff2?url';
 	import notoSansLatinUrl from '@fontsource-variable/noto-sans/files/noto-sans-latin-wght-normal.woff2?url';
 	import { set_settings_tier_context } from '$lib/context/settings_tier.context.svelte.js';
+	import { set_avatar_context } from '$lib/context/avatar.context.svelte.js';
 
 	let { data, children } = $props();
 
 	set_settings_tier_context();
+	const avatarCtx = set_avatar_context({ preset: null, color: null });
+
+	$effect(() => {
+		avatarCtx.avatar.current = {
+			preset: data.user?.avatarPreset ?? null,
+			color: data.user?.avatarColor ?? null,
+		};
+	});
 </script>
 
 <ModeWatcher />
