@@ -70,3 +70,4 @@ worker-configuration.d.ts
 # Local convention
 *.local.*
 
+.fallow
