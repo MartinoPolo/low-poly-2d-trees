@@ -7,7 +7,7 @@
 	import { Label } from '$lib/components/ui/label/index.js';
 	import LowPolyTree from '$lib/trees/LowPolyTree.svelte';
 	import { DEFAULT_TREE_CONFIG, TREE_STAGES, type TreeConfig } from '$lib/trees/types.js';
-	import { TOOL_TYPES, TOOL_OPTIONS } from '$lib/trees/tools/tool_types.js';
+	import { TOOL_TYPES, TOOL_OPTIONS, type ToolType } from '$lib/trees/tools/tool_types.js';
 	import { TOOL_DEFINITIONS } from '$lib/trees/tools/tool_definitions.js';
 	import {
 		FRUIT_TYPES as FRUIT_TYPE_CONSTANTS,
@@ -203,7 +203,9 @@
 	});
 
 	const previewToolSnapOffsetOverride = $derived(
-		activeTab === 'tools' ? { toolType: selectedAsset, offset: snapOffset } : undefined,
+		activeTab === 'tools'
+			? { toolType: selectedAsset as ToolType, offset: snapOffset }
+			: undefined,
 	);
 
 	const previewFruitScaleOverride = $derived(activeTab === 'fruits' ? assetScale : undefined);
@@ -216,7 +218,7 @@
 		activeTab === 'flowers' ? snapOffset : undefined,
 	);
 
-	async function handleUploadSvg() {
+	function handleUploadSvg() {
 		fileInputElement?.click();
 	}
 

@@ -9,6 +9,7 @@
 		type TreeAnchors,
 		type TreeShape,
 	} from '$lib/trees/types.js';
+	import type { Point2D } from '$lib/trees/types/core.js';
 	import {
 		computeAnimationDelay,
 		computeBranchDuration,
@@ -25,6 +26,7 @@
 		TOOL_TYPES,
 		TOOL_ANCHOR_MAP,
 		type ToolVisibility,
+		type ToolType,
 	} from '$lib/trees/tools/tool_types.js';
 	import {
 		OVERLAY_DEFAULTS,
@@ -67,10 +69,10 @@
 		groundElementCount?: number;
 		groundElementSize?: number;
 		fruitScaleOverride?: number;
-		fruitOriginOffsetOverride?: { x: number; y: number };
+		fruitOriginOffsetOverride?: Point2D;
 		flowerScaleOverride?: number;
-		flowerOriginOffsetOverride?: { x: number; y: number };
-		toolSnapOffsetOverride?: { toolType: string; offset: { x: number; y: number } };
+		flowerOriginOffsetOverride?: Point2D;
+		toolSnapOffsetOverride?: { toolType: ToolType; offset: Point2D };
 		class?: string;
 		onanchors?: (anchors: TreeAnchors) => void;
 	}

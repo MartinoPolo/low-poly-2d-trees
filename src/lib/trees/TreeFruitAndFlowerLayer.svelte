@@ -1,16 +1,16 @@
 <script lang="ts">
 	import type { Component } from 'svelte';
-	import type { TreeGeometry } from '$lib/trees/types/core.js';
+	import type { TreeGeometry, Point2D } from '$lib/trees/types/core.js';
 
 	interface Props {
 		geometry: TreeGeometry;
 		showFruit: boolean;
 		fruitComponent: Component | null;
 		fruitScale?: number;
-		fruitOriginOffset?: { x: number; y: number };
+		fruitOriginOffset?: Point2D;
 		flowerComponent: Component | null;
 		flowerScale?: number;
-		flowerOriginOffset?: { x: number; y: number };
+		flowerOriginOffset?: Point2D;
 	}
 
 	let {
