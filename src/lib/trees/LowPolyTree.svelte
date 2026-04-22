@@ -15,8 +15,8 @@
 		computeBranchDelay,
 		computeGrowthScales,
 	} from '$lib/trees/animation.js';
-	import { FRUIT_SVG_COMPONENTS } from '$lib/trees/shapes/fruit_geometry.js';
-	import { FLOWER_SVG_COMPONENTS } from '$lib/trees/shapes/flower_geometry.js';
+	import { FRUIT_DEFINITIONS } from '$lib/trees/shapes/fruit_definitions.js';
+	import { FLOWER_DEFINITIONS } from '$lib/trees/shapes/flower_definitions.js';
 	import TreeOverlay from '$lib/trees/overlays/TreeOverlay.svelte';
 	import GlowEffect from '$lib/trees/overlays/GlowEffect.svelte';
 	import GroundElements from '$lib/trees/ground/GroundElements.svelte';
@@ -66,6 +66,11 @@
 		groundElements?: boolean;
 		groundElementCount?: number;
 		groundElementSize?: number;
+		fruitScaleOverride?: number;
+		fruitOriginOffsetOverride?: { x: number; y: number };
+		flowerScaleOverride?: number;
+		flowerOriginOffsetOverride?: { x: number; y: number };
+		toolSnapOffsetOverride?: { toolType: string; offset: { x: number; y: number } };
 		class?: string;
 		onanchors?: (anchors: TreeAnchors) => void;
 	}
@@ -89,6 +94,11 @@
 		groundElements = false,
 		groundElementCount,
 		groundElementSize,
+		fruitScaleOverride,
+		fruitOriginOffsetOverride,
+		flowerScaleOverride,
+		flowerOriginOffsetOverride,
+		toolSnapOffsetOverride,
 		class: className = '',
 		onanchors,
 	}: Props = $props();
@@ -157,16 +167,26 @@
 		splitCanopyBlobsByZOrder(geometry.canopyBlobs, hasZOrdering),
 	);
 
-	const fruitComponent = $derived(
-		config.fruitType !== FRUIT_TYPES.none ? FRUIT_SVG_COMPONENTS[config.fruitType] : null,
+	const fruitDefinition = $derived(
+		config.fruitType !== FRUIT_TYPES.none ? FRUIT_DEFINITIONS[config.fruitType] : null,
+	);
+	const fruitComponent = $derived(fruitDefinition?.svgComponent ?? null);
+	const fruitScale = $derived(fruitScaleOverride ?? fruitDefinition?.scale ?? 1);
+	const fruitOriginOffset = $derived(
+		fruitOriginOffsetOverride ?? fruitDefinition?.originOffset ?? { x: 0, y: 0 },
 	);
 
-	const flowerComponent = $derived.by(() => {
+	const flowerDefinition = $derived.by(() => {
 		if (config.shape === TREE_SHAPES.custom || geometry.flowerSlots.length === 0) {
 			return null;
 		}
-		return FLOWER_SVG_COMPONENTS[config.shape as Exclude<TreeShape, 'custom'>];
+		return FLOWER_DEFINITIONS[config.shape as Exclude<TreeShape, 'custom'>];
 	});
+	const flowerComponent = $derived(flowerDefinition?.svgComponent ?? null);
+	const flowerScale = $derived(flowerScaleOverride ?? flowerDefinition?.scale ?? 1);
+	const flowerOriginOffset = $derived(
+		flowerOriginOffsetOverride ?? flowerDefinition?.originOffset ?? { x: 0, y: 0 },
+	);
 
 	const fallingLeavesState = createFallingLeavesState(() => ({
 		showFallingLeaves: geometry.showFallingLeaves,
@@ -244,7 +264,16 @@
 				<TreeSnowBlobsLayer canopyBlobs={geometry.canopyBlobs} seed={config.seed} />
 			{/if}
 
-			<TreeFruitAndFlowerLayer {geometry} {showFruit} {fruitComponent} {flowerComponent} />
+			<TreeFruitAndFlowerLayer
+				{geometry}
+				{showFruit}
+				{fruitComponent}
+				{fruitScale}
+				{fruitOriginOffset}
+				{flowerComponent}
+				{flowerScale}
+				{flowerOriginOffset}
+			/>
 
 			<TreeFallingLeavesLayer fallingLeaves={fallingLeavesState.leaves} />
 		{/snippet}
@@ -279,6 +308,9 @@
 							anchor={geometry.anchors[TOOL_ANCHOR_MAP[toolType]]}
 							size={toolVisibility[toolType].size}
 							animate={animateTools}
+							snapOffsetOverride={toolSnapOffsetOverride?.toolType === toolType
+								? toolSnapOffsetOverride.offset
+								: undefined}
 						/>
 					{/if}
 				{/each}

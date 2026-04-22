@@ -1,8 +1,14 @@
 <script lang="ts">
-	import { SeedSvg, SproutingSvg, StumpSvg } from '$lib/trees/assets/stages/index.js';
+	import { STAGE_DEFINITIONS, STAGE_ASSET_TYPES } from '$lib/trees/stages/stage_definitions.js';
 	import { TREE_STAGES } from '$lib/trees/types.js';
 	import type { TreeGeometry } from '$lib/trees/types/core.js';
 	import type { TreeStage } from '$lib/trees/types.js';
+
+	const STAGE_TO_ASSET_TYPE: Partial<Record<TreeStage, keyof typeof STAGE_DEFINITIONS>> = {
+		[TREE_STAGES.seed]: STAGE_ASSET_TYPES.seed,
+		[TREE_STAGES.sprouting]: STAGE_ASSET_TYPES.sprouting,
+		[TREE_STAGES.stump]: STAGE_ASSET_TYPES.stump,
+	};
 
 	interface Props {
 		geometry: TreeGeometry;
@@ -11,21 +17,20 @@
 
 	let { geometry, stage }: Props = $props();
 
-	const stageSvgComponent = $derived(
-		stage === TREE_STAGES.seed
-			? SeedSvg
-			: stage === TREE_STAGES.sprouting
-				? SproutingSvg
-				: stage === TREE_STAGES.stump
-					? StumpSvg
-					: null,
-	);
+	const stageDefinition = $derived.by(() => {
+		const assetType = STAGE_TO_ASSET_TYPE[stage];
+		return assetType ? STAGE_DEFINITIONS[assetType] : null;
+	});
 </script>
 
 <g class="trunk">
-	{#if stageSvgComponent}
-		{@const StageSvg = stageSvgComponent}
-		<g transform="translate({geometry.anchors.trunkBase.x},{geometry.anchors.trunkBase.y})">
+	{#if stageDefinition}
+		{@const StageSvg = stageDefinition.svgComponent}
+		<g
+			transform="translate({geometry.anchors.trunkBase.x +
+				stageDefinition.positionOffset.x},{geometry.anchors.trunkBase.y +
+				stageDefinition.positionOffset.y}) scale({stageDefinition.scale})"
+		>
 			<StageSvg />
 		</g>
 	{:else}
