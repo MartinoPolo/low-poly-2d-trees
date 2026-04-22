@@ -4,12 +4,56 @@
 	import { authClient } from '$lib/auth/client.js';
 	import Fingerprint from '@lucide/svelte/icons/fingerprint';
 	import Trash2 from '@lucide/svelte/icons/trash-2';
+	import Check from '@lucide/svelte/icons/check';
 	import { onMount } from 'svelte';
+	import { invalidateAll } from '$app/navigation';
+	import AvatarCircle from '$lib/avatar/AvatarCircle.svelte';
+	import AnimalIcon from '$lib/avatar/AnimalIcon.svelte';
+	import { ANIMAL_PRESETS, PRESET_COLORS, type AnimalPreset } from '$lib/avatar/presets.js';
 
+	let { data } = $props();
+
+	let presetOverride = $state<string | null | undefined>(undefined);
+	let colorOverride = $state<string | null | undefined>(undefined);
+
+	const selectedPreset = $derived(
+		presetOverride !== undefined ? presetOverride : data.avatarPreset,
+	);
+	const selectedColor = $derived(colorOverride !== undefined ? colorOverride : data.avatarColor);
 	let passkeys = $state<{ id: string; name?: string | undefined; createdAt: Date | null }[]>([]);
 	let loading = $state(true);
 	let registering = $state(false);
 	let errorMessage = $state<string | null>(null);
+	const colorPickerValue = $derived(selectedColor ?? '#888888');
+
+	const isCustomColor = $derived(
+		selectedColor !== null && !(PRESET_COLORS as readonly string[]).includes(selectedColor),
+	);
+
+	async function updateAvatar(updates: { avatarPreset?: string; avatarColor?: string }) {
+		await fetch('/api/avatar', {
+			method: 'PATCH',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify(updates),
+		});
+		await invalidateAll();
+		presetOverride = undefined;
+		colorOverride = undefined;
+	}
+
+	function selectPreset(preset: AnimalPreset) {
+		presetOverride = preset;
+		void updateAvatar({ avatarPreset: preset });
+	}
+
+	function selectColor(color: string) {
+		colorOverride = color;
+		void updateAvatar({ avatarColor: color });
+	}
+
+	function handleColorPickerInput(event: Event) {
+		selectColor((event.target as HTMLInputElement).value);
+	}
 
 	async function loadPasskeys() {
 		loading = true;
@@ -64,6 +108,80 @@
 	<header class="mb-6">
 		<h1 class="text-2xl font-bold tracking-tight">Settings</h1>
 	</header>
+
+	<Card.Root class="mb-6">
+		<Card.Header>
+			<Card.Title>Avatar</Card.Title>
+			<Card.Description>Choose your animal and background color.</Card.Description>
+		</Card.Header>
+		<Card.Content class="space-y-6">
+			<div class="flex justify-center">
+				<AvatarCircle preset={selectedPreset} color={selectedColor} size="lg" />
+			</div>
+
+			<div>
+				<p class="mb-3 text-sm font-medium">Animal</p>
+				<div class="flex flex-wrap gap-2" data-testid="animal-swatches">
+					{#each ANIMAL_PRESETS as preset (preset)}
+						<button
+							type="button"
+							class="flex size-10 items-center justify-center rounded-full border-2 transition-colors {selectedPreset ===
+							preset
+								? 'border-primary bg-primary/10'
+								: 'border-transparent hover:border-muted-foreground/30'}"
+							onclick={() => selectPreset(preset)}
+							aria-label="Select {preset}"
+							data-testid="animal-swatch-{preset}"
+						>
+							<AnimalIcon {preset} class="size-6" />
+						</button>
+					{/each}
+				</div>
+			</div>
+
+			<div>
+				<p class="mb-3 text-sm font-medium">Background Color</p>
+				<div class="flex flex-wrap gap-2" data-testid="color-swatches">
+					{#each PRESET_COLORS as color (color)}
+						<button
+							type="button"
+							class="flex size-10 items-center justify-center rounded-full border-2 transition-colors {selectedColor ===
+							color
+								? 'border-primary'
+								: 'border-transparent hover:border-muted-foreground/30'}"
+							style:background-color={color}
+							onclick={() => selectColor(color)}
+							aria-label="Select color {color}"
+							data-testid="color-swatch"
+						>
+							{#if selectedColor === color}
+								<Check class="size-4 text-white drop-shadow-sm" />
+							{/if}
+						</button>
+					{/each}
+					<label
+						class="flex size-10 cursor-pointer items-center justify-center rounded-full border-2 transition-colors {isCustomColor
+							? 'border-primary'
+							: 'border-dashed border-muted-foreground/40 hover:border-muted-foreground/60'}"
+						style:background-color={isCustomColor ? selectedColor : undefined}
+						data-testid="color-picker"
+					>
+						<input
+							type="color"
+							class="sr-only"
+							value={colorPickerValue}
+							onchange={handleColorPickerInput}
+						/>
+						{#if isCustomColor}
+							<Check class="size-4 text-white drop-shadow-sm" />
+						{:else}
+							<span class="text-xs text-muted-foreground">+</span>
+						{/if}
+					</label>
+				</div>
+			</div>
+		</Card.Content>
+	</Card.Root>
 
 	<Card.Root>
 		<Card.Header>

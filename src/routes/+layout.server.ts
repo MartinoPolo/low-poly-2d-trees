@@ -11,6 +11,8 @@ export const load: LayoutServerLoad = ({ locals, cookies }) => {
 					name: locals.user.name,
 					email: locals.user.email,
 					image: locals.user.image ?? null,
+					avatarPreset: locals.user.avatarPreset ?? null,
+					avatarColor: locals.user.avatarColor ?? null,
 				}
 			: null,
 	};

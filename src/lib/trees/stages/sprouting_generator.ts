@@ -29,6 +29,7 @@ export function generateSproutingGeometry(): TreeGeometry {
 		fruitSlots: [],
 		flowerSlots: [],
 		showFallingLeaves: false,
+		showSnowBlobs: false,
 		birchStripes: [],
 		anchors,
 		viewBox: { width: VIEWBOX_WIDTH, height: VIEWBOX_HEIGHT },

@@ -47,13 +47,6 @@
 	{/if}
 
 	<LabeledCheckbox
-		label="Wilting"
-		checked={overlayConfig.wiltingEnabled.current}
-		onchange={(v) => (overlayConfig.wiltingEnabled.current = v)}
-		testId="overlay-wilting"
-	/>
-
-	<LabeledCheckbox
 		label="Glow"
 		checked={overlayConfig.glowEnabled.current}
 		onchange={(v) => (overlayConfig.glowEnabled.current = v)}

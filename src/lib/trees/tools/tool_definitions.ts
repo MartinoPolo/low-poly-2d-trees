@@ -8,6 +8,7 @@ import LadderSvg from '$lib/trees/assets/tools/LadderSvg.svelte';
 import AxeSvg from '$lib/trees/assets/tools/AxeSvg.svelte';
 import RakeSvg from '$lib/trees/assets/tools/RakeSvg.svelte';
 import WoodpeckerSvg from '$lib/trees/assets/tools/WoodpeckerSvg.svelte';
+import GrillSvg from '$lib/trees/assets/tools/GrillSvg.svelte';
 
 export interface ToolDefinition {
 	readonly svgComponent: Component;
@@ -45,5 +46,10 @@ export const TOOL_DEFINITIONS = {
 		svgComponent: WoodpeckerSvg,
 		anchorTarget: 'trunkMiddle',
 		snapOffset: { x: 6, y: 10 },
+	},
+	[TOOL_TYPES.grill]: {
+		svgComponent: GrillSvg,
+		anchorTarget: 'trunkBase',
+		snapOffset: { x: -25, y: 25 },
 	},
 } as const satisfies Record<ToolType, ToolDefinition>;

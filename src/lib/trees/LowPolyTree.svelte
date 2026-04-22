@@ -44,6 +44,7 @@
 	import TreeCanopyLayer from '$lib/trees/TreeCanopyLayer.svelte';
 	import TreeFruitAndFlowerLayer from '$lib/trees/TreeFruitAndFlowerLayer.svelte';
 	import TreeFallingLeavesLayer from '$lib/trees/TreeFallingLeavesLayer.svelte';
+	import TreeSnowBlobsLayer from '$lib/trees/TreeSnowBlobsLayer.svelte';
 	import TreeDebugOverlays from '$lib/trees/TreeDebugOverlays.svelte';
 
 	interface Props {
@@ -93,8 +94,8 @@
 	}: Props = $props();
 
 	const geometry = $derived(generateTree(config));
-	const hasReadyGlow = $derived(config.stage === TREE_STAGES.ready);
 	const hasOverlayGlow = $derived(overlayConfig.glow.enabled);
+	const isWilting = $derived(config.stage === TREE_STAGES.wilting);
 
 	const isStageSvgStage = $derived(
 		config.stage === TREE_STAGES.seed ||
@@ -184,7 +185,6 @@
 	xmlns="http://www.w3.org/2000/svg"
 	overflow="hidden"
 	class={className}
-	style={hasReadyGlow && !hasOverlayGlow ? 'filter: drop-shadow(0 0 8px gold)' : undefined}
 >
 	<GlowEffect config={overlayConfig.glow} filterId={glowFilterId} />
 
@@ -233,12 +233,15 @@
 				<TreeCanopyLayer
 					{backCanopyBlobs}
 					{frontCanopyBlobs}
-					wiltingEnabled={overlayConfig.wilting.enabled}
 					{animateCanopySway}
 					{shouldAnimateGrowth}
 					{canopySwayDelay}
 					{growthScales}
 				/>
+			{/if}
+
+			{#if showCanopy && geometry.showSnowBlobs}
+				<TreeSnowBlobsLayer canopyBlobs={geometry.canopyBlobs} seed={config.seed} />
 			{/if}
 
 			<TreeFruitAndFlowerLayer {geometry} {showFruit} {fruitComponent} {flowerComponent} />
@@ -248,10 +251,14 @@
 
 		{#if hasOverlayGlow}
 			<g filter="url(#{glowFilterId})" class:glow-pulse={overlayConfig.glow.pulse}>
-				{@render treeBodyContent()}
+				<g class:wilting-droop={isWilting}>
+					{@render treeBodyContent()}
+				</g>
 			</g>
 		{:else}
-			{@render treeBodyContent()}
+			<g class:wilting-droop={isWilting}>
+				{@render treeBodyContent()}
+			</g>
 		{/if}
 
 		{#if groundElements}
@@ -301,5 +308,10 @@
 
 	.glow-pulse {
 		animation: glow-pulse 2s ease-in-out infinite;
+	}
+
+	.wilting-droop {
+		transform: skewY(3deg);
+		transform-origin: center top;
 	}
 </style>

@@ -10,10 +10,6 @@ export interface SpeechBubbleConfig {
 	readonly text: string;
 }
 
-export interface WiltingConfig {
-	readonly enabled: boolean;
-}
-
 export interface GlowConfig {
 	readonly enabled: boolean;
 	readonly color: string;
@@ -29,14 +25,12 @@ export const GLOW_LIMITS = {
 export interface OverlayConfig {
 	readonly stormCloud: StormCloudConfig;
 	readonly speechBubble: SpeechBubbleConfig;
-	readonly wilting: WiltingConfig;
 	readonly glow: GlowConfig;
 }
 
 export const OVERLAY_DEFAULTS: OverlayConfig = {
 	stormCloud: { enabled: false, showRain: true },
 	speechBubble: { enabled: false, text: '' },
-	wilting: { enabled: false },
 	glow: { enabled: false, color: '#ffd700', intensity: 3, pulse: false },
 } as const;
 
@@ -45,7 +39,6 @@ export interface OverlayPersistedState {
 	readonly stormCloudShowRain: boolean;
 	readonly speechBubbleEnabled: boolean;
 	readonly speechBubbleText?: string;
-	readonly wiltingEnabled: boolean;
 	readonly glowEnabled: boolean;
 	readonly glowColor: string;
 	readonly glowIntensity: number;
@@ -60,7 +53,6 @@ export const OVERLAY_PERSISTED_DEFAULTS: OverlayPersistedState = {
 	stormCloudShowRain: true,
 	speechBubbleEnabled: false,
 	speechBubbleText: '',
-	wiltingEnabled: false,
 	glowEnabled: false,
 	glowColor: '#ffd700',
 	glowIntensity: 3,
@@ -99,12 +91,7 @@ export interface SpeechBubbleGeometry {
 export const OVERLAY_VIEWBOX_HEADROOM = 40;
 
 export function hasActiveOverlay(config: OverlayConfig): boolean {
-	return (
-		config.stormCloud.enabled ||
-		config.speechBubble.enabled ||
-		config.wilting.enabled ||
-		config.glow.enabled
-	);
+	return config.stormCloud.enabled || config.speechBubble.enabled || config.glow.enabled;
 }
 
 export function needsViewboxExpansion(config: OverlayConfig): boolean {

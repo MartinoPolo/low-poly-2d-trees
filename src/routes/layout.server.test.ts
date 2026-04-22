@@ -2,7 +2,16 @@ import { describe, it, expect, vi } from 'vitest';
 import { SIDEBAR_COOKIE_NAME } from '$lib/components/ui/sidebar/constants.js';
 import { load } from './+layout.server.js';
 
-function makeEvent(cookieValue?: string) {
+const TEST_USER = {
+	id: 'user-1',
+	name: 'Test User',
+	email: 'test@example.com',
+	image: null,
+	avatarPreset: 'fox',
+	avatarColor: '#F4A6A0',
+};
+
+function makeEvent(cookieValue?: string, user: typeof TEST_USER | null = null) {
 	const cookies = {
 		get: vi.fn((name: string) => {
 			if (name === SIDEBAR_COOKIE_NAME) {
@@ -12,7 +21,7 @@ function makeEvent(cookieValue?: string) {
 		}),
 	};
 	return {
-		locals: { user: null },
+		locals: { user },
 		cookies,
 	} as unknown as Parameters<typeof load>[0];
 }
@@ -37,5 +46,29 @@ describe('+layout.server load', () => {
 		const result = await load(makeEvent('true'));
 		expect(result).toBeDefined();
 		expect(result!.sidebarOpen).toBe(true);
+	});
+
+	it('returns null user when not authenticated', async () => {
+		const result = await load(makeEvent());
+		expect(result!.user).toBeNull();
+	});
+
+	it('includes avatarPreset and avatarColor in user object', async () => {
+		const result = await load(makeEvent(undefined, TEST_USER));
+		expect(result!.user).toMatchObject({
+			avatarPreset: 'fox',
+			avatarColor: '#F4A6A0',
+		});
+	});
+
+	it('defaults avatarPreset and avatarColor to null when missing', async () => {
+		const userWithoutAvatar = { ...TEST_USER, avatarPreset: undefined, avatarColor: undefined };
+		const result = await load(
+			makeEvent(undefined, userWithoutAvatar as unknown as typeof TEST_USER),
+		);
+		expect(result!.user).toMatchObject({
+			avatarPreset: null,
+			avatarColor: null,
+		});
 	});
 });

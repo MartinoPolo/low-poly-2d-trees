@@ -15,7 +15,6 @@ describe('overlay_types', () => {
 	it('defaults have all overlays disabled', () => {
 		expect(OVERLAY_DEFAULTS.stormCloud.enabled).toBe(false);
 		expect(OVERLAY_DEFAULTS.speechBubble.enabled).toBe(false);
-		expect(OVERLAY_DEFAULTS.wilting.enabled).toBe(false);
 		expect(OVERLAY_DEFAULTS.glow.enabled).toBe(false);
 	});
 

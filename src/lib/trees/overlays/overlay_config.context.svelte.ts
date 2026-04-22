@@ -38,7 +38,6 @@ function createOverlayConfigContext() {
 		init.speechBubbleText ?? OVERLAY_DEFAULTS.speechBubble.text,
 		{ isEqual: Object.is },
 	);
-	const wiltingEnabled = new StateRaw(init.wiltingEnabled, { isEqual: Object.is });
 	const glowEnabled = new StateRaw(init.glowEnabled, { isEqual: Object.is });
 	const glowColor = new StateRaw(init.glowColor, { isEqual: Object.is });
 	const glowIntensity = new StateRaw(init.glowIntensity, { isEqual: Object.is });
@@ -54,7 +53,6 @@ function createOverlayConfigContext() {
 	const config = new Derived<OverlayConfig>(() => ({
 		stormCloud: { enabled: stormCloudEnabled.current, showRain: stormCloudShowRain.current },
 		speechBubble: { enabled: speechBubbleEnabled.current, text: speechBubbleText.current },
-		wilting: { enabled: wiltingEnabled.current },
 		glow: {
 			enabled: glowEnabled.current,
 			color: glowColor.current,
@@ -70,7 +68,6 @@ function createOverlayConfigContext() {
 				stormCloudShowRain: stormCloudShowRain.current,
 				speechBubbleEnabled: speechBubbleEnabled.current,
 				speechBubbleText: speechBubbleText.current,
-				wiltingEnabled: wiltingEnabled.current,
 				glowEnabled: glowEnabled.current,
 				glowColor: glowColor.current,
 				glowIntensity: glowIntensity.current,
@@ -86,7 +83,6 @@ function createOverlayConfigContext() {
 			stormCloudShowRain.current = snap.stormCloudShowRain;
 			speechBubbleEnabled.current = snap.speechBubbleEnabled;
 			speechBubbleText.current = snap.speechBubbleText ?? OVERLAY_DEFAULTS.speechBubble.text;
-			wiltingEnabled.current = snap.wiltingEnabled;
 			glowEnabled.current = snap.glowEnabled;
 			glowColor.current = snap.glowColor;
 			glowIntensity.current = snap.glowIntensity;
@@ -102,7 +98,6 @@ function createOverlayConfigContext() {
 		stormCloudShowRain,
 		speechBubbleEnabled,
 		speechBubbleText,
-		wiltingEnabled,
 		glowEnabled,
 		glowColor,
 		glowIntensity,

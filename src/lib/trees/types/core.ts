@@ -121,8 +121,10 @@ export interface TreeGeometry {
 	readonly fruitSlots: readonly Point2D[];
 	/** Slots where flower SVGs should be rendered (flowering stage). */
 	readonly flowerSlots: readonly Point2D[];
-	/** Whether to show falling leaf particles (autumn stage). */
+	/** Whether to show falling leaf particles (seasonal stage, deciduous). */
 	readonly showFallingLeaves: boolean;
+	/** Whether to show snow blobs on canopy (seasonal stage, evergreen). */
+	readonly showSnowBlobs: boolean;
 	readonly anchors: TreeAnchors;
 	readonly viewBox: { readonly width: number; readonly height: number };
 	/** Dark horizontal stripes on birch trunks. Empty for non-birch shapes. */

@@ -128,7 +128,6 @@ export function isValidOverlayPersistedState(value: unknown): value is OverlayPe
 		hasBoolean(value, 'stormCloudEnabled') &&
 		hasBoolean(value, 'stormCloudShowRain') &&
 		hasBoolean(value, 'speechBubbleEnabled') &&
-		hasBoolean(value, 'wiltingEnabled') &&
 		hasBoolean(value, 'glowEnabled') &&
 		hasString(value, 'glowColor') &&
 		hasNumber(value, 'glowIntensity') &&
@@ -155,6 +154,15 @@ export function isValidEditorViewState(value: unknown): value is EditorViewState
 		hasNumber(value, 'growthVariance') &&
 		hasBoolean(value, 'animateTools')
 	);
+}
+
+const LEGACY_STAGE_MAP: Record<string, string> = {
+	autumn: 'seasonal',
+	ready: 'wilting',
+};
+
+export function migrateStageValue(stage: string): string {
+	return LEGACY_STAGE_MAP[stage] ?? stage;
 }
 
 export function isValidBoolean(value: unknown): value is boolean {

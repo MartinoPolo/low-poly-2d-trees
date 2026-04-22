@@ -260,6 +260,7 @@ export function generatePottedPlant(config: PottedPlantConfig): TreeGeometry {
 		fruitSlots,
 		flowerSlots: fruitSlots,
 		showFallingLeaves: false,
+		showSnowBlobs: false,
 		birchStripes: [],
 		anchors,
 		viewBox: { width: VIEWBOX_WIDTH, height: VIEWBOX_HEIGHT },
