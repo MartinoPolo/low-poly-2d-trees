@@ -6,10 +6,9 @@
 
 	interface Props {
 		toolVisibility: ToolVisibility;
-		animateTools: boolean;
 	}
 
-	let { toolVisibility = $bindable(), animateTools = $bindable() }: Props = $props();
+	let { toolVisibility = $bindable() }: Props = $props();
 </script>
 
 <SectionCard title="Tools & Accessories" contentClass="space-y-4">
@@ -35,5 +34,4 @@
 			/>
 		{/if}
 	{/each}
-	<LabeledCheckbox label="Animate Tools" bind:checked={animateTools} testId="animate-tools" />
 </SectionCard>

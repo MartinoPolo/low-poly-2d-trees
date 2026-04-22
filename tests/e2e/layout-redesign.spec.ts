@@ -31,25 +31,22 @@ test.describe('Issue #125 — Layout redesign', () => {
 	});
 
 	test.describe('Cycle 2: Layout restructure', () => {
-		test('scene page uses top/bottom row split', async ({ page }) => {
+		test('scene page uses vertical resizable split', async ({ page }) => {
 			await page.goto('/');
 			await page.waitForLoadState('networkidle');
 
-			const grid = page.locator('main.grid');
-			const gridClasses = await grid.getAttribute('class');
-			// Should use row-based layout, not column-based
-			expect(gridClasses).toContain('grid-rows-[1fr_1fr]');
-			expect(gridClasses).not.toContain('grid-cols-[1fr_320px]');
+			const paneGroup = page.locator('[data-slot="resizable-pane-group"]');
+			await expect(paneGroup).toBeVisible();
+			await expect(paneGroup).toHaveAttribute('data-direction', 'vertical');
 		});
 
-		test('editor page uses top/bottom row split', async ({ page }) => {
+		test('editor page uses vertical resizable split', async ({ page }) => {
 			await page.goto('/editor');
 			await page.waitForLoadState('networkidle');
 
-			const grid = page.locator('main.grid');
-			const gridClasses = await grid.getAttribute('class');
-			expect(gridClasses).toContain('grid-rows-[1fr_1fr]');
-			expect(gridClasses).not.toContain('grid-cols-[1fr_320px]');
+			const paneGroup = page.locator('[data-slot="resizable-pane-group"]');
+			await expect(paneGroup).toBeVisible();
+			await expect(paneGroup).toHaveAttribute('data-direction', 'vertical');
 		});
 
 		test('scene container has no border-radius', async ({ page }) => {

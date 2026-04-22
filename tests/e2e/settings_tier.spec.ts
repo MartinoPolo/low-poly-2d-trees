@@ -114,10 +114,10 @@ test.describe('Issue #84 — 3-tier settings control', () => {
 		await expect(page.locator('text=Light Angle')).toBeVisible();
 	});
 
-	test('single editor layout uses top/bottom split', async ({ page }) => {
-		const grid = page.locator('main.grid');
-		const gridClasses = await grid.getAttribute('class');
-		expect(gridClasses).toContain('grid-rows-[1fr_1fr]');
+	test('single editor layout uses vertical resizable split', async ({ page }) => {
+		const paneGroup = page.locator('[data-slot="resizable-pane-group"]');
+		await expect(paneGroup).toBeVisible();
+		await expect(paneGroup).toHaveAttribute('data-direction', 'vertical');
 	});
 
 	test('debug card is always visible regardless of tier', async ({ page }) => {

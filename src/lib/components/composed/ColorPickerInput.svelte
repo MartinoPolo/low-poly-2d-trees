@@ -38,6 +38,6 @@
 	{disabled}
 	onclick={() => colorInputRef?.click()}
 	style:background-color={value}
-	class="h-10 w-10 cursor-pointer rounded-md border border-input shadow-sm transition hover:scale-110 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100"
+	class="h-9 w-9 cursor-pointer rounded-md border border-input shadow-sm transition hover:scale-110 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100"
 ></button>
 <Input data-hex={hexTestId} bind:value class="font-mono text-sm w-24 tabular-nums" {disabled} />

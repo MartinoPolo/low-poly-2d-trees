@@ -57,7 +57,7 @@ export const SCENE_LIMITS = {
 	treeCountMin: 3,
 	treeCountMax: 100,
 	depthSpreadMin: 0,
-	depthSpreadMax: 100,
+	depthSpreadMax: 30,
 } as const;
 
 /** Total number of depth layers in the scene. */

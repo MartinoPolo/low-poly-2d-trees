@@ -6,6 +6,7 @@
 	import SectionCard from '$lib/components/composed/SectionCard.svelte';
 	import { useOverlayConfig } from '$lib/trees/overlays/overlay_config.context.svelte.js';
 	import { GLOW_LIMITS } from '$lib/trees/overlays/overlay_types.js';
+	import { GROUND_LIMITS } from '$lib/trees/ground/ground_types.js';
 
 	const overlayConfig = useOverlayConfig();
 </script>
@@ -84,4 +85,21 @@
 		onchange={(v) => (overlayConfig.groundEnabled.current = v)}
 		testId="overlay-ground"
 	/>
+	{#if overlayConfig.groundEnabled.current}
+		<div class="ml-6 space-y-2">
+			<LabeledSlider
+				label="Element Count"
+				min={GROUND_LIMITS.countMin}
+				max={GROUND_LIMITS.countMax}
+				bind:value={overlayConfig.groundElementCount.current}
+			/>
+			<LabeledSlider
+				label="Element Size"
+				min={GROUND_LIMITS.sizeMin}
+				max={GROUND_LIMITS.sizeMax}
+				step={GROUND_LIMITS.sizeStep}
+				bind:value={overlayConfig.groundElementSize.current}
+			/>
+		</div>
+	{/if}
 </SectionCard>

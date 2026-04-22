@@ -8,11 +8,15 @@
 		seed: number;
 		trunkBase: Point2D;
 		spreadWidth?: number;
+		count?: number;
+		sizeMultiplier?: number;
 	}
 
-	let { seed, trunkBase, spreadWidth = 100 }: Props = $props();
+	let { seed, trunkBase, spreadWidth = 100, count, sizeMultiplier }: Props = $props();
 
-	const placements = $derived(generateGroundPlacements(seed, trunkBase, spreadWidth));
+	const placements = $derived(
+		generateGroundPlacements(seed, trunkBase, spreadWidth, count, sizeMultiplier),
+	);
 </script>
 
 <g class="ground-elements">

@@ -29,18 +29,26 @@ function hasSpacingConflict(
 	return false;
 }
 
+/** Stone ratio matching original 5/9 split. */
+const STONE_RATIO =
+	GROUND_ELEMENT_COUNTS.stones / (GROUND_ELEMENT_COUNTS.stones + GROUND_ELEMENT_COUNTS.grass);
+
 export function generateGroundPlacements(
 	seed: number,
 	trunkBase: Point2D,
 	spreadWidth: number,
+	count: number = GROUND_ELEMENT_COUNTS.stones + GROUND_ELEMENT_COUNTS.grass,
+	sizeMultiplier: number = 1.0,
 ): GroundPlacement[] {
 	const rng = createPrng(seed + 77777);
 	const placements: GroundPlacement[] = [];
 
 	const halfSpread = spreadWidth / 2;
+	const stoneCount = Math.round(count * STONE_RATIO);
+	const grassCount = count - stoneCount;
 
-	for (let i = 0; i < GROUND_ELEMENT_COUNTS.stones; i++) {
-		const scale = randomInRange(rng, 1.5, 3.0);
+	for (let i = 0; i < stoneCount; i++) {
+		const scale = randomInRange(rng, 1.5 * sizeMultiplier, 3.0 * sizeMultiplier);
 		let x: number;
 		let attempts = 0;
 		do {
@@ -62,8 +70,8 @@ export function generateGroundPlacements(
 		});
 	}
 
-	for (let i = 0; i < GROUND_ELEMENT_COUNTS.grass; i++) {
-		const scale = randomInRange(rng, 1.75, 3.25);
+	for (let i = 0; i < grassCount; i++) {
+		const scale = randomInRange(rng, 1.75 * sizeMultiplier, 3.25 * sizeMultiplier);
 		let x: number;
 		let attempts = 0;
 		do {

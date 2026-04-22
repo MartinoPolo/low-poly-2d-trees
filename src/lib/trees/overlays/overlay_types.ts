@@ -1,3 +1,5 @@
+import { GROUND_LIMITS } from '$lib/trees/ground/ground_types.js';
+
 export interface StormCloudConfig {
 	readonly enabled: boolean;
 	readonly showRain: boolean;
@@ -42,6 +44,8 @@ export interface OverlayPersistedState {
 	readonly glowIntensity: number;
 	readonly glowPulse: boolean;
 	readonly groundEnabled: boolean;
+	readonly groundElementCount?: number;
+	readonly groundElementSize?: number;
 }
 
 export const OVERLAY_PERSISTED_DEFAULTS: OverlayPersistedState = {
@@ -54,6 +58,8 @@ export const OVERLAY_PERSISTED_DEFAULTS: OverlayPersistedState = {
 	glowIntensity: 3,
 	glowPulse: false,
 	groundEnabled: false,
+	groundElementCount: GROUND_LIMITS.countDefault,
+	groundElementSize: GROUND_LIMITS.sizeDefault,
 } as const;
 
 export interface StormCloudTriangle {
