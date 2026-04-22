@@ -30,4 +30,8 @@ export const TOOL_ANIMATIONS = {
 		duration: 1.5,
 		pivotPoint: { x: 6, y: 10 },
 	},
+	grill: {
+		duration: 2,
+		pivotPoint: { x: 10, y: 20 },
+	},
 } as const satisfies Record<ToolType, ToolAnimationConfig>;

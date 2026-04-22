@@ -4,7 +4,7 @@ import type { ToolAnimationConfig } from './tool_animations.js';
 import { TOOL_TYPES } from './tool_types.js';
 
 describe('TOOL_ANIMATIONS', () => {
-	it('has animation config for all 6 tool types', () => {
+	it('has animation config for all 7 tool types', () => {
 		for (const toolType of Object.values(TOOL_TYPES)) {
 			expect(TOOL_ANIMATIONS).toHaveProperty(toolType);
 		}
@@ -42,6 +42,10 @@ describe('TOOL_ANIMATIONS', () => {
 
 	it('woodpecker duration is 1.5s', () => {
 		expect(TOOL_ANIMATIONS.woodpecker.duration).toBe(1.5);
+	});
+
+	it('grill duration is 2s', () => {
+		expect(TOOL_ANIMATIONS.grill.duration).toBe(2);
 	});
 
 	it('each tool has a pivotPoint with x and y', () => {

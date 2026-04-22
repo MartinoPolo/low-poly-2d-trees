@@ -4,7 +4,7 @@ import { TOOL_TYPES, TOOL_ANCHOR_MAP } from './tool_types.js';
 import type { ToolType } from './tool_types.js';
 
 describe('TOOL_DEFINITIONS', () => {
-	it('has entries for all 6 tool types', () => {
+	it('has entries for all 7 tool types', () => {
 		for (const toolType of Object.values(TOOL_TYPES)) {
 			expect(TOOL_DEFINITIONS).toHaveProperty(toolType);
 		}
@@ -65,5 +65,13 @@ describe('TOOL_DEFINITIONS', () => {
 
 	it('woodpecker has correct snapOffset', () => {
 		expect(TOOL_DEFINITIONS.woodpecker.snapOffset).toEqual({ x: 6, y: 10 });
+	});
+
+	it('grill has correct snapOffset', () => {
+		expect(TOOL_DEFINITIONS.grill.snapOffset).toEqual({ x: 10, y: 20 });
+	});
+
+	it('grill anchorTarget is trunkBase', () => {
+		expect(TOOL_DEFINITIONS.grill.anchorTarget).toBe('trunkBase');
 	});
 });

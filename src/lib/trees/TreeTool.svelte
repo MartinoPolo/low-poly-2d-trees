@@ -161,6 +161,17 @@
 		}
 	}
 
+	@keyframes tool-grill-idle {
+		0%,
+		100% {
+			transform: rotate(0deg);
+		}
+
+		50% {
+			transform: rotate(0.5deg);
+		}
+	}
+
 	.tool-anim.animate-tool {
 		transform-origin: var(--pivot-x) var(--pivot-y);
 		will-change: transform;
@@ -188,6 +199,10 @@
 
 	.tool-anim.animate-tool[data-tool-type='woodpecker'] {
 		animation: tool-woodpecker-idle var(--tool-duration) ease-in-out infinite;
+	}
+
+	.tool-anim.animate-tool[data-tool-type='grill'] {
+		animation: tool-grill-idle var(--tool-duration) ease-in-out infinite;
 	}
 
 	.woodpecker-badge text {
