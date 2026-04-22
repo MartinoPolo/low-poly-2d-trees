@@ -5,20 +5,18 @@
 	import Fingerprint from '@lucide/svelte/icons/fingerprint';
 	import Trash2 from '@lucide/svelte/icons/trash-2';
 	import Check from '@lucide/svelte/icons/check';
+	import Save from '@lucide/svelte/icons/save';
 	import { onMount } from 'svelte';
 	import AvatarCircle from '$lib/avatar/AvatarCircle.svelte';
 	import AnimalIcon from '$lib/avatar/AnimalIcon.svelte';
 	import { ANIMAL_PRESETS, PRESET_COLORS, type AnimalPreset } from '$lib/avatar/presets.js';
+	import { use_avatar } from '$lib/context/avatar.context.svelte.js';
 
-	let { data } = $props();
+	const { avatar: avatarCtx } = use_avatar();
 
-	let presetOverride = $state<string | null | undefined>(undefined);
-	let colorOverride = $state<string | null | undefined>(undefined);
-
-	const selectedPreset = $derived(
-		presetOverride !== undefined ? presetOverride : data.avatarPreset,
-	);
-	const selectedColor = $derived(colorOverride !== undefined ? colorOverride : data.avatarColor);
+	let selectedPreset = $state<string | null>(avatarCtx.current.preset);
+	let selectedColor = $state<string | null>(avatarCtx.current.color);
+	let saving = $state(false);
 	let passkeys = $state<{ id: string; name?: string | undefined; createdAt: Date | null }[]>([]);
 	let loading = $state(true);
 	let registering = $state(false);
@@ -29,25 +27,45 @@
 		selectedColor !== null && !(PRESET_COLORS as readonly string[]).includes(selectedColor),
 	);
 
-	function updateAvatar(updates: { avatarPreset?: string; avatarColor?: string }) {
-		void fetch('/api/avatar', {
+	const hasChanges = $derived(
+		selectedPreset !== avatarCtx.current.preset || selectedColor !== avatarCtx.current.color,
+	);
+
+	async function saveAvatar() {
+		if (!hasChanges) {
+			return;
+		}
+		saving = true;
+		const updates: { avatarPreset?: string; avatarColor?: string } = {};
+		if (selectedPreset !== null && selectedPreset !== avatarCtx.current.preset) {
+			updates.avatarPreset = selectedPreset;
+		}
+		if (selectedColor !== null && selectedColor !== avatarCtx.current.color) {
+			updates.avatarColor = selectedColor;
+		}
+		const response = await fetch('/api/avatar', {
 			method: 'PATCH',
 			headers: { 'Content-Type': 'application/json' },
 			body: JSON.stringify(updates),
 		});
+		if (response.ok) {
+			avatarCtx.current = {
+				preset: selectedPreset,
+				color: selectedColor,
+			};
+		}
+		saving = false;
 	}
 
 	function selectPreset(preset: AnimalPreset) {
-		presetOverride = preset;
-		void updateAvatar({ avatarPreset: preset });
+		selectedPreset = preset;
 	}
 
 	function selectColor(color: string) {
-		colorOverride = color;
-		void updateAvatar({ avatarColor: color });
+		selectedColor = color;
 	}
 
-	function handleColorPickerInput(event: Event) {
+	function handleColorPickerChange(event: Event) {
 		selectColor((event.target as HTMLInputElement).value);
 	}
 
@@ -166,7 +184,7 @@
 							type="color"
 							class="sr-only"
 							value={colorPickerValue}
-							onchange={handleColorPickerInput}
+							onchange={handleColorPickerChange}
 						/>
 						{#if isCustomColor}
 							<Check class="size-4 text-white drop-shadow-sm" />
@@ -177,6 +195,12 @@
 				</div>
 			</div>
 		</Card.Content>
+		<Card.Footer>
+			<Button data-testid="save-avatar" disabled={!hasChanges || saving} onclick={saveAvatar}>
+				<Save class="mr-2 size-4" />
+				{saving ? 'Saving…' : 'Save avatar'}
+			</Button>
+		</Card.Footer>
 	</Card.Root>
 
 	<Card.Root>

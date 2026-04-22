@@ -11,13 +11,22 @@
 		animate: boolean;
 		reviewerCount?: number;
 		text?: string;
+		snapOffsetOverride?: { x: number; y: number };
 	}
 
-	let { tool, anchor, size, animate, reviewerCount = 0, text }: Props = $props();
+	let {
+		tool,
+		anchor,
+		size,
+		animate,
+		reviewerCount = 0,
+		text,
+		snapOffsetOverride,
+	}: Props = $props();
 
 	const definition: ToolDefinition = $derived(TOOL_DEFINITIONS[tool]);
 	const animationConfig = $derived(TOOL_ANIMATIONS[tool]);
-	const snapOffset = $derived(definition.snapOffset);
+	const snapOffset = $derived(snapOffsetOverride ?? definition.snapOffset);
 
 	const posX = $derived(anchor.x - snapOffset.x * size);
 	const posY = $derived(anchor.y - snapOffset.y * size);

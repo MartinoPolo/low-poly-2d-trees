@@ -12,6 +12,7 @@
 		showAnchors: boolean;
 		showEnvelope?: boolean;
 		showViewBox: boolean;
+		debugDisableBackRows?: boolean;
 	}
 
 	let {
@@ -23,6 +24,7 @@
 		showAnchors = $bindable(),
 		showEnvelope = $bindable(false),
 		showViewBox = $bindable(),
+		debugDisableBackRows = $bindable(false),
 	}: Props = $props();
 </script>
 
@@ -38,4 +40,7 @@
 		<LabeledCheckbox label="Show Envelope" bind:checked={showEnvelope} />
 	{/if}
 	<LabeledCheckbox label="Show View Box" bind:checked={showViewBox} />
+	{#if mode === 'scene'}
+		<LabeledCheckbox label="Disable trees from row 2+" bind:checked={debugDisableBackRows} />
+	{/if}
 </SectionCard>

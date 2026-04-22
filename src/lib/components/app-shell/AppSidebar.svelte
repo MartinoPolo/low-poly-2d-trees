@@ -13,6 +13,7 @@
 	import Sun from '@lucide/svelte/icons/sun';
 	import ChevronsUpDown from '@lucide/svelte/icons/chevrons-up-down';
 	import AvatarCircle from '$lib/avatar/AvatarCircle.svelte';
+	import { use_avatar } from '$lib/context/avatar.context.svelte.js';
 	import { userPrefersMode, setMode } from 'mode-watcher';
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
@@ -28,6 +29,7 @@
 	const signOutPath = resolve('/auth/sign-out');
 
 	const user = $derived(page.data.user);
+	const { avatar } = use_avatar();
 
 	let signOutFormElement = $state<HTMLFormElement>();
 </script>
@@ -147,8 +149,8 @@
 									{#snippet child({ props })}
 										<div data-testid="sidebar-user-trigger" {...props}>
 											<AvatarCircle
-												preset={user.avatarPreset}
-												color={user.avatarColor}
+												preset={avatar.current.preset}
+												color={avatar.current.color}
 												size="sm"
 											/>
 											<div

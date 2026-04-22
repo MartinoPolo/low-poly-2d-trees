@@ -7,7 +7,7 @@
 	import { Label } from '$lib/components/ui/label/index.js';
 	import LowPolyTree from '$lib/trees/LowPolyTree.svelte';
 	import { DEFAULT_TREE_CONFIG, TREE_STAGES, type TreeConfig } from '$lib/trees/types.js';
-	import { TOOL_TYPES, TOOL_OPTIONS } from '$lib/trees/tools/tool_types.js';
+	import { TOOL_TYPES, TOOL_OPTIONS, type ToolType } from '$lib/trees/tools/tool_types.js';
 	import { TOOL_DEFINITIONS } from '$lib/trees/tools/tool_definitions.js';
 	import {
 		FRUIT_TYPES as FRUIT_TYPE_CONSTANTS,
@@ -83,6 +83,9 @@
 	let svgEditorElement = $state<SVGSVGElement>();
 	let isDraggingSnap = $state(false);
 	let isDraggingPivot = $state(false);
+	let fileInputElement = $state<HTMLInputElement>();
+	let uploadStatus = $state<string | null>(null);
+	let applyStatus = $state<string | null>(null);
 
 	const selectedAsset = $derived(selectedAssets[activeTab]);
 	const assetOptions = $derived(CATEGORY_ASSET_OPTIONS[activeTab]);
@@ -199,13 +202,91 @@
 		}
 	});
 
+	const previewToolSnapOffsetOverride = $derived(
+		activeTab === 'tools'
+			? { toolType: selectedAsset as ToolType, offset: snapOffset }
+			: undefined,
+	);
+
+	const previewFruitScaleOverride = $derived(activeTab === 'fruits' ? assetScale : undefined);
+	const previewFruitOriginOffsetOverride = $derived(
+		activeTab === 'fruits' ? snapOffset : undefined,
+	);
+
+	const previewFlowerScaleOverride = $derived(activeTab === 'flowers' ? assetScale : undefined);
+	const previewFlowerOriginOffsetOverride = $derived(
+		activeTab === 'flowers' ? snapOffset : undefined,
+	);
+
+	function handleUploadSvg() {
+		fileInputElement?.click();
+	}
+
+	async function handleFileSelected(event: Event) {
+		const input = event.target as HTMLInputElement;
+		const file = input.files?.[0];
+		if (!file) {
+			return;
+		}
+
+		uploadStatus = 'Uploading...';
+		const formData = new FormData();
+		formData.append('file', file);
+		formData.append('assetName', selectedAsset);
+		formData.append('category', activeTab);
+
+		try {
+			const response = await fetch('/api/dev/upload-svg', { method: 'POST', body: formData });
+			const result = await response.json();
+			if (response.ok) {
+				uploadStatus = `Uploaded to ${result.outputPath}`;
+				setTimeout(() => (uploadStatus = null), 3000);
+			} else {
+				uploadStatus = `Error: ${result.error}`;
+			}
+		} catch {
+			uploadStatus = 'Upload failed';
+		}
+		input.value = '';
+	}
+
+	async function handleApplyDefinition() {
+		applyStatus = 'Applying...';
+		const offsetKey =
+			activeTab === 'tools'
+				? 'snapOffset'
+				: activeTab === 'stages'
+					? 'positionOffset'
+					: 'originOffset';
+
+		const values: Record<string, unknown> = { scale: assetScale };
+		values[offsetKey] = snapOffset;
+
+		try {
+			const response = await fetch('/api/dev/apply-definition', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ category: activeTab, assetName: selectedAsset, values }),
+			});
+			const result = await response.json();
+			if (response.ok) {
+				applyStatus = 'Applied!';
+				setTimeout(() => (applyStatus = null), 2000);
+			} else {
+				applyStatus = `Error: ${result.error}`;
+			}
+		} catch {
+			applyStatus = 'Apply failed';
+		}
+	}
+
 	function handleEditorPointerDown(event: PointerEvent, handleType: 'snap' | 'pivot') {
 		if (handleType === 'snap') {
 			isDraggingSnap = true;
 		} else {
 			isDraggingPivot = true;
 		}
-		(event.target as SVGElement).setPointerCapture(event.pointerId);
+		svgEditorElement?.setPointerCapture(event.pointerId);
 	}
 
 	function handleEditorPointerMove(event: PointerEvent) {
@@ -264,7 +345,7 @@
 					<!-- Left Panel: Demo Tree -->
 					<Card.Root>
 						<Card.Header>
-							<Card.Title>Demo Preview</Card.Title>
+							<Card.Title>Preview</Card.Title>
 						</Card.Header>
 						<Card.Content>
 							<div
@@ -275,6 +356,11 @@
 									showFruit={activeTab === 'fruits'}
 									groundElements={activeTab === 'ground'}
 									toolVisibility={demoToolVisibility}
+									toolSnapOffsetOverride={previewToolSnapOffsetOverride}
+									fruitScaleOverride={previewFruitScaleOverride}
+									fruitOriginOffsetOverride={previewFruitOriginOffsetOverride}
+									flowerScaleOverride={previewFlowerScaleOverride}
+									flowerOriginOffsetOverride={previewFlowerOriginOffsetOverride}
 									class="h-full w-full"
 								/>
 							</div>
@@ -307,10 +393,26 @@
 									</Select.Root>
 
 									{#if isDev}
-										<Button variant="outline" size="sm">
+										<input
+											bind:this={fileInputElement}
+											type="file"
+											accept=".svg"
+											class="hidden"
+											onchange={handleFileSelected}
+										/>
+										<Button
+											variant="outline"
+											size="sm"
+											onclick={handleUploadSvg}
+										>
 											<Upload class="mr-2 size-4" />
 											Upload SVG
 										</Button>
+										{#if uploadStatus}
+											<span class="text-xs text-muted-foreground"
+												>{uploadStatus}</span
+											>
+										{/if}
 									{/if}
 								</div>
 							</Card.Content>
@@ -333,6 +435,7 @@
 											aria-label="SVG point editor"
 											onpointermove={handleEditorPointerMove}
 											onpointerup={handleEditorPointerUp}
+											onpointercancel={handleEditorPointerUp}
 										>
 											<!-- Grid lines -->
 											<line
@@ -489,9 +592,13 @@
 										</div>
 
 										{#if isDev}
-											<Button size="sm" class="mt-auto">
+											<Button
+												size="sm"
+												class="mt-auto"
+												onclick={handleApplyDefinition}
+											>
 												<Save class="mr-2 size-4" />
-												Apply
+												{applyStatus ?? 'Apply'}
 											</Button>
 										{/if}
 									</div>
