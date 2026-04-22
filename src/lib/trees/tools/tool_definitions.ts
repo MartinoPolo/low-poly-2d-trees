@@ -9,6 +9,8 @@ import AxeSvg from '$lib/trees/assets/tools/AxeSvg.svelte';
 import RakeSvg from '$lib/trees/assets/tools/RakeSvg.svelte';
 import WoodpeckerSvg from '$lib/trees/assets/tools/WoodpeckerSvg.svelte';
 import GrillSvg from '$lib/trees/assets/tools/GrillSvg.svelte';
+import SpeechBubbleSvg from '$lib/trees/assets/tools/SpeechBubbleSvg.svelte';
+import StormCloudSvg from '$lib/trees/assets/tools/StormCloudSvg.svelte';
 
 export interface ToolDefinition {
 	readonly svgComponent: Component;
@@ -51,5 +53,15 @@ export const TOOL_DEFINITIONS = {
 		svgComponent: GrillSvg,
 		anchorTarget: 'trunkBase',
 		snapOffset: { x: -25, y: 25 },
+	},
+	[TOOL_TYPES.speechBubble]: {
+		svgComponent: SpeechBubbleSvg,
+		anchorTarget: 'crownTop',
+		snapOffset: { x: 0, y: -10 },
+	},
+	[TOOL_TYPES.stormCloud]: {
+		svgComponent: StormCloudSvg,
+		anchorTarget: 'crownTop',
+		snapOffset: { x: 0, y: 10 },
 	},
 } as const satisfies Record<ToolType, ToolDefinition>;

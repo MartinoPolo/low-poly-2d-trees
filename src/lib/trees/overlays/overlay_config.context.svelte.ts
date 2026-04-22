@@ -5,12 +5,46 @@ import { StateRaw } from '$lib/reactivity/state.svelte.js';
 import { Derived } from '$lib/reactivity/derived.svelte.js';
 import { isValidOverlayPersistedState } from '$lib/config/validators.js';
 import {
-	OVERLAY_DEFAULTS,
 	OVERLAY_PERSISTED_DEFAULTS,
 	type OverlayConfig,
 	type OverlayPersistedState,
 } from './overlay_types.js';
 import { GROUND_LIMITS } from '$lib/trees/ground/ground_types.js';
+
+const STALE_OVERLAY_KEYS = [
+	'stormCloudEnabled',
+	'stormCloudShowRain',
+	'speechBubbleEnabled',
+	'speechBubbleText',
+] as const;
+
+function migrateStaleOverlayKeys() {
+	if (!browser) {
+		return;
+	}
+	const raw = localStorage.getItem('overlay-config');
+	if (raw === null) {
+		return;
+	}
+	try {
+		const parsed = JSON.parse(raw);
+		if (typeof parsed !== 'object' || parsed === null) {
+			return;
+		}
+		let changed = false;
+		for (const key of STALE_OVERLAY_KEYS) {
+			if (key in parsed) {
+				delete parsed[key];
+				changed = true;
+			}
+		}
+		if (changed) {
+			localStorage.setItem('overlay-config', JSON.stringify(parsed));
+		}
+	} catch {
+		// corrupt JSON — Persisted will handle fallback to defaults
+	}
+}
 
 type OverlayConfigContext = ReturnType<typeof createOverlayConfigContext>;
 
@@ -24,6 +58,8 @@ export function setOverlayConfigContext() {
 }
 
 function createOverlayConfigContext() {
+	migrateStaleOverlayKeys();
+
 	const persisted = new Persisted<OverlayPersistedState>({
 		key: 'overlay-config',
 		serde: jsonSerde(isValidOverlayPersistedState),
@@ -31,13 +67,6 @@ function createOverlayConfigContext() {
 	});
 	const init = persisted.current;
 
-	const stormCloudEnabled = new StateRaw(init.stormCloudEnabled, { isEqual: Object.is });
-	const stormCloudShowRain = new StateRaw(init.stormCloudShowRain, { isEqual: Object.is });
-	const speechBubbleEnabled = new StateRaw(init.speechBubbleEnabled, { isEqual: Object.is });
-	const speechBubbleText = new StateRaw(
-		init.speechBubbleText ?? OVERLAY_DEFAULTS.speechBubble.text,
-		{ isEqual: Object.is },
-	);
 	const glowEnabled = new StateRaw(init.glowEnabled, { isEqual: Object.is });
 	const glowColor = new StateRaw(init.glowColor, { isEqual: Object.is });
 	const glowIntensity = new StateRaw(init.glowIntensity, { isEqual: Object.is });
@@ -51,8 +80,6 @@ function createOverlayConfigContext() {
 	});
 
 	const config = new Derived<OverlayConfig>(() => ({
-		stormCloud: { enabled: stormCloudEnabled.current, showRain: stormCloudShowRain.current },
-		speechBubble: { enabled: speechBubbleEnabled.current, text: speechBubbleText.current },
 		glow: {
 			enabled: glowEnabled.current,
 			color: glowColor.current,
@@ -64,10 +91,6 @@ function createOverlayConfigContext() {
 	if (browser) {
 		$effect(() => {
 			persisted.current = {
-				stormCloudEnabled: stormCloudEnabled.current,
-				stormCloudShowRain: stormCloudShowRain.current,
-				speechBubbleEnabled: speechBubbleEnabled.current,
-				speechBubbleText: speechBubbleText.current,
 				glowEnabled: glowEnabled.current,
 				glowColor: glowColor.current,
 				glowIntensity: glowIntensity.current,
@@ -79,10 +102,6 @@ function createOverlayConfigContext() {
 		});
 		$effect(() => {
 			const snap = persisted.current;
-			stormCloudEnabled.current = snap.stormCloudEnabled;
-			stormCloudShowRain.current = snap.stormCloudShowRain;
-			speechBubbleEnabled.current = snap.speechBubbleEnabled;
-			speechBubbleText.current = snap.speechBubbleText ?? OVERLAY_DEFAULTS.speechBubble.text;
 			glowEnabled.current = snap.glowEnabled;
 			glowColor.current = snap.glowColor;
 			glowIntensity.current = snap.glowIntensity;
@@ -94,10 +113,6 @@ function createOverlayConfigContext() {
 	}
 
 	return {
-		stormCloudEnabled,
-		stormCloudShowRain,
-		speechBubbleEnabled,
-		speechBubbleText,
 		glowEnabled,
 		glowColor,
 		glowIntensity,

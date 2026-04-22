@@ -7,12 +7,12 @@ import {
 } from './tool_types.js';
 
 describe('TOOL_TYPES', () => {
-	it('defines exactly 7 tools', () => {
+	it('defines exactly 9 tools', () => {
 		const types = Object.values(TOOL_TYPES);
-		expect(types).toHaveLength(7);
+		expect(types).toHaveLength(9);
 	});
 
-	it('contains shovel, wateringCan, ladder, axe, rake, woodpecker, grill', () => {
+	it('contains shovel, wateringCan, ladder, axe, rake, woodpecker, grill, speechBubble, stormCloud', () => {
 		expect(TOOL_TYPES.shovel).toBe('shovel');
 		expect(TOOL_TYPES.wateringCan).toBe('wateringCan');
 		expect(TOOL_TYPES.ladder).toBe('ladder');
@@ -20,6 +20,8 @@ describe('TOOL_TYPES', () => {
 		expect(TOOL_TYPES.rake).toBe('rake');
 		expect(TOOL_TYPES.woodpecker).toBe('woodpecker');
 		expect(TOOL_TYPES.grill).toBe('grill');
+		expect(TOOL_TYPES.speechBubble).toBe('speechBubble');
+		expect(TOOL_TYPES.stormCloud).toBe('stormCloud');
 	});
 
 	it('does not contain birdNest', () => {
@@ -29,7 +31,7 @@ describe('TOOL_TYPES', () => {
 
 describe('TOOL_ANCHOR_MAP', () => {
 	it('maps every tool type to a valid TreeAnchors key', () => {
-		const validAnchors = ['trunkBase', 'trunkMiddle'];
+		const validAnchors = ['trunkBase', 'trunkMiddle', 'crownTop'];
 		for (const toolType of Object.values(TOOL_TYPES)) {
 			expect(validAnchors).toContain(TOOL_ANCHOR_MAP[toolType]);
 		}
@@ -62,6 +64,14 @@ describe('TOOL_ANCHOR_MAP', () => {
 	it('grill snaps to trunkBase', () => {
 		expect(TOOL_ANCHOR_MAP[TOOL_TYPES.grill]).toBe('trunkBase');
 	});
+
+	it('speechBubble snaps to crownTop', () => {
+		expect(TOOL_ANCHOR_MAP[TOOL_TYPES.speechBubble]).toBe('crownTop');
+	});
+
+	it('stormCloud snaps to crownTop', () => {
+		expect(TOOL_ANCHOR_MAP[TOOL_TYPES.stormCloud]).toBe('crownTop');
+	});
 });
 
 describe('TOOL_OPTIONS', () => {
@@ -84,7 +94,7 @@ describe('TOOL_OPTIONS', () => {
 		}
 	});
 
-	it('has correct labels for all 7 tools', () => {
+	it('has correct labels for all 9 tools', () => {
 		const labelMap = new Map(TOOL_OPTIONS.map((o) => [o.value, o.label]));
 		expect(labelMap.get('shovel')).toBe('Shovel');
 		expect(labelMap.get('wateringCan')).toBe('Watering Can');
@@ -93,11 +103,13 @@ describe('TOOL_OPTIONS', () => {
 		expect(labelMap.get('rake')).toBe('Rake');
 		expect(labelMap.get('woodpecker')).toBe('Woodpecker');
 		expect(labelMap.get('grill')).toBe('Grill');
+		expect(labelMap.get('speechBubble')).toBe('Speech Bubble');
+		expect(labelMap.get('stormCloud')).toBe('Storm Cloud');
 	});
 });
 
 describe('createDefaultToolVisibility', () => {
-	it('has entries for all 7 tools', () => {
+	it('has entries for all 9 tools', () => {
 		const visibility = createDefaultToolVisibility();
 		for (const toolType of Object.values(TOOL_TYPES)) {
 			expect(visibility).toHaveProperty(toolType);
@@ -116,6 +128,11 @@ describe('createDefaultToolVisibility', () => {
 		for (const toolType of Object.values(TOOL_TYPES)) {
 			expect(visibility[toolType].size).toBe(1);
 		}
+	});
+
+	it('speechBubble entry has text field defaulting to empty string', () => {
+		const visibility = createDefaultToolVisibility();
+		expect(visibility.speechBubble.text).toBe('');
 	});
 
 	it('returns a new object each call', () => {

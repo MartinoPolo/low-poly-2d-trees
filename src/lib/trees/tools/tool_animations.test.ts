@@ -4,7 +4,7 @@ import type { ToolAnimationConfig } from './tool_animations.js';
 import { TOOL_TYPES } from './tool_types.js';
 
 describe('TOOL_ANIMATIONS', () => {
-	it('has animation config for all 7 tool types', () => {
+	it('has animation config for all 9 tool types', () => {
 		for (const toolType of Object.values(TOOL_TYPES)) {
 			expect(TOOL_ANIMATIONS).toHaveProperty(toolType);
 		}
@@ -14,9 +14,9 @@ describe('TOOL_ANIMATIONS', () => {
 		expect(TOOL_ANIMATIONS).not.toHaveProperty('birdNest');
 	});
 
-	it('each tool has a positive duration', () => {
+	it('each tool has a non-negative duration', () => {
 		for (const toolType of Object.values(TOOL_TYPES)) {
-			expect(TOOL_ANIMATIONS[toolType].duration).toBeGreaterThan(0);
+			expect(TOOL_ANIMATIONS[toolType].duration).toBeGreaterThanOrEqual(0);
 		}
 	});
 
@@ -46,6 +46,14 @@ describe('TOOL_ANIMATIONS', () => {
 
 	it('grill duration is 2s', () => {
 		expect(TOOL_ANIMATIONS.grill.duration).toBe(2);
+	});
+
+	it('speechBubble duration is 0 (static)', () => {
+		expect(TOOL_ANIMATIONS.speechBubble.duration).toBe(0);
+	});
+
+	it('stormCloud duration is 2s', () => {
+		expect(TOOL_ANIMATIONS.stormCloud.duration).toBe(2);
 	});
 
 	it('each tool has a pivotPoint with x and y', () => {

@@ -9,7 +9,7 @@ test.describe('Scene page tool accessories', () => {
 		await page.goto('/', { waitUntil: 'networkidle' });
 	});
 
-	test('has Tools & Accessories section with 6 tool checkboxes and animate toggle', async ({
+	test('has Tools & Accessories section with 9 tool checkboxes and animate toggle', async ({
 		page,
 	}) => {
 		await expect(page.locator('[data-testid="tool-shovel-visible"]')).toBeVisible();
@@ -18,6 +18,9 @@ test.describe('Scene page tool accessories', () => {
 		await expect(page.locator('[data-testid="tool-axe-visible"]')).toBeVisible();
 		await expect(page.locator('[data-testid="tool-rake-visible"]')).toBeVisible();
 		await expect(page.locator('[data-testid="tool-woodpecker-visible"]')).toBeVisible();
+		await expect(page.locator('[data-testid="tool-grill-visible"]')).toBeVisible();
+		await expect(page.locator('[data-testid="tool-speechBubble-visible"]')).toBeVisible();
+		await expect(page.locator('[data-testid="tool-stormCloud-visible"]')).toBeVisible();
 		await expect(page.locator('[data-testid="animate-tools"]')).toBeVisible();
 	});
 
@@ -108,13 +111,16 @@ test.describe('Editor page tool accessories', () => {
 		await page.waitForLoadState('networkidle');
 	});
 
-	test('has Tools & Accessories section with 6 tool checkboxes', async ({ page }) => {
+	test('has Tools & Accessories section with 9 tool checkboxes', async ({ page }) => {
 		await expect(page.locator('[data-testid="tool-shovel-visible"]')).toBeVisible();
 		await expect(page.locator('[data-testid="tool-wateringCan-visible"]')).toBeVisible();
 		await expect(page.locator('[data-testid="tool-ladder-visible"]')).toBeVisible();
 		await expect(page.locator('[data-testid="tool-axe-visible"]')).toBeVisible();
 		await expect(page.locator('[data-testid="tool-rake-visible"]')).toBeVisible();
 		await expect(page.locator('[data-testid="tool-woodpecker-visible"]')).toBeVisible();
+		await expect(page.locator('[data-testid="tool-grill-visible"]')).toBeVisible();
+		await expect(page.locator('[data-testid="tool-speechBubble-visible"]')).toBeVisible();
+		await expect(page.locator('[data-testid="tool-stormCloud-visible"]')).toBeVisible();
 		await expect(page.locator('[data-testid="animate-tools"]')).toBeVisible();
 	});
 
@@ -133,13 +139,16 @@ test.describe('Editor page tool accessories', () => {
 		await expect(animGroup).toHaveClass(/animate-tool/);
 	});
 
-	test('all 6 tools can be enabled simultaneously', async ({ page }) => {
+	test('all 9 tools can be enabled simultaneously', async ({ page }) => {
 		await page.locator('[data-testid="tool-shovel-visible"]').click();
 		await page.locator('[data-testid="tool-wateringCan-visible"]').click();
 		await page.locator('[data-testid="tool-ladder-visible"]').click();
 		await page.locator('[data-testid="tool-axe-visible"]').click();
 		await page.locator('[data-testid="tool-rake-visible"]').click();
 		await page.locator('[data-testid="tool-woodpecker-visible"]').click();
+		await page.locator('[data-testid="tool-grill-visible"]').click();
+		await page.locator('[data-testid="tool-speechBubble-visible"]').click();
+		await page.locator('[data-testid="tool-stormCloud-visible"]').click();
 
 		await expect(page.locator('[data-tool="shovel"]')).toBeVisible();
 		await expect(page.locator('[data-tool="wateringCan"]')).toBeVisible();
@@ -147,5 +156,8 @@ test.describe('Editor page tool accessories', () => {
 		await expect(page.locator('[data-tool="axe"]')).toBeVisible();
 		await expect(page.locator('[data-tool="rake"]')).toBeVisible();
 		await expect(page.locator('[data-tool="woodpecker"]')).toBeVisible();
+		await expect(page.locator('[data-tool="grill"]')).toBeVisible();
+		await expect(page.locator('[data-tool="speechBubble"]')).toBeVisible();
+		await expect(page.locator('[data-tool="stormCloud"]')).toBeVisible();
 	});
 });

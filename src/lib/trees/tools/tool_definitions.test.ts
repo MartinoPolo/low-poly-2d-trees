@@ -4,7 +4,7 @@ import { TOOL_TYPES, TOOL_ANCHOR_MAP } from './tool_types.js';
 import type { ToolType } from './tool_types.js';
 
 describe('TOOL_DEFINITIONS', () => {
-	it('has entries for all 7 tool types', () => {
+	it('has entries for all 9 tool types', () => {
 		for (const toolType of Object.values(TOOL_TYPES)) {
 			expect(TOOL_DEFINITIONS).toHaveProperty(toolType);
 		}
@@ -73,5 +73,21 @@ describe('TOOL_DEFINITIONS', () => {
 
 	it('grill anchorTarget is trunkBase', () => {
 		expect(TOOL_DEFINITIONS.grill.anchorTarget).toBe('trunkBase');
+	});
+
+	it('speechBubble has correct snapOffset', () => {
+		expect(TOOL_DEFINITIONS.speechBubble.snapOffset).toEqual({ x: 0, y: -10 });
+	});
+
+	it('speechBubble anchorTarget is crownTop', () => {
+		expect(TOOL_DEFINITIONS.speechBubble.anchorTarget).toBe('crownTop');
+	});
+
+	it('stormCloud has correct snapOffset', () => {
+		expect(TOOL_DEFINITIONS.stormCloud.snapOffset).toEqual({ x: 0, y: 10 });
+	});
+
+	it('stormCloud anchorTarget is crownTop', () => {
+		expect(TOOL_DEFINITIONS.stormCloud.anchorTarget).toBe('crownTop');
 	});
 });

@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { Label } from '$lib/components/ui/label/index.js';
-	import { Input } from '$lib/components/ui/input/index.js';
 	import LabeledCheckbox from '$lib/components/composed/LabeledCheckbox.svelte';
 	import LabeledSlider from '$lib/components/composed/LabeledSlider.svelte';
 	import SectionCard from '$lib/components/composed/SectionCard.svelte';
@@ -12,40 +11,6 @@
 </script>
 
 <SectionCard title="Overlays" contentClass="space-y-4">
-	<LabeledCheckbox
-		label="Storm Cloud"
-		checked={overlayConfig.stormCloudEnabled.current}
-		onchange={(v) => (overlayConfig.stormCloudEnabled.current = v)}
-		testId="overlay-storm-cloud"
-	/>
-	{#if overlayConfig.stormCloudEnabled.current}
-		<LabeledCheckbox
-			label="Show Rain"
-			checked={overlayConfig.stormCloudShowRain.current}
-			onchange={(v) => (overlayConfig.stormCloudShowRain.current = v)}
-			testId="overlay-storm-rain"
-			labelClass="text-xs"
-			class="ml-6"
-		/>
-	{/if}
-
-	<LabeledCheckbox
-		label="Speech Bubble"
-		checked={overlayConfig.speechBubbleEnabled.current}
-		onchange={(v) => (overlayConfig.speechBubbleEnabled.current = v)}
-		testId="overlay-speech-bubble"
-	/>
-	{#if overlayConfig.speechBubbleEnabled.current}
-		<div class="ml-6">
-			<Input
-				data-testid="overlay-speech-text"
-				type="text"
-				placeholder="Enter text..."
-				bind:value={overlayConfig.speechBubbleText.current}
-			/>
-		</div>
-	{/if}
-
 	<LabeledCheckbox
 		label="Glow"
 		checked={overlayConfig.glowEnabled.current}

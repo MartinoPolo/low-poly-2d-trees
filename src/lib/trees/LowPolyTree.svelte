@@ -18,7 +18,6 @@
 	} from '$lib/trees/animation.js';
 	import { FRUIT_DEFINITIONS } from '$lib/trees/shapes/fruit_definitions.js';
 	import { FLOWER_DEFINITIONS } from '$lib/trees/shapes/flower_definitions.js';
-	import TreeOverlay from '$lib/trees/overlays/TreeOverlay.svelte';
 	import GlowEffect from '$lib/trees/overlays/GlowEffect.svelte';
 	import GroundElements from '$lib/trees/ground/GroundElements.svelte';
 	import TreeTool from '$lib/trees/TreeTool.svelte';
@@ -31,7 +30,6 @@
 	import {
 		OVERLAY_DEFAULTS,
 		OVERLAY_VIEWBOX_HEADROOM,
-		needsViewboxExpansion,
 		type OverlayConfig,
 	} from '$lib/trees/overlays/overlay_types.js';
 	import {
@@ -122,7 +120,7 @@
 	const shouldAnimateGrowth = $derived(animateGrowth && growthVariance > 0);
 
 	const glowFilterId = $derived(`glow-${config.seed}`);
-	const expandViewbox = $derived(needsViewboxExpansion(overlayConfig));
+	const expandViewbox = $derived(toolVisibility?.stormCloud?.visible ?? false);
 	const viewBoxY = $derived(expandViewbox ? -OVERLAY_VIEWBOX_HEADROOM : 0);
 	const viewBoxHeight = $derived(
 		geometry.viewBox.height + (expandViewbox ? OVERLAY_VIEWBOX_HEADROOM : 0),
@@ -314,6 +312,7 @@
 							anchor={geometry.anchors[TOOL_ANCHOR_MAP[toolType]]}
 							size={toolVisibility[toolType].size}
 							animate={animateTools}
+							text={toolVisibility[toolType].text}
 							snapOffsetOverride={toolSnapOffsetOverride?.toolType === toolType
 								? toolSnapOffsetOverride.offset
 								: undefined}
@@ -322,13 +321,6 @@
 				{/each}
 			</g>
 		{/if}
-
-		<TreeOverlay
-			config={overlayConfig}
-			anchors={geometry.anchors}
-			seed={config.seed}
-			treeWidth={geometry.viewBox.width}
-		/>
 	</g>
 </svg>
 

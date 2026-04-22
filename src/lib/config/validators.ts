@@ -125,9 +125,6 @@ export function isValidOverlayPersistedState(value: unknown): value is OverlayPe
 		return false;
 	}
 	return (
-		hasBoolean(value, 'stormCloudEnabled') &&
-		hasBoolean(value, 'stormCloudShowRain') &&
-		hasBoolean(value, 'speechBubbleEnabled') &&
 		hasBoolean(value, 'glowEnabled') &&
 		hasString(value, 'glowColor') &&
 		hasNumber(value, 'glowIntensity') &&
