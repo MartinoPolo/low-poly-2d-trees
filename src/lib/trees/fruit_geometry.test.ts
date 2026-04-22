@@ -60,29 +60,3 @@ describe('GEOMETRY_GROUPS includes fruit and flower', () => {
 		expect(GEOMETRY_GROUPS.flower).toBe('flower');
 	});
 });
-
-// ============================================================================
-// FRUIT_SVG_COMPONENTS map
-// ============================================================================
-
-describe('FRUIT_SVG_COMPONENTS', () => {
-	it('has exactly 12 entries (all non-none fruit types)', async () => {
-		const mod = await import('./shapes/fruit_geometry.js');
-		expect(Object.keys(mod.FRUIT_SVG_COMPONENTS)).toHaveLength(12);
-	});
-
-	it('every key corresponds to a non-none FRUIT_TYPES value', async () => {
-		const mod = await import('./shapes/fruit_geometry.js');
-		const nonNoneTypes = Object.values(FRUIT_TYPES).filter((t) => t !== 'none');
-		for (const fruitType of nonNoneTypes) {
-			expect(mod.FRUIT_SVG_COMPONENTS).toHaveProperty(fruitType);
-		}
-	});
-
-	it('each entry is a Svelte component (function)', async () => {
-		const mod = await import('./shapes/fruit_geometry.js');
-		for (const component of Object.values(mod.FRUIT_SVG_COMPONENTS)) {
-			expect(typeof component).toBe('function');
-		}
-	});
-});

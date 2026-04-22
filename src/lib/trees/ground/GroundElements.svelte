@@ -1,8 +1,7 @@
 <script lang="ts">
 	import type { Point2D } from '$lib/trees/types/core.js';
 	import { generateGroundPlacements } from './ground_generators.js';
-	import StoneSvg from '$lib/trees/assets/ground/StoneSvg.svelte';
-	import GrassSvg from '$lib/trees/assets/ground/GrassSvg.svelte';
+	import { GROUND_DEFINITIONS } from './ground_definitions.js';
 
 	interface Props {
 		seed: number;
@@ -21,14 +20,11 @@
 
 <g class="ground-elements">
 	{#each placements as placement, i (i)}
+		{@const GroundSvg = GROUND_DEFINITIONS[placement.type].svgComponent}
 		<g
 			transform="translate({placement.x}, {placement.y}) scale({placement.scale}) rotate({placement.rotation})"
 		>
-			{#if placement.type === 'stone'}
-				<StoneSvg variant={placement.variant} />
-			{:else}
-				<GrassSvg variant={placement.variant} />
-			{/if}
+			<GroundSvg variant={placement.variant} />
 		</g>
 	{/each}
 </g>

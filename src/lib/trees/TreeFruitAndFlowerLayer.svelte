@@ -1,17 +1,28 @@
 <script lang="ts">
 	import type { Component } from 'svelte';
-	import type { TreeGeometry } from '$lib/trees/types/core.js';
-
-	const FRUIT_RENDER_SCALE = 2;
+	import type { TreeGeometry, Point2D } from '$lib/trees/types/core.js';
 
 	interface Props {
 		geometry: TreeGeometry;
 		showFruit: boolean;
 		fruitComponent: Component | null;
+		fruitScale?: number;
+		fruitOriginOffset?: Point2D;
 		flowerComponent: Component | null;
+		flowerScale?: number;
+		flowerOriginOffset?: Point2D;
 	}
 
-	let { geometry, showFruit, fruitComponent, flowerComponent }: Props = $props();
+	let {
+		geometry,
+		showFruit,
+		fruitComponent,
+		fruitScale = 1,
+		fruitOriginOffset = { x: 0, y: 0 },
+		flowerComponent,
+		flowerScale = 1,
+		flowerOriginOffset = { x: 0, y: 0 },
+	}: Props = $props();
 </script>
 
 {#if geometry.stakeTriangles.length > 0}
@@ -32,7 +43,10 @@
 	{@const FruitSvg = fruitComponent}
 	<g class="fruit">
 		{#each geometry.fruitSlots as slot (slot)}
-			<g transform="translate({slot.x},{slot.y}) scale({FRUIT_RENDER_SCALE})">
+			<g
+				transform="translate({slot.x + fruitOriginOffset.x},{slot.y +
+					fruitOriginOffset.y}) scale({fruitScale})"
+			>
 				<FruitSvg />
 			</g>
 		{/each}
@@ -43,7 +57,10 @@
 	{@const FlowerSvg = flowerComponent}
 	<g class="flowers">
 		{#each geometry.flowerSlots as slot (slot)}
-			<g transform="translate({slot.x},{slot.y})">
+			<g
+				transform="translate({slot.x + flowerOriginOffset.x},{slot.y +
+					flowerOriginOffset.y}) scale({flowerScale})"
+			>
 				<FlowerSvg />
 			</g>
 		{/each}

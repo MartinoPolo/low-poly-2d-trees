@@ -1,10 +1,15 @@
 <script lang="ts">
-	import LeafSvg from '$lib/trees/assets/overlays/LeafSvg.svelte';
+	import {
+		OVERLAY_DEFINITIONS,
+		OVERLAY_PARTICLE_TYPES,
+	} from '$lib/trees/overlays/overlay_definitions.js';
 	import {
 		FALLING_LEAF_STATES,
 		FALLING_LEAF_CONFIG,
 		type FallingLeaf,
 	} from '$lib/trees/animation.js';
+
+	const LeafSvg = OVERLAY_DEFINITIONS[OVERLAY_PARTICLE_TYPES.leaf].svgComponent;
 
 	interface Props {
 		fallingLeaves: readonly FallingLeaf[];
