@@ -52,6 +52,7 @@
 	import { PaneGroup, Pane, Handle } from '$lib/components/ui/resizable/index.js';
 
 	const USE_PER_SHAPE_DEFAULTS_KEY = 'use-per-shape-defaults';
+	const DEBUG_DISABLE_BACK_ROWS_KEY = 'debug-disable-back-rows';
 
 	const treeConfig = setTreeConfigContext();
 	const sceneConfig = setSceneConfigContext();
@@ -82,6 +83,11 @@
 		key: USE_PER_SHAPE_DEFAULTS_KEY,
 		serde: jsonSerde(isValidBoolean),
 		defaultValue: true,
+	});
+	const debugDisableBackRows = new Persisted<boolean>({
+		key: DEBUG_DISABLE_BACK_ROWS_KEY,
+		serde: jsonSerde(isValidBoolean),
+		defaultValue: false,
 	});
 	let showAnchors = $state(false);
 	let showViewBox = $state(false);
@@ -181,6 +187,7 @@
 					"
 					>
 						<LowPolyTree
+							disabled={debugDisableBackRows.current && placement.layer > 1}
 							config={{
 								...treeConfig.current,
 								shape: placement.shape,
@@ -396,6 +403,7 @@
 						bind:showTrunk
 						bind:showAnchors
 						bind:showViewBox
+						bind:debugDisableBackRows={debugDisableBackRows.current}
 					/>
 
 					<OverlaysCard />
