@@ -37,6 +37,7 @@
 		splitCanopyBlobsByZOrder,
 		type IndexedBranchGroup,
 	} from '$lib/trees/tree_z_ordering.js';
+	import { SvelteMap } from 'svelte/reactivity';
 	import { createFallingLeavesState } from '$lib/trees/tree_falling_leaves_state.svelte.js';
 	import TreeTrunkLayer from '$lib/trees/TreeTrunkLayer.svelte';
 	import TreeBranchLayer from '$lib/trees/TreeBranchLayer.svelte';
@@ -128,7 +129,7 @@
 	);
 
 	const childBranchesByParent = $derived.by(() => {
-		const map = new Map<number, IndexedBranchGroup[]>();
+		const map = new SvelteMap<number, IndexedBranchGroup[]>();
 		for (let i = 0; i < geometry.branchGroups.length; i++) {
 			const group = geometry.branchGroups[i]!;
 			if (group.parentIndex !== null) {
