@@ -18,7 +18,7 @@ describe('generateGroundPlacements', () => {
 		expect(a).not.toEqual(b);
 	});
 
-	it('returns correct total count of stones + grass', () => {
+	it('returns correct default count of stones + grass', () => {
 		const placements = generateGroundPlacements(42, TRUNK_BASE, SPREAD);
 		const expectedCount = GROUND_ELEMENT_COUNTS.stones + GROUND_ELEMENT_COUNTS.grass;
 		expect(placements).toHaveLength(expectedCount);
@@ -99,5 +99,51 @@ describe('generateGroundPlacements', () => {
 				}
 			}
 		}
+	});
+
+	it('with custom count produces that many elements with correct stone/grass ratio', () => {
+		const placements = generateGroundPlacements(42, TRUNK_BASE, SPREAD, 15);
+		expect(placements).toHaveLength(15);
+		const stones = placements.filter((p) => p.type === 'stone').length;
+		const grass = placements.filter((p) => p.type === 'grass').length;
+		expect(stones + grass).toBe(15);
+		const stoneRatio =
+			GROUND_ELEMENT_COUNTS.stones /
+			(GROUND_ELEMENT_COUNTS.stones + GROUND_ELEMENT_COUNTS.grass);
+		expect(stones).toBe(Math.round(15 * stoneRatio));
+		expect(grass).toBe(15 - Math.round(15 * stoneRatio));
+	});
+
+	it('with sizeMultiplier=2 produces elements with doubled scale ranges', () => {
+		const placements = generateGroundPlacements(42, TRUNK_BASE, SPREAD, undefined, 2);
+		const stones = placements.filter((p) => p.type === 'stone');
+		for (const stone of stones) {
+			expect(stone.scale).toBeGreaterThanOrEqual(3.0);
+			expect(stone.scale).toBeLessThanOrEqual(6.0);
+		}
+		const grasses = placements.filter((p) => p.type === 'grass');
+		for (const grass of grasses) {
+			expect(grass.scale).toBeGreaterThanOrEqual(3.5);
+			expect(grass.scale).toBeLessThanOrEqual(6.5);
+		}
+	});
+
+	it('with count=1 produces exactly 1 element', () => {
+		const placements = generateGroundPlacements(42, TRUNK_BASE, SPREAD, 1);
+		expect(placements).toHaveLength(1);
+	});
+
+	it('with count=20 produces 20 elements', () => {
+		const placements = generateGroundPlacements(42, TRUNK_BASE, SPREAD, 20);
+		expect(placements).toHaveLength(20);
+	});
+
+	it('backward-compatible: calling with just (seed, trunkBase, spreadWidth) still works', () => {
+		const placements = generateGroundPlacements(42, TRUNK_BASE, SPREAD);
+		expect(placements).toHaveLength(GROUND_ELEMENT_COUNTS.stones + GROUND_ELEMENT_COUNTS.grass);
+		const stones = placements.filter((p) => p.type === 'stone');
+		const grass = placements.filter((p) => p.type === 'grass');
+		expect(stones.length).toBe(GROUND_ELEMENT_COUNTS.stones);
+		expect(grass.length).toBe(GROUND_ELEMENT_COUNTS.grass);
 	});
 });

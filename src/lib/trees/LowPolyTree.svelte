@@ -63,6 +63,8 @@
 		animateTools?: boolean;
 		overlayConfig?: OverlayConfig;
 		groundElements?: boolean;
+		groundElementCount?: number;
+		groundElementSize?: number;
 		class?: string;
 		onanchors?: (anchors: TreeAnchors) => void;
 	}
@@ -84,6 +86,8 @@
 		animateTools = false,
 		overlayConfig = OVERLAY_DEFAULTS,
 		groundElements = false,
+		groundElementCount,
+		groundElementSize,
 		class: className = '',
 		onanchors,
 	}: Props = $props();
@@ -251,7 +255,12 @@
 		{/if}
 
 		{#if groundElements}
-			<GroundElements seed={config.seed} trunkBase={geometry.anchors.trunkBase} />
+			<GroundElements
+				seed={config.seed}
+				trunkBase={geometry.anchors.trunkBase}
+				count={groundElementCount}
+				sizeMultiplier={groundElementSize}
+			/>
 		{/if}
 
 		{#if toolVisibility}

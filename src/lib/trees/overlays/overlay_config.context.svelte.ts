@@ -10,6 +10,7 @@ import {
 	type OverlayConfig,
 	type OverlayPersistedState,
 } from './overlay_types.js';
+import { GROUND_LIMITS } from '$lib/trees/ground/ground_types.js';
 
 type OverlayConfigContext = ReturnType<typeof createOverlayConfigContext>;
 
@@ -43,6 +44,12 @@ function createOverlayConfigContext() {
 	const glowIntensity = new StateRaw(init.glowIntensity, { isEqual: Object.is });
 	const glowPulse = new StateRaw(init.glowPulse, { isEqual: Object.is });
 	const groundEnabled = new StateRaw(init.groundEnabled, { isEqual: Object.is });
+	const groundElementCount = new StateRaw(init.groundElementCount ?? GROUND_LIMITS.countDefault, {
+		isEqual: Object.is,
+	});
+	const groundElementSize = new StateRaw(init.groundElementSize ?? GROUND_LIMITS.sizeDefault, {
+		isEqual: Object.is,
+	});
 
 	const config = new Derived<OverlayConfig>(() => ({
 		stormCloud: { enabled: stormCloudEnabled.current, showRain: stormCloudShowRain.current },
@@ -69,6 +76,8 @@ function createOverlayConfigContext() {
 				glowIntensity: glowIntensity.current,
 				glowPulse: glowPulse.current,
 				groundEnabled: groundEnabled.current,
+				groundElementCount: groundElementCount.current,
+				groundElementSize: groundElementSize.current,
 			};
 		});
 		$effect(() => {
@@ -83,6 +92,8 @@ function createOverlayConfigContext() {
 			glowIntensity.current = snap.glowIntensity;
 			glowPulse.current = snap.glowPulse;
 			groundEnabled.current = snap.groundEnabled;
+			groundElementCount.current = snap.groundElementCount ?? GROUND_LIMITS.countDefault;
+			groundElementSize.current = snap.groundElementSize ?? GROUND_LIMITS.sizeDefault;
 		});
 	}
 
@@ -97,6 +108,8 @@ function createOverlayConfigContext() {
 		glowIntensity,
 		glowPulse,
 		groundEnabled,
+		groundElementCount,
+		groundElementSize,
 		config,
 	};
 }

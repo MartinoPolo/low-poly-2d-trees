@@ -5,6 +5,7 @@ import { StateRaw } from '$lib/reactivity/state.svelte.js';
 import { isValidSceneConfig } from '$lib/config/validators.js';
 import {
 	SCENE_DEFAULTS,
+	SCENE_LIMITS,
 	SCENE_SHAPE_RANDOM,
 	type SceneConfig,
 	type SceneShapeSelection,
@@ -31,7 +32,9 @@ function createSceneConfigContext() {
 	const init = persisted.current;
 
 	const treeCount = new StateRaw(init.treeCount, { isEqual: Object.is });
-	const depthSpread = new StateRaw(init.depthSpread, { isEqual: Object.is });
+	const depthSpread = new StateRaw(Math.min(init.depthSpread, SCENE_LIMITS.depthSpreadMax), {
+		isEqual: Object.is,
+	});
 	const baseSeed = new StateRaw(init.baseSeed, { isEqual: Object.is });
 	const sceneShape = new StateRaw<SceneShapeSelection>(init.sceneShape ?? SCENE_SHAPE_RANDOM, {
 		isEqual: Object.is,

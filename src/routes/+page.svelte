@@ -49,6 +49,7 @@
 	import { use_settings_tier, tierAtLeast } from '$lib/context/settings_tier.context.svelte.js';
 	import { Persisted, jsonSerde } from '$lib/reactivity/persisted.svelte.js';
 	import { isValidBoolean } from '$lib/config/validators.js';
+	import { PaneGroup, Pane, Handle } from '$lib/components/ui/resizable/index.js';
 
 	const USE_PER_SHAPE_DEFAULTS_KEY = 'use-per-shape-defaults';
 
@@ -152,245 +153,261 @@
 	<title>Scene Editor</title>
 </svelte:head>
 
-<main class="grid h-dvh grid-rows-[1fr_1fr] overflow-hidden bg-background text-foreground">
-	<!-- Scene Preview -->
-	<div data-testid="scene-canvas" class="relative overflow-hidden border border-border">
-		<SceneBackground {groundHeightPercent} />
-
-		{#each scenePlacements as placement, index (index)}
-			{@const useDefaults = sceneShapeIsRandom}
-			{@const shapeDefaults = useDefaults
-				? { ...DEFAULT_TREE_CONFIG, ...SHAPE_DEFAULTS[placement.shape] }
-				: null}
+<main class="h-dvh overflow-hidden bg-background text-foreground">
+	<PaneGroup direction="vertical" autoSaveId="scene-editor-resize">
+		<Pane defaultSize={30} minSize={15}>
+			<!-- Scene Preview -->
 			<div
-				data-testid="scene-tree"
-				class="absolute bottom-0"
-				style="
+				data-testid="scene-canvas"
+				class="relative h-full overflow-hidden border border-border"
+			>
+				<SceneBackground {groundHeightPercent} />
+
+				{#each scenePlacements as placement, index (index)}
+					{@const useDefaults = sceneShapeIsRandom}
+					{@const shapeDefaults = useDefaults
+						? { ...DEFAULT_TREE_CONFIG, ...SHAPE_DEFAULTS[placement.shape] }
+						: null}
+					<div
+						data-testid="scene-tree"
+						class="absolute bottom-0"
+						style="
 						left: {placement.x}%;
 						bottom: calc({placement.y}% + 30px);
 						transform: scale({placement.scale}) translateX(-50%);
 						transform-origin: bottom center;
 						width: {320 * placement.scale}px;
 					"
-			>
-				<LowPolyTree
-					config={{
-						...treeConfig.current,
-						shape: placement.shape,
-						seed: placement.seed,
-						...(useDefaults && shapeDefaults
-							? {
-									blobCount: shapeDefaults.blobCount,
-									branchDepth: shapeDefaults.branchDepth,
-									branchesLevel1Range: shapeDefaults.branchesLevel1Range,
-									branchesLevel2Range: shapeDefaults.branchesLevel2Range,
-									branchesLevel3Range: shapeDefaults.branchesLevel3Range,
-									branchAngle: shapeDefaults.branchAngle,
-									blobSizeVariance: shapeDefaults.blobSizeVariance,
-									blobCloseness: shapeDefaults.blobCloseness,
-									branchThickness: shapeDefaults.branchThickness,
-									trunkSegments: shapeDefaults.trunkSegments,
-									trunkCrookedness: shapeDefaults.trunkCrookedness,
-									trunkTwist: shapeDefaults.trunkTwist,
-									crookednessMode: shapeDefaults.crookednessMode,
-									branchLength: shapeDefaults.branchLength,
-									branchLengthVariance: shapeDefaults.branchLengthVariance,
-								}
-							: {}),
-						canopyLightColor:
-							usePerShapeDefaults.current && useDefaults
-								? (shapeDefaults?.canopyLightColor ??
-									treeConfig.current.canopyLightColor)
-								: treeConfig.current.canopyLightColor,
-						canopyDarkColor:
-							usePerShapeDefaults.current && useDefaults
-								? (shapeDefaults?.canopyDarkColor ??
-									treeConfig.current.canopyDarkColor)
-								: treeConfig.current.canopyDarkColor,
-						trunkHue:
-							usePerShapeDefaults.current && useDefaults
-								? (shapeDefaults?.trunkHue ?? treeConfig.current.trunkHue)
-								: treeConfig.current.trunkHue,
-						trunkSaturation:
-							usePerShapeDefaults.current && useDefaults
-								? (shapeDefaults?.trunkSaturation ??
-									treeConfig.current.trunkSaturation)
-								: treeConfig.current.trunkSaturation,
-						trunkLightness:
-							usePerShapeDefaults.current && useDefaults
-								? (shapeDefaults?.trunkLightness ??
-									treeConfig.current.trunkLightness)
-								: treeConfig.current.trunkLightness,
-					}}
-					{showCanopy}
-					{showBranches}
-					{showTrunk}
-					{showAnchors}
-					{showViewBox}
-					{animateCanopySway}
-					{animateBranches}
-					{animateGrowth}
-					{growthVariance}
-					{toolVisibility}
-					{animateTools}
-					overlayConfig={overlayConfig.config.current}
-					groundElements={overlayConfig.groundEnabled.current}
-					onanchors={(anchors) => {
-						treeAnchorsMap.set(index, { roots: anchors.roots });
-					}}
-					class="h-auto w-full"
-				/>
-			</div>
-		{/each}
-
-		{#if showRootConnections && scenePlacements.length >= 2}
-			<svg class="pointer-events-none absolute inset-0 h-full w-full">
-				{#each scenePlacements.slice(1) as connectedPlacement, i (connectedPlacement.seed)}
-					{@const fromAnchors = treeAnchorsMap.get(0)}
-					{@const toAnchors = treeAnchorsMap.get(i + 1)}
-					{#if fromAnchors && toAnchors}
-						<RootConnection
-							from={fromAnchors.roots}
-							to={toAnchors.roots}
-							state={CONNECTION_STATES.connected}
-							seed={i * 1000}
+					>
+						<LowPolyTree
+							config={{
+								...treeConfig.current,
+								shape: placement.shape,
+								seed: placement.seed,
+								...(useDefaults && shapeDefaults
+									? {
+											blobCount: shapeDefaults.blobCount,
+											branchDepth: shapeDefaults.branchDepth,
+											branchesLevel1Range: shapeDefaults.branchesLevel1Range,
+											branchesLevel2Range: shapeDefaults.branchesLevel2Range,
+											branchesLevel3Range: shapeDefaults.branchesLevel3Range,
+											branchAngle: shapeDefaults.branchAngle,
+											blobSizeVariance: shapeDefaults.blobSizeVariance,
+											blobCloseness: shapeDefaults.blobCloseness,
+											branchThickness: shapeDefaults.branchThickness,
+											trunkSegments: shapeDefaults.trunkSegments,
+											trunkCrookedness: shapeDefaults.trunkCrookedness,
+											trunkTwist: shapeDefaults.trunkTwist,
+											crookednessMode: shapeDefaults.crookednessMode,
+											branchLength: shapeDefaults.branchLength,
+											branchLengthVariance:
+												shapeDefaults.branchLengthVariance,
+										}
+									: {}),
+								canopyLightColor:
+									usePerShapeDefaults.current && useDefaults
+										? (shapeDefaults?.canopyLightColor ??
+											treeConfig.current.canopyLightColor)
+										: treeConfig.current.canopyLightColor,
+								canopyDarkColor:
+									usePerShapeDefaults.current && useDefaults
+										? (shapeDefaults?.canopyDarkColor ??
+											treeConfig.current.canopyDarkColor)
+										: treeConfig.current.canopyDarkColor,
+								trunkHue:
+									usePerShapeDefaults.current && useDefaults
+										? (shapeDefaults?.trunkHue ?? treeConfig.current.trunkHue)
+										: treeConfig.current.trunkHue,
+								trunkSaturation:
+									usePerShapeDefaults.current && useDefaults
+										? (shapeDefaults?.trunkSaturation ??
+											treeConfig.current.trunkSaturation)
+										: treeConfig.current.trunkSaturation,
+								trunkLightness:
+									usePerShapeDefaults.current && useDefaults
+										? (shapeDefaults?.trunkLightness ??
+											treeConfig.current.trunkLightness)
+										: treeConfig.current.trunkLightness,
+							}}
+							{showCanopy}
+							{showBranches}
+							{showTrunk}
+							{showAnchors}
+							{showViewBox}
+							{animateCanopySway}
+							{animateBranches}
+							{animateGrowth}
+							{growthVariance}
+							{toolVisibility}
+							{animateTools}
+							overlayConfig={overlayConfig.config.current}
+							groundElements={overlayConfig.groundEnabled.current}
+							groundElementCount={overlayConfig.groundElementCount.current}
+							groundElementSize={overlayConfig.groundElementSize.current}
+							onanchors={(anchors) => {
+								treeAnchorsMap.set(index, { roots: anchors.roots });
+							}}
+							class="h-auto w-full"
 						/>
-					{/if}
-				{/each}
-			</svg>
-		{/if}
-
-		<EnvironmentOverlay
-			config={environmentConfig.config.current}
-			lightAngle={treeConfig.current.lightAngle}
-		/>
-
-		<SceneFloatingButtons onReset={resetAll} onRandomize={randomizeSeed} />
-	</div>
-
-	<!-- Shared Controls -->
-	<aside data-testid="scene-controls" class="select-none overflow-y-auto px-6 pb-6">
-		<SettingsTierControl />
-		<div class="grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-6 p-px">
-			<!-- Scene Layout -->
-			<SectionCard title="Scene" contentClass="space-y-4">
-				<LabeledSlider
-					label="Tree Count"
-					min={SCENE_LIMITS.treeCountMin}
-					max={SCENE_LIMITS.treeCountMax}
-					bind:value={sceneConfig.treeCount.current}
-					id="tree-count"
-				/>
-				{#if isIntermediate}
-					<LabeledSlider
-						label="Depth Spread"
-						min={SCENE_LIMITS.depthSpreadMin}
-						max={SCENE_LIMITS.depthSpreadMax}
-						bind:value={sceneConfig.depthSpread.current}
-						id="depth-spread"
-					/>
-				{/if}
-			</SectionCard>
-
-			<!-- Shape -->
-			<ShapeCard
-				mode="scene"
-				sceneShapeSelection={sceneConfig.sceneShape.current}
-				bind:usePerShapeDefaults={usePerShapeDefaults.current}
-				{onSceneShapeChange}
-				{onStageChange}
-				onRandomizeSeed={randomizeSeed}
-			/>
-
-			<CanopyCard
-				mode="scene"
-				{sceneShapeIsRandom}
-				onBlobCountChange={(v) => (treeConfig.current.blobCount = v)}
-			/>
-
-			<CanopyColorCard
-				bind:lightColor={treeConfig.current.canopyLightColor}
-				bind:darkColor={treeConfig.current.canopyDarkColor}
-				disabled={usePerShapeDefaults.current && sceneShapeIsRandom}
-			/>
-
-			<TrunkColorCard
-				bind:hue={treeConfig.current.trunkHue}
-				bind:saturation={treeConfig.current.trunkSaturation}
-				bind:lightness={treeConfig.current.trunkLightness}
-				disabled={usePerShapeDefaults.current && sceneShapeIsRandom}
-			/>
-
-			<TrunkCard mode="scene" {sceneShapeIsRandom} />
-
-			<BranchesCard mode="scene" {sceneShapeIsRandom} />
-
-			<LightingCard
-				bind:lightAngle={treeConfig.current.lightAngle}
-				bind:depthVariance={treeConfig.current.depthVariance}
-			/>
-
-			{#if isIntermediate}
-				<SectionCard title="Environment" contentClass="space-y-4">
-					<div class="flex items-center gap-2">
-						<Checkbox
-							data-testid="env-rain-toggle"
-							checked={environmentConfig.rainEnabled.current}
-							onCheckedChange={(v) =>
-								(environmentConfig.rainEnabled.current = v === true)}
-						/>
-						<Label>Rain</Label>
 					</div>
-					{#if isAdvanced && environmentConfig.rainEnabled.current}
-						<LabeledSlider
-							label="Rain Intensity"
-							min={ENVIRONMENT_LIMITS.rainIntensityMin}
-							max={ENVIRONMENT_LIMITS.rainIntensityMax}
-							bind:value={environmentConfig.rainIntensity.current}
-							id="rain-intensity"
-						/>
-					{/if}
-					{#each ENVIRONMENT_TOGGLES as toggle (toggle.key)}
-						<div class="flex items-center gap-2">
-							<Checkbox
-								data-testid={toggle.testId}
-								checked={environmentConfig[toggle.key].current}
-								onCheckedChange={(v) =>
-									(environmentConfig[toggle.key].current = v === true)}
-							/>
-							<Label>{toggle.label}</Label>
-						</div>
-					{/each}
-				</SectionCard>
-			{/if}
+				{/each}
 
-			<ToolAccessoriesCard bind:toolVisibility bind:animateTools />
+				{#if showRootConnections && scenePlacements.length >= 2}
+					<svg class="pointer-events-none absolute inset-0 h-full w-full">
+						{#each scenePlacements.slice(1) as connectedPlacement, i (connectedPlacement.seed)}
+							{@const fromAnchors = treeAnchorsMap.get(0)}
+							{@const toAnchors = treeAnchorsMap.get(i + 1)}
+							{#if fromAnchors && toAnchors}
+								<RootConnection
+									from={fromAnchors.roots}
+									to={toAnchors.roots}
+									state={CONNECTION_STATES.connected}
+									seed={i * 1000}
+								/>
+							{/if}
+						{/each}
+					</svg>
+				{/if}
 
-			<DebugCard
-				mode="scene"
-				bind:showCanopy
-				bind:showBranches
-				bind:showTrunk
-				bind:showAnchors
-				bind:showViewBox
-			/>
-
-			<AnimationsCard
-				bind:animateCanopySway
-				bind:animateBranches
-				bind:animateGrowth
-				bind:growthVariance
-			/>
-
-			<OverlaysCard />
-
-			<SectionCard title="Connections" contentClass="space-y-4">
-				<LabeledCheckbox
-					label="Root Connections"
-					testId="root-connections-toggle"
-					bind:checked={showRootConnections}
+				<EnvironmentOverlay
+					config={environmentConfig.config.current}
+					lightAngle={treeConfig.current.lightAngle}
 				/>
-			</SectionCard>
-		</div>
-	</aside>
+
+				<SceneFloatingButtons onReset={resetAll} onRandomize={randomizeSeed} />
+			</div>
+		</Pane>
+		<Handle withHandle />
+		<Pane defaultSize={70}>
+			<!-- Shared Controls -->
+			<aside
+				data-testid="scene-controls"
+				class="h-full select-none overflow-y-auto px-6 pb-6"
+			>
+				<SettingsTierControl />
+				<div class="grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-6 p-px">
+					<!-- Scene Layout -->
+					<SectionCard title="Scene" contentClass="space-y-4">
+						<LabeledSlider
+							label="Tree Count"
+							min={SCENE_LIMITS.treeCountMin}
+							max={SCENE_LIMITS.treeCountMax}
+							bind:value={sceneConfig.treeCount.current}
+							id="tree-count"
+						/>
+						{#if isIntermediate}
+							<LabeledSlider
+								label="Depth Spread"
+								min={SCENE_LIMITS.depthSpreadMin}
+								max={SCENE_LIMITS.depthSpreadMax}
+								bind:value={sceneConfig.depthSpread.current}
+								id="depth-spread"
+							/>
+						{/if}
+					</SectionCard>
+
+					<!-- Shape -->
+					<ShapeCard
+						mode="scene"
+						sceneShapeSelection={sceneConfig.sceneShape.current}
+						bind:usePerShapeDefaults={usePerShapeDefaults.current}
+						{onSceneShapeChange}
+						{onStageChange}
+						onRandomizeSeed={randomizeSeed}
+					/>
+
+					<CanopyCard
+						mode="scene"
+						{sceneShapeIsRandom}
+						onBlobCountChange={(v) => (treeConfig.current.blobCount = v)}
+					/>
+
+					<CanopyColorCard
+						bind:lightColor={treeConfig.current.canopyLightColor}
+						bind:darkColor={treeConfig.current.canopyDarkColor}
+						disabled={usePerShapeDefaults.current && sceneShapeIsRandom}
+					/>
+
+					<TrunkColorCard
+						bind:hue={treeConfig.current.trunkHue}
+						bind:saturation={treeConfig.current.trunkSaturation}
+						bind:lightness={treeConfig.current.trunkLightness}
+						disabled={usePerShapeDefaults.current && sceneShapeIsRandom}
+					/>
+
+					<TrunkCard mode="scene" {sceneShapeIsRandom} />
+
+					<BranchesCard mode="scene" {sceneShapeIsRandom} />
+
+					<LightingCard
+						bind:lightAngle={treeConfig.current.lightAngle}
+						bind:depthVariance={treeConfig.current.depthVariance}
+					/>
+
+					{#if isIntermediate}
+						<SectionCard title="Environment" contentClass="space-y-4">
+							<div class="flex items-center gap-2">
+								<Checkbox
+									data-testid="env-rain-toggle"
+									checked={environmentConfig.rainEnabled.current}
+									onCheckedChange={(v) =>
+										(environmentConfig.rainEnabled.current = v === true)}
+								/>
+								<Label>Rain</Label>
+							</div>
+							{#if isAdvanced && environmentConfig.rainEnabled.current}
+								<LabeledSlider
+									label="Rain Intensity"
+									min={ENVIRONMENT_LIMITS.rainIntensityMin}
+									max={ENVIRONMENT_LIMITS.rainIntensityMax}
+									bind:value={environmentConfig.rainIntensity.current}
+									id="rain-intensity"
+								/>
+							{/if}
+							{#each ENVIRONMENT_TOGGLES as toggle (toggle.key)}
+								<div class="flex items-center gap-2">
+									<Checkbox
+										data-testid={toggle.testId}
+										checked={environmentConfig[toggle.key].current}
+										onCheckedChange={(v) =>
+											(environmentConfig[toggle.key].current = v === true)}
+									/>
+									<Label>{toggle.label}</Label>
+								</div>
+							{/each}
+						</SectionCard>
+					{/if}
+
+					<ToolAccessoriesCard bind:toolVisibility />
+
+					<AnimationsCard
+						bind:animateCanopySway
+						bind:animateBranches
+						bind:animateGrowth
+						bind:growthVariance
+						bind:animateTools
+					/>
+
+					<DebugCard
+						mode="scene"
+						bind:showCanopy
+						bind:showBranches
+						bind:showTrunk
+						bind:showAnchors
+						bind:showViewBox
+					/>
+
+					<OverlaysCard />
+
+					<SectionCard title="Connections" contentClass="space-y-4">
+						<LabeledCheckbox
+							label="Root Connections"
+							testId="root-connections-toggle"
+							bind:checked={showRootConnections}
+						/>
+					</SectionCard>
+				</div>
+			</aside>
+		</Pane>
+	</PaneGroup>
 </main>

@@ -13,3 +13,13 @@ export const GROUND_ELEMENT_COUNTS = {
 } as const;
 
 export const GROUND_MIN_SPACING_RATIO = 0.5;
+
+export const GROUND_LIMITS = {
+	countMin: 1,
+	countMax: 20,
+	countDefault: 9,
+	sizeMin: 0.5,
+	sizeMax: 2.0,
+	sizeStep: 0.1,
+	sizeDefault: 1.0,
+} as const;

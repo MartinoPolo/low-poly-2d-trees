@@ -19,6 +19,10 @@
 		{ name: 'Red-brown', hue: 10, saturation: 45, lightness: 30 },
 		{ name: 'Gray', hue: 0, saturation: 5, lightness: 45 },
 		{ name: 'White', hue: 0, saturation: 0, lightness: 90 },
+		{ name: 'Black', hue: 0, saturation: 0, lightness: 10 },
+		{ name: 'Dark charcoal', hue: 0, saturation: 5, lightness: 20 },
+		{ name: 'Golden', hue: 45, saturation: 50, lightness: 50 },
+		{ name: 'Pale yellow', hue: 50, saturation: 35, lightness: 65 },
 	] as const;
 
 	interface Props {
@@ -59,7 +63,7 @@
 						preset.saturation,
 						preset.lightness,
 					)}
-					class="h-7 w-7 rounded-md border border-input shadow-sm transition hover:scale-110 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100"
+					class="h-9 w-9 rounded-md border border-input shadow-sm transition hover:scale-110 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100"
 				></button>
 			{/each}
 		</div>

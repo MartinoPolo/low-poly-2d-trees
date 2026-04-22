@@ -8,6 +8,7 @@
 		animateBranches: boolean;
 		animateGrowth: boolean;
 		growthVariance: number;
+		animateTools: boolean;
 	}
 
 	let {
@@ -15,6 +16,7 @@
 		animateBranches = $bindable(),
 		animateGrowth = $bindable(),
 		growthVariance = $bindable(),
+		animateTools = $bindable(),
 	}: Props = $props();
 </script>
 
@@ -48,4 +50,10 @@
 			/>
 		{/if}
 	</div>
+	<LabeledCheckbox
+		label="Animate Tools"
+		bind:checked={animateTools}
+		testId="animate-tools"
+		class="mt-4"
+	/>
 </SectionCard>
