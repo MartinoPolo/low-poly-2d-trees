@@ -2,11 +2,16 @@
 // for information about these interfaces
 import type { User, Session } from 'better-auth';
 
+type AppUser = User & {
+	avatarPreset?: string | null;
+	avatarColor?: string | null;
+};
+
 declare global {
 	namespace App {
 		// interface Error {}
 		interface Locals {
-			user: User | null;
+			user: AppUser | null;
 			session: Session | null;
 		}
 		// interface PageData {}
