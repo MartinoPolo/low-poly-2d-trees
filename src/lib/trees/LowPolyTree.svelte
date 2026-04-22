@@ -346,7 +346,7 @@
 	}
 
 	.disabled-tree {
-		filter: grayscale(1) opacity(0.5);
+		filter: grayscale(1);
 		pointer-events: none;
 	}
 </style>
