@@ -435,6 +435,7 @@
 											aria-label="SVG point editor"
 											onpointermove={handleEditorPointerMove}
 											onpointerup={handleEditorPointerUp}
+											onpointercancel={handleEditorPointerUp}
 										>
 											<!-- Grid lines -->
 											<line

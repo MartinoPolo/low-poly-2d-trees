@@ -73,6 +73,8 @@
 		flowerScaleOverride?: number;
 		flowerOriginOffsetOverride?: Point2D;
 		toolSnapOffsetOverride?: { toolType: ToolType; offset: Point2D };
+		/** @default false */
+		disabled?: boolean;
 		class?: string;
 		onanchors?: (anchors: TreeAnchors) => void;
 	}
@@ -101,6 +103,7 @@
 		flowerScaleOverride,
 		flowerOriginOffsetOverride,
 		toolSnapOffsetOverride,
+		disabled = false,
 		class: className = '',
 		onanchors,
 	}: Props = $props();
@@ -207,6 +210,7 @@
 	xmlns="http://www.w3.org/2000/svg"
 	overflow="hidden"
 	class={className}
+	class:disabled-tree={disabled}
 >
 	<GlowEffect config={overlayConfig.glow} filterId={glowFilterId} />
 
@@ -347,5 +351,10 @@
 	.wilting-droop {
 		transform: skewY(3deg);
 		transform-origin: center top;
+	}
+
+	.disabled-tree {
+		filter: grayscale(1) opacity(0.5);
+		pointer-events: none;
 	}
 </style>

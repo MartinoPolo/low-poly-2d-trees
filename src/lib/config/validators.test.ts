@@ -3,11 +3,13 @@ import {
 	isValidTreeConfig,
 	isValidSceneConfig,
 	isValidEnvironmentConfig,
+	isValidEditorViewState,
 	migrateStageValue,
 } from './validators.js';
 import { DEFAULT_TREE_CONFIG } from '$lib/trees/types.js';
 import { SCENE_DEFAULTS } from '$lib/scene/scene_config.js';
 import { ENVIRONMENT_DEFAULTS } from '$lib/environment/environment_config.js';
+import { EDITOR_VIEW_DEFAULTS } from '$lib/config/editor_view_state.js';
 
 describe('isValidTreeConfig', () => {
 	it('accepts DEFAULT_TREE_CONFIG', () => {
@@ -86,6 +88,12 @@ describe('isValidEnvironmentConfig', () => {
 		expect(isValidEnvironmentConfig({ ...ENVIRONMENT_DEFAULTS, rainEnabled: 'yes' })).toBe(
 			false,
 		);
+	});
+});
+
+describe('isValidEditorViewState', () => {
+	it('accepts EDITOR_VIEW_DEFAULTS', () => {
+		expect(isValidEditorViewState(EDITOR_VIEW_DEFAULTS)).toBe(true);
 	});
 });
 
