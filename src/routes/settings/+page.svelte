@@ -6,7 +6,6 @@
 	import Trash2 from '@lucide/svelte/icons/trash-2';
 	import Check from '@lucide/svelte/icons/check';
 	import { onMount } from 'svelte';
-	import { invalidateAll } from '$app/navigation';
 	import AvatarCircle from '$lib/avatar/AvatarCircle.svelte';
 	import AnimalIcon from '$lib/avatar/AnimalIcon.svelte';
 	import { ANIMAL_PRESETS, PRESET_COLORS, type AnimalPreset } from '$lib/avatar/presets.js';
@@ -30,15 +29,12 @@
 		selectedColor !== null && !(PRESET_COLORS as readonly string[]).includes(selectedColor),
 	);
 
-	async function updateAvatar(updates: { avatarPreset?: string; avatarColor?: string }) {
-		await fetch('/api/avatar', {
+	function updateAvatar(updates: { avatarPreset?: string; avatarColor?: string }) {
+		void fetch('/api/avatar', {
 			method: 'PATCH',
 			headers: { 'Content-Type': 'application/json' },
 			body: JSON.stringify(updates),
 		});
-		await invalidateAll();
-		presetOverride = undefined;
-		colorOverride = undefined;
 	}
 
 	function selectPreset(preset: AnimalPreset) {
