@@ -68,7 +68,7 @@ describe('TOOL_DEFINITIONS', () => {
 	});
 
 	it('grill has correct snapOffset', () => {
-		expect(TOOL_DEFINITIONS.grill.snapOffset).toEqual({ x: -5, y: 20 });
+		expect(TOOL_DEFINITIONS.grill.snapOffset).toEqual({ x: -25, y: 25 });
 	});
 
 	it('grill anchorTarget is trunkBase', () => {
