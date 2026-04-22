@@ -50,6 +50,6 @@ export const TOOL_DEFINITIONS = {
 	[TOOL_TYPES.grill]: {
 		svgComponent: GrillSvg,
 		anchorTarget: 'trunkBase',
-		snapOffset: { x: 10, y: 20 },
+		snapOffset: { x: -5, y: 20 },
 	},
 } as const satisfies Record<ToolType, ToolDefinition>;
