@@ -7,7 +7,7 @@ import {
 	TREE_SHAPE_OPTIONS,
 	type TreeShape,
 } from './types.js';
-import { getShapeDefinition } from './shapes/blob_generators.js';
+import { getShapeDefinition } from './shapes/shape_definitions.js';
 
 describe('TREE_SHAPES union', () => {
 	const allShapes = [

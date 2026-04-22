@@ -50,9 +50,9 @@ test.describe('Issue #9 — Color system overhaul', () => {
 
 		// Dark brown: hue=20, sat=55, light=20
 		// shadcn sliders: read value from the thumb's aria-valuenow
-		const hueThumb = page.locator('#slider-hue [data-slot="slider-thumb"]');
-		const satThumb = page.locator('#slider-saturation [data-slot="slider-thumb"]');
-		const lightThumb = page.locator('#slider-lightness [data-slot="slider-thumb"]');
+		const hueThumb = page.locator('#input-hue [data-slot="slider-thumb"]');
+		const satThumb = page.locator('#input-saturation [data-slot="slider-thumb"]');
+		const lightThumb = page.locator('#input-lightness [data-slot="slider-thumb"]');
 
 		await expect(hueThumb).toHaveAttribute('aria-valuenow', '20');
 		await expect(satThumb).toHaveAttribute('aria-valuenow', '55');
@@ -76,21 +76,21 @@ test.describe('Issue #9 — Color system overhaul', () => {
 		await expect(darkPicker).toBeDisabled();
 
 		// HSL sliders (shadcn): check data-disabled attribute
-		const hueSlider = page.locator('#slider-hue');
-		const satSlider = page.locator('#slider-saturation');
-		const lightSlider = page.locator('#slider-lightness');
+		const hueSlider = page.locator('#input-hue');
+		const satSlider = page.locator('#input-saturation');
+		const lightSlider = page.locator('#input-lightness');
 
 		await expect(hueSlider).toHaveAttribute('data-disabled', '');
 		await expect(satSlider).toHaveAttribute('data-disabled', '');
 		await expect(lightSlider).toHaveAttribute('data-disabled', '');
 
 		// Click toggle OFF -> controls enabled
-		await page.locator('label[for="use-per-shape-defaults"]').click();
+		await page.locator('label[for="input-use-per-shape-default-colors"]').click();
 		await expect(lightPicker).toBeEnabled();
 		await expect(darkPicker).toBeEnabled();
 
 		// Click again -> controls re-disabled
-		await page.locator('label[for="use-per-shape-defaults"]').click();
+		await page.locator('label[for="input-use-per-shape-default-colors"]').click();
 		await expect(lightPicker).toBeDisabled();
 		await expect(darkPicker).toBeDisabled();
 	});
@@ -118,7 +118,7 @@ test.describe('Issue #9 — Color system overhaul', () => {
 		expect(perShapeFills[0]).not.toEqual(perShapeFills[1]);
 
 		// Toggle OFF — all trees share the same picker colors
-		await page.locator('label[for="use-per-shape-defaults"]').click();
+		await page.locator('label[for="input-use-per-shape-default-colors"]').click();
 		await expect(page.locator('#canopy-light-color')).toBeEnabled();
 
 		const sharedFills = await getCanopyFills();

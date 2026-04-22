@@ -1,4 +1,4 @@
-import type { TreeShape } from './config.js';
+import type { TreeShape } from './tree_shapes.js';
 
 export const FRUIT_TYPES = {
 	none: 'none',

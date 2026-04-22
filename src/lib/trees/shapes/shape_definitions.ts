@@ -1,33 +1,12 @@
-import type { TreeShape, CustomBlob } from '../types.js';
-import { VIEWBOX_WIDTH, VIEWBOX_HEIGHT, CUSTOM_BLOB_DEFAULT } from '../types.js';
-import { createPrng, randomInRange } from '../prng.js';
+import type { TreeShape } from '../types.js';
+import { VIEWBOX_WIDTH, VIEWBOX_HEIGHT } from '../types.js';
+import { randomInRange } from '../prng.js';
 import { BOUNDARY_KINDS } from '../boundaries.js';
 import type { Blob, ShapeDefinition } from './shape_types.js';
+import { treeY, treeSizeH, treeSizeW } from './tree_scale.js';
 
 const W = VIEWBOX_WIDTH;
 const H = VIEWBOX_HEIGHT;
-
-// ---------------------------------------------------------------------------
-// Tree scale helpers — compress 500-viewbox geometry to 300-equivalent size
-// ---------------------------------------------------------------------------
-
-export const TREE_SCALE = 0.6;
-const TRUNK_BASE_Y = H * 0.95;
-
-/** Map a fractional Y position into scaled tree space, anchored at the ground. */
-export function treeY(fraction: number): number {
-	return TRUNK_BASE_Y - (TRUNK_BASE_Y - H * fraction) * TREE_SCALE;
-}
-
-/** Scale a vertical size (H * fraction) by TREE_SCALE. */
-export function treeSizeH(fraction: number): number {
-	return H * fraction * TREE_SCALE;
-}
-
-/** Scale a horizontal size (W * fraction) by TREE_SCALE. */
-export function treeSizeW(fraction: number): number {
-	return W * fraction * TREE_SCALE;
-}
 
 // ---------------------------------------------------------------------------
 // Shared helpers
@@ -537,84 +516,6 @@ function generateAcaciaBlobs(rng: () => number, blobCount: number): Blob[] {
 	}
 
 	return blobs;
-}
-
-// ---------------------------------------------------------------------------
-// Custom shape blob generator (issue #10)
-// ---------------------------------------------------------------------------
-
-const CUSTOM_BLOB_BASE_RX = treeSizeW(0.2275);
-const CUSTOM_BLOB_BASE_RY = treeSizeH(0.1925);
-export const CUSTOM_BLOB_SPREAD_RADIUS = treeSizeW(0.22);
-export const CUSTOM_BLOB_CANOPY_CENTER_X = W / 2;
-export const CUSTOM_BLOB_CANOPY_CENTER_Y = treeY(0.3);
-const CUSTOM_BLOB_SEED_OFFSET = 3333;
-
-/**
- * Convert stored `customBlobs` entries into render-ready `Blob` objects.
- */
-export function generateCustomBlobs(
-	customBlobs: readonly CustomBlob[],
-	blobCount: number,
-	canopyCenterX: number,
-	canopyCenterY: number,
-	spreadRadius: number,
-): Blob[] {
-	const effectiveCount = Math.min(Math.max(0, blobCount), customBlobs.length);
-	const blobs: Blob[] = [];
-	for (let i = 0; i < effectiveCount; i++) {
-		const entry = customBlobs[i]!;
-		blobs.push({
-			cx: canopyCenterX + entry.position.x * spreadRadius,
-			cy: canopyCenterY + entry.position.y * spreadRadius,
-			rx: CUSTOM_BLOB_BASE_RX * entry.sizeScale,
-			ry: CUSTOM_BLOB_BASE_RY * entry.sizeScale,
-			boundary: entry.boundaryKind,
-			rotationDeg: entry.rotationDeg,
-		});
-	}
-	return blobs;
-}
-
-/**
- * Number of PRNG draws consumed by a single `seedCustomBlob` call.
- */
-export const DRAWS_PER_BLOB = 2;
-
-function seedCustomBlob(rng: () => number, blobCloseness: number): CustomBlob {
-	const spreadFactor = Math.max(0.1, Math.min(1, 1 - blobCloseness / 100)) * 0.9 + 0.1;
-	return {
-		...CUSTOM_BLOB_DEFAULT,
-		position: {
-			x: randomInRange(rng, -spreadFactor, spreadFactor),
-			y: randomInRange(rng, -spreadFactor, spreadFactor),
-		},
-	};
-}
-
-/**
- * Lazily extend `existing` so that its length ≥ `targetCount`, appending
- * seeded defaults for new entries. Never truncates.
- */
-export function growCustomBlobs(
-	existing: readonly CustomBlob[],
-	targetCount: number,
-	seed: number,
-	blobCloseness: number,
-): readonly CustomBlob[] {
-	const safeTarget = Math.max(0, Math.floor(targetCount));
-	if (existing.length >= safeTarget) {
-		return existing;
-	}
-	const rng = createPrng(seed + CUSTOM_BLOB_SEED_OFFSET);
-	for (let i = 0; i < existing.length * DRAWS_PER_BLOB; i++) {
-		rng();
-	}
-	const result: CustomBlob[] = [...existing];
-	for (let i = existing.length; i < safeTarget; i++) {
-		result.push(seedCustomBlob(rng, blobCloseness));
-	}
-	return result;
 }
 
 // ---------------------------------------------------------------------------

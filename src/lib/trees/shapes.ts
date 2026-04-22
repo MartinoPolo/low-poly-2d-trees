@@ -45,16 +45,17 @@ export {
 	type ForkReduction,
 } from './shapes/branch_generation.js';
 
+export { treeSizeW } from './shapes/tree_scale.js';
+
+export { getShapeDefinition, TRUNK_ENTRY_MIN_PX } from './shapes/shape_definitions.js';
+
 export {
-	getShapeDefinition,
 	generateCustomBlobs,
 	growCustomBlobs,
 	DRAWS_PER_BLOB,
 	CUSTOM_BLOB_SPREAD_RADIUS,
 	CUSTOM_BLOB_CANOPY_CENTER_X,
 	CUSTOM_BLOB_CANOPY_CENTER_Y,
-	TRUNK_ENTRY_MIN_PX,
-	treeSizeW,
-} from './shapes/blob_generators.js';
+} from './shapes/custom_blob_generator.js';
 
 export { computeMaxBranches, clampBranchMaximums } from './shapes/branch_maximums.js';
