@@ -12,6 +12,7 @@
 	import User from '@lucide/svelte/icons/user';
 	import Sun from '@lucide/svelte/icons/sun';
 	import ChevronsUpDown from '@lucide/svelte/icons/chevrons-up-down';
+	import AvatarCircle from '$lib/avatar/AvatarCircle.svelte';
 	import { userPrefersMode, setMode } from 'mode-watcher';
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
@@ -145,19 +146,11 @@
 								>
 									{#snippet child({ props })}
 										<div data-testid="sidebar-user-trigger" {...props}>
-											{#if user.image}
-												<img
-													src={user.image}
-													alt={user.name}
-													class="size-8 rounded-full object-cover"
-												/>
-											{:else}
-												<div
-													class="flex size-8 items-center justify-center rounded-full bg-muted text-xs font-semibold"
-												>
-													{user.name.slice(0, 2).toUpperCase()}
-												</div>
-											{/if}
+											<AvatarCircle
+												preset={user.avatarPreset}
+												color={user.avatarColor}
+												size="sm"
+											/>
 											<div
 												class="grid flex-1 text-left text-sm leading-tight"
 											>

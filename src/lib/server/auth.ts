@@ -6,6 +6,7 @@ import { env } from '$env/dynamic/private';
 import { getRequestEvent } from '$app/server';
 import { db } from './db/index.js';
 import * as schema from './db/schema.js';
+import { getRandomPreset, getRandomColor } from '$lib/avatar/presets.js';
 
 if (env.AUTH_SECRET === undefined || env.AUTH_SECRET === '') {
 	throw new Error('AUTH_SECRET environment variable is required');
@@ -38,6 +39,37 @@ export const auth = betterAuth({
 	secret: env.AUTH_SECRET,
 
 	database: drizzleAdapter(db, { provider: 'pg', schema }),
+
+	user: {
+		additionalFields: {
+			avatarPreset: {
+				type: 'string',
+				required: false,
+				input: false,
+			},
+			avatarColor: {
+				type: 'string',
+				required: false,
+				input: false,
+			},
+		},
+	},
+
+	databaseHooks: {
+		user: {
+			create: {
+				before: async (user) => {
+					return {
+						data: {
+							...user,
+							avatarPreset: getRandomPreset(),
+							avatarColor: getRandomColor(),
+						},
+					};
+				},
+			},
+		},
+	},
 
 	emailAndPassword: {
 		enabled: true,
