@@ -2,7 +2,8 @@
 	import LabeledCheckbox from '$lib/components/composed/LabeledCheckbox.svelte';
 	import SectionCard from '$lib/components/composed/SectionCard.svelte';
 	import LabeledSlider from '$lib/components/composed/LabeledSlider.svelte';
-	import { TOOL_OPTIONS, type ToolVisibility } from '$lib/trees/tools/tool_types.js';
+	import { Textarea } from '$lib/components/ui/textarea/index.js';
+	import { TOOL_TYPES, TOOL_OPTIONS, type ToolVisibility } from '$lib/trees/tools/tool_types.js';
 
 	interface Props {
 		toolVisibility: ToolVisibility;
@@ -32,6 +33,15 @@
 				bind:value={toolVisibility[option.value].size}
 				id="tool-{option.value}-size"
 			/>
+			{#if option.value === TOOL_TYPES.speechBubble}
+				<div class="ml-6">
+					<Textarea
+						data-testid="tool-speechBubble-text"
+						placeholder="Enter text..."
+						bind:value={toolVisibility[option.value].text}
+					/>
+				</div>
+			{/if}
 		{/if}
 	{/each}
 </SectionCard>

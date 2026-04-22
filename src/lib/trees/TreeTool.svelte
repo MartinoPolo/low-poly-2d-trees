@@ -10,9 +10,10 @@
 		size: number;
 		animate: boolean;
 		reviewerCount?: number;
+		text?: string;
 	}
 
-	let { tool, anchor, size, animate, reviewerCount = 0 }: Props = $props();
+	let { tool, anchor, size, animate, reviewerCount = 0, text }: Props = $props();
 
 	const definition: ToolDefinition = $derived(TOOL_DEFINITIONS[tool]);
 	const animationConfig = $derived(TOOL_ANIMATIONS[tool]);
@@ -36,7 +37,11 @@
 		style="--tool-duration: {animationConfig.duration}s; --pivot-x: {animationConfig.pivotPoint
 			.x}px; --pivot-y: {animationConfig.pivotPoint.y}px;"
 	>
-		<SvgComponent />
+		{#if text !== undefined}
+			<SvgComponent {text} />
+		{:else}
+			<SvgComponent />
+		{/if}
 	</g>
 
 	<!-- Woodpecker review badge -->
@@ -203,6 +208,21 @@
 
 	.tool-anim.animate-tool[data-tool-type='grill'] {
 		animation: tool-grill-idle var(--tool-duration) ease-in-out infinite;
+	}
+
+	@keyframes tool-storm-cloud-idle {
+		0%,
+		100% {
+			transform: translateY(0);
+		}
+
+		50% {
+			transform: translateY(-2px);
+		}
+	}
+
+	.tool-anim.animate-tool[data-tool-type='stormCloud'] {
+		animation: tool-storm-cloud-idle var(--tool-duration) ease-in-out infinite;
 	}
 
 	.woodpecker-badge text {

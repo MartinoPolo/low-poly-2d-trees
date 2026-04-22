@@ -1,15 +1,5 @@
 import { GROUND_LIMITS } from '$lib/trees/ground/ground_types.js';
 
-export interface StormCloudConfig {
-	readonly enabled: boolean;
-	readonly showRain: boolean;
-}
-
-export interface SpeechBubbleConfig {
-	readonly enabled: boolean;
-	readonly text: string;
-}
-
 export interface GlowConfig {
 	readonly enabled: boolean;
 	readonly color: string;
@@ -23,22 +13,14 @@ export const GLOW_LIMITS = {
 } as const;
 
 export interface OverlayConfig {
-	readonly stormCloud: StormCloudConfig;
-	readonly speechBubble: SpeechBubbleConfig;
 	readonly glow: GlowConfig;
 }
 
 export const OVERLAY_DEFAULTS: OverlayConfig = {
-	stormCloud: { enabled: false, showRain: true },
-	speechBubble: { enabled: false, text: '' },
 	glow: { enabled: false, color: '#ffd700', intensity: 3, pulse: false },
 } as const;
 
 export interface OverlayPersistedState {
-	readonly stormCloudEnabled: boolean;
-	readonly stormCloudShowRain: boolean;
-	readonly speechBubbleEnabled: boolean;
-	readonly speechBubbleText?: string;
 	readonly glowEnabled: boolean;
 	readonly glowColor: string;
 	readonly glowIntensity: number;
@@ -49,10 +31,6 @@ export interface OverlayPersistedState {
 }
 
 export const OVERLAY_PERSISTED_DEFAULTS: OverlayPersistedState = {
-	stormCloudEnabled: false,
-	stormCloudShowRain: true,
-	speechBubbleEnabled: false,
-	speechBubbleText: '',
 	glowEnabled: false,
 	glowColor: '#ffd700',
 	glowIntensity: 3,
@@ -62,17 +40,6 @@ export const OVERLAY_PERSISTED_DEFAULTS: OverlayPersistedState = {
 	groundElementSize: GROUND_LIMITS.sizeDefault,
 } as const;
 
-export interface StormCloudTriangle {
-	readonly points: string;
-	readonly color: string;
-}
-
-export interface StormCloudGeometry {
-	readonly triangles: readonly StormCloudTriangle[];
-	readonly width: number;
-	readonly height: number;
-}
-
 export interface RainLine {
 	readonly x: number;
 	readonly y: number;
@@ -81,19 +48,8 @@ export interface RainLine {
 	readonly speed: number;
 }
 
-export interface SpeechBubbleGeometry {
-	readonly path: string;
-	readonly width: number;
-	readonly height: number;
-	readonly pointerPath: string;
-}
-
 export const OVERLAY_VIEWBOX_HEADROOM = 40;
 
 export function hasActiveOverlay(config: OverlayConfig): boolean {
-	return config.stormCloud.enabled || config.speechBubble.enabled || config.glow.enabled;
-}
-
-export function needsViewboxExpansion(config: OverlayConfig): boolean {
-	return config.stormCloud.enabled;
+	return config.glow.enabled;
 }

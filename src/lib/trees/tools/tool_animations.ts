@@ -34,4 +34,12 @@ export const TOOL_ANIMATIONS = {
 		duration: 2,
 		pivotPoint: { x: 10, y: 20 },
 	},
+	speechBubble: {
+		duration: 0,
+		pivotPoint: { x: 0, y: 0 },
+	},
+	stormCloud: {
+		duration: 2,
+		pivotPoint: { x: 0, y: -10 },
+	},
 } as const satisfies Record<ToolType, ToolAnimationConfig>;
