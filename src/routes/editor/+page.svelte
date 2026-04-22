@@ -49,6 +49,9 @@
 	let saveFormElement = $state<HTMLFormElement>();
 	const isIntermediate = $derived(tierAtLeast(tier.current, 'intermediate'));
 	const isAdvanced = $derived(tierAtLeast(tier.current, 'advanced'));
+	const trunkDeadSpacePercent = $derived(
+		treeConfig.configForTree.current.shape === 'bush' ? 8 : 5,
+	);
 
 	const savedId = $derived(page.url.searchParams.get('saved'));
 	const savedTreeQuery = $derived(savedId === null ? null : getSavedTree(savedId));
@@ -137,9 +140,12 @@
 
 <main class="grid h-dvh grid-rows-[1fr_1fr] overflow-hidden bg-background text-foreground">
 	<!-- Preview -->
-	<div class="relative flex items-center justify-center overflow-hidden border border-border p-8">
+	<div class="relative flex items-end justify-center overflow-hidden border border-border p-8">
 		<SceneBackground />
-		<div class="relative w-full" style="max-width: min(576px, calc(50dvh - 4rem))">
+		<div
+			class="relative w-full"
+			style="max-width: min(576px, calc(50dvh - 4rem)); transform: translateY({trunkDeadSpacePercent}%)"
+		>
 			<LowPolyTree
 				config={treeConfig.configForTree.current}
 				showCanopy={editorView.showCanopy.current}

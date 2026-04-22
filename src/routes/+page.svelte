@@ -162,13 +162,14 @@
 			{@const shapeDefaults = useDefaults
 				? { ...DEFAULT_TREE_CONFIG, ...SHAPE_DEFAULTS[placement.shape] }
 				: null}
+			{@const trunkDeadSpacePercent = placement.shape === 'bush' ? 8 : 5}
 			<div
 				data-testid="scene-tree"
-				class="absolute bottom-0"
+				class="absolute"
 				style="
 						left: {placement.x}%;
 						bottom: calc({placement.y}% + 30px);
-						transform: scale({placement.scale}) translateX(-50%);
+						transform: scale({placement.scale}) translateX(-50%) translateY({trunkDeadSpacePercent}%);
 						transform-origin: bottom center;
 						width: {320 * placement.scale}px;
 					"
