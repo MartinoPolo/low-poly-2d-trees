@@ -2,7 +2,6 @@
 
 Canonical source of truth for what the system should do.
 GitHub issues track execution; this file tracks the specification.
-Sections marked **[NOT IMPLEMENTED]** are planned but not yet built.
 
 ---
 
@@ -65,7 +64,7 @@ Sections marked **[NOT IMPLEMENTED]** are planned but not yet built.
 - Anchors are dynamically computed from generated geometry and update reactively when config changes
 - `fruitSlots[]` is deterministic per seed; `branchTips[]` length matches actual branch count
 - `crownPerimeter[]` — sample points along outer boundary of merged canopy silhouette, for leaf
-  placement and particle origins. **[NOT IMPLEMENTED]**
+  placement and particle origins.
 
 ### 2.4 Deterministic Generation
 
@@ -1313,7 +1312,7 @@ Persistent per session.
 
 ---
 
-## 19. Library API [NOT IMPLEMENTED -- #67]
+## 19. Library API
 
 - Local workspace dependency (pnpm workspace `"workspace:*"`)
 - Explicit barrel exports, no internal path reaching
@@ -1329,7 +1328,7 @@ Persistent per session.
 
 ---
 
-## 20. Environment Effects [NOT IMPLEMENTED -- #66]
+## 20. Environment Effects
 
 7 effects, all scene-wide and independently toggleable:
 
@@ -1343,7 +1342,7 @@ Persistent per session.
 
 ---
 
-## 21. Overlay Primitives [NOT IMPLEMENTED -- #66]
+## 21. Overlay Primitives
 
 Reusable SVG overlays. Visual shapes only — consumer applies semantics.
 
@@ -1360,7 +1359,7 @@ Reusable SVG overlays. Visual shapes only — consumer applies semantics.
 
 ---
 
-## 22. Root Connections [NOT IMPLEMENTED -- #66]
+## 22. Root Connections
 
 - SVG bezier curves between trees' `roots` anchors
 - Organic/curved paths with slight randomness
@@ -1370,7 +1369,7 @@ Reusable SVG overlays. Visual shapes only — consumer applies semantics.
 
 ---
 
-## 23. Ground Elements [NOT IMPLEMENTED -- #66]
+## 23. Ground Elements
 
 - Toggle per tree: `groundElements: true/false`
 - **REQ-PRD7-16** Generate 4-6 stones + grass tufts (twice the original 2-3) via seeded PRNG.
@@ -1378,3 +1377,394 @@ Reusable SVG overlays. Visual shapes only — consumer applies semantics.
 - SVG assets in `assets/ground/`
 - Elements avoid trunk base and tool areas
 - Deterministic per seed
+
+---
+
+## 24. Grill Tool
+
+- **REQ-PRD8-01** Add a "grill" tool (BBQ grill) to the tool system. Uses existing tool
+  infrastructure: `ToolType`, `ToolDefinition`, snap point, pivot point, size slider.
+- **REQ-PRD8-01a** Anchor target: `trunkBase` (same as shovel/axe/rake) with a slight x-offset
+  so it sits beside the trunk.
+- **REQ-PRD8-01b** Initial SVG is a placeholder (simple geometric shape — rectangle base with
+  2-3 horizontal grate lines). Will be replaced with a polished SVG later.
+- **REQ-PRD8-01c** Flame animation: 2-3 small SVG flame shapes above the grill. Flames fade
+  in/out and sway slightly on a continuous loop. Activated by `animateTools` toggle (same as
+  other tool animations). Each flame has slightly offset timing for organic feel.
+- **REQ-PRD8-01d** Size range: 0.5-2.0 (same as existing tools). Default size: 1.0.
+- **REQ-PRD8-01e** Follows all existing tool conventions: individual visibility checkbox in
+  Tools & Accessories card, snap/pivot points editable via point editor.
+
+**Acceptance Criteria:**
+
+- Grill appears in tool list with visibility toggle
+- Positioned at trunk base when visible
+- Flame animation plays when `animateTools` is enabled
+- Flames stop when `animateTools` is disabled
+- Size slider controls grill scale
+- Point editor supports grill snap/pivot point editing
+
+---
+
+## 25. Speech Bubble → Tool Migration
+
+- **REQ-PRD8-02** Migrate speech bubble from overlay system to tool system. Remove from
+  `OverlayPersistedState`; add to `ToolType` union and `ToolDefinition` map.
+- **REQ-PRD8-02a** Shape: rectangular with rounded corners and a curved pointer/tail pointing
+  downward toward the tree canopy top. The tail originates near the center or slightly to the
+  right of the bubble, curves first to the right then back toward the canopy center. Replaces
+  the current blob-shaped speech bubble.
+- **REQ-PRD8-02b** Anchor target: `crownTop` (positioned above canopy). Has snap point, pivot
+  point, and size controls like all other tools.
+- **REQ-PRD8-02c** Text content: configurable via a text input in the tool settings area (appears
+  when speech bubble tool is visible). Supports multi-line text via `\n`.
+- **REQ-PRD8-02d** No animation for speech bubble (static tool).
+
+**Acceptance Criteria:**
+
+- Speech bubble appears in Tools & Accessories card (not Overlays card)
+- Rectangular shape with rounded corners and curved tail pointing to canopy
+- Text input visible when speech bubble is enabled
+- Text renders inside the bubble
+- Snap/pivot points editable in point editor
+- Size slider works
+
+---
+
+## 26. Storm Cloud → Tool Migration
+
+- **REQ-PRD8-03** Migrate storm cloud from overlay system to tool system. Remove from
+  `OverlayPersistedState`; add to `ToolType` union and `ToolDefinition` map.
+- **REQ-PRD8-03a** Redesign: replace current triangular procedural shape with 3-4 overlapping
+  circles/ellipses in medium-dark gray. Style matches other tool SVGs (flat design, not
+  necessarily low-poly).
+- **REQ-PRD8-03b** Anchor target: `crownTop` (above canopy). Has snap point, pivot point, and
+  size controls.
+- **REQ-PRD8-03c** Rain is the tool's animation. When `animateTools` is enabled and storm cloud
+  is visible, rain lines fall from the cloud. The separate `showRain` toggle is removed.
+- **REQ-PRD8-03d** Rain animation: 12 lines falling from cloud bottom with staggered delays and
+  variable speeds (reuse existing rain generation logic).
+
+**Acceptance Criteria:**
+
+- Storm cloud appears in Tools & Accessories card (not Overlays card)
+- Cloud shape is circular/organic (not triangular)
+- Rain plays as tool animation when `animateTools` is enabled
+- No separate `showRain` toggle
+- Snap/pivot points editable in point editor
+- Size slider works
+
+---
+
+## 27. Seasonal Stage (Replaces Autumn)
+
+- **REQ-PRD8-04** Replace the `autumn` stage with a `seasonal` stage. The `seasonal` stage
+  renders differently based on whether the tree shape is evergreen or deciduous.
+- **REQ-PRD8-04a** Tree classification:
+
+    | Evergreen (→ snow)       | Deciduous (→ autumn colors)                                      |
+    | ------------------------ | ---------------------------------------------------------------- |
+    | pine, fir, cypress, bush | oak, birch, maple, willow, apple, cherry, baobab, acacia, custom |
+
+- **REQ-PRD8-04b** Deciduous trees in `seasonal` stage: canopy colors shift to warm
+  autumn tones (orange/red/brown). Uses existing autumn color logic (`canopyLightColor: #E8A028`,
+  `canopyDarkColor: #8B2010`). Falling leaf particles active.
+- **REQ-PRD8-04c** Evergreen trees in `seasonal` stage: snow rendering. White semi-transparent
+  blobs/patches positioned on top of existing canopy blob positions. Canopy colors remain
+  green (normal). No falling leaves.
+- **REQ-PRD8-04d** Add an `isEvergreen` property to shape definitions (or derive from a
+  lookup). Used by the `seasonal` stage modifier to branch rendering logic.
+- **REQ-PRD8-04e** The `custom` shape defaults to deciduous behavior in `seasonal` stage.
+
+**Acceptance Criteria:**
+
+- `seasonal` stage replaces `autumn` in `TREE_STAGES` enum and UI
+- Deciduous trees show autumn colors in seasonal stage
+- Evergreen trees show snow patches in seasonal stage
+- Each tree type gets a distinct visual change in seasonal stage
+- Stage order: `...fruiting → seasonal → wilting → bare...`
+
+---
+
+## 28. Wilting Stage (Replaces Ready)
+
+- **REQ-PRD8-05** Remove the `ready` stage. Add a `wilting` stage in its position
+  (after `seasonal`, before `bare`).
+- **REQ-PRD8-05a** Wilting stage applies: dramatic canopy color change to sickly yellow-brown
+  (desaturated, hue-shifted), canopy size reduction to ~90% (signaling leaf loss has begun),
+  and a slight 3° skew/droop via `skewY` transform. Affects all tree shapes.
+- **REQ-PRD8-05b** Color change should be dramatic relative to `leafy` stage — clearly
+  communicates "dying tree." Suggested colors: light `#c4a43a` (sickly yellow), dark `#5a3a1a`
+  (dark brown).
+- **REQ-PRD8-05c** Remove the wilting overlay from `OverlayPersistedState` and overlay
+  components. Wilting is now exclusively a stage, not an overlay.
+- **REQ-PRD8-05d** The glow effect remains as an overlay (not tied to any stage). Its existing
+  API (`enabled`, `color`, `intensity`, `pulse`) is unchanged. BamGit uses it for hover
+  effects or any other purpose.
+
+**Acceptance Criteria:**
+
+- `ready` stage removed from `TREE_STAGES`
+- `wilting` stage added between `seasonal` and `bare`
+- Wilting visuals: yellow-brown canopy, 90% canopy size, 3° droop
+- Glow remains as an independent overlay
+- Wilting overlay removed (functionality moved to stage)
+- Stage lineup: seed → sprouting → sapling → growing → leafy → flowering → fruiting → seasonal → wilting → bare → dead → stump
+
+---
+
+## 29. Disabled Tree State
+
+- **REQ-PRD8-06** Add a `disabled` boolean prop to `<LowPolyTree>` component. When `true`:
+  CSS `filter: grayscale(1) opacity(0.5)` applied to the entire tree SVG, `pointer-events: none`
+  set on the SVG element, no hover effects, no click handling.
+- **REQ-PRD8-06a** Disabled trees render all their content (canopy, trunk, branches, tools,
+  overlays) but everything appears greyed out.
+- **REQ-PRD8-06b** `disabled` is independent of `stage` — any stage can be disabled.
+- **REQ-PRD8-06c** In the showcase app, add a "Disable trees from row 2+" checkbox in the
+  Debug card (scene editor only). When checked, all trees in rows 2-10 render with
+  `disabled={true}`. Default: unchecked. This is a debug/demo feature.
+- **REQ-PRD8-06d** The `disabled` prop is part of the library's public API surface for BamGit
+  consumption.
+
+**Acceptance Criteria:**
+
+- `disabled` prop accepted by `<LowPolyTree>`
+- Disabled trees are greyed out and non-interactive
+- All content still renders (just visually muted)
+- Debug checkbox in scene editor enables demo of disabled state
+- Works with any stage
+
+---
+
+## 30. Avatar Settings
+
+- **REQ-PRD8-07** Add user avatar settings: avatar preset selection (animal SVG) + background
+  color. Stored in the database, tied to the authenticated user account.
+- **REQ-PRD8-07a** Database: add two columns to the `user` table: `avatarPreset` (text, nullable,
+  default null) and `avatarColor` (text, nullable, default null). Requires a Drizzle migration.
+- **REQ-PRD8-07b** 10 animal avatar presets: cat, dog, fox, owl, bear, rabbit, penguin, deer,
+  wolf, frog. Simple silhouette/outline style SVGs, uniform design language.
+- **REQ-PRD8-07c** 10 preset background colors (muted/pastel tones suitable as avatar
+  backgrounds) displayed as circular swatches. Plus a native `<input type="color">` picker as
+  the 11th option for custom color. All swatches and the color picker trigger have the same size.
+- **REQ-PRD8-07d** Avatar selection UI: new "Avatar" section on the Settings page. Animal
+  presets displayed as circular swatches (matching the circular avatar shape in the sidebar).
+  Color presets also displayed as circular swatches.
+- **REQ-PRD8-07e** Sidebar display: when a user has an avatar set, the sidebar account circle
+  shows the selected animal SVG on the chosen background color. Replaces the initials fallback.
+- **REQ-PRD8-07f** Guest users: show a gray person silhouette (anonymous avatar) in the sidebar
+  account circle. No avatar settings for guests. No localStorage fallback.
+- **REQ-PRD8-07g** On account creation, assign a random animal preset + random color from the
+  10 presets. Each new user gets a unique-looking default avatar.
+- **REQ-PRD8-07h** Avatar changes persist immediately to the database (no separate save button —
+  selecting a swatch triggers an update).
+
+**Acceptance Criteria:**
+
+- Avatar section visible on Settings page (authenticated users only)
+- 10 animal presets displayed as circular swatches
+- 10 color presets + color picker displayed as circular swatches
+- All swatches same size
+- Selected avatar + color renders in sidebar account circle
+- Guest users see anonymous silhouette
+- New accounts get random avatar
+- Changes persist to database immediately
+
+---
+
+## 31. Point Editor Fixes
+
+- **REQ-PRD8-08** Fix all outstanding point editor issues from #145 and user-reported bugs.
+  The point editor must be fully functional.
+- **REQ-PRD8-08a** **Drag handle persistence:** When dragging snap point or pivot point handles,
+  the handle must remain visible throughout the drag operation. Currently handles disappear
+  during drag. Handles must stay rendered and follow the cursor.
+- **REQ-PRD8-08b** **Live preview reactivity:** All changes in the point editor (size slider,
+  snap point position, pivot point position) must be immediately reflected in the preview panel
+  (left side). The preview tree must re-render in real-time showing the tool at its updated
+  position/size.
+- **REQ-PRD8-08c** **SVG upload immediate display:** When an SVG file is uploaded via the Upload
+  button, it must immediately appear in both the snap/pivot points editor card and the preview
+  panel. No manual refresh required.
+- **REQ-PRD8-08d** **Upload button wiring:** Wire the Upload button to a file picker and a
+  dev-only server endpoint. The endpoint accepts an `.svg` file, runs conversion logic (strip
+  outer `<svg>` tag, namespace IDs), and writes the resulting `.svelte` component file to disk.
+  Page hot-reloads after write.
+- **REQ-PRD8-08e** **Apply button wiring:** Wire the Apply button to a dev-only server endpoint.
+  The endpoint receives updated definition values (snap offset, pivot point, scale) and writes
+  them back to the appropriate TypeScript definition files (`tool_definitions.ts`,
+  `fruit_definitions.ts`, etc.).
+- **REQ-PRD8-08f** **Definition files as source of truth:** Refactor the rendering pipeline to
+  consume definition files (`tool_definitions.ts`, `fruit_definitions.ts`, `flower_definitions.ts`,
+  `ground_definitions.ts`, `stage_definitions.ts`, `overlay_definitions.ts`) as the single source
+  of truth. Remove parallel component maps (`FRUIT_SVG_COMPONENTS`, `FLOWER_SVG_COMPONENTS`, etc.).
+- **REQ-PRD8-08g** **CLI interface alignment:** Align the SVG conversion script CLI to use
+  positional args (`pnpm run convert-svg <input> <name>`) as specified, or update documentation
+  to match the current named-flag interface. Pick one and be consistent.
+- **REQ-PRD8-08h** Rename the "Demo Preview" card/section to just "Preview."
+
+**Acceptance Criteria:**
+
+- Drag handles stay visible during drag operations
+- Preview updates in real-time when snap/pivot points are dragged
+- Preview updates in real-time when size slider changes
+- Uploaded SVG appears immediately in editor and preview
+- Upload button opens file picker and writes converted `.svelte` file
+- Apply button writes updated definitions to TypeScript source files
+- Rendering pipeline uses definition files (no parallel component maps)
+- CLI interface is consistent with documentation
+- Card renamed to "Preview"
+
+---
+
+## 32. Ground Element Controls
+
+- **REQ-PRD8-09** Add a count slider to ground elements: range 1-20, default 4-6 (current
+  generation count). Controls how many ground elements (grass + stones) spawn per tree.
+- **REQ-PRD8-09a** Add a size slider to ground elements: range 0.5-2.0, step 0.1, default 1.0.
+  Scales all ground element SVGs uniformly.
+- **REQ-PRD8-09b** Ground elements remain in the overlay/ground system (not migrated to tools).
+  The two new sliders appear in the ground elements config area within the Overlays card.
+- **REQ-PRD8-09c** Both sliders are disabled when ground elements are toggled off.
+
+**Acceptance Criteria:**
+
+- Count slider (1-20) controls number of spawned elements
+- Size slider (0.5-2.0) controls element scale
+- Sliders appear in Overlays card ground section
+- Sliders disabled when ground elements off
+- Changes reflected in real-time preview
+
+---
+
+## 33. UI Layout: Resizable Panels
+
+- **REQ-PRD8-10** Install `paneforge` via `npx shadcn-svelte@latest add resizable`. Use the
+  shadcn-svelte `Resizable` component (PaneGroup + Pane + PaneResizeHandle) to create a
+  draggable divider between the scene/preview area and the settings panel.
+- **REQ-PRD8-10a** Scene editor (multi-tree, `/`): default ratio 30% scene / 70% settings.
+- **REQ-PRD8-10b** Single tree editor (`/editor`): default ratio 50% scene / 50% settings.
+- **REQ-PRD8-10c** Minimum scene height: defined as a pixel constant (e.g., `MIN_SCENE_HEIGHT = 180`)
+  that can be easily adjusted. Enforced via `minSize` prop on the scene pane.
+- **REQ-PRD8-10d** User's drag ratio persisted to localStorage (separate keys for scene editor
+  and single tree editor). Restored on page load.
+- **REQ-PRD8-10e** Direction: vertical (`direction="vertical"`) — divider is horizontal, user
+  drags up/down.
+- **REQ-PRD8-10f** Resize handle styled to match the app theme — subtle, non-intrusive.
+
+**Acceptance Criteria:**
+
+- Draggable divider between scene and settings on both editor pages
+- Scene editor defaults to 30/70
+- Single tree editor defaults to 50/50
+- Minimum scene height enforced
+- Ratio persisted in localStorage
+- Keyboard accessible (paneforge built-in)
+
+---
+
+## 34. UI Layout: Card Reorder & Animate Tools Migration
+
+- **REQ-PRD8-11** Move the "Animate Tools" checkbox from ToolAccessoriesCard into
+  AnimationsCard. AnimationsCard controls become: Canopy Sway, Branch Movement, Growth,
+  Growth Variance, Animate Tools.
+- **REQ-PRD8-11a** Reorder settings cards so AnimationsCard is directly after ToolAccessoriesCard.
+  New order (both editors): `...ToolAccessoriesCard → AnimationsCard → DebugCard → OverlaysCard`.
+- **REQ-PRD8-11b** Apply the same card reorder and checkbox migration to both the single tree
+  editor (`/editor`) and the scene editor (`/`).
+
+**Acceptance Criteria:**
+
+- "Animate Tools" checkbox removed from ToolAccessoriesCard
+- "Animate Tools" checkbox added to AnimationsCard
+- AnimationsCard immediately follows ToolAccessoriesCard in both editors
+- No duplicate controls
+
+---
+
+## 35. UI: Color Swatch Sizing & Trunk Presets
+
+- **REQ-PRD8-12** Unify color swatch sizes: all canopy color swatches and trunk color preset
+  swatches use `h-9 w-9` (36×36px). This matches the measured height of the text input next
+  to the canopy color swatches. Swatches remain square with rounded corners.
+- **REQ-PRD8-12a** The color picker trigger (native `<input type="color">`) wrapper also uses
+  `h-9 w-9` to match swatch sizes.
+- **REQ-PRD8-12b** Add 4 new trunk color presets:
+
+    | Swatch        | `trunkHue` | `trunkSaturation` | `trunkLightness` |
+    | ------------- | ---------- | ----------------- | ---------------- |
+    | Black         | 0          | 0                 | 10               |
+    | Dark charcoal | 0          | 5                 | 20               |
+    | Golden        | 45         | 50                | 50               |
+    | Pale yellow   | 50         | 35                | 65               |
+
+    Total trunk presets: 10 (6 existing + 4 new).
+
+**Acceptance Criteria:**
+
+- All canopy swatches are 36×36px (`h-9 w-9`)
+- All trunk swatches are 36×36px (`h-9 w-9`)
+- Color picker triggers are 36×36px
+- 10 trunk color presets visible
+- Swatches remain square with rounded corners
+
+---
+
+## 36. UI: Disabled Slider Styling
+
+- **REQ-PRD8-13** Disabled sliders must show `cursor-not-allowed` on the entire slider track
+  and thumb. The thumb (drag handle) must not show a highlight/hover effect when the slider
+  is disabled.
+- **REQ-PRD8-13a** Use the bits-ui `Slider` component's built-in `disabled` prop. Apply
+  additional CSS via `data-disabled` attribute selectors: `data-[disabled]:cursor-not-allowed`
+  on track and thumb, remove hover highlight on thumb when disabled.
+- **REQ-PRD8-13b** Existing `data-disabled:opacity-50` behavior is preserved.
+
+**Acceptance Criteria:**
+
+- Disabled slider shows `cursor-not-allowed`
+- Disabled slider thumb has no hover highlight
+- Disabled slider remains visually dimmed (opacity 50%)
+- Works for all disabled sliders across the app
+
+---
+
+## 37. Depth Spread Maximum
+
+- **REQ-PRD8-14** Change `depthSpreadMax` from 100 to 30 in `scene_config.ts`. 30 is the new
+  maximum for the depth spread slider in the scene editor.
+
+**Acceptance Criteria:**
+
+- Depth spread slider max is 30
+- Existing persisted values > 30 are clamped to 30 on load
+
+---
+
+## 38. Library API Update
+
+- **REQ-PRD8-15** Update issue #67 and the library boundary plan for the current state of the
+  repository. Focus areas:
+    - Tool components exported with their definitions (including new grill, migrated speech bubble,
+      migrated storm cloud)
+    - Overlay components exported (glow, celebration, ground elements)
+    - Animation controls exported (canopy sway, branch movement, growth, tool animations)
+    - `disabled` prop on `<LowPolyTree>` as part of public API
+    - `seasonal` stage with `isEvergreen` classification exposed
+- **REQ-PRD8-15a** All public API types must include the new tool types (`grill`, `speechBubble`,
+  `stormCloud`), the `seasonal` stage, the `wilting` stage, and the `disabled` prop.
+- **REQ-PRD8-15b** Library consumer should be able to:
+    - Render a tree with any combination of tools visible
+    - Control tool animations via a single boolean
+    - Enable/disable glow overlay programmatically (for hover effects)
+    - Set a tree to disabled state
+    - Set any stage including seasonal (with automatic evergreen/deciduous behavior)
+- **REQ-PRD8-15c** No BamGit-specific logic in the library. The `disabled` prop and glow
+  overlay are generic — BamGit assigns meaning to them.
+
+**Acceptance Criteria:**
+
+- Issue #67 updated with current API surface
+- All new tools/stages/props included in planned exports
+- Consumer can control tools, overlays, animations, and disabled state from outside the library
