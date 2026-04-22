@@ -7,6 +7,7 @@ export const TOOL_TYPES = {
 	axe: 'axe',
 	rake: 'rake',
 	woodpecker: 'woodpecker',
+	grill: 'grill',
 } as const;
 
 export type ToolType = (typeof TOOL_TYPES)[keyof typeof TOOL_TYPES];
@@ -25,6 +26,7 @@ export const TOOL_ANCHOR_MAP = {
 	[TOOL_TYPES.axe]: 'trunkBase',
 	[TOOL_TYPES.rake]: 'trunkBase',
 	[TOOL_TYPES.woodpecker]: 'trunkMiddle',
+	[TOOL_TYPES.grill]: 'trunkBase',
 } as const satisfies Record<ToolType, keyof TreeAnchors>;
 
 export function createDefaultToolVisibility(): ToolVisibility {
@@ -35,6 +37,7 @@ export function createDefaultToolVisibility(): ToolVisibility {
 		[TOOL_TYPES.axe]: { visible: false, size: 1 },
 		[TOOL_TYPES.rake]: { visible: false, size: 1 },
 		[TOOL_TYPES.woodpecker]: { visible: false, size: 1 },
+		[TOOL_TYPES.grill]: { visible: false, size: 1 },
 	};
 }
 
@@ -45,4 +48,5 @@ export const TOOL_OPTIONS = [
 	{ value: TOOL_TYPES.axe, label: 'Axe' },
 	{ value: TOOL_TYPES.rake, label: 'Rake' },
 	{ value: TOOL_TYPES.woodpecker, label: 'Woodpecker' },
+	{ value: TOOL_TYPES.grill, label: 'Grill' },
 ] as const;

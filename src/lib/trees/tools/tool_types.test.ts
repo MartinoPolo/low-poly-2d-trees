@@ -7,18 +7,19 @@ import {
 } from './tool_types.js';
 
 describe('TOOL_TYPES', () => {
-	it('defines exactly 6 tools', () => {
+	it('defines exactly 7 tools', () => {
 		const types = Object.values(TOOL_TYPES);
-		expect(types).toHaveLength(6);
+		expect(types).toHaveLength(7);
 	});
 
-	it('contains shovel, wateringCan, ladder, axe, rake, woodpecker', () => {
+	it('contains shovel, wateringCan, ladder, axe, rake, woodpecker, grill', () => {
 		expect(TOOL_TYPES.shovel).toBe('shovel');
 		expect(TOOL_TYPES.wateringCan).toBe('wateringCan');
 		expect(TOOL_TYPES.ladder).toBe('ladder');
 		expect(TOOL_TYPES.axe).toBe('axe');
 		expect(TOOL_TYPES.rake).toBe('rake');
 		expect(TOOL_TYPES.woodpecker).toBe('woodpecker');
+		expect(TOOL_TYPES.grill).toBe('grill');
 	});
 
 	it('does not contain birdNest', () => {
@@ -57,6 +58,10 @@ describe('TOOL_ANCHOR_MAP', () => {
 	it('woodpecker snaps to trunkMiddle', () => {
 		expect(TOOL_ANCHOR_MAP[TOOL_TYPES.woodpecker]).toBe('trunkMiddle');
 	});
+
+	it('grill snaps to trunkBase', () => {
+		expect(TOOL_ANCHOR_MAP[TOOL_TYPES.grill]).toBe('trunkBase');
+	});
 });
 
 describe('TOOL_OPTIONS', () => {
@@ -79,7 +84,7 @@ describe('TOOL_OPTIONS', () => {
 		}
 	});
 
-	it('has correct labels for all 6 tools', () => {
+	it('has correct labels for all 7 tools', () => {
 		const labelMap = new Map(TOOL_OPTIONS.map((o) => [o.value, o.label]));
 		expect(labelMap.get('shovel')).toBe('Shovel');
 		expect(labelMap.get('wateringCan')).toBe('Watering Can');
@@ -87,11 +92,12 @@ describe('TOOL_OPTIONS', () => {
 		expect(labelMap.get('axe')).toBe('Axe');
 		expect(labelMap.get('rake')).toBe('Rake');
 		expect(labelMap.get('woodpecker')).toBe('Woodpecker');
+		expect(labelMap.get('grill')).toBe('Grill');
 	});
 });
 
 describe('createDefaultToolVisibility', () => {
-	it('has entries for all 6 tools', () => {
+	it('has entries for all 7 tools', () => {
 		const visibility = createDefaultToolVisibility();
 		for (const toolType of Object.values(TOOL_TYPES)) {
 			expect(visibility).toHaveProperty(toolType);
