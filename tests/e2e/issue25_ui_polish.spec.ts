@@ -31,7 +31,7 @@ test.describe('Issue #25 — UI polish: color picker styling + layout swap', () 
 		await page.waitForLoadState('networkidle');
 
 		// Per-shape defaults is ON by default — turn it OFF to enable color controls
-		await page.locator('label[for="use-per-shape-defaults"]').click();
+		await page.locator('label[for="input-use-per-shape-default-colors"]').click();
 
 		const lightHex = page.locator('[data-hex="canopy-light"]');
 		const darkHex = page.locator('[data-hex="canopy-dark"]');
@@ -53,7 +53,7 @@ test.describe('Issue #25 — UI polish: color picker styling + layout swap', () 
 		await page.waitForLoadState('networkidle');
 
 		// Per-shape defaults is ON by default — turn it OFF to enable color controls
-		await page.locator('label[for="use-per-shape-defaults"]').click();
+		await page.locator('label[for="input-use-per-shape-default-colors"]').click();
 
 		// Verify the hidden input receives a click when the swatch button is clicked
 		const clicked = await page.evaluate(() => {
@@ -85,7 +85,7 @@ test.describe('Issue #25 — UI polish: color picker styling + layout swap', () 
 		await expect(hexInput).toBeDisabled();
 
 		// Toggle OFF — controls should become enabled
-		await page.locator('label[for="use-per-shape-defaults"]').click();
+		await page.locator('label[for="input-use-per-shape-default-colors"]').click();
 		await expect(swatch).toBeEnabled();
 		await expect(hexInput).toBeEnabled();
 	});

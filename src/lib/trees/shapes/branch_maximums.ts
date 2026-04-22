@@ -1,5 +1,5 @@
 import { BRANCH_MIRRORING, type TreeShape, type BranchMirroring } from '../types.js';
-import { getShapeDefinition } from './blob_generators.js';
+import { getShapeDefinition } from './shape_definitions.js';
 import { computeEffectiveTrunkTop } from './trunk.js';
 
 const MIN_BRANCH_SPACING = 20;

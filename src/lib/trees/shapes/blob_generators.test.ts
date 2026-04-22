@@ -1,12 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import {
-	getShapeDefinition,
-	TREE_SCALE,
-	treeY,
-	treeSizeH,
-	treeSizeW,
-	TRUNK_ENTRY_MIN_PX,
-} from './blob_generators.js';
+import { getShapeDefinition, TRUNK_ENTRY_MIN_PX } from './shape_definitions.js';
+import { TREE_SCALE, treeY, treeSizeH, treeSizeW } from './tree_scale.js';
 import { VIEWBOX_WIDTH, VIEWBOX_HEIGHT } from '../types.js';
 import type { TreeShape } from '../types.js';
 

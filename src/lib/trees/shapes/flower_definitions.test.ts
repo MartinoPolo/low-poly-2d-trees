@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { FLOWER_DEFINITIONS, type FlowerDefinition } from './flower_definitions.js';
-import { TREE_SHAPES } from '../types/config.js';
+import { TREE_SHAPES } from '../types/tree_shapes.js';
 
 const expectedShapes = Object.values(TREE_SHAPES).filter((s) => s !== 'custom');
 

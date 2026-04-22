@@ -1,4 +1,4 @@
-import { TREE_SHAPES, type TreeShape } from '../types/config.js';
+import { TREE_SHAPES, type TreeShape } from '../types/tree_shapes.js';
 import type { Component } from 'svelte';
 import {
 	OakFlowerSvg,

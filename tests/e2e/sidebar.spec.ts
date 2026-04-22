@@ -63,7 +63,7 @@ test.describe('app shell sidebar (anonymous)', () => {
 		const cardTitle = (name: string) =>
 			page.locator('[data-slot="card-title"]', { hasText: new RegExp(`^${name}$`) });
 		await expect(cardTitle('Shape')).toBeVisible();
-		await expect(cardTitle('Geometry')).toBeVisible();
+		await expect(cardTitle('Canopy')).toBeVisible();
 		await expect(cardTitle('Trunk')).toBeVisible();
 		await expect(cardTitle('Branches')).toBeVisible();
 	});

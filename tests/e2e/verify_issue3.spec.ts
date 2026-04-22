@@ -62,7 +62,7 @@ test.describe('Issue #3 — Slider UX + UI control reorganization', () => {
 		await page.waitForTimeout(300);
 
 		// Pine disables branch-related sliders: branchAngle should be disabled
-		const branchAngleSlider = page.locator('#slider-branch-angle');
+		const branchAngleSlider = page.locator('#input-branch-angle');
 		const branchAngleDisabled = await branchAngleSlider.getAttribute('data-disabled');
 		console.log('branchAngle disabled attr:', branchAngleDisabled);
 		expect(branchAngleDisabled).not.toBeNull();
@@ -81,7 +81,7 @@ test.describe('Issue #3 — Slider UX + UI control reorganization', () => {
 		await page.waitForLoadState('networkidle');
 
 		// Oak is the default shape; Branch Angle should be enabled
-		const branchAngleSlider = page.locator('#slider-branch-angle');
+		const branchAngleSlider = page.locator('#input-branch-angle');
 		const branchAngleDisabled = await branchAngleSlider.getAttribute('data-disabled');
 		console.log('oak branchAngle disabled:', branchAngleDisabled);
 
@@ -105,12 +105,11 @@ test.describe('Issue #3 — Slider UX + UI control reorganization', () => {
 		await page.waitForLoadState('networkidle');
 
 		const expectedTitles = [
-			'Scene Settings',
+			'Scene',
 			'Canopy',
 			'Trunk',
 			'Branches',
 			'Lighting',
-			'Color Mode',
 			'Canopy Color',
 			'Trunk Color',
 			'Environment',

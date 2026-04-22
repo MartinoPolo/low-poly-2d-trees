@@ -61,7 +61,7 @@ test.describe('Issue #84 — 3-tier settings control', () => {
 		// All tiers visible (scroll to each since bottom panel is smaller)
 		await expect(page.locator('text=Trunk Height').first()).toBeVisible();
 
-		const branchAngle = page.locator('#slider-branch-angle');
+		const branchAngle = page.locator('#input-branch-angle');
 		await branchAngle.scrollIntoViewIfNeeded();
 		await expect(branchAngle).toBeVisible();
 
