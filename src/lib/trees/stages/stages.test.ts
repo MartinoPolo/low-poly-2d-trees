@@ -8,7 +8,9 @@ import {
 	TREE_SHAPES,
 	CROOKEDNESS_MODES,
 	type TreeStage,
+	isTreeStage,
 } from '../types.js';
+import { isEvergreen } from '../types/tree_shapes.js';
 import { applyStageModifiers } from './index.js';
 
 function makeConfig(overrides: Partial<TreeConfig> = {}): TreeConfig {
@@ -34,6 +36,47 @@ describe('TREE_STAGES', () => {
 		expect(Object.keys(TREE_STAGES)).toHaveLength(12);
 	});
 
+	it('contains seasonal and wilting but NOT autumn or ready', () => {
+		const values = Object.values(TREE_STAGES);
+		expect(values).toContain('seasonal');
+		expect(values).toContain('wilting');
+		expect(values).not.toContain('autumn');
+		expect(values).not.toContain('ready');
+	});
+
+	it('TREE_STAGE_OPTIONS has labels Seasonal and Wilting', () => {
+		const labels = TREE_STAGE_OPTIONS.map((o) => o.label);
+		expect(labels).toContain('Seasonal');
+		expect(labels).toContain('Wilting');
+		expect(labels).not.toContain('Autumn');
+		expect(labels).not.toContain('Ready');
+	});
+
+	it('stage order is correct', () => {
+		const values = Object.values(TREE_STAGES);
+		expect(values).toEqual([
+			'seed',
+			'sprouting',
+			'sapling',
+			'growing',
+			'leafy',
+			'flowering',
+			'fruiting',
+			'seasonal',
+			'wilting',
+			'bare',
+			'dead',
+			'stump',
+		]);
+	});
+
+	it('isTreeStage recognizes seasonal and rejects autumn', () => {
+		expect(isTreeStage('seasonal')).toBe(true);
+		expect(isTreeStage('wilting')).toBe(true);
+		expect(isTreeStage('autumn')).toBe(false);
+		expect(isTreeStage('ready')).toBe(false);
+	});
+
 	it('TREE_STAGE_OPTIONS has 12 options with label/value pairs', () => {
 		expect(TREE_STAGE_OPTIONS).toHaveLength(12);
 		for (const option of TREE_STAGE_OPTIONS) {
@@ -44,6 +87,40 @@ describe('TREE_STAGES', () => {
 
 	it('DEFAULT_TREE_CONFIG.stage is leafy', () => {
 		expect(DEFAULT_TREE_CONFIG.stage).toBe('leafy');
+	});
+});
+
+describe('isEvergreen', () => {
+	it('pine is evergreen', () => {
+		expect(isEvergreen(TREE_SHAPES.pine)).toBe(true);
+	});
+	it('fir is evergreen', () => {
+		expect(isEvergreen(TREE_SHAPES.fir)).toBe(true);
+	});
+	it('cypress is evergreen', () => {
+		expect(isEvergreen(TREE_SHAPES.cypress)).toBe(true);
+	});
+	it('bush is evergreen', () => {
+		expect(isEvergreen(TREE_SHAPES.bush)).toBe(true);
+	});
+	it('oak is NOT evergreen', () => {
+		expect(isEvergreen(TREE_SHAPES.oak)).toBe(false);
+	});
+	it('birch is NOT evergreen', () => {
+		expect(isEvergreen(TREE_SHAPES.birch)).toBe(false);
+	});
+	it('maple is NOT evergreen', () => {
+		expect(isEvergreen(TREE_SHAPES.maple)).toBe(false);
+	});
+	it('custom is NOT evergreen', () => {
+		expect(isEvergreen(TREE_SHAPES.custom)).toBe(false);
+	});
+	it('all other deciduous shapes return false', () => {
+		expect(isEvergreen(TREE_SHAPES.willow)).toBe(false);
+		expect(isEvergreen(TREE_SHAPES.apple)).toBe(false);
+		expect(isEvergreen(TREE_SHAPES.cherry)).toBe(false);
+		expect(isEvergreen(TREE_SHAPES.baobab)).toBe(false);
+		expect(isEvergreen(TREE_SHAPES.acacia)).toBe(false);
 	});
 });
 
@@ -64,6 +141,7 @@ describe('stage generation — every stage produces valid TreeGeometry', () => {
 			expect(Array.isArray(geo.fruitSlots)).toBe(true);
 			expect(Array.isArray(geo.flowerSlots)).toBe(true);
 			expect(typeof geo.showFallingLeaves).toBe('boolean');
+			expect(typeof geo.showSnowBlobs).toBe('boolean');
 		});
 	}
 });
@@ -175,39 +253,169 @@ describe('fruiting stage', () => {
 	});
 });
 
-describe('autumn stage', () => {
-	it('produces canopy triangles colored with autumn palette', () => {
-		const geo = generateTree(makeConfig({ stage: TREE_STAGES.autumn }));
+describe('seasonal stage — deciduous', () => {
+	it('canopy colors overridden to seasonal deciduous palette', () => {
+		const result = applyStageModifiers(
+			makeConfig({ stage: TREE_STAGES.seasonal, shape: TREE_SHAPES.oak }),
+		);
+		expect(result.kind).toBe('modifiedConfig');
+		if (result.kind !== 'modifiedConfig') {
+			return;
+		}
+		expect(result.config.canopyLightColor).toBe('#E8A028');
+		expect(result.config.canopyDarkColor).toBe('#8B2010');
+	});
+
+	it('addFallingLeaves is true', () => {
+		const result = applyStageModifiers(
+			makeConfig({ stage: TREE_STAGES.seasonal, shape: TREE_SHAPES.oak }),
+		);
+		expect(result.kind).toBe('modifiedConfig');
+		if (result.kind !== 'modifiedConfig') {
+			return;
+		}
+		expect(result.addFallingLeaves).toBe(true);
+	});
+
+	it('addSnowBlobs is false', () => {
+		const result = applyStageModifiers(
+			makeConfig({ stage: TREE_STAGES.seasonal, shape: TREE_SHAPES.oak }),
+		);
+		expect(result.kind).toBe('modifiedConfig');
+		if (result.kind !== 'modifiedConfig') {
+			return;
+		}
+		expect(result.addSnowBlobs).toBe(false);
+	});
+
+	it('produces canopy triangles colored with autumn palette (full geometry)', () => {
+		const geo = generateTree(
+			makeConfig({ stage: TREE_STAGES.seasonal, shape: TREE_SHAPES.oak }),
+		);
 		expect(geo.canopyBlobs.length).toBeGreaterThan(0);
 		const canopyColors = geo.canopyBlobs.flatMap((b) => b.triangles.map((t) => t.color));
-		expect(canopyColors.length).toBeGreaterThan(0);
-		// Autumn palette interpolates between #8B2010 (dark) and #E8A028 (light).
-		// Verify colors differ from default green palette (#a8d84e/#1a472a).
-		const leafyGeo = generateTree(makeConfig({ stage: TREE_STAGES.leafy }));
+		const leafyGeo = generateTree(
+			makeConfig({ stage: TREE_STAGES.leafy, shape: TREE_SHAPES.oak }),
+		);
 		const leafyColors = leafyGeo.canopyBlobs.flatMap((b) => b.triangles.map((t) => t.color));
-		const autumnSet = new Set(canopyColors);
+		const seasonalSet = new Set(canopyColors);
 		const leafySet = new Set(leafyColors);
-		const overlap = [...autumnSet].filter((c) => leafySet.has(c));
-		// Autumn and leafy should have largely different color sets
-		expect(overlap.length).toBeLessThan(autumnSet.size);
+		const overlap = [...seasonalSet].filter((c) => leafySet.has(c));
+		expect(overlap.length).toBeLessThan(seasonalSet.size);
 	});
 
 	it('has showFallingLeaves true', () => {
-		const geo = generateTree(makeConfig({ stage: TREE_STAGES.autumn }));
+		const geo = generateTree(
+			makeConfig({ stage: TREE_STAGES.seasonal, shape: TREE_SHAPES.oak }),
+		);
 		expect(geo.showFallingLeaves).toBe(true);
 	});
 });
 
-describe('showFallingLeaves — only autumn', () => {
-	const allStages = Object.values(TREE_STAGES) as TreeStage[];
-	const nonAutumnStages = allStages.filter((s) => s !== TREE_STAGES.autumn);
+describe('seasonal stage — evergreen', () => {
+	it('canopy colors NOT overridden (same as leafy)', () => {
+		const seasonalResult = applyStageModifiers(
+			makeConfig({ stage: TREE_STAGES.seasonal, shape: TREE_SHAPES.pine }),
+		);
+		const leafyResult = applyStageModifiers(
+			makeConfig({ stage: TREE_STAGES.leafy, shape: TREE_SHAPES.pine }),
+		);
+		expect(seasonalResult.kind).toBe('modifiedConfig');
+		expect(leafyResult.kind).toBe('modifiedConfig');
+		if (seasonalResult.kind !== 'modifiedConfig' || leafyResult.kind !== 'modifiedConfig') {
+			return;
+		}
+		expect(seasonalResult.config.canopyLightColor).toBe(leafyResult.config.canopyLightColor);
+		expect(seasonalResult.config.canopyDarkColor).toBe(leafyResult.config.canopyDarkColor);
+	});
 
-	for (const stage of nonAutumnStages) {
+	it('addFallingLeaves is false', () => {
+		const result = applyStageModifiers(
+			makeConfig({ stage: TREE_STAGES.seasonal, shape: TREE_SHAPES.pine }),
+		);
+		expect(result.kind).toBe('modifiedConfig');
+		if (result.kind !== 'modifiedConfig') {
+			return;
+		}
+		expect(result.addFallingLeaves).toBe(false);
+	});
+
+	it('addSnowBlobs is true', () => {
+		const result = applyStageModifiers(
+			makeConfig({ stage: TREE_STAGES.seasonal, shape: TREE_SHAPES.pine }),
+		);
+		expect(result.kind).toBe('modifiedConfig');
+		if (result.kind !== 'modifiedConfig') {
+			return;
+		}
+		expect(result.addSnowBlobs).toBe(true);
+	});
+
+	it('has showFallingLeaves false (full geometry)', () => {
+		const geo = generateTree(
+			makeConfig({ stage: TREE_STAGES.seasonal, shape: TREE_SHAPES.pine }),
+		);
+		expect(geo.showFallingLeaves).toBe(false);
+	});
+
+	it('has showSnowBlobs true (full geometry)', () => {
+		const geo = generateTree(
+			makeConfig({ stage: TREE_STAGES.seasonal, shape: TREE_SHAPES.pine }),
+		);
+		expect(geo.showSnowBlobs).toBe(true);
+	});
+});
+
+describe('showFallingLeaves — only seasonal+deciduous', () => {
+	const allStages = Object.values(TREE_STAGES) as TreeStage[];
+	const nonSeasonalStages = allStages.filter((s) => s !== TREE_STAGES.seasonal);
+
+	for (const stage of nonSeasonalStages) {
 		it(`${stage}: showFallingLeaves is false`, () => {
 			const geo = generateTree(makeConfig({ stage }));
 			expect(geo.showFallingLeaves).toBe(false);
 		});
 	}
+
+	it('seasonal + evergreen (pine): showFallingLeaves is false', () => {
+		const geo = generateTree(
+			makeConfig({ stage: TREE_STAGES.seasonal, shape: TREE_SHAPES.pine }),
+		);
+		expect(geo.showFallingLeaves).toBe(false);
+	});
+
+	it('seasonal + deciduous (oak): showFallingLeaves is true', () => {
+		const geo = generateTree(
+			makeConfig({ stage: TREE_STAGES.seasonal, shape: TREE_SHAPES.oak }),
+		);
+		expect(geo.showFallingLeaves).toBe(true);
+	});
+});
+
+describe('showSnowBlobs', () => {
+	const allStages = Object.values(TREE_STAGES) as TreeStage[];
+	const nonSeasonalStages = allStages.filter((s) => s !== TREE_STAGES.seasonal);
+
+	for (const stage of nonSeasonalStages) {
+		it(`${stage}: showSnowBlobs is false`, () => {
+			const geo = generateTree(makeConfig({ stage }));
+			expect(geo.showSnowBlobs).toBe(false);
+		});
+	}
+
+	it('seasonal + evergreen (pine): showSnowBlobs is true', () => {
+		const geo = generateTree(
+			makeConfig({ stage: TREE_STAGES.seasonal, shape: TREE_SHAPES.pine }),
+		);
+		expect(geo.showSnowBlobs).toBe(true);
+	});
+
+	it('seasonal + deciduous (oak): showSnowBlobs is false', () => {
+		const geo = generateTree(
+			makeConfig({ stage: TREE_STAGES.seasonal, shape: TREE_SHAPES.oak }),
+		);
+		expect(geo.showSnowBlobs).toBe(false);
+	});
 });
 
 describe('flowerSlots array present on all stages', () => {
@@ -221,13 +429,44 @@ describe('flowerSlots array present on all stages', () => {
 	}
 });
 
-describe('ready stage', () => {
-	it('geometry is identical to leafy (glow is CSS-only)', () => {
-		const readyGeo = generateTree(makeConfig({ stage: TREE_STAGES.ready, seed: 42 }));
-		const leafyGeo = generateTree(makeConfig({ stage: TREE_STAGES.leafy, seed: 42 }));
-		expect(readyGeo.trunkQuads).toEqual(leafyGeo.trunkQuads);
-		expect(readyGeo.canopyBlobs).toEqual(leafyGeo.canopyBlobs);
-		expect(readyGeo.branchGroups).toEqual(leafyGeo.branchGroups);
+describe('wilting stage', () => {
+	it('canopy colors overridden to wilting palette', () => {
+		const result = applyStageModifiers(makeConfig({ stage: TREE_STAGES.wilting }));
+		expect(result.kind).toBe('modifiedConfig');
+		if (result.kind !== 'modifiedConfig') {
+			return;
+		}
+		expect(result.config.canopyLightColor).toBe('#c4a43a');
+		expect(result.config.canopyDarkColor).toBe('#5a3a1a');
+	});
+
+	it('canopySize is 90% of input', () => {
+		const inputConfig = makeConfig({ stage: TREE_STAGES.wilting, canopySize: 100 });
+		const result = applyStageModifiers(inputConfig);
+		expect(result.kind).toBe('modifiedConfig');
+		if (result.kind !== 'modifiedConfig') {
+			return;
+		}
+		expect(result.config.canopySize).toBe(90);
+	});
+
+	it('addFallingLeaves false, addSnowBlobs false, addFruit false, addFlowers false', () => {
+		const result = applyStageModifiers(makeConfig({ stage: TREE_STAGES.wilting }));
+		expect(result.kind).toBe('modifiedConfig');
+		if (result.kind !== 'modifiedConfig') {
+			return;
+		}
+		expect(result.addFallingLeaves).toBe(false);
+		expect(result.addSnowBlobs).toBe(false);
+		expect(result.addFruit).toBe(false);
+		expect(result.addFlowers).toBe(false);
+	});
+
+	it('produces canopy (not empty like bare)', () => {
+		const geo = generateTree(makeConfig({ stage: TREE_STAGES.wilting }));
+		expect(geo.canopyBlobs.length).toBeGreaterThan(0);
+		const totalTris = geo.canopyBlobs.reduce((s, b) => s + b.triangles.length, 0);
+		expect(totalTris).toBeGreaterThan(0);
 	});
 });
 

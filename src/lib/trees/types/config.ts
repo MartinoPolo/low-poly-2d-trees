@@ -3,7 +3,13 @@
  * The actual definitions live in the focused modules below.
  */
 export { TREE_STAGES, type TreeStage, TREE_STAGE_OPTIONS, isTreeStage } from './tree_stages.js';
-export { TREE_SHAPES, type TreeShape, TREE_SHAPE_OPTIONS, isTreeShape } from './tree_shapes.js';
+export {
+	TREE_SHAPES,
+	type TreeShape,
+	TREE_SHAPE_OPTIONS,
+	isTreeShape,
+	isEvergreen,
+} from './tree_shapes.js';
 export {
 	CROOKEDNESS_MODES,
 	type CrookednessMode,

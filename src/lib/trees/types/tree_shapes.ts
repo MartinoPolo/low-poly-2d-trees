@@ -35,3 +35,14 @@ export const TREE_SHAPE_OPTIONS: readonly { value: TreeShape; label: string }[] 
 export function isTreeShape(value: string): value is TreeShape {
 	return (Object.values(TREE_SHAPES) as readonly string[]).includes(value);
 }
+
+const EVERGREEN_SHAPES: ReadonlySet<string> = new Set([
+	TREE_SHAPES.pine,
+	TREE_SHAPES.fir,
+	TREE_SHAPES.cypress,
+	TREE_SHAPES.bush,
+]);
+
+export function isEvergreen(shape: TreeShape): boolean {
+	return EVERGREEN_SHAPES.has(shape);
+}

@@ -1,12 +1,10 @@
 <script lang="ts">
-	import WiltingEffect from '$lib/trees/overlays/WiltingEffect.svelte';
 	import { GROWTH_DURATION_SECONDS } from '$lib/trees/animation.js';
 	import type { IndexedCanopyBlob } from '$lib/trees/tree_z_ordering.js';
 
 	interface Props {
 		backCanopyBlobs: readonly IndexedCanopyBlob[];
 		frontCanopyBlobs: readonly IndexedCanopyBlob[];
-		wiltingEnabled: boolean;
 		animateCanopySway: boolean;
 		shouldAnimateGrowth: boolean;
 		canopySwayDelay: number;
@@ -16,7 +14,6 @@
 	let {
 		backCanopyBlobs,
 		frontCanopyBlobs,
-		wiltingEnabled,
 		animateCanopySway,
 		shouldAnimateGrowth,
 		canopySwayDelay,
@@ -46,22 +43,18 @@
 {/snippet}
 
 {#if backCanopyBlobs.length > 0}
-	<WiltingEffect enabled={wiltingEnabled}>
-		<g class="back-canopy">
-			{#each backCanopyBlobs as { blob, index: blobIndex } (blob)}
-				{@render canopyBlobSnippet(blob, blobIndex)}
-			{/each}
-		</g>
-	</WiltingEffect>
-{/if}
-
-<WiltingEffect enabled={wiltingEnabled}>
-	<g class="canopy">
-		{#each frontCanopyBlobs as { blob, index: blobIndex } (blob)}
+	<g class="back-canopy">
+		{#each backCanopyBlobs as { blob, index: blobIndex } (blob)}
 			{@render canopyBlobSnippet(blob, blobIndex)}
 		{/each}
 	</g>
-</WiltingEffect>
+{/if}
+
+<g class="canopy">
+	{#each frontCanopyBlobs as { blob, index: blobIndex } (blob)}
+		{@render canopyBlobSnippet(blob, blobIndex)}
+	{/each}
+</g>
 
 <style>
 	@keyframes canopy-sway {

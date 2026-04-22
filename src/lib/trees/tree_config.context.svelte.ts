@@ -3,12 +3,13 @@ import { browser } from '$app/environment';
 import { Persisted, jsonSerde } from '$lib/reactivity/persisted.svelte.js';
 import { StateRaw } from '$lib/reactivity/state.svelte.js';
 import { Derived } from '$lib/reactivity/derived.svelte.js';
-import { isValidTreeConfig } from '$lib/config/validators.js';
+import { isValidTreeConfig, migrateStageValue } from '$lib/config/validators.js';
 import {
 	DEFAULT_TREE_CONFIG,
 	SHAPE_DEFAULTS,
 	TREE_SHAPES,
 	FRUIT_TYPES,
+	isTreeStage,
 	type CustomBlob,
 	type TreeConfig,
 	type TreeShape,
@@ -99,6 +100,8 @@ function createTreeConfigContext() {
 			trunkBranchRatio?: number;
 		};
 		const migrated = { ...DEFAULT_TREE_CONFIG, ...config };
+		const migratedStage = migrateStageValue(migrated.stage);
+		migrated.stage = isTreeStage(migratedStage) ? migratedStage : DEFAULT_TREE_CONFIG.stage;
 		if (legacy.branchCount !== undefined && !('branchesLevel1Range' in config)) {
 			migrated.branchesLevel1Range = [legacy.branchCount, legacy.branchCount];
 		}

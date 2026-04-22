@@ -58,6 +58,7 @@ interface StageFlags {
 	readonly addFruit: boolean;
 	readonly addFlowers: boolean;
 	readonly addFallingLeaves: boolean;
+	readonly addSnowBlobs: boolean;
 }
 
 const DEFAULT_STAGE_FLAGS: StageFlags = {
@@ -65,6 +66,7 @@ const DEFAULT_STAGE_FLAGS: StageFlags = {
 	addFruit: false,
 	addFlowers: false,
 	addFallingLeaves: false,
+	addSnowBlobs: false,
 };
 
 export function generateTree(config: TreeConfig): TreeGeometry {
@@ -78,6 +80,7 @@ export function generateTree(config: TreeConfig): TreeGeometry {
 			addFruit: stageResult.addFruit,
 			addFlowers: stageResult.addFlowers,
 			addFallingLeaves: stageResult.addFallingLeaves,
+			addSnowBlobs: stageResult.addSnowBlobs,
 		});
 	}
 	// Custom shapes: derive addFruit from config (fruitType and fruitCount)
@@ -556,6 +559,7 @@ function generateTreeCore(config: TreeConfig, flags: StageFlags): TreeGeometry {
 		fruitSlots: fruitSlotsResult,
 		flowerSlots: flowerSlotsResult,
 		showFallingLeaves: flags.addFallingLeaves,
+		showSnowBlobs: flags.addSnowBlobs,
 		birchStripes,
 		anchors: anchorsWithTipDepths,
 		viewBox: { width: VIEWBOX_WIDTH, height: VIEWBOX_HEIGHT },
