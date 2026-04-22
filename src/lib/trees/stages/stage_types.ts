@@ -8,5 +8,6 @@ export type StageResult =
 			readonly addFruit: boolean;
 			readonly addFlowers: boolean;
 			readonly addFallingLeaves: boolean;
+			readonly addSnowBlobs: boolean;
 	  }
 	| { readonly kind: 'directGeometry'; readonly geometry: TreeGeometry };

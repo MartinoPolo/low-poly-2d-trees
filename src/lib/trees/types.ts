@@ -33,6 +33,7 @@ export {
 	VIEWBOX_HEIGHT,
 	isTreeStage,
 	isTreeShape,
+	isEvergreen,
 } from './types/config.js';
 
 export {

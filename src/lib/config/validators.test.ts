@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { isValidTreeConfig, isValidSceneConfig, isValidEnvironmentConfig } from './validators.js';
+import {
+	isValidTreeConfig,
+	isValidSceneConfig,
+	isValidEnvironmentConfig,
+	migrateStageValue,
+} from './validators.js';
 import { DEFAULT_TREE_CONFIG } from '$lib/trees/types.js';
 import { SCENE_DEFAULTS } from '$lib/scene/scene_config.js';
 import { ENVIRONMENT_DEFAULTS } from '$lib/environment/environment_config.js';
@@ -81,5 +86,23 @@ describe('isValidEnvironmentConfig', () => {
 		expect(isValidEnvironmentConfig({ ...ENVIRONMENT_DEFAULTS, rainEnabled: 'yes' })).toBe(
 			false,
 		);
+	});
+});
+
+describe('migrateStageValue', () => {
+	it('migrates autumn to seasonal', () => {
+		expect(migrateStageValue('autumn')).toBe('seasonal');
+	});
+
+	it('migrates ready to wilting', () => {
+		expect(migrateStageValue('ready')).toBe('wilting');
+	});
+
+	it('passes through leafy unchanged', () => {
+		expect(migrateStageValue('leafy')).toBe('leafy');
+	});
+
+	it('passes through seasonal unchanged', () => {
+		expect(migrateStageValue('seasonal')).toBe('seasonal');
 	});
 });

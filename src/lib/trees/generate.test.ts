@@ -1503,8 +1503,8 @@ describe('Issue #63: new tree shapes', () => {
 			'growing',
 			'leafy',
 			'fruiting',
-			'autumn',
-			'ready',
+			'seasonal',
+			'wilting',
 			'bare',
 			'dead',
 			'stump',
@@ -2405,7 +2405,9 @@ describe('B8: all shapes x all stages cross-product', () => {
 	const canopyStages = new Set<TreeStage>([
 		TREE_STAGES.leafy,
 		TREE_STAGES.fruiting,
-		TREE_STAGES.autumn,
+		TREE_STAGES.seasonal,
+		TREE_STAGES.wilting,
+		TREE_STAGES.flowering,
 		TREE_STAGES.growing,
 		TREE_STAGES.sapling,
 	]);
