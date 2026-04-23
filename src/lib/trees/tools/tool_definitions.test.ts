@@ -1,7 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { TOOL_DEFINITIONS } from './tool_definitions.js';
-import { TOOL_TYPES, TOOL_ANCHOR_MAP } from './tool_types.js';
-import type { ToolType } from './tool_types.js';
+import { TOOL_TYPES } from './tool_types.js';
 
 describe('TOOL_DEFINITIONS', () => {
 	it('has entries for all 9 tool types', () => {
@@ -30,12 +29,12 @@ describe('TOOL_DEFINITIONS', () => {
 		}
 	});
 
-	it('anchorTarget matches TOOL_ANCHOR_MAP for each tool', () => {
-		for (const toolType of Object.values(TOOL_TYPES)) {
-			expect(TOOL_DEFINITIONS[toolType].anchorTarget).toBe(
-				TOOL_ANCHOR_MAP[toolType as ToolType],
-			);
-		}
+	it('ladder anchorTarget is trunkBase', () => {
+		expect(TOOL_DEFINITIONS.ladder.anchorTarget).toBe('trunkBase');
+	});
+
+	it('axe anchorTarget is trunkMiddle', () => {
+		expect(TOOL_DEFINITIONS.axe.anchorTarget).toBe('trunkMiddle');
 	});
 
 	it('each tool has a unique svgComponent', () => {

@@ -21,12 +21,8 @@
 	import GlowEffect from '$lib/trees/overlays/GlowEffect.svelte';
 	import GroundElements from '$lib/trees/ground/GroundElements.svelte';
 	import TreeTool from '$lib/trees/TreeTool.svelte';
-	import {
-		TOOL_TYPES,
-		TOOL_ANCHOR_MAP,
-		type ToolVisibility,
-		type ToolType,
-	} from '$lib/trees/tools/tool_types.js';
+	import { TOOL_TYPES, type ToolVisibility, type ToolType } from '$lib/trees/tools/tool_types.js';
+	import { TOOL_DEFINITIONS, type ToolAnchorKey } from '$lib/trees/tools/tool_definitions.js';
 	import {
 		OVERLAY_DEFAULTS,
 		OVERLAY_VIEWBOX_HEADROOM,
@@ -71,6 +67,8 @@
 		flowerScaleOverride?: number;
 		flowerOriginOffsetOverride?: Point2D;
 		toolSnapOffsetOverride?: { toolType: ToolType; offset: Point2D };
+		toolAnchorTargetOverride?: { toolType: ToolType; anchorTarget: ToolAnchorKey };
+		showAnchorOverlay?: boolean;
 		/** @default false */
 		disabled?: boolean;
 		class?: string;
@@ -101,6 +99,8 @@
 		flowerScaleOverride,
 		flowerOriginOffsetOverride,
 		toolSnapOffsetOverride,
+		toolAnchorTargetOverride,
+		showAnchorOverlay = false,
 		disabled = false,
 		class: className = '',
 		onanchors,
@@ -213,7 +213,12 @@
 	<GlowEffect config={overlayConfig.glow} filterId={glowFilterId} />
 
 	<g class="tree-root">
-		<TreeDebugOverlays {geometry} {showViewBox} {showAnchors} {showEnvelope} />
+		<TreeDebugOverlays
+			{geometry}
+			{showViewBox}
+			showAnchors={showAnchors || showAnchorOverlay}
+			{showEnvelope}
+		/>
 
 		{#snippet treeBodyContent()}
 			<!-- REQ-EV2-Z-04: 5-layer rendering for branching shapes -->
@@ -309,7 +314,11 @@
 					{#if toolVisibility[toolType].visible}
 						<TreeTool
 							tool={toolType}
-							anchor={geometry.anchors[TOOL_ANCHOR_MAP[toolType]]}
+							anchor={geometry.anchors[
+								toolAnchorTargetOverride?.toolType === toolType
+									? toolAnchorTargetOverride.anchorTarget
+									: TOOL_DEFINITIONS[toolType].anchorTarget
+							]}
 							size={toolVisibility[toolType].size}
 							animate={animateTools}
 							text={toolVisibility[toolType].text}

@@ -1,7 +1,14 @@
 import type { Component } from 'svelte';
-import type { TreeAnchors } from '$lib/trees/types/core.js';
 import type { ToolType } from './tool_types.js';
 import { TOOL_TYPES } from './tool_types.js';
+
+export type ToolAnchorKey =
+	| 'trunkBase'
+	| 'trunkMiddle'
+	| 'trunkTop'
+	| 'crownCenter'
+	| 'crownTop'
+	| 'roots';
 import ShovelSvg from '$lib/trees/assets/tools/ShovelSvg.svelte';
 import WateringCanSvg from '$lib/trees/assets/tools/WateringCanSvg.svelte';
 import LadderSvg from '$lib/trees/assets/tools/LadderSvg.svelte';
@@ -14,7 +21,7 @@ import StormCloudSvg from '$lib/trees/assets/tools/StormCloudSvg.svelte';
 
 export interface ToolDefinition {
 	readonly svgComponent: Component;
-	readonly anchorTarget: keyof TreeAnchors;
+	readonly anchorTarget: ToolAnchorKey;
 	readonly snapOffset: { readonly x: number; readonly y: number };
 }
 
@@ -22,7 +29,7 @@ export const TOOL_DEFINITIONS = {
 	[TOOL_TYPES.shovel]: {
 		svgComponent: ShovelSvg,
 		anchorTarget: 'trunkBase',
-		snapOffset: { x: 0, y: 25 },
+		snapOffset: { x: 37, y: 4 },
 	},
 	[TOOL_TYPES.wateringCan]: {
 		svgComponent: WateringCanSvg,
@@ -31,12 +38,12 @@ export const TOOL_DEFINITIONS = {
 	},
 	[TOOL_TYPES.ladder]: {
 		svgComponent: LadderSvg,
-		anchorTarget: 'trunkMiddle',
+		anchorTarget: 'trunkBase',
 		snapOffset: { x: 0, y: -27 },
 	},
 	[TOOL_TYPES.axe]: {
 		svgComponent: AxeSvg,
-		anchorTarget: 'trunkBase',
+		anchorTarget: 'trunkMiddle',
 		snapOffset: { x: 14, y: -18 },
 	},
 	[TOOL_TYPES.rake]: {

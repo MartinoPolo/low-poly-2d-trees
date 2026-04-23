@@ -3,12 +3,13 @@
 	import * as Card from '$lib/components/ui/card/index.js';
 	import * as Select from '$lib/components/ui/select/index.js';
 	import { Button } from '$lib/components/ui/button/index.js';
+	import { Checkbox } from '$lib/components/ui/checkbox/index.js';
 	import { Input } from '$lib/components/ui/input/index.js';
 	import { Label } from '$lib/components/ui/label/index.js';
 	import LowPolyTree from '$lib/trees/LowPolyTree.svelte';
 	import { DEFAULT_TREE_CONFIG, TREE_STAGES, type TreeConfig } from '$lib/trees/types.js';
 	import { TOOL_TYPES, TOOL_OPTIONS, type ToolType } from '$lib/trees/tools/tool_types.js';
-	import { TOOL_DEFINITIONS } from '$lib/trees/tools/tool_definitions.js';
+	import { TOOL_DEFINITIONS, type ToolAnchorKey } from '$lib/trees/tools/tool_definitions.js';
 	import {
 		FRUIT_TYPES as FRUIT_TYPE_CONSTANTS,
 		FRUIT_TYPE_OPTIONS,
@@ -80,6 +81,8 @@
 	let snapOffset = $state({ x: 0, y: 0 });
 	let pivotPoint = $state({ x: 0, y: 0 });
 	let assetScale = $state(1);
+	let anchorTarget = $state<ToolAnchorKey>('trunkBase');
+	let showAnchorOverlay = $state(false);
 	let svgEditorElement = $state<SVGSVGElement>();
 	let isDraggingSnap = $state(false);
 	let isDraggingPivot = $state(false);
@@ -102,6 +105,7 @@
 			snapOffset = { ...toolDef.snapOffset };
 			pivotPoint = { x: 0, y: 0 };
 			assetScale = 1;
+			anchorTarget = toolDef.anchorTarget;
 		} else if (category === 'fruits' && assetKey in FRUIT_DEFINITIONS) {
 			const def = FRUIT_DEFINITIONS[assetKey as keyof typeof FRUIT_DEFINITIONS];
 			snapOffset = { ...def.originOffset };
@@ -211,6 +215,10 @@
 			: undefined,
 	);
 
+	const previewToolAnchorTargetOverride = $derived(
+		activeTab === 'tools' ? { toolType: selectedAsset as ToolType, anchorTarget } : undefined,
+	);
+
 	const previewFruitScaleOverride = $derived(activeTab === 'fruits' ? assetScale : undefined);
 	const previewFruitOriginOffsetOverride = $derived(
 		activeTab === 'fruits' ? snapOffset : undefined,
@@ -219,6 +227,10 @@
 	const previewFlowerScaleOverride = $derived(activeTab === 'flowers' ? assetScale : undefined);
 	const previewFlowerOriginOffsetOverride = $derived(
 		activeTab === 'flowers' ? snapOffset : undefined,
+	);
+
+	const editorDisplayScale = $derived(
+		activeTab === 'tools' ? assetScale * EDITOR_DISPLAY_SCALE_FACTOR : 1,
 	);
 
 	function handleUploadSvg() {
@@ -264,6 +276,9 @@
 
 		const values: Record<string, unknown> = { scale: assetScale };
 		values[offsetKey] = snapOffset;
+		if (activeTab === 'tools') {
+			values.anchorTarget = anchorTarget;
+		}
 
 		try {
 			const response = await fetch('/api/dev/apply-definition', {
@@ -302,8 +317,9 @@
 		const svgX = ((event.clientX - rect.left) / rect.width) * EDITOR_VIEWBOX_SIZE;
 		const svgY = ((event.clientY - rect.top) / rect.height) * EDITOR_VIEWBOX_SIZE;
 
-		const offsetX = Math.round(svgX - EDITOR_CENTER);
-		const offsetY = Math.round(svgY - EDITOR_CENTER);
+		const displayScale = activeTab === 'tools' ? assetScale * EDITOR_DISPLAY_SCALE_FACTOR : 1;
+		const offsetX = Math.round((svgX - EDITOR_CENTER) / displayScale);
+		const offsetY = Math.round((svgY - EDITOR_CENTER) / displayScale);
 
 		if (isDraggingSnap) {
 			snapOffset = { x: offsetX, y: offsetY };
@@ -354,6 +370,8 @@
 									groundElements={activeTab === 'ground'}
 									toolVisibility={demoToolVisibility}
 									toolSnapOffsetOverride={previewToolSnapOffsetOverride}
+									toolAnchorTargetOverride={previewToolAnchorTargetOverride}
+									showAnchorOverlay={activeTab === 'tools' && showAnchorOverlay}
 									fruitScaleOverride={previewFruitScaleOverride}
 									fruitOriginOffsetOverride={previewFruitOriginOffsetOverride}
 									flowerScaleOverride={previewFlowerScaleOverride}
@@ -366,10 +384,13 @@
 
 					<!-- Right Panel: SVG Editor + Controls -->
 					<div class="flex flex-col gap-4 lg:col-span-2">
-						<!-- Asset Selector -->
+						<!-- SVG Editor with Draggable Handles -->
 						<Card.Root>
+							<Card.Header>
+								<Card.Title>Snap & Pivot Points</Card.Title>
+							</Card.Header>
 							<Card.Content>
-								<div class="flex items-center gap-4">
+								<div class="mb-4 flex items-center gap-4">
 									<Label>Asset</Label>
 									<Select.Root
 										type="single"
@@ -412,18 +433,10 @@
 										{/if}
 									{/if}
 								</div>
-							</Card.Content>
-						</Card.Root>
 
-						<!-- SVG Editor with Draggable Handles -->
-						<Card.Root>
-							<Card.Header>
-								<Card.Title>Snap & Pivot Points</Card.Title>
-							</Card.Header>
-							<Card.Content>
 								<div class="flex gap-6">
 									<!-- SVG Viewport -->
-									<div class="flex-1">
+									<div class="w-1/2 flex-none">
 										<svg
 											bind:this={svgEditorElement}
 											viewBox="0 0 {EDITOR_VIEWBOX_SIZE} {EDITOR_VIEWBOX_SIZE}"
@@ -478,8 +491,10 @@
 
 											<!-- Snap Point Handle (red) -->
 											<circle
-												cx={EDITOR_CENTER + snapOffset.x}
-												cy={EDITOR_CENTER + snapOffset.y}
+												cx={EDITOR_CENTER +
+													snapOffset.x * editorDisplayScale}
+												cy={EDITOR_CENTER +
+													snapOffset.y * editorDisplayScale}
 												r="6"
 												fill="rgba(239,68,68,0.7)"
 												stroke="white"
@@ -491,8 +506,12 @@
 													handleEditorPointerDown(e, 'snap')}
 											/>
 											<text
-												x={EDITOR_CENTER + snapOffset.x + 10}
-												y={EDITOR_CENTER + snapOffset.y + 4}
+												x={EDITOR_CENTER +
+													snapOffset.x * editorDisplayScale +
+													10}
+												y={EDITOR_CENTER +
+													snapOffset.y * editorDisplayScale +
+													4}
 												font-size="10"
 												fill="rgba(239,68,68,0.9)"
 												pointer-events="none"
@@ -503,8 +522,10 @@
 
 											<!-- Pivot Point Handle (blue) -->
 											<circle
-												cx={EDITOR_CENTER + pivotPoint.x}
-												cy={EDITOR_CENTER + pivotPoint.y}
+												cx={EDITOR_CENTER +
+													pivotPoint.x * editorDisplayScale}
+												cy={EDITOR_CENTER +
+													pivotPoint.y * editorDisplayScale}
 												r="6"
 												fill="rgba(59,130,246,0.7)"
 												stroke="white"
@@ -516,8 +537,12 @@
 													handleEditorPointerDown(e, 'pivot')}
 											/>
 											<text
-												x={EDITOR_CENTER + pivotPoint.x + 10}
-												y={EDITOR_CENTER + pivotPoint.y + 4}
+												x={EDITOR_CENTER +
+													pivotPoint.x * editorDisplayScale +
+													10}
+												y={EDITOR_CENTER +
+													pivotPoint.y * editorDisplayScale +
+													4}
 												font-size="10"
 												fill="rgba(59,130,246,0.9)"
 												pointer-events="none"
@@ -591,6 +616,41 @@
 												/>
 											</div>
 										</div>
+
+										{#if category === 'tools'}
+											<div>
+												<Label class="text-xs font-semibold"
+													>Anchor Target</Label
+												>
+												<Select.Root
+													type="single"
+													value={anchorTarget}
+													onValueChange={(v) =>
+														(anchorTarget = v as ToolAnchorKey)}
+												>
+													<Select.Trigger class="mt-1 h-8 w-full text-xs">
+														{anchorTarget}
+													</Select.Trigger>
+													<Select.Content>
+														{#each ['trunkBase', 'trunkMiddle', 'trunkTop', 'crownCenter', 'crownTop', 'roots'] as anchor (anchor)}
+															<Select.Item value={anchor}
+																>{anchor}</Select.Item
+															>
+														{/each}
+													</Select.Content>
+												</Select.Root>
+											</div>
+
+											<div class="flex items-center gap-2">
+												<Checkbox
+													id="show-anchors"
+													bind:checked={showAnchorOverlay}
+												/>
+												<Label for="show-anchors" class="text-xs"
+													>Show anchor points</Label
+												>
+											</div>
+										{/if}
 
 										{#if isDev}
 											<Button
