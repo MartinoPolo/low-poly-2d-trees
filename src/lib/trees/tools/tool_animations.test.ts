@@ -56,20 +56,8 @@ describe('TOOL_ANIMATIONS', () => {
 		expect(TOOL_ANIMATIONS.stormCloud.duration).toBe(2);
 	});
 
-	it('each tool has a pivotPoint with x and y', () => {
-		for (const toolType of Object.values(TOOL_TYPES)) {
-			const config = TOOL_ANIMATIONS[toolType];
-			expect(config.pivotPoint).toBeDefined();
-			expect(typeof config.pivotPoint.x).toBe('number');
-			expect(typeof config.pivotPoint.y).toBe('number');
-		}
-	});
-
 	it('ToolAnimationConfig type is exported and usable', () => {
-		const config: ToolAnimationConfig = {
-			duration: 1,
-			pivotPoint: { x: 0, y: 0 },
-		};
+		const config: ToolAnimationConfig = { duration: 1 };
 		expect(config.duration).toBe(1);
 	});
 });

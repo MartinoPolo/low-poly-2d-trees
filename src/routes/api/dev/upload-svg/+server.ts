@@ -2,6 +2,7 @@ import { json } from '@sveltejs/kit';
 import { writeFileSync, mkdirSync } from 'node:fs';
 import path from 'node:path';
 import { convertSvgToSvelte } from '../../../../../scripts/convert-svg.js';
+import { getTargetViewBox } from '$lib/trees/assets/asset_target_viewbox.js';
 import type { RequestHandler } from './$types.js';
 
 const VALID_CATEGORIES = ['tools', 'fruits', 'flowers', 'ground', 'stages', 'overlays'] as const;
@@ -39,7 +40,8 @@ export const POST: RequestHandler = async ({ request }) => {
 	}
 
 	const svgContent = await file.text();
-	const svelteContent = convertSvgToSvelte(svgContent, assetName);
+	const target = getTargetViewBox(category, assetName);
+	const svelteContent = convertSvgToSvelte(svgContent, assetName, target.width, target.height);
 
 	const pascalName = toPascalCase(assetName);
 	const relativePath = `src/lib/trees/assets/${category}/${pascalName}Svg.svelte`;

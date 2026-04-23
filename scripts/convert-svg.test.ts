@@ -66,4 +66,38 @@ describe('convertSvgToSvelte', () => {
 
 		expect(firstLine).toBe('<!-- viewBox: 0 0 100 200 -->');
 	});
+
+	it('normalizes large SVGs when target dimensions are provided', () => {
+		const input =
+			'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400"><circle cx="200" cy="200" r="100"/></svg>';
+		const result = convertSvgToSvelte(input, 'big', 60, 60);
+
+		expect(result).toContain('transform="translate(');
+		expect(result).toContain('scale(');
+		expect(result).toContain('<circle cx="200" cy="200" r="100"/>');
+	});
+
+	it('does not add transform when no target dimensions are given', () => {
+		const input =
+			'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100"/></svg>';
+		const result = convertSvgToSvelte(input, 'noscale');
+
+		expect(result).not.toContain('transform=');
+	});
+
+	it('skips normalization when original matches target size', () => {
+		const input =
+			'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 60 60"><rect width="60" height="60"/></svg>';
+		const result = convertSvgToSvelte(input, 'exact', 60, 60);
+
+		expect(result).not.toContain('transform=');
+	});
+
+	it('falls back to width/height attributes when viewBox is missing', () => {
+		const input =
+			'<svg xmlns="http://www.w3.org/2000/svg" width="500" height="500"><rect width="500" height="500"/></svg>';
+		const result = convertSvgToSvelte(input, 'fallback', 60, 60);
+
+		expect(result).toContain('scale(');
+	});
 });

@@ -1,5 +1,3 @@
-import type { TreeAnchors } from '$lib/trees/types/core.js';
-
 export const TOOL_TYPES = {
 	shovel: 'shovel',
 	wateringCan: 'wateringCan',
@@ -21,18 +19,6 @@ export interface ToolVisibilityEntry {
 }
 
 export type ToolVisibility = Record<ToolType, ToolVisibilityEntry>;
-
-export const TOOL_ANCHOR_MAP = {
-	[TOOL_TYPES.shovel]: 'trunkBase',
-	[TOOL_TYPES.wateringCan]: 'trunkBase',
-	[TOOL_TYPES.ladder]: 'trunkMiddle',
-	[TOOL_TYPES.axe]: 'trunkBase',
-	[TOOL_TYPES.rake]: 'trunkBase',
-	[TOOL_TYPES.woodpecker]: 'trunkMiddle',
-	[TOOL_TYPES.grill]: 'trunkBase',
-	[TOOL_TYPES.speechBubble]: 'crownTop',
-	[TOOL_TYPES.stormCloud]: 'crownTop',
-} as const satisfies Record<ToolType, keyof TreeAnchors>;
 
 export function createDefaultToolVisibility(): ToolVisibility {
 	return {

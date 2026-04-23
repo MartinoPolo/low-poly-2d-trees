@@ -1,10 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import {
-	TOOL_TYPES,
-	TOOL_ANCHOR_MAP,
-	TOOL_OPTIONS,
-	createDefaultToolVisibility,
-} from './tool_types.js';
+import { TOOL_TYPES, TOOL_OPTIONS, createDefaultToolVisibility } from './tool_types.js';
 
 describe('TOOL_TYPES', () => {
 	it('defines exactly 9 tools', () => {
@@ -26,51 +21,6 @@ describe('TOOL_TYPES', () => {
 
 	it('does not contain birdNest', () => {
 		expect(TOOL_TYPES).not.toHaveProperty('birdNest');
-	});
-});
-
-describe('TOOL_ANCHOR_MAP', () => {
-	it('maps every tool type to a valid TreeAnchors key', () => {
-		const validAnchors = ['trunkBase', 'trunkMiddle', 'crownTop'];
-		for (const toolType of Object.values(TOOL_TYPES)) {
-			expect(validAnchors).toContain(TOOL_ANCHOR_MAP[toolType]);
-		}
-	});
-
-	it('shovel snaps to trunkBase', () => {
-		expect(TOOL_ANCHOR_MAP[TOOL_TYPES.shovel]).toBe('trunkBase');
-	});
-
-	it('wateringCan snaps to trunkBase', () => {
-		expect(TOOL_ANCHOR_MAP[TOOL_TYPES.wateringCan]).toBe('trunkBase');
-	});
-
-	it('ladder snaps to trunkMiddle', () => {
-		expect(TOOL_ANCHOR_MAP[TOOL_TYPES.ladder]).toBe('trunkMiddle');
-	});
-
-	it('axe snaps to trunkBase', () => {
-		expect(TOOL_ANCHOR_MAP[TOOL_TYPES.axe]).toBe('trunkBase');
-	});
-
-	it('rake snaps to trunkBase', () => {
-		expect(TOOL_ANCHOR_MAP[TOOL_TYPES.rake]).toBe('trunkBase');
-	});
-
-	it('woodpecker snaps to trunkMiddle', () => {
-		expect(TOOL_ANCHOR_MAP[TOOL_TYPES.woodpecker]).toBe('trunkMiddle');
-	});
-
-	it('grill snaps to trunkBase', () => {
-		expect(TOOL_ANCHOR_MAP[TOOL_TYPES.grill]).toBe('trunkBase');
-	});
-
-	it('speechBubble snaps to crownTop', () => {
-		expect(TOOL_ANCHOR_MAP[TOOL_TYPES.speechBubble]).toBe('crownTop');
-	});
-
-	it('stormCloud snaps to crownTop', () => {
-		expect(TOOL_ANCHOR_MAP[TOOL_TYPES.stormCloud]).toBe('crownTop');
 	});
 });
 

@@ -1,3 +1,5 @@
+name: low-poly-2d-trees
+
 services:
     db:
         image: postgres:17

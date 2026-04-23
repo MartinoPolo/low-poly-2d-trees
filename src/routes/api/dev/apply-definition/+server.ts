@@ -28,6 +28,8 @@ interface ApplyDefinitionValues {
 	readonly originOffset?: OffsetValue;
 	readonly snapOffset?: OffsetValue;
 	readonly positionOffset?: OffsetValue;
+	readonly pivotPoint?: OffsetValue;
+	readonly anchorTarget?: string;
 }
 
 function replaceOffsetInContent(
@@ -45,6 +47,15 @@ function replaceOffsetInContent(
 		offsetPattern,
 		`$1${offsetKey}: { x: ${offsetValue.x}, y: ${offsetValue.y} }`,
 	);
+}
+
+function replaceAnchorTargetInContent(
+	content: string,
+	assetName: string,
+	anchorTarget: string,
+): string {
+	const pattern = new RegExp(`(\\[\\w+\\.${assetName}\\][\\s\\S]*?)anchorTarget:\\s*'[^']*'`);
+	return content.replace(pattern, `$1anchorTarget: '${anchorTarget}'`);
 }
 
 function replaceScaleInContent(content: string, assetName: string, scaleValue: number): string {
@@ -100,6 +111,12 @@ export const POST: RequestHandler = async ({ request }) => {
 			'positionOffset',
 			typedValues.positionOffset,
 		);
+	}
+	if (typedValues.pivotPoint !== undefined) {
+		content = replaceOffsetInContent(content, assetName, 'pivotPoint', typedValues.pivotPoint);
+	}
+	if (typedValues.anchorTarget !== undefined) {
+		content = replaceAnchorTargetInContent(content, assetName, typedValues.anchorTarget);
 	}
 
 	writeFileSync(definitionPath, content, 'utf-8');
