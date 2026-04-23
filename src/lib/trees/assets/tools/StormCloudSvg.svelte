@@ -6,25 +6,25 @@
 <script lang="ts">
 	import { generateRainLines } from '$lib/trees/overlays/overlay_generators.js';
 
-	const rainLines = generateRainLines(42, 12, 60);
+	const rainLines = generateRainLines(42, 12, 120);
 </script>
 
 <g class="storm-cloud">
 	<!-- Cloud body: overlapping ellipses -->
 	<g>
-		<ellipse cx="0" cy="-18" rx="20" ry="12" fill="#4a4a5a" />
-		<ellipse cx="-14" cy="-14" rx="14" ry="10" fill="#3a3a4a" />
-		<ellipse cx="14" cy="-14" rx="14" ry="10" fill="#3a3a4a" />
-		<ellipse cx="0" cy="-10" rx="24" ry="8" fill="#4a4a5a" />
+		<ellipse cx="0" cy="-36" rx="40" ry="24" fill="#4a4a5a" />
+		<ellipse cx="-28" cy="-28" rx="28" ry="20" fill="#3a3a4a" />
+		<ellipse cx="28" cy="-28" rx="28" ry="20" fill="#3a3a4a" />
+		<ellipse cx="0" cy="-20" rx="48" ry="16" fill="#4a4a5a" />
 	</g>
 
 	<!-- Rain lines -->
 	<g class="storm-rain">
 		{#each rainLines as line, i (i)}
 			<line
-				x1={line.x - 30}
+				x1={line.x - 60}
 				y1={line.y}
-				x2={line.x - 31}
+				x2={line.x - 61}
 				y2={line.y + line.length}
 				stroke="#7a8aaa"
 				stroke-width="0.8"
@@ -44,7 +44,7 @@
 		}
 
 		100% {
-			transform: translateY(25px);
+			transform: translateY(50px);
 			opacity: 0;
 		}
 	}

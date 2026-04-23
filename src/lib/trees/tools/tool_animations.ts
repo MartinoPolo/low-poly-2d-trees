@@ -40,6 +40,6 @@ export const TOOL_ANIMATIONS = {
 	},
 	stormCloud: {
 		duration: 2,
-		pivotPoint: { x: 0, y: -10 },
+		pivotPoint: { x: 0, y: -20 },
 	},
 } as const satisfies Record<ToolType, ToolAnimationConfig>;
