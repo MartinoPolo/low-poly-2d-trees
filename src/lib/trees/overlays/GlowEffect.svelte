@@ -31,6 +31,12 @@
 				<feMerge>
 					<feMergeNode in="blur2" />
 					<feMergeNode in="blur" />
+					<feMergeNode in="SourceGraphic" />
+				</feMerge>
+			{:else}
+				<feMerge>
+					<feMergeNode in="blur" />
+					<feMergeNode in="SourceGraphic" />
 				</feMerge>
 			{/if}
 		</filter>
