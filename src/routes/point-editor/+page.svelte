@@ -286,24 +286,18 @@
 		} else {
 			isDraggingPivot = true;
 		}
-		svgEditorElement?.setPointerCapture(event.pointerId);
+		(event.currentTarget as SVGElement).ownerSVGElement?.setPointerCapture(event.pointerId);
 	}
 
 	function handleEditorPointerMove(event: PointerEvent) {
 		if (!isDraggingSnap && !isDraggingPivot) {
 			return;
 		}
-		if (!svgEditorElement) {
-			return;
-		}
 
-		const ctm = svgEditorElement.getScreenCTM();
-		if (!ctm) {
-			return;
-		}
-
-		const svgX = (event.clientX - ctm.e) / ctm.a;
-		const svgY = (event.clientY - ctm.f) / ctm.d;
+		const svgEl = event.currentTarget as SVGSVGElement;
+		const rect = svgEl.getBoundingClientRect();
+		const svgX = ((event.clientX - rect.left) / rect.width) * EDITOR_VIEWBOX_SIZE;
+		const svgY = ((event.clientY - rect.top) / rect.height) * EDITOR_VIEWBOX_SIZE;
 
 		const offsetX = Math.round(svgX - EDITOR_CENTER);
 		const offsetY = Math.round(svgY - EDITOR_CENTER);
