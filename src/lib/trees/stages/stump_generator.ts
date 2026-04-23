@@ -30,6 +30,7 @@ export function generateStumpGeometry(): TreeGeometry {
 		flowerSlots: [],
 		showFallingLeaves: false,
 		showSnowBlobs: false,
+		snowAboveCanopy: false,
 		birchStripes: [],
 		anchors,
 		viewBox: { width: VIEWBOX_WIDTH, height: VIEWBOX_HEIGHT },

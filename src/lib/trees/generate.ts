@@ -384,7 +384,13 @@ function generateTreeCore(config: TreeConfig, flags: StageFlags): TreeGeometry {
 
 	if (isTiered) {
 		// Branchless tiered shapes (pine, fir): unchanged
-		canopyBlobs = generateTierCanopy(rng, tiers, config.polygonsPerBlob, config);
+		canopyBlobs = generateTierCanopy(
+			rng,
+			tiers,
+			config.polygonsPerBlob,
+			config,
+			flags.addSnowBlobs,
+		);
 	} else if (hasBranchingCanopy) {
 		// Branch-driven canopy: cluster tips → generate blobs (REQ-EV2-BC-01)
 		const styleParams = shapeDef.styleParameters!;
@@ -486,6 +492,7 @@ function generateTreeCore(config: TreeConfig, flags: StageFlags): TreeGeometry {
 			config.polygonsPerBlob,
 			smoothAcuteAngles,
 			config,
+			flags.addSnowBlobs,
 		);
 
 		// Apply z-order to canopy blobs (REQ-EV2-CZ-01)
@@ -501,6 +508,7 @@ function generateTreeCore(config: TreeConfig, flags: StageFlags): TreeGeometry {
 			config.polygonsPerBlob,
 			smoothAcuteAngles,
 			config,
+			flags.addSnowBlobs,
 		);
 	}
 
@@ -560,6 +568,7 @@ function generateTreeCore(config: TreeConfig, flags: StageFlags): TreeGeometry {
 		flowerSlots: flowerSlotsResult,
 		showFallingLeaves: flags.addFallingLeaves,
 		showSnowBlobs: flags.addSnowBlobs,
+		snowAboveCanopy: flags.addSnowBlobs && !isTiered,
 		birchStripes,
 		anchors: anchorsWithTipDepths,
 		viewBox: { width: VIEWBOX_WIDTH, height: VIEWBOX_HEIGHT },

@@ -44,7 +44,6 @@
 	import TreeCanopyLayer from '$lib/trees/TreeCanopyLayer.svelte';
 	import TreeFruitAndFlowerLayer from '$lib/trees/TreeFruitAndFlowerLayer.svelte';
 	import TreeFallingLeavesLayer from '$lib/trees/TreeFallingLeavesLayer.svelte';
-	import TreeSnowBlobsLayer from '$lib/trees/TreeSnowBlobsLayer.svelte';
 	import TreeDebugOverlays from '$lib/trees/TreeDebugOverlays.svelte';
 
 	interface Props {
@@ -261,11 +260,9 @@
 					{shouldAnimateGrowth}
 					{canopySwayDelay}
 					{growthScales}
+					showSnow={geometry.showSnowBlobs}
+					snowAboveCanopy={geometry.snowAboveCanopy}
 				/>
-			{/if}
-
-			{#if showCanopy && geometry.showSnowBlobs}
-				<TreeSnowBlobsLayer canopyBlobs={geometry.canopyBlobs} seed={config.seed} />
 			{/if}
 
 			<TreeFruitAndFlowerLayer
