@@ -22,7 +22,7 @@ export const TOOL_DEFINITIONS = {
 	[TOOL_TYPES.shovel]: {
 		svgComponent: ShovelSvg,
 		anchorTarget: 'trunkBase',
-		snapOffset: { x: -19, y: 20 },
+		snapOffset: { x: 8, y: 52 },
 	},
 	[TOOL_TYPES.wateringCan]: {
 		svgComponent: WateringCanSvg,

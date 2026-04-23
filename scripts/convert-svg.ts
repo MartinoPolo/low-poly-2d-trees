@@ -4,7 +4,16 @@ export function convertSvgToSvelte(svgContent: string, assetName: string): strin
 	const viewBoxMatch = svgContent.match(/viewBox="([^"]+)"/);
 	const viewBox = viewBoxMatch ? viewBoxMatch[1] : '0 0 100 100';
 
-	let innerContent = svgContent.replace(/<svg[^>]*>/, '').replace(/<\/svg>\s*$/, '');
+	const vbParts = viewBox.trim().split(/\s+/).map(Number);
+	const vbW = vbParts[2] ?? 100;
+	const vbH = vbParts[3] ?? 100;
+	const normalizedHeight = 50;
+	const normalizedWidth = parseFloat((normalizedHeight * (vbW / vbH)).toFixed(2));
+
+	let innerContent = svgContent
+		.replace(/<\?[^?]*\?>/g, '')
+		.replace(/<svg[^>]*>/, '')
+		.replace(/<\/svg>\s*$/, '');
 
 	// Collect all id="X" values
 	const idMatches = [...innerContent.matchAll(/\bid="([^"]+)"/g)];
@@ -22,7 +31,7 @@ export function convertSvgToSvelte(svgContent: string, assetName: string): strin
 		innerContent = innerContent.replaceAll(`href="#${id}"`, `href="#${namespacedId}"`);
 	}
 
-	return `<!-- viewBox: ${viewBox} -->\n<g>\n${innerContent}\n</g>`;
+	return `<!-- viewBox: ${viewBox} -->\n<svg viewBox="${viewBox}" width="${normalizedWidth}" height="${normalizedHeight}" overflow="visible">\n${innerContent}\n</svg>`;
 }
 
 function parseCliArguments(argv: string[]): { input: string; name: string; output: string } {

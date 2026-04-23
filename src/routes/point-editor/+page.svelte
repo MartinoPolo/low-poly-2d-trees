@@ -166,7 +166,10 @@
 		}
 		const visibility = createDefaultToolVisibility();
 		if (selectedAsset in visibility) {
-			visibility[selectedAsset as keyof typeof visibility] = { visible: true, size: 1 };
+			visibility[selectedAsset as keyof typeof visibility] = {
+				visible: true,
+				size: assetScale,
+			};
 		}
 		return visibility;
 	});
@@ -492,6 +495,8 @@
 												y={EDITOR_CENTER + snapOffset.y + 4}
 												font-size="10"
 												fill="rgba(239,68,68,0.9)"
+												pointer-events="none"
+												style="user-select: none"
 											>
 												snap
 											</text>
@@ -515,6 +520,8 @@
 												y={EDITOR_CENTER + pivotPoint.y + 4}
 												font-size="10"
 												fill="rgba(59,130,246,0.9)"
+												pointer-events="none"
+												style="user-select: none"
 											>
 												pivot
 											</text>
