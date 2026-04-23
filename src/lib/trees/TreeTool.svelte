@@ -43,8 +43,8 @@
 		class="tool-anim"
 		class:animate-tool={animate}
 		data-tool-type={tool}
-		style="--tool-duration: {animationConfig.duration}s; --pivot-x: {animationConfig.pivotPoint
-			.x}px; --pivot-y: {animationConfig.pivotPoint.y}px;"
+		style="--tool-duration: {animationConfig.duration}s; --pivot-x: {definition.pivotPoint
+			.x}px; --pivot-y: {definition.pivotPoint.y}px;"
 	>
 		{#if text !== undefined}
 			<SvgComponent {text} />

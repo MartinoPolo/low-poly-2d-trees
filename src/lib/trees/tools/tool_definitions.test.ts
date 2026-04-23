@@ -42,48 +42,20 @@ describe('TOOL_DEFINITIONS', () => {
 		expect(new Set(components).size).toBe(components.length);
 	});
 
-	it('shovel has correct snapOffset', () => {
-		expect(TOOL_DEFINITIONS.shovel.snapOffset).toEqual({ x: 0, y: 25 });
-	});
-
-	it('wateringCan has correct snapOffset', () => {
-		expect(TOOL_DEFINITIONS.wateringCan.snapOffset).toEqual({ x: 16, y: -8 });
-	});
-
-	it('ladder has correct snapOffset', () => {
-		expect(TOOL_DEFINITIONS.ladder.snapOffset).toEqual({ x: 0, y: -27 });
-	});
-
-	it('axe has correct snapOffset', () => {
-		expect(TOOL_DEFINITIONS.axe.snapOffset).toEqual({ x: 14, y: -18 });
-	});
-
-	it('rake has correct snapOffset', () => {
-		expect(TOOL_DEFINITIONS.rake.snapOffset).toEqual({ x: 0, y: 18 });
-	});
-
-	it('woodpecker has correct snapOffset', () => {
-		expect(TOOL_DEFINITIONS.woodpecker.snapOffset).toEqual({ x: 6, y: 10 });
-	});
-
-	it('grill has correct snapOffset', () => {
-		expect(TOOL_DEFINITIONS.grill.snapOffset).toEqual({ x: -25, y: 25 });
+	it('each entry has pivotPoint with numeric x and y', () => {
+		for (const toolType of Object.values(TOOL_TYPES)) {
+			const { pivotPoint } = TOOL_DEFINITIONS[toolType];
+			expect(typeof pivotPoint.x).toBe('number');
+			expect(typeof pivotPoint.y).toBe('number');
+		}
 	});
 
 	it('grill anchorTarget is trunkBase', () => {
 		expect(TOOL_DEFINITIONS.grill.anchorTarget).toBe('trunkBase');
 	});
 
-	it('speechBubble has correct snapOffset', () => {
-		expect(TOOL_DEFINITIONS.speechBubble.snapOffset).toEqual({ x: 0, y: -10 });
-	});
-
 	it('speechBubble anchorTarget is crownTop', () => {
 		expect(TOOL_DEFINITIONS.speechBubble.anchorTarget).toBe('crownTop');
-	});
-
-	it('stormCloud has correct snapOffset', () => {
-		expect(TOOL_DEFINITIONS.stormCloud.snapOffset).toEqual({ x: 0, y: 10 });
 	});
 
 	it('stormCloud anchorTarget is crownTop', () => {

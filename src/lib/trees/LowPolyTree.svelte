@@ -213,13 +213,6 @@
 	<GlowEffect config={overlayConfig.glow} filterId={glowFilterId} />
 
 	<g class="tree-root">
-		<TreeDebugOverlays
-			{geometry}
-			{showViewBox}
-			showAnchors={showAnchors || showAnchorOverlay}
-			{showEnvelope}
-		/>
-
 		{#snippet treeBodyContent()}
 			<!-- REQ-EV2-Z-04: 5-layer rendering for branching shapes -->
 			<!-- Layer 1: Back branches (behind trunk) -->
@@ -330,6 +323,13 @@
 				{/each}
 			</g>
 		{/if}
+
+		<TreeDebugOverlays
+			{geometry}
+			{showViewBox}
+			showAnchors={showAnchors || showAnchorOverlay}
+			{showEnvelope}
+		/>
 	</g>
 </svg>
 

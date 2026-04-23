@@ -1,6 +1,46 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 
-export function convertSvgToSvelte(svgContent: string, assetName: string): string {
+function parseOriginalDimensions(
+	svgContent: string,
+	viewBox: string,
+): { width: number; height: number } | null {
+	const parts = viewBox.split(/\s+/).map(Number);
+	if (parts.length >= 4 && parts[2] > 0 && parts[3] > 0) {
+		return { width: parts[2], height: parts[3] };
+	}
+	const widthMatch = svgContent.match(/\swidth="([^"]+)"/);
+	const heightMatch = svgContent.match(/\sheight="([^"]+)"/);
+	const width = widthMatch ? parseFloat(widthMatch[1]) : 0;
+	const height = heightMatch ? parseFloat(heightMatch[1]) : 0;
+	if (width > 0 && height > 0) {
+		return { width, height };
+	}
+	return null;
+}
+
+function buildNormalizationTransform(
+	origWidth: number,
+	origHeight: number,
+	targetWidth: number,
+	targetHeight: number,
+): string | null {
+	const scale = Math.min(targetWidth / origWidth, targetHeight / origHeight);
+	if (Math.abs(scale - 1) < 0.001) {
+		return null;
+	}
+	const scaledWidth = origWidth * scale;
+	const scaledHeight = origHeight * scale;
+	const translateX = (targetWidth - scaledWidth) / 2;
+	const translateY = (targetHeight - scaledHeight) / 2;
+	return `translate(${translateX.toFixed(2)}, ${translateY.toFixed(2)}) scale(${scale.toFixed(4)})`;
+}
+
+export function convertSvgToSvelte(
+	svgContent: string,
+	assetName: string,
+	targetWidth?: number,
+	targetHeight?: number,
+): string {
 	const viewBoxMatch = svgContent.match(/viewBox="([^"]+)"/);
 	const viewBox = viewBoxMatch ? viewBoxMatch[1] : '0 0 100 100';
 
@@ -25,7 +65,23 @@ export function convertSvgToSvelte(svgContent: string, assetName: string): strin
 		innerContent = innerContent.replaceAll(`href="#${id}"`, `href="#${namespacedId}"`);
 	}
 
-	return `<!-- viewBox: ${viewBox} -->\n<g>\n${innerContent}\n</g>`;
+	let normalizedContent = innerContent;
+	if (targetWidth !== undefined && targetHeight !== undefined) {
+		const dims = parseOriginalDimensions(svgContent, viewBox);
+		if (dims) {
+			const transform = buildNormalizationTransform(
+				dims.width,
+				dims.height,
+				targetWidth,
+				targetHeight,
+			);
+			if (transform !== null) {
+				normalizedContent = `<g transform="${transform}">\n${innerContent}\n</g>`;
+			}
+		}
+	}
+
+	return `<!-- viewBox: ${viewBox} -->\n<g>\n${normalizedContent}\n</g>`;
 }
 
 function parseCliArguments(argv: string[]): { input: string; name: string; output: string } {

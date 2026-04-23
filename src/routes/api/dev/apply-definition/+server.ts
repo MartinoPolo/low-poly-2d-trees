@@ -28,6 +28,7 @@ interface ApplyDefinitionValues {
 	readonly originOffset?: OffsetValue;
 	readonly snapOffset?: OffsetValue;
 	readonly positionOffset?: OffsetValue;
+	readonly pivotPoint?: OffsetValue;
 	readonly anchorTarget?: string;
 }
 
@@ -110,6 +111,9 @@ export const POST: RequestHandler = async ({ request }) => {
 			'positionOffset',
 			typedValues.positionOffset,
 		);
+	}
+	if (typedValues.pivotPoint !== undefined) {
+		content = replaceOffsetInContent(content, assetName, 'pivotPoint', typedValues.pivotPoint);
 	}
 	if (typedValues.anchorTarget !== undefined) {
 		content = replaceAnchorTargetInContent(content, assetName, typedValues.anchorTarget);

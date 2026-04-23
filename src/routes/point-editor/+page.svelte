@@ -24,7 +24,7 @@
 		createDefaultToolVisibility,
 		type ToolVisibility,
 	} from '$lib/trees/tools/tool_types.js';
-	import type { Component } from 'svelte';
+	import { onMount, type Component } from 'svelte';
 	import Upload from '@lucide/svelte/icons/upload';
 	import Save from '@lucide/svelte/icons/save';
 
@@ -63,6 +63,18 @@
 	} as const satisfies Record<string, readonly AssetOption[]>;
 
 	type AssetCategory = keyof typeof CATEGORY_ASSET_OPTIONS;
+
+	const SESSION_KEY = 'point-editor-state';
+
+	interface PersistedEditorState {
+		activeTab: AssetCategory;
+		selectedAssets: Record<AssetCategory, string>;
+		snapOffset: { x: number; y: number };
+		pivotPoint: { x: number; y: number };
+		assetScale: number;
+		anchorTarget: ToolAnchorKey;
+		showAnchorOverlay: boolean;
+	}
 
 	const EDITOR_VIEWBOX_SIZE = 200;
 	const EDITOR_CENTER = EDITOR_VIEWBOX_SIZE / 2;
@@ -103,7 +115,7 @@
 		if (category === 'tools' && assetKey in TOOL_DEFINITIONS) {
 			const toolDef = TOOL_DEFINITIONS[assetKey as keyof typeof TOOL_DEFINITIONS];
 			snapOffset = { ...toolDef.snapOffset };
-			pivotPoint = { x: 0, y: 0 };
+			pivotPoint = { ...toolDef.pivotPoint };
 			assetScale = 1;
 			anchorTarget = toolDef.anchorTarget;
 		} else if (category === 'fruits' && assetKey in FRUIT_DEFINITIONS) {
@@ -278,6 +290,7 @@
 		values[offsetKey] = snapOffset;
 		if (activeTab === 'tools') {
 			values.anchorTarget = anchorTarget;
+			values.pivotPoint = pivotPoint;
 		}
 
 		try {
@@ -337,6 +350,50 @@
 		activeTab = value as AssetCategory;
 		loadAssetConfig(activeTab, selectedAssets[activeTab]);
 	}
+
+	let sessionRestored = false;
+
+	onMount(() => {
+		const raw = sessionStorage.getItem(SESSION_KEY);
+		if (raw === null) {
+			loadAssetConfig(activeTab, selectedAssets[activeTab]);
+			sessionRestored = true;
+			return;
+		}
+		try {
+			const parsed = JSON.parse(raw) as PersistedEditorState;
+			if (parsed.activeTab in CATEGORY_ASSET_OPTIONS) {
+				activeTab = parsed.activeTab;
+				selectedAssets = parsed.selectedAssets;
+				snapOffset = parsed.snapOffset;
+				pivotPoint = parsed.pivotPoint;
+				assetScale = parsed.assetScale;
+				anchorTarget = parsed.anchorTarget;
+				showAnchorOverlay = parsed.showAnchorOverlay;
+			} else {
+				loadAssetConfig(activeTab, selectedAssets[activeTab]);
+			}
+		} catch {
+			loadAssetConfig(activeTab, selectedAssets[activeTab]);
+		}
+		sessionRestored = true;
+	});
+
+	$effect(() => {
+		if (!sessionRestored) {
+			return;
+		}
+		const state: PersistedEditorState = {
+			activeTab,
+			selectedAssets: $state.snapshot(selectedAssets),
+			snapOffset,
+			pivotPoint,
+			assetScale,
+			anchorTarget,
+			showAnchorOverlay,
+		};
+		sessionStorage.setItem(SESSION_KEY, JSON.stringify(state));
+	});
 </script>
 
 <div class="flex h-full flex-col gap-4 p-4">
