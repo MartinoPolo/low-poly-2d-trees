@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { m } from '$lib/paraglide/messages.js';
 	import * as Sidebar from '$lib/components/ui/sidebar/index.js';
 	import * as DropdownMenu from '$lib/components/ui/dropdown-menu/index.js';
 	import TreePine from '@lucide/svelte/icons/tree-pine';
@@ -16,38 +17,66 @@
 	import { use_avatar } from '$lib/context/avatar.context.svelte.js';
 	import { userPrefersMode, setMode } from 'mode-watcher';
 	import { goto } from '$app/navigation';
-	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
+	import Globe from '@lucide/svelte/icons/globe';
+	import { getLocale, locales, setLocale } from '$lib/paraglide/runtime.js';
+	import { localizedResolve } from '$lib/i18n/localized_resolve.js';
 
-	const rootPath = resolve('/');
-	const editorPath = resolve('/editor');
-	const galleryPath = resolve('/gallery');
-	const pointEditorPath = resolve('/point-editor');
-	const showcasePath = resolve('/showcase');
-	const settingsPath = resolve('/settings');
-	const authPath = resolve('/auth/sign-in');
-	const signOutPath = resolve('/auth/sign-out');
+	const rootPath = localizedResolve('/');
+	const editorPath = localizedResolve('/editor');
+	const galleryPath = localizedResolve('/gallery');
+	const pointEditorPath = localizedResolve('/point-editor');
+	const showcasePath = localizedResolve('/showcase');
+	const settingsPath = localizedResolve('/settings');
+	const authPath = localizedResolve('/auth/sign-in');
+	const signOutPath = localizedResolve('/auth/sign-out');
 
 	const user = $derived(page.data.user);
 	const { avatar } = use_avatar();
 
 	let signOutFormElement = $state<HTMLFormElement>();
+
+	const LOCALE_LABELS: Record<string, string> = {
+		en: 'English',
+		cs: 'Čeština',
+	};
 </script>
+
+{#snippet languageSwitcher()}
+	<DropdownMenu.Sub>
+		<DropdownMenu.SubTrigger>
+			<Globe />
+			{m.lang_switcher()}
+		</DropdownMenu.SubTrigger>
+		<DropdownMenu.SubContent>
+			<DropdownMenu.RadioGroup
+				value={getLocale()}
+				onValueChange={(locale) => setLocale(locale as (typeof locales)[number])}
+			>
+				{#each locales as locale (locale)}
+					<DropdownMenu.RadioItem value={locale}>
+						{LOCALE_LABELS[locale] ?? locale}
+					</DropdownMenu.RadioItem>
+				{/each}
+			</DropdownMenu.RadioGroup>
+		</DropdownMenu.SubContent>
+	</DropdownMenu.Sub>
+{/snippet}
 
 {#snippet themeSubmenu()}
 	<DropdownMenu.Sub>
 		<DropdownMenu.SubTrigger data-testid="sidebar-theme-trigger">
 			<Sun />
-			Theme
+			{m.theme()}
 		</DropdownMenu.SubTrigger>
 		<DropdownMenu.SubContent>
 			<DropdownMenu.RadioGroup
 				value={userPrefersMode.current}
 				onValueChange={(v) => setMode(v as Parameters<typeof setMode>[0])}
 			>
-				<DropdownMenu.RadioItem value="light">Light</DropdownMenu.RadioItem>
-				<DropdownMenu.RadioItem value="dark">Dark</DropdownMenu.RadioItem>
-				<DropdownMenu.RadioItem value="system">System</DropdownMenu.RadioItem>
+				<DropdownMenu.RadioItem value="light">{m.theme_light()}</DropdownMenu.RadioItem>
+				<DropdownMenu.RadioItem value="dark">{m.theme_dark()}</DropdownMenu.RadioItem>
+				<DropdownMenu.RadioItem value="system">{m.theme_system()}</DropdownMenu.RadioItem>
 			</DropdownMenu.RadioGroup>
 		</DropdownMenu.SubContent>
 	</DropdownMenu.Sub>
@@ -57,7 +86,7 @@
 	<Sidebar.Header>
 		<a href={rootPath} class="flex items-center gap-2 px-2 py-1.5">
 			<TreePine class="size-5 text-primary" />
-			<span class="font-semibold">Low-Poly Trees</span>
+			<span class="font-semibold">{m.app_name()}</span>
 		</a>
 	</Sidebar.Header>
 	<Sidebar.Content>
@@ -67,12 +96,12 @@
 					<Sidebar.MenuItem>
 						<Sidebar.MenuButton
 							isActive={page.url.pathname === rootPath}
-							tooltipContent="Scene Editor"
+							tooltipContent={m.nav_scene_editor()}
 						>
 							{#snippet child({ props })}
 								<a href={rootPath} {...props}>
 									<Trees />
-									<span>Scene Editor</span>
+									<span>{m.nav_scene_editor()}</span>
 								</a>
 							{/snippet}
 						</Sidebar.MenuButton>
@@ -80,12 +109,12 @@
 					<Sidebar.MenuItem>
 						<Sidebar.MenuButton
 							isActive={page.url.pathname === editorPath}
-							tooltipContent="Single Editor"
+							tooltipContent={m.nav_single_editor()}
 						>
 							{#snippet child({ props })}
 								<a href={editorPath} {...props}>
 									<TreePine />
-									<span>Single Editor</span>
+									<span>{m.nav_single_editor()}</span>
 								</a>
 							{/snippet}
 						</Sidebar.MenuButton>
@@ -93,12 +122,12 @@
 					<Sidebar.MenuItem>
 						<Sidebar.MenuButton
 							isActive={page.url.pathname === galleryPath}
-							tooltipContent="Gallery"
+							tooltipContent={m.nav_gallery()}
 						>
 							{#snippet child({ props })}
 								<a href={galleryPath} {...props}>
 									<Images />
-									<span>Gallery</span>
+									<span>{m.nav_gallery()}</span>
 								</a>
 							{/snippet}
 						</Sidebar.MenuButton>
@@ -106,12 +135,12 @@
 					<Sidebar.MenuItem>
 						<Sidebar.MenuButton
 							isActive={page.url.pathname === pointEditorPath}
-							tooltipContent="Point Editor"
+							tooltipContent={m.nav_point_editor()}
 						>
 							{#snippet child({ props })}
 								<a href={pointEditorPath} {...props}>
 									<Crosshair />
-									<span>Point Editor</span>
+									<span>{m.nav_point_editor()}</span>
 								</a>
 							{/snippet}
 						</Sidebar.MenuButton>
@@ -119,12 +148,12 @@
 					<Sidebar.MenuItem>
 						<Sidebar.MenuButton
 							isActive={page.url.pathname === showcasePath}
-							tooltipContent="Showcase"
+							tooltipContent={m.nav_showcase()}
 						>
 							{#snippet child({ props })}
 								<a href={showcasePath} {...props}>
 									<Presentation />
-									<span>Showcase</span>
+									<span>{m.nav_showcase()}</span>
 								</a>
 							{/snippet}
 						</Sidebar.MenuButton>
@@ -184,16 +213,17 @@
 								onclick={() => goto(settingsPath)}
 							>
 								<Settings />
-								Settings
+								{m.nav_settings()}
 							</DropdownMenu.Item>
 							{@render themeSubmenu()}
+							{@render languageSwitcher()}
 							<DropdownMenu.Separator />
 							<DropdownMenu.Item
 								data-testid="sidebar-dropdown-sign-out"
 								onclick={() => signOutFormElement?.requestSubmit()}
 							>
 								<LogOut />
-								Sign out
+								{m.nav_sign_out()}
 							</DropdownMenu.Item>
 						</DropdownMenu.Content>
 					</DropdownMenu.Root>
@@ -214,7 +244,7 @@
 								<Sidebar.MenuButton
 									size="lg"
 									class="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
-									tooltipContent="Guest"
+									tooltipContent={m.nav_guest()}
 									{...triggerProps}
 								>
 									{#snippet child({ props })}
@@ -227,7 +257,9 @@
 											<div
 												class="grid flex-1 text-left text-sm leading-tight"
 											>
-												<span class="truncate font-medium">Guest</span>
+												<span class="truncate font-medium"
+													>{m.nav_guest()}</span
+												>
 											</div>
 											<ChevronsUpDown class="ml-auto size-4" />
 										</div>
@@ -240,13 +272,14 @@
 							class="w-(--bits-dropdown-menu-anchor-width)"
 						>
 							{@render themeSubmenu()}
+							{@render languageSwitcher()}
 							<DropdownMenu.Separator />
 							<DropdownMenu.Item
 								data-testid="sidebar-dropdown-sign-in"
 								onclick={() => goto(authPath)}
 							>
 								<LogIn />
-								Sign in
+								{m.nav_sign_in()}
 							</DropdownMenu.Item>
 						</DropdownMenu.Content>
 					</DropdownMenu.Root>
