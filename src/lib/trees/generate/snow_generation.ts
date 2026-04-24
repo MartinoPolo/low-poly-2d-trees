@@ -106,7 +106,7 @@ function circleHalfWidth(tParam: number): number {
 }
 
 function applyBlobRotation(worldX: number, worldY: number, blob: Blob): Point2D {
-	if (blob.rotationDeg) {
+	if (blob.rotationDeg !== undefined && blob.rotationDeg !== 0) {
 		return rotatePointAroundCenter(worldX, worldY, blob.cx, blob.cy, blob.rotationDeg);
 	}
 	return { x: worldX, y: worldY };
