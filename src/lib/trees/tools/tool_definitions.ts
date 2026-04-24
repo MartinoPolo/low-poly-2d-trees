@@ -48,8 +48,8 @@ export const TOOL_DEFINITIONS = {
 	[TOOL_TYPES.axe]: {
 		svgComponent: AxeSvg,
 		anchorTarget: 'trunkMiddle',
-		snapOffset: { x: 14, y: -18 },
-		pivotPoint: { x: 14, y: 0 },
+		snapOffset: { x: 50, y: 43 },
+		pivotPoint: { x: 1, y: 44 },
 	},
 	[TOOL_TYPES.rake]: {
 		svgComponent: RakeSvg,
