@@ -2,6 +2,7 @@
 	import { Label } from '$lib/components/ui/label/index.js';
 	import ColorPickerInput from './ColorPickerInput.svelte';
 	import SectionCard from './SectionCard.svelte';
+	import { m } from '$lib/paraglide/messages.js';
 
 	interface Props {
 		lightColor: string;
@@ -12,9 +13,9 @@
 	let { lightColor = $bindable(), darkColor = $bindable(), disabled = false }: Props = $props();
 </script>
 
-<SectionCard title="Canopy Color" contentClass="space-y-4">
+<SectionCard title={m.section_canopy_color()} contentClass="space-y-4">
 	<div class="space-y-2">
-		<Label for="canopy-light-color">Light Color</Label>
+		<Label for="canopy-light-color">{m.label_light_color()}</Label>
 		<div class="relative flex items-center gap-3">
 			<ColorPickerInput
 				bind:value={lightColor}
@@ -27,7 +28,7 @@
 		</div>
 	</div>
 	<div class="space-y-2">
-		<Label for="canopy-dark-color">Dark Color</Label>
+		<Label for="canopy-dark-color">{m.label_dark_color()}</Label>
 		<div class="relative flex items-center gap-3">
 			<ColorPickerInput
 				bind:value={darkColor}

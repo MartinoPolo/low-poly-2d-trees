@@ -15,6 +15,8 @@
 	import { use_settings_tier, tierAtLeast } from '$lib/context/settings_tier.context.svelte.js';
 	import { useTreeConfig } from '$lib/trees/tree_config.context.svelte.js';
 	import { untrack } from 'svelte';
+	import { m } from '$lib/paraglide/messages.js';
+	import { MIRRORING_LABELS, translateOptions } from '$lib/i18n/option_labels.js';
 
 	interface Props {
 		mode: EditorMode;
@@ -61,6 +63,10 @@
 
 	const randomDisabled = $derived(mode === 'scene' && (sceneShapeIsRandom ?? false));
 
+	const translatedMirroringOptions = $derived(
+		translateOptions(BRANCH_MIRRORING_OPTIONS, MIRRORING_LABELS),
+	);
+
 	function isBranchMirroring(value: string): value is BranchMirroring {
 		return (Object.values(BRANCH_MIRRORING) as readonly string[]).includes(value);
 	}
@@ -90,10 +96,11 @@
 	});
 </script>
 
-<SectionCard title="Branches" contentClass="space-y-4">
+<SectionCard title={m.section_branches()} contentClass="space-y-4">
 	{#if isIntermediate}
 		<LabeledSlider
-			label="Branch Thickness"
+			label={m.label_branch_thickness()}
+			id="input-branch-thickness"
 			min={25}
 			max={400}
 			step={5}
@@ -101,14 +108,16 @@
 			bind:value={treeConfig.current.branchThickness}
 		/>
 		<LabeledSlider
-			label="Branch Depth"
+			label={m.label_branch_depth()}
+			id="input-branch-depth"
 			min={0}
 			max={3}
 			disabled={randomDisabled}
 			bind:value={treeConfig.current.branchDepth}
 		/>
 		<LabeledSlider
-			label="Branch Angle"
+			label={m.label_branch_angle()}
+			id="input-branch-angle"
 			min={0}
 			max={100}
 			step={5}
@@ -117,7 +126,8 @@
 			bind:value={treeConfig.current.branchAngle}
 		/>
 		<LabeledSlider
-			label="Branch Length"
+			label={m.label_branch_length()}
+			id="input-branch-length"
 			min={25}
 			max={400}
 			step={5}
@@ -125,7 +135,8 @@
 			bind:value={treeConfig.current.branchLength}
 		/>
 		<LabeledSlider
-			label="Branch Length Variance"
+			label={m.label_branch_length_variance()}
+			id="input-branch-length-variance"
 			min={0}
 			max={100}
 			step={5}
@@ -133,8 +144,8 @@
 			bind:value={treeConfig.current.branchLengthVariance}
 		/>
 		<LabeledSelect
-			label="Branch Mirroring"
-			options={BRANCH_MIRRORING_OPTIONS}
+			label={m.label_branch_mirroring()}
+			options={translatedMirroringOptions}
 			value={treeConfig.current.branchMirroring}
 			disabled={level1Disabled || randomDisabled}
 			onValueChange={(v) => {
@@ -144,7 +155,8 @@
 			}}
 		/>
 		<LabeledCheckbox
-			label="Trunk Fork"
+			label={m.label_trunk_fork()}
+			id="input-trunk-fork"
 			checked={treeConfig.current.trunkFork}
 			disabled={level1Disabled || randomDisabled}
 			onchange={(v) => {
@@ -153,7 +165,8 @@
 		/>
 		{#if treeConfig.current.branchDepth >= 1}
 			<LabeledRangeSliderDual
-				label="L1 Branches"
+				label={m.label_l1_branches()}
+				id="input-l1-branches"
 				min={0}
 				max={branchMaximums.maxLevel1}
 				value={[...treeConfig.current.branchesLevel1Range]}
@@ -163,7 +176,8 @@
 		{/if}
 		{#if treeConfig.current.branchDepth >= 2}
 			<LabeledRangeSliderDual
-				label="L2 Branches"
+				label={m.label_l2_branches()}
+				id="input-l2-branches"
 				min={0}
 				max={branchMaximums.maxLevel2}
 				value={[...treeConfig.current.branchesLevel2Range]}
@@ -173,7 +187,8 @@
 		{/if}
 		{#if treeConfig.current.branchDepth >= 3}
 			<LabeledRangeSliderDual
-				label="L3 Branches"
+				label={m.label_l3_branches()}
+				id="input-l3-branches"
 				min={0}
 				max={branchMaximums.maxLevel3}
 				value={[...treeConfig.current.branchesLevel3Range]}
@@ -184,7 +199,8 @@
 	{/if}
 	{#if isAdvanced}
 		<LabeledSlider
-			label="Branch Segments"
+			label={m.label_branch_segments()}
+			id="input-branch-segments"
 			min={1}
 			max={3}
 			step={1}
@@ -192,7 +208,8 @@
 			bind:value={treeConfig.current.branchSegments}
 		/>
 		<LabeledSlider
-			label="Branch Crookedness"
+			label={m.label_branch_crookedness()}
+			id="input-branch-crookedness"
 			min={0}
 			max={100}
 			step={5}
@@ -201,7 +218,8 @@
 			bind:value={treeConfig.current.branchCrookedness}
 		/>
 		<LabeledSlider
-			label="Branch Width Variance"
+			label={m.label_branch_width_variance()}
+			id="input-branch-width-variance"
 			min={0}
 			max={50}
 			step={5}

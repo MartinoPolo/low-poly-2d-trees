@@ -5,6 +5,8 @@
 	import { FRUIT_TYPE_OPTIONS } from '$lib/trees/types.js';
 	import { isParamDisabled } from '$lib/trees/disabled_params.js';
 	import { useTreeConfig } from '$lib/trees/tree_config.context.svelte.js';
+	import { m } from '$lib/paraglide/messages.js';
+	import { FRUIT_LABELS, translateOptions } from '$lib/i18n/option_labels.js';
 
 	interface Props {
 		onFruitTypeChange?: (value: string) => void;
@@ -14,6 +16,8 @@
 
 	const treeConfig = useTreeConfig();
 
+	const translatedFruitOptions = $derived(translateOptions(FRUIT_TYPE_OPTIONS, FRUIT_LABELS));
+
 	const fruitCountDisabled = $derived(
 		isParamDisabled(treeConfig.current.shape, 'fruitCount', {
 			fruitType: treeConfig.current.fruitType,
@@ -21,15 +25,16 @@
 	);
 </script>
 
-<SectionCard title="Growables" contentClass="space-y-4">
+<SectionCard title={m.section_growables()} contentClass="space-y-4">
 	<LabeledSelect
-		label="Fruit Type"
-		options={FRUIT_TYPE_OPTIONS}
+		label={m.label_fruit_type()}
+		options={translatedFruitOptions}
 		value={treeConfig.current.fruitType}
 		onValueChange={onFruitTypeChange}
 	/>
 	<LabeledSlider
-		label="Fruit Count"
+		label={m.label_fruit_count()}
+		id="input-fruit-count"
 		min={0}
 		max={7}
 		bind:value={treeConfig.current.fruitCount}

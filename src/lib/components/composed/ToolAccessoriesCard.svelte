@@ -4,6 +4,19 @@
 	import LabeledSlider from '$lib/components/composed/LabeledSlider.svelte';
 	import { Textarea } from '$lib/components/ui/textarea/index.js';
 	import { TOOL_TYPES, TOOL_OPTIONS, type ToolVisibility } from '$lib/trees/tools/tool_types.js';
+	import { m } from '$lib/paraglide/messages.js';
+
+	const TOOL_LABELS: Record<string, () => string> = {
+		[TOOL_TYPES.shovel]: () => m.tool_shovel(),
+		[TOOL_TYPES.wateringCan]: () => m.tool_watering_can(),
+		[TOOL_TYPES.ladder]: () => m.tool_ladder(),
+		[TOOL_TYPES.axe]: () => m.tool_axe(),
+		[TOOL_TYPES.rake]: () => m.tool_rake(),
+		[TOOL_TYPES.woodpecker]: () => m.tool_woodpecker(),
+		[TOOL_TYPES.grill]: () => m.tool_grill(),
+		[TOOL_TYPES.speechBubble]: () => m.tool_speech_bubble(),
+		[TOOL_TYPES.stormCloud]: () => m.tool_storm_cloud(),
+	};
 
 	interface Props {
 		toolVisibility: ToolVisibility;
@@ -12,10 +25,10 @@
 	let { toolVisibility = $bindable() }: Props = $props();
 </script>
 
-<SectionCard title="Tools & Accessories" contentClass="space-y-4">
+<SectionCard title={m.section_tools_accessories()} contentClass="space-y-4">
 	{#each TOOL_OPTIONS as option (option.value)}
 		<LabeledCheckbox
-			label={option.label}
+			label={TOOL_LABELS[option.value]?.() ?? option.label}
 			checked={toolVisibility[option.value].visible}
 			onchange={(v) =>
 				(toolVisibility[option.value] = {
@@ -26,7 +39,7 @@
 		/>
 		{#if toolVisibility[option.value].visible}
 			<LabeledSlider
-				label="{option.label} Size"
+				label={m.label_tool_size({ tool: TOOL_LABELS[option.value]?.() ?? option.label })}
 				min={0.5}
 				max={2}
 				step={0.1}
@@ -37,7 +50,7 @@
 				<div class="ml-6">
 					<Textarea
 						data-testid="tool-speechBubble-text"
-						placeholder="Enter text..."
+						placeholder={m.placeholder_enter_text()}
 						bind:value={toolVisibility[option.value].text}
 					/>
 				</div>

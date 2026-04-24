@@ -2,6 +2,7 @@
 	import type { EditorMode } from '$lib/config/editor_mode.js';
 	import LabeledCheckbox from './LabeledCheckbox.svelte';
 	import SectionCard from './SectionCard.svelte';
+	import { m } from '$lib/paraglide/messages.js';
 
 	interface Props {
 		mode: EditorMode;
@@ -28,19 +29,47 @@
 	}: Props = $props();
 </script>
 
-<SectionCard title="Debug" contentClass="space-y-4">
-	<LabeledCheckbox label="Show Canopy" bind:checked={showCanopy} />
-	<LabeledCheckbox label="Show Branches" bind:checked={showBranches} />
-	<LabeledCheckbox label="Show Trunk" bind:checked={showTrunk} />
+<SectionCard title={m.section_debug()} contentClass="space-y-4">
+	<LabeledCheckbox
+		label={m.label_show_canopy()}
+		id="input-show-canopy"
+		bind:checked={showCanopy}
+	/>
+	<LabeledCheckbox
+		label={m.label_show_branches()}
+		id="input-show-branches"
+		bind:checked={showBranches}
+	/>
+	<LabeledCheckbox label={m.label_show_trunk()} id="input-show-trunk" bind:checked={showTrunk} />
 	{#if mode === 'single'}
-		<LabeledCheckbox label="Show Fruit" bind:checked={showFruit} />
+		<LabeledCheckbox
+			label={m.label_show_fruit()}
+			id="input-show-fruit"
+			bind:checked={showFruit}
+		/>
 	{/if}
-	<LabeledCheckbox label="Show Anchor Points" bind:checked={showAnchors} />
+	<LabeledCheckbox
+		label={m.label_show_anchor_points()}
+		id="input-show-anchor-points"
+		bind:checked={showAnchors}
+	/>
 	{#if mode === 'single'}
-		<LabeledCheckbox label="Show Envelope" bind:checked={showEnvelope} />
+		<LabeledCheckbox
+			label={m.label_show_envelope()}
+			id="input-show-envelope"
+			bind:checked={showEnvelope}
+		/>
 	{/if}
-	<LabeledCheckbox label="Show View Box" bind:checked={showViewBox} />
+	<LabeledCheckbox
+		label={m.label_show_view_box()}
+		id="input-show-view-box"
+		bind:checked={showViewBox}
+	/>
 	{#if mode === 'scene'}
-		<LabeledCheckbox label="Disable trees from row 2+" bind:checked={debugDisableBackRows} />
+		<LabeledCheckbox
+			label={m.label_disable_back_rows()}
+			id="input-disable-trees-from-row-2-"
+			bind:checked={debugDisableBackRows}
+		/>
 	{/if}
 </SectionCard>

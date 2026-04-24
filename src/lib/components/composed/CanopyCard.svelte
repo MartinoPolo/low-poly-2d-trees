@@ -4,6 +4,7 @@
 	import LabeledSlider from './LabeledSlider.svelte';
 	import { use_settings_tier, tierAtLeast } from '$lib/context/settings_tier.context.svelte.js';
 	import { useTreeConfig } from '$lib/trees/tree_config.context.svelte.js';
+	import { m } from '$lib/paraglide/messages.js';
 
 	interface Props {
 		mode: EditorMode;
@@ -21,9 +22,10 @@
 	const canopySizeMax = $derived(mode === 'scene' ? 400 : 200);
 </script>
 
-<SectionCard title="Canopy" contentClass="space-y-4">
+<SectionCard title={m.section_canopy()} contentClass="space-y-4">
 	<LabeledSlider
-		label="Blob Count"
+		label={m.label_blob_count()}
+		id="input-blob-count"
 		min={1}
 		max={25}
 		value={treeConfig.current.blobCount}
@@ -31,7 +33,8 @@
 		disabled={isSceneRandom}
 	/>
 	<LabeledSlider
-		label="Canopy Size"
+		label={m.label_canopy_size()}
+		id="input-canopy-size"
 		min={25}
 		max={canopySizeMax}
 		step={5}
@@ -40,13 +43,15 @@
 	/>
 	{#if isAdvanced}
 		<LabeledSlider
-			label="Polygons Per Blob"
+			label={m.label_polygons_per_blob()}
+			id="input-polygons-per-blob"
 			min={4}
 			max={30}
 			bind:value={treeConfig.current.polygonsPerBlob}
 		/>
 		<LabeledSlider
-			label="Blob Size Variance"
+			label={m.label_blob_size_variance()}
+			id="input-blob-size-variance"
 			min={1}
 			max={10}
 			step={0.1}
@@ -56,7 +61,8 @@
 			disabled={sceneShapeIsRandom}
 		/>
 		<LabeledSlider
-			label="Blob Closeness"
+			label={m.label_blob_closeness()}
+			id="input-blob-closeness"
 			min={0}
 			max={100}
 			unit="%"

@@ -11,6 +11,7 @@
 		labelClass?: string;
 		disabled?: boolean;
 		class?: string;
+		id?: string;
 	}
 
 	let {
@@ -21,9 +22,10 @@
 		labelClass,
 		disabled,
 		class: className,
+		id,
 	}: Props = $props();
 
-	const inputId = $derived(labelToInputId(label));
+	const inputId = $derived(id ?? labelToInputId(label));
 
 	function handleChange(v: boolean | 'indeterminate') {
 		const newValue = v === true;
