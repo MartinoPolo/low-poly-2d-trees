@@ -8,7 +8,6 @@ import { GROUND_LINE_Y } from '$lib/trees/stages/constants.js';
 import type { Point2D, BlobGeometry } from '$lib/trees/types/core.js';
 import { computeCanopyBottomY } from '$lib/trees/animation.js';
 
-/** @knipignore */
 export interface FallingLeavesStateInput {
 	readonly showFallingLeaves: boolean;
 	readonly crownCenter: Point2D;

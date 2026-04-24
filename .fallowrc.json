@@ -1,0 +1,25 @@
+{
+	"$schema": "https://raw.githubusercontent.com/fallow-rs/fallow/main/schema.json",
+	"entry": ["src/hooks.ts", "src/lib/components/ui/*/index.ts"],
+	"ignoreDependencies": [
+		"@typescript-eslint/parser",
+		"@node-rs/argon2",
+		"shadcn-svelte",
+		"tw-animate-css",
+		"vitest-browser-svelte",
+		"postcss-html",
+		"@internationalized/date"
+	],
+	"ignorePatterns": ["src/app.css"],
+	"rules": {
+		"unused-files": "error",
+		"unused-exports": "warn",
+		"unused-types": "warn",
+		"unused-dependencies": "error",
+		"unused-class-members": "warn",
+		"unresolved-imports": "error",
+		"duplicate-exports": "off",
+		"circular-dependencies": "error",
+		"boundary-violations": "off"
+	}
+}

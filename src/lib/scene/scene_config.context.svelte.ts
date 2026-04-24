@@ -2,7 +2,7 @@ import { createContext } from 'svelte';
 import { browser } from '$app/environment';
 import { Persisted, jsonSerde } from '$lib/reactivity/persisted.svelte.js';
 import { StateRaw } from '$lib/reactivity/state.svelte.js';
-import { isValidSceneConfig } from '$lib/config/validators.js';
+import { isValidSceneConfig } from '$lib/config/validators/index.js';
 import {
 	SCENE_DEFAULTS,
 	SCENE_LIMITS,
@@ -13,9 +13,7 @@ import {
 
 type SceneConfigContext = ReturnType<typeof createSceneConfigContext>;
 
-const [useSceneConfig, setSceneConfigInternal] = createContext<SceneConfigContext>();
-/** @knipignore */
-export { useSceneConfig };
+const [, setSceneConfigInternal] = createContext<SceneConfigContext>();
 
 export function setSceneConfigContext() {
 	const ctx = createSceneConfigContext();

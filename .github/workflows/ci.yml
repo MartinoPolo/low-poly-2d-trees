@@ -11,6 +11,8 @@ jobs:
         runs-on: ubuntu-latest
         steps:
             - uses: actions/checkout@v4
+              with:
+                  fetch-depth: 0
             - uses: pnpm/action-setup@v4
             - uses: actions/setup-node@v4
               with:
@@ -20,6 +22,9 @@ jobs:
             - run: pnpm run cf:types
             - run: pnpm run paraglide:compile
             - run: pnpm run check:all
+            - name: Health report (advisory)
+              run: npx fallow health --score --summary
+              continue-on-error: true
             - run: pnpm run test -- --coverage
             - run: pnpm exec playwright install --with-deps chromium
             - name: Create .env and .dev.vars for e2e build + preview server
