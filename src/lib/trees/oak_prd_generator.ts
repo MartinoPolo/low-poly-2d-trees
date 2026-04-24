@@ -59,6 +59,9 @@ function scaleBlobGeometry(blob: BlobGeometry): BlobGeometry {
 		triangles: blob.triangles.map(scaleTriangle),
 		center: scalePoint(blob.center),
 		depth: blob.depth,
+		snowCap: blob.snowCap
+			? { triangles: blob.snowCap.triangles.map(scaleTriangle) }
+			: undefined,
 	};
 }
 
@@ -87,6 +90,7 @@ function scaleGeometry(geometry: TreeGeometry): TreeGeometry {
 		flowerSlots: geometry.flowerSlots.map(scalePoint),
 		showFallingLeaves: geometry.showFallingLeaves,
 		showSnowBlobs: geometry.showSnowBlobs,
+		snowAboveCanopy: geometry.snowAboveCanopy,
 		birchStripes: [],
 		anchors: scaleAnchors(geometry.anchors),
 		viewBox: OAK_PRD_VIEWBOX,
