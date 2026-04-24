@@ -1,4 +1,4 @@
-import type { Point2D, CrookednessMode } from '../types.js';
+import type { CrookednessMode } from '../types.js';
 import type { BranchSegment } from './shape_types.js';
 import type { GeneratedBranch } from './branch_types.js';
 import { buildBranchPath, computeEffectiveBranchSegments } from './branch_path.js';
