@@ -3,7 +3,7 @@ import { error } from '@sveltejs/kit';
 import { command, form, getRequestEvent, query } from '$app/server';
 import * as savedTreesDb from '$lib/server/saved_trees.js';
 import { DEFAULT_TREE_CONFIG, TREE_SHAPES, type TreeShape } from '$lib/trees/types.js';
-import { isValidTreeConfig } from '$lib/config/validators/index.js';
+import { isValidTreeConfig } from '$lib/config/validators.js';
 
 function requireUser() {
 	const { locals } = getRequestEvent();

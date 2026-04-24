@@ -1,6 +1,7 @@
 import type { Point2D, CrookednessMode } from '../types.js';
+import { CROOKEDNESS_MODES } from '../types.js';
+import { randomInRange } from '../prng.js';
 import { lerp } from '../math.js';
-import { applyJunctionJitter } from './crookedness_jitter.js';
 
 // ---------------------------------------------------------------------------
 // Branch path building (issue #105 — multi-junction branches)
@@ -95,16 +96,22 @@ export function buildBranchPath(
 				: baseSegmentLen;
 
 		if (i > 1 && clampedCrookedness > 0) {
-			const jitter = applyJunctionJitter(
-				rng,
-				crookednessMode,
-				maxJitterDeg,
-				maxAbsoluteRad,
-				currentAngleRad,
-				alternatingSign,
-			);
-			currentAngleRad = jitter.angleRad;
-			alternatingSign = jitter.alternatingSign;
+			// Per-junction jitter reduction: up to 50% of max
+			const jitterReduction = 0.5 + rng() * 0.5; // 0.5-1.0 multiplier
+			const effectiveMaxJitter = maxJitterDeg * jitterReduction;
+
+			let jitterSign: number;
+			if (crookednessMode === CROOKEDNESS_MODES.alternating) {
+				alternatingSign *= -1;
+				jitterSign = alternatingSign;
+			} else {
+				jitterSign = rng() < 0.5 ? -1 : 1;
+			}
+
+			const jitterDeg =
+				randomInRange(rng, effectiveMaxJitter * 0.3, effectiveMaxJitter) * jitterSign;
+			currentAngleRad += (jitterDeg * Math.PI) / 180;
+			currentAngleRad = Math.max(-maxAbsoluteRad, Math.min(maxAbsoluteRad, currentAngleRad));
 		}
 
 		cumulativeAxisLen += segmentLen;

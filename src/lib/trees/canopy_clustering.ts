@@ -71,11 +71,30 @@ interface WeightedPoint {
 	readonly isTrunkTip: boolean;
 }
 
-function buildWeightedPoints(
+/**
+ * Cluster branch tips into M groups using seeded k-means.
+ *
+ * - `blobCount` = target cluster count (M).
+ * - Trunk tip is included with shape-dependent weight.
+ * - Returns clusters with centroids at cluster center (branches in MIDDLE of blob).
+ */
+export function clusterBranchTips(
 	tips: readonly BranchTipInfo[],
+	blobCount: number,
 	trunkTip: Point2D | null,
 	trunkTipWeight: number,
-): WeightedPoint[] {
+	seed: number,
+): BlobCluster[] {
+	if (blobCount <= 0) {
+		return [];
+	}
+	if (tips.length === 0 && trunkTip === null) {
+		return [];
+	}
+
+	const rng = createPrng(seed + CLUSTERING_SEED_OFFSET);
+
+	// Build weighted point list
 	const points: WeightedPoint[] = tips.map((tip) => ({
 		x: tip.position.x,
 		y: tip.position.y,
@@ -93,22 +112,18 @@ function buildWeightedPoints(
 		});
 	}
 
-	return points;
-}
+	const effectiveBlobCount = Math.max(1, Math.min(blobCount, points.length));
 
-function initializeKMeansCentroids(
-	points: readonly WeightedPoint[],
-	count: number,
-	rng: () => number,
-): { x: number; y: number }[] {
+	// Initialize centroids by picking random points (k-means++ lite)
 	const centroids: { x: number; y: number }[] = [];
 	const usedIndices = new Set<number>();
 
-	for (let i = 0; i < count; i++) {
+	for (let i = 0; i < effectiveBlobCount; i++) {
 		let idx: number;
 		if (i === 0) {
 			idx = Math.floor(rng() * points.length);
 		} else {
+			// Pick point farthest from existing centroids (simplified k-means++)
 			let bestDist = -1;
 			idx = 0;
 			for (let p = 0; p < points.length; p++) {
@@ -132,16 +147,11 @@ function initializeKMeansCentroids(
 		centroids.push({ x: points[idx]!.x, y: points[idx]!.y });
 	}
 
-	return centroids;
-}
-
-function runKMeansIterations(
-	points: readonly WeightedPoint[],
-	centroids: { x: number; y: number }[],
-): number[] {
+	// K-means iterations
 	let assignments = Array.from<number>({ length: points.length }).fill(0);
 
 	for (let iter = 0; iter < KMEANS_MAX_ITERATIONS; iter++) {
+		// Assign each point to nearest centroid
 		const newAssignments: number[] = [];
 		for (let p = 0; p < points.length; p++) {
 			let bestCluster = 0;
@@ -157,6 +167,7 @@ function runKMeansIterations(
 			newAssignments.push(bestCluster);
 		}
 
+		// Check convergence
 		const converged = newAssignments.every((a, i) => a === assignments[i]);
 		assignments = newAssignments;
 
@@ -164,6 +175,7 @@ function runKMeansIterations(
 			break;
 		}
 
+		// Update centroids (weighted)
 		for (let c = 0; c < centroids.length; c++) {
 			let sumX = 0;
 			let sumY = 0;
@@ -182,17 +194,8 @@ function runKMeansIterations(
 		}
 	}
 
-	return assignments;
-}
-
-function buildClustersFromAssignments(
-	points: readonly WeightedPoint[],
-	centroids: readonly { x: number; y: number }[],
-	assignments: readonly number[],
-	trunkTip: Point2D | null,
-): BlobCluster[] {
+	// Build clusters
 	const clusters: BlobCluster[] = [];
-
 	for (let c = 0; c < centroids.length; c++) {
 		const clusterTips: BranchTipInfo[] = [];
 		const zOrders: ('front' | 'back')[] = [];
@@ -220,10 +223,12 @@ function buildClustersFromAssignments(
 			}
 		}
 
+		// Skip empty clusters (can happen if blobCount > points)
 		if (clusterTips.length === 0 && !hasTrunkTip) {
 			continue;
 		}
 
+		// Z-order: trunk-tip clusters always front, else majority wins (REQ-EV2-CZ-01)
 		const zOrder = classifyCanopyBlobZOrder(zOrders, hasTrunkTip);
 
 		if (strongestDepth === Infinity) {
@@ -233,6 +238,10 @@ function buildClustersFromAssignments(
 			strongestWidth = 2;
 		}
 
+		// REQ-EV2-BC-02: the trunk tip "attracts a blob to itself" — snap the
+		// trunk-tip cluster's centroid to the actual trunk tip so the central
+		// crown blob sits on the trunk, not at the weighted k-means midpoint
+		// (which gets pulled upward by branch tips on tall branches).
 		const centroid =
 			hasTrunkTip && trunkTip !== null ? { x: trunkTip.x, y: trunkTip.y } : centroids[c]!;
 
@@ -247,28 +256,6 @@ function buildClustersFromAssignments(
 	}
 
 	return clusters;
-}
-
-export function clusterBranchTips(
-	tips: readonly BranchTipInfo[],
-	blobCount: number,
-	trunkTip: Point2D | null,
-	trunkTipWeight: number,
-	seed: number,
-): BlobCluster[] {
-	if (blobCount <= 0) {
-		return [];
-	}
-	if (tips.length === 0 && trunkTip === null) {
-		return [];
-	}
-
-	const rng = createPrng(seed + CLUSTERING_SEED_OFFSET);
-	const points = buildWeightedPoints(tips, trunkTip, trunkTipWeight);
-	const effectiveBlobCount = Math.max(1, Math.min(blobCount, points.length));
-	const centroids = initializeKMeansCentroids(points, effectiveBlobCount, rng);
-	const assignments = runKMeansIterations(points, centroids);
-	return buildClustersFromAssignments(points, centroids, assignments, trunkTip);
 }
 
 // ---------------------------------------------------------------------------

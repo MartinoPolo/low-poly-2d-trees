@@ -1,7 +1,7 @@
 import type { BoundaryShape } from './types.js';
 import { BOUNDARY_KINDS } from './types.js';
+import { inverseRotateToLocal } from './rotation_math.js';
 import { sampleBilateralEdges } from './bilateral_sampling.js';
-import { bilateralContains } from './bilateral_contains.js';
 
 // ---------------------------------------------------------------------------
 // Egg boundary (issue #10)
@@ -35,7 +35,17 @@ function eggXHalfWidth(tParam: number): number {
 export const eggBoundary: BoundaryShape = {
 	kind: BOUNDARY_KINDS.egg,
 	contains(px, py, cx, cy, rx, ry, rotationDeg) {
-		return bilateralContains(px, py, cx, cy, rx, ry, rotationDeg, eggXHalfWidth);
+		const { xLocal, yLocal } = inverseRotateToLocal(px, py, cx, cy, rotationDeg);
+		const tParam = yLocal / ry;
+		if (tParam < -1 || tParam > 1) {
+			return false;
+		}
+		const halfWidth = eggXHalfWidth(tParam);
+		if (halfWidth <= 0) {
+			return Math.abs(xLocal) < 1e-9;
+		}
+		const nx = xLocal / (rx * halfWidth);
+		return nx * nx <= 1;
 	},
 	sample(cx, cy, rx, ry, count, rng, rotationDeg) {
 		return sampleBilateralEdges(

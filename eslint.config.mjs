@@ -141,10 +141,13 @@ export default [
 		},
 	},
 	{
-		// Gallery thumbnails link to /showcase with a dynamic ?saved=<id> query string.
-		// `svelte/no-navigation-without-resolve` does not accept query strings appended to
-		// a resolve() call, so we turn it off for this file.
-		files: ['src/routes/gallery/**/*.svelte'],
+		// These files use `localizedResolve()` which wraps both `resolve()` and `localizeHref()`
+		// for locale-aware navigation. The lint rule doesn't recognize the wrapper.
+		files: [
+			'src/routes/gallery/**/*.svelte',
+			'src/routes/auth/**/*.svelte',
+			'src/lib/components/app-shell/AppSidebar.svelte',
+		],
 		rules: {
 			'svelte/no-navigation-without-resolve': 'off',
 		},

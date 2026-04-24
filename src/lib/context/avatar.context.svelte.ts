@@ -12,6 +12,7 @@ function create_avatar_context(initial: AvatarData) {
 	return { avatar };
 }
 
+/** @knipignore */
 export type AvatarContext = ReturnType<typeof create_avatar_context>;
 
 export function set_avatar_context(initial: AvatarData) {
