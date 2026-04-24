@@ -3,12 +3,15 @@ import { browser } from '$app/environment';
 import { Persisted, jsonSerde } from '$lib/reactivity/persisted.svelte.js';
 import { StateRaw } from '$lib/reactivity/state.svelte.js';
 import { Derived } from '$lib/reactivity/derived.svelte.js';
-import { isValidEnvironmentConfig } from '$lib/config/validators/index.js';
+import { isValidEnvironmentConfig } from '$lib/config/validators.js';
 import { ENVIRONMENT_DEFAULTS, type EnvironmentConfig } from './environment_config.js';
 
 type EnvironmentConfigContext = ReturnType<typeof createEnvironmentConfigContext>;
 
-const [, setEnvironmentConfigInternal] = createContext<EnvironmentConfigContext>();
+const [useEnvironmentConfig, setEnvironmentConfigInternal] =
+	createContext<EnvironmentConfigContext>();
+/** @knipignore */
+export { useEnvironmentConfig };
 
 export function setEnvironmentConfigContext() {
 	const ctx = createEnvironmentConfigContext();

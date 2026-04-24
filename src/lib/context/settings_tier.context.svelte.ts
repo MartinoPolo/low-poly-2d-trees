@@ -36,6 +36,7 @@ function create_settings_tier_context() {
 	return { tier };
 }
 
+/** @knipignore */
 export type SettingsTierContext = ReturnType<typeof create_settings_tier_context>;
 
 export function set_settings_tier_context() {

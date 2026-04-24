@@ -42,8 +42,8 @@ export const TOOL_DEFINITIONS = {
 	[TOOL_TYPES.ladder]: {
 		svgComponent: LadderSvg,
 		anchorTarget: 'trunkBase',
-		snapOffset: { x: -2, y: 39 },
-		pivotPoint: { x: 0, y: 0 },
+		snapOffset: { x: 4, y: 79 },
+		pivotPoint: { x: 1, y: 0 },
 	},
 	[TOOL_TYPES.axe]: {
 		svgComponent: AxeSvg,

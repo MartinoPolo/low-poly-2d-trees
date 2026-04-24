@@ -10,6 +10,7 @@
 	import AvatarCircle from '$lib/avatar/AvatarCircle.svelte';
 	import AnimalIcon from '$lib/avatar/AnimalIcon.svelte';
 	import { ANIMAL_PRESETS, PRESET_COLORS, type AnimalPreset } from '$lib/avatar/presets.js';
+	import { invalidateAll } from '$app/navigation';
 	import { use_avatar } from '$lib/context/avatar.context.svelte.js';
 	import { m } from '$lib/paraglide/messages.js';
 	import PageLayout from '$lib/components/app-shell/PageLayout.svelte';
@@ -38,25 +39,29 @@
 			return;
 		}
 		saving = true;
-		const updates: { avatarPreset?: string; avatarColor?: string } = {};
-		if (selectedPreset !== null && selectedPreset !== avatarCtx.current.preset) {
-			updates.avatarPreset = selectedPreset;
+		try {
+			const updates: { avatarPreset?: string; avatarColor?: string } = {};
+			if (selectedPreset !== null && selectedPreset !== avatarCtx.current.preset) {
+				updates.avatarPreset = selectedPreset;
+			}
+			if (selectedColor !== null && selectedColor !== avatarCtx.current.color) {
+				updates.avatarColor = selectedColor;
+			}
+			const response = await fetch('/api/avatar', {
+				method: 'PATCH',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify(updates),
+			});
+			if (response.ok) {
+				avatarCtx.current = {
+					preset: selectedPreset,
+					color: selectedColor,
+				};
+				await invalidateAll();
+			}
+		} finally {
+			saving = false;
 		}
-		if (selectedColor !== null && selectedColor !== avatarCtx.current.color) {
-			updates.avatarColor = selectedColor;
-		}
-		const response = await fetch('/api/avatar', {
-			method: 'PATCH',
-			headers: { 'Content-Type': 'application/json' },
-			body: JSON.stringify(updates),
-		});
-		if (response.ok) {
-			avatarCtx.current = {
-				preset: selectedPreset,
-				color: selectedColor,
-			};
-		}
-		saving = false;
 	}
 
 	function selectPreset(preset: AnimalPreset) {

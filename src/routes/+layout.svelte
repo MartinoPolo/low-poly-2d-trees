@@ -20,7 +20,10 @@
 	let { data, children } = $props();
 
 	set_settings_tier_context();
-	const avatarCtx = set_avatar_context({ preset: null, color: null });
+	const avatarCtx = set_avatar_context({
+		preset: data.user?.avatarPreset ?? null,
+		color: data.user?.avatarColor ?? null,
+	});
 
 	$effect(() => {
 		avatarCtx.avatar.current = {

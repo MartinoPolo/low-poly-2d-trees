@@ -12,14 +12,18 @@
 	} from '$lib/components/ui/card/index.js';
 	import { Alert, AlertDescription } from '$lib/components/ui/alert/index.js';
 	import { authClient } from '$lib/auth/client.js';
-	import {
-		signInWithSocial as signInSocial,
-		type SocialProvider,
-	} from '$lib/auth/social_auth.js';
 	import { goto, invalidateAll } from '$app/navigation';
 	import { localizedResolve } from '$lib/i18n/localized_resolve.js';
 
+	type SocialProvider = 'google' | 'github';
 	type PendingAction = SocialProvider | 'passkey' | 'email';
+
+	const PROVIDER_LABEL = {
+		google: () => m.auth_google(),
+		github: () => m.auth_github(),
+		passkey: () => m.auth_passkey(),
+		email: () => m.auth_email(),
+	} as const satisfies Record<PendingAction, () => string>;
 
 	let errorMessage = $state<string | null>(null);
 	let pendingAction = $state<PendingAction | null>(null);
@@ -28,12 +32,23 @@
 	let password = $state('');
 
 	async function signInWithSocial(provider: SocialProvider) {
+		errorMessage = null;
 		pendingAction = provider;
-		await signInSocial(
-			provider,
-			(msg) => (errorMessage = msg),
-			() => (pendingAction = null),
-		);
+		try {
+			const result = await authClient.signIn.social({
+				provider,
+				callbackURL: localizedResolve('/'),
+			});
+			if (result.error) {
+				errorMessage =
+					result.error.message ??
+					m.auth_provider_sign_in_failed({ provider: PROVIDER_LABEL[provider]() });
+			}
+		} catch {
+			errorMessage = m.auth_provider_sign_in_failed({ provider: PROVIDER_LABEL[provider]() });
+		} finally {
+			pendingAction = null;
+		}
 	}
 
 	async function signInWithPasskey() {

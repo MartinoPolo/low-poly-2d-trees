@@ -1,4 +1,3 @@
-import type { Point2D } from '../types.js';
 import { BRANCH_MIRRORING } from '../types.js';
 import { randomInRange } from '../prng.js';
 import type { BranchSegment } from './shape_types.js';
@@ -16,78 +15,15 @@ import {
 	overlapsAnySameDepth,
 	sampleBranchCountForLevel,
 } from './branch_geometry_helpers.js';
-import { samplePointAlongPath } from './branch_path.js';
-import { finalizeBranchSegment } from './branch_finalization.js';
+import {
+	buildBranchPath,
+	computeEffectiveBranchSegments,
+	samplePointAlongPath,
+} from './branch_path.js';
 
 // ---------------------------------------------------------------------------
 // Sub-branch generation (depth 2+)
 // ---------------------------------------------------------------------------
-
-function tryGenerateSubBranch(
-	ctx: BranchContext,
-	parent: BranchSegment,
-	parentLength: number,
-	parentAngle: number,
-	origin: Point2D,
-	forkSign: 1 | -1,
-	targetDepth: number,
-	branches: readonly GeneratedBranch[],
-	isPreferred: boolean,
-): BranchSegment | null {
-	const { rng, config } = ctx;
-
-	for (let attempt = 0; attempt < BRANCH_RETRY_ATTEMPTS; attempt++) {
-		const lengthRatio = randomInRange(rng, CHILD_LENGTH_RATIO_MIN, CHILD_LENGTH_RATIO_MAX);
-		const depthLengthMultiplier = targetDepth === 3 ? 0.35 : targetDepth === 2 ? 0.85 : 1.0;
-		const childLength = Math.max(8, parentLength * lengthRatio * depthLengthMultiplier);
-
-		const divergenceDeg = randomInRange(
-			rng,
-			ANGLE_DIVERGENCE_MIN_DEG,
-			ANGLE_DIVERGENCE_MAX_DEG,
-		);
-		const divergenceRad = (divergenceDeg * Math.PI) / 180;
-		const childAngle = parentAngle + divergenceRad * forkSign;
-
-		const endX = origin.x + Math.cos(childAngle) * childLength;
-		const endY = origin.y + Math.sin(childAngle) * childLength;
-
-		const l2CenterFraction = (L2_FORK_WIDTH_FRACTION_MIN + L2_FORK_WIDTH_FRACTION_MAX) / 2;
-		const l2VarianceSpread =
-			(config.branchWidthVariance / 100) *
-			(L2_FORK_WIDTH_FRACTION_MAX - L2_FORK_WIDTH_FRACTION_MIN) *
-			FORK_WIDTH_VARIANCE_SPREAD_MULTIPLIER;
-		const l2Fraction = Math.max(0.05, l2CenterFraction + (rng() * 2 - 1) * l2VarianceSpread);
-		const widthStart = parent.widthStart * l2Fraction;
-		const widthEnd = Math.max(0.5, widthStart * 0.55);
-
-		const candidate: BranchSegment = {
-			x1: origin.x,
-			y1: origin.y,
-			x2: endX,
-			y2: endY,
-			widthStart,
-			widthEnd,
-		};
-
-		if (overlapsAnySameDepth(candidate, branches, targetDepth, parent, isPreferred)) {
-			continue;
-		}
-
-		return candidate;
-	}
-	return null;
-}
-
-function computePathLength(path: readonly Point2D[]): number {
-	let length = 0;
-	for (let s = 0; s < path.length - 1; s++) {
-		const dx = path[s + 1]!.x - path[s]!.x;
-		const dy = path[s + 1]!.y - path[s]!.y;
-		length += Math.sqrt(dx * dx + dy * dy);
-	}
-	return length;
-}
 
 export function generateSubBranches(
 	ctx: BranchContext,
@@ -100,6 +36,7 @@ export function generateSubBranches(
 		return;
 	}
 
+	// Collect parent indices before we start adding children
 	const parentIndices: number[] = [];
 	for (let i = 0; i < branches.length; i++) {
 		if (branches[i]!.depth === parentDepth) {
@@ -120,8 +57,19 @@ export function generateSubBranches(
 			continue;
 		}
 
-		const parentLength = computePathLength(parentPath);
-		const parentAngle = Math.atan2(parent.y2 - parent.y1, parent.x2 - parent.x1);
+		// BR-5: Children originate from upper 50-100% of parent length
+		// Compute parent length from the crooked path (piecewise sum)
+		let parentLength = 0;
+		for (let s = 0; s < parentPath.length - 1; s++) {
+			const dx = parentPath[s + 1]!.x - parentPath[s]!.x;
+			const dy = parentPath[s + 1]!.y - parentPath[s]!.y;
+			parentLength += Math.sqrt(dx * dx + dy * dy);
+		}
+		// Overall parent direction (start to tip) for angle divergence
+		const parentDirX = parent.x2 - parent.x1;
+		const parentDirY = parent.y2 - parent.y1;
+		const parentAngle = Math.atan2(parentDirY, parentDirX);
+
 		const isPreferred = config.branchMirroring === BRANCH_MIRRORING.preferred;
 
 		for (let c = 0; c < childCount; ) {
@@ -129,9 +77,13 @@ export function generateSubBranches(
 				return;
 			}
 
+			// Origin along upper 50-100% of parent — sample the crooked path
 			const originT = randomInRange(rng, 0.5, 1.0);
 			const origin = samplePointAlongPath(parentPath, originT);
+			const originX = origin.x;
+			const originY = origin.y;
 
+			// How many to generate from this origin: 2 if preferred and room, else 1
 			const pairCount = isPreferred && c + 1 < childCount ? 2 : 1;
 			const signs: (1 | -1)[] = pairCount === 2 ? [1, -1] : [rng() < 0.5 ? 1 : -1];
 
@@ -140,30 +92,92 @@ export function generateSubBranches(
 					return;
 				}
 
-				const accepted = tryGenerateSubBranch(
-					ctx,
-					parent,
-					parentLength,
-					parentAngle,
-					origin,
-					forkSign,
-					targetDepth,
-					branches,
-					isPreferred,
-				);
+				let accepted: BranchSegment | null = null;
+
+				for (let attempt = 0; attempt < BRANCH_RETRY_ATTEMPTS; attempt++) {
+					const lengthRatio = randomInRange(
+						rng,
+						CHILD_LENGTH_RATIO_MIN,
+						CHILD_LENGTH_RATIO_MAX,
+					);
+					// Deeper branches are progressively shorter stubs (issue #110).
+					const depthLengthMultiplier =
+						targetDepth === 3 ? 0.35 : targetDepth === 2 ? 0.85 : 1.0;
+					const childLength = Math.max(
+						8,
+						parentLength * lengthRatio * depthLengthMultiplier,
+					);
+
+					const divergenceDeg = randomInRange(
+						rng,
+						ANGLE_DIVERGENCE_MIN_DEG,
+						ANGLE_DIVERGENCE_MAX_DEG,
+					);
+					const divergenceRad = (divergenceDeg * Math.PI) / 180;
+					const childAngle = parentAngle + divergenceRad * forkSign;
+
+					const endX = originX + Math.cos(childAngle) * childLength;
+					const endY = originY + Math.sin(childAngle) * childLength;
+
+					const l2CenterFraction =
+						(L2_FORK_WIDTH_FRACTION_MIN + L2_FORK_WIDTH_FRACTION_MAX) / 2;
+					const l2VarianceSpread =
+						(config.branchWidthVariance / 100) *
+						(L2_FORK_WIDTH_FRACTION_MAX - L2_FORK_WIDTH_FRACTION_MIN) *
+						FORK_WIDTH_VARIANCE_SPREAD_MULTIPLIER;
+					const l2Fraction = Math.max(
+						0.05,
+						l2CenterFraction + (rng() * 2 - 1) * l2VarianceSpread,
+					);
+					const widthStart = parent.widthStart * l2Fraction;
+					const widthEnd = Math.max(0.5, widthStart * 0.55);
+
+					const candidate: BranchSegment = {
+						x1: originX,
+						y1: originY,
+						x2: endX,
+						y2: endY,
+						widthStart,
+						widthEnd,
+					};
+
+					if (
+						overlapsAnySameDepth(candidate, branches, targetDepth, parent, isPreferred)
+					) {
+						continue;
+					}
+
+					accepted = candidate;
+					break;
+				}
 
 				if (accepted !== null) {
-					branches.push(
-						finalizeBranchSegment(
-							rng,
-							accepted,
-							targetDepth,
-							parentIndex,
-							config.branchSegments,
-							config.branchCrookedness,
-							config.crookednessMode,
-						),
+					const effectiveSegments = computeEffectiveBranchSegments(
+						config.branchSegments,
+						targetDepth,
 					);
+					const childPath = buildBranchPath(
+						rng,
+						accepted.x1,
+						accepted.y1,
+						accepted.x2,
+						accepted.y2,
+						effectiveSegments,
+						config.branchCrookedness,
+						config.crookednessMode,
+					);
+					const tip = childPath[childPath.length - 1]!;
+					const segmentWithCrookedTip: BranchSegment = {
+						...accepted,
+						x2: tip.x,
+						y2: tip.y,
+					};
+					branches.push({
+						segment: segmentWithCrookedTip,
+						path: childPath,
+						depth: targetDepth,
+						parentIndex,
+					});
 				}
 				c++;
 			}

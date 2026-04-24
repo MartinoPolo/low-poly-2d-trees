@@ -5,7 +5,7 @@ import { eq } from 'drizzle-orm';
 import { isValidPreset, isValidColor } from '$lib/avatar/presets.js';
 import type { RequestHandler } from './$types.js';
 
-export const PATCH: RequestHandler = async ({ locals, request }) => {
+export const PATCH: RequestHandler = async ({ locals, request, cookies }) => {
 	if (!locals.user) {
 		error(401, 'Unauthorized');
 	}
@@ -38,6 +38,8 @@ export const PATCH: RequestHandler = async ({ locals, request }) => {
 	}
 
 	await db.update(user).set(updates).where(eq(user.id, locals.user.id));
+
+	cookies.delete('better-auth.session_data', { path: '/' });
 
 	return json({ success: true });
 };

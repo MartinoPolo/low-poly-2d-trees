@@ -19,7 +19,7 @@ import {
 	sampleBranchCountForLevel,
 	overlapsAnySameDepth,
 } from './branch_geometry_helpers.js';
-import { finalizeBranchSegment } from './branch_finalization.js';
+import { buildBranchPath, computeEffectiveBranchSegments } from './branch_path.js';
 
 // ---------------------------------------------------------------------------
 // L1 branch generation constants
@@ -135,68 +135,24 @@ function finalizeBranch(
 	accepted: BranchSegment,
 	branches: GeneratedBranch[],
 ): void {
-	branches.push(
-		finalizeBranchSegment(
-			ctx.rng,
-			accepted,
-			1,
-			null,
-			ctx.config.branchSegments,
-			ctx.config.branchCrookedness,
-			ctx.config.crookednessMode,
-		),
+	const effectiveSegments = computeEffectiveBranchSegments(ctx.config.branchSegments, 1);
+	const path = buildBranchPath(
+		ctx.rng,
+		accepted.x1,
+		accepted.y1,
+		accepted.x2,
+		accepted.y2,
+		effectiveSegments,
+		ctx.config.branchCrookedness,
+		ctx.config.crookednessMode,
 	);
-}
-
-// ---------------------------------------------------------------------------
-// L1 branch generation helpers
-// ---------------------------------------------------------------------------
-
-function generateTrunkForkPair(
-	ctx: BranchContext,
-	branches: GeneratedBranch[],
-	angleRange: { minRad: number; maxRad: number },
-	upperZoneJunctionIndices: readonly number[],
-): number {
-	const topIdx = upperZoneJunctionIndices[upperZoneJunctionIndices.length - 1]!;
-	const topJunction = ctx.trunkJunctions[topIdx]!;
-	let generated = 0;
-
-	const leftForkWidth =
-		ctx.trunkTopWidth *
-		randomInRange(ctx.rng, TRUNK_FORK_WIDTH_FRACTION_MIN, TRUNK_FORK_WIDTH_FRACTION_MAX);
-	const leftArm = tryGenerateL1Branch(
-		ctx,
-		branches,
-		topJunction,
-		-1,
-		angleRange,
-		leftForkWidth,
-		true,
-	);
-	if (leftArm !== null) {
-		finalizeBranch(ctx, leftArm, branches);
-		generated++;
-	}
-
-	const rightForkWidth =
-		ctx.trunkTopWidth *
-		randomInRange(ctx.rng, TRUNK_FORK_WIDTH_FRACTION_MIN, TRUNK_FORK_WIDTH_FRACTION_MAX);
-	const rightArm = tryGenerateL1Branch(
-		ctx,
-		branches,
-		topJunction,
-		1,
-		angleRange,
-		rightForkWidth,
-		true,
-	);
-	if (rightArm !== null) {
-		finalizeBranch(ctx, rightArm, branches);
-		generated++;
-	}
-
-	return generated;
+	const tip = path[path.length - 1]!;
+	const segmentWithCrookedTip: BranchSegment = {
+		...accepted,
+		x2: tip.x,
+		y2: tip.y,
+	};
+	branches.push({ segment: segmentWithCrookedTip, path, depth: 1, parentIndex: null });
 }
 
 // ---------------------------------------------------------------------------
@@ -228,13 +184,44 @@ export function generateTrunkBranches(ctx: BranchContext, branches: GeneratedBra
 	const startSide = rng() < 0.5 ? 0 : 1;
 	let branchesGenerated = 0;
 
+	// Trunk fork: force first pair from topmost junction with thick widths
 	if (config.trunkFork && upperZoneJunctionIndices.length > 0) {
-		branchesGenerated += generateTrunkForkPair(
+		const topIdx = upperZoneJunctionIndices[upperZoneJunctionIndices.length - 1]!;
+		const topJunction = trunkJunctions[topIdx]!;
+		const leftForkWidth =
+			ctx.trunkTopWidth *
+			randomInRange(rng, TRUNK_FORK_WIDTH_FRACTION_MIN, TRUNK_FORK_WIDTH_FRACTION_MAX);
+
+		const leftArm = tryGenerateL1Branch(
 			ctx,
 			branches,
+			topJunction,
+			-1,
 			angleRange,
-			upperZoneJunctionIndices,
+			leftForkWidth,
+			true,
 		);
+		if (leftArm !== null) {
+			finalizeBranch(ctx, leftArm, branches);
+			branchesGenerated++;
+		}
+
+		const rightForkWidth =
+			ctx.trunkTopWidth *
+			randomInRange(rng, TRUNK_FORK_WIDTH_FRACTION_MIN, TRUNK_FORK_WIDTH_FRACTION_MAX);
+		const rightArm = tryGenerateL1Branch(
+			ctx,
+			branches,
+			topJunction,
+			1,
+			angleRange,
+			rightForkWidth,
+			true,
+		);
+		if (rightArm !== null) {
+			finalizeBranch(ctx, rightArm, branches);
+			branchesGenerated++;
+		}
 	}
 
 	// Generate remaining branches

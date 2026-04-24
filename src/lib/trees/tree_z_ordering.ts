@@ -11,11 +11,13 @@ export interface IndexedCanopyBlob {
 	readonly index: number;
 }
 
+/** @knipignore */
 export interface ZOrderedBranches {
 	readonly backRootBranches: readonly IndexedBranchGroup[];
 	readonly frontRootBranches: readonly IndexedBranchGroup[];
 }
 
+/** @knipignore */
 export interface ZOrderedCanopyBlobs {
 	readonly backCanopyBlobs: readonly IndexedCanopyBlob[];
 	readonly frontCanopyBlobs: readonly IndexedCanopyBlob[];

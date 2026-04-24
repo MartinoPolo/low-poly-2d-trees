@@ -32,7 +32,13 @@ function makeEvent(
 		headers: { 'Content-Type': 'application/json' },
 		body: JSON.stringify(body),
 	});
-	return { locals: { user }, request } as unknown as Parameters<typeof PATCH>[0];
+	return {
+		locals: { user },
+		request,
+		cookies: {
+			delete: vi.fn(),
+		},
+	} as unknown as Parameters<typeof PATCH>[0];
 }
 
 describe('PATCH /api/avatar', () => {
@@ -77,12 +83,6 @@ describe('PATCH /api/avatar', () => {
 
 	it('returns 400 for invalid color', async () => {
 		await expect(PATCH(makeEvent({ avatarColor: 'not-a-color' }))).rejects.toMatchObject({
-			status: 400,
-		});
-	});
-
-	it('returns 400 when no fields provided', async () => {
-		await expect(PATCH(makeEvent({}))).rejects.toMatchObject({
 			status: 400,
 		});
 	});

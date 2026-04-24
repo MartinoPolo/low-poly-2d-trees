@@ -167,52 +167,6 @@ function generateFruitSlotPositions(
 	return slots;
 }
 
-interface StageCanopyResult {
-	readonly canopyBlobs: BlobGeometry[];
-	readonly fruitSlots: Point2D[];
-}
-
-function buildSmallPlantCanopy(
-	cx: number,
-	stemTopY: number,
-	canopyLight: string,
-	canopyDark: string,
-	rng: () => number,
-): StageCanopyResult {
-	const canopyBlobs: BlobGeometry[] = [];
-	const blobCount = rng() > 0.5 ? 2 : 1;
-	for (let i = 0; i < blobCount; i++) {
-		const offsetX = blobCount === 2 ? (i === 0 ? -15 : 15) : 0;
-		const offsetY = blobCount === 2 ? randomInRange(rng, -8, 8) : 0;
-		const blobCenter: Point2D = { x: cx + offsetX, y: stemTopY - 10 + offsetY };
-		canopyBlobs.push(buildCanopyBlob(blobCenter, 18, 6, canopyLight, canopyDark, rng, i));
-	}
-	const slotCount = rng() > 0.5 ? 2 : 1;
-	const fruitSlots = generateFruitSlotPositions(cx, stemTopY, slotCount, rng);
-	return { canopyBlobs, fruitSlots };
-}
-
-function buildFloweringCanopy(
-	cx: number,
-	stemTopY: number,
-	canopyLight: string,
-	canopyDark: string,
-	rng: () => number,
-): StageCanopyResult {
-	const canopyBlobs: BlobGeometry[] = [];
-	const blobCount = rng() > 0.5 ? 3 : 2;
-	for (let i = 0; i < blobCount; i++) {
-		const angle = (i / blobCount) * Math.PI * 2;
-		const offsetX = Math.cos(angle) * 15;
-		const offsetY = Math.sin(angle) * 10;
-		const blobCenter: Point2D = { x: cx + offsetX, y: stemTopY - 15 + offsetY };
-		canopyBlobs.push(buildCanopyBlob(blobCenter, 22, 7, canopyLight, canopyDark, rng, i));
-	}
-	const slotCount = 3 + Math.floor(rng() * 3);
-	const fruitSlots = generateFruitSlotPositions(cx, stemTopY, slotCount, rng);
-	return { canopyBlobs, fruitSlots };
-}
-
 export function generatePottedPlant(config: PottedPlantConfig): TreeGeometry {
 	const rng = createPrng(config.seed);
 	const cx = VIEWBOX_WIDTH / 2;
@@ -243,18 +197,36 @@ export function generatePottedPlant(config: PottedPlantConfig): TreeGeometry {
 	}
 
 	if (config.stage === POTTED_PLANT_STAGES.smallPlant) {
-		const result = buildSmallPlantCanopy(cx, stemTopY, canopyLight, canopyDark, rng);
-		canopyBlobs.push(...result.canopyBlobs);
-		fruitSlots = result.fruitSlots;
+		// 1-2 small canopy blobs with ~6 triangles each
+		const blobCount = rng() > 0.5 ? 2 : 1;
+		for (let i = 0; i < blobCount; i++) {
+			const offsetX = blobCount === 2 ? (i === 0 ? -15 : 15) : 0;
+			const offsetY = blobCount === 2 ? randomInRange(rng, -8, 8) : 0;
+			const blobCenter: Point2D = { x: cx + offsetX, y: stemTopY - 10 + offsetY };
+			canopyBlobs.push(buildCanopyBlob(blobCenter, 18, 6, canopyLight, canopyDark, rng, i));
+		}
+		// 1-2 fruit slots
+		const slotCount = rng() > 0.5 ? 2 : 1;
+		fruitSlots = generateFruitSlotPositions(cx, stemTopY, slotCount, rng);
 	}
 
 	if (
 		config.stage === POTTED_PLANT_STAGES.flowering ||
 		config.stage === POTTED_PLANT_STAGES.dried
 	) {
-		const result = buildFloweringCanopy(cx, stemTopY, canopyLight, canopyDark, rng);
-		canopyBlobs.push(...result.canopyBlobs);
-		fruitSlots = result.fruitSlots;
+		// 2-3 canopy blobs
+		const blobCount = rng() > 0.5 ? 3 : 2;
+		for (let i = 0; i < blobCount; i++) {
+			const angle = (i / blobCount) * Math.PI * 2;
+			const offsetX = Math.cos(angle) * 15;
+			const offsetY = Math.sin(angle) * 10;
+			const blobCenter: Point2D = { x: cx + offsetX, y: stemTopY - 15 + offsetY };
+			canopyBlobs.push(buildCanopyBlob(blobCenter, 22, 7, canopyLight, canopyDark, rng, i));
+		}
+		// 3-5 fruit slots
+		const slotCount = 3 + Math.floor(rng() * 3); // 3, 4, or 5
+		fruitSlots = generateFruitSlotPositions(cx, stemTopY, slotCount, rng);
+		// Flowers are now rendered as SVG overlays via flowerSlots
 	}
 
 	// Compute anchors
