@@ -64,14 +64,15 @@ describe('Behavior 3: TreeFruitAndFlowerLayer uses definition scale/offset', () 
 });
 
 // ============================================================================
-// Behavior 4: FRUIT_DEFINITIONS scales updated to 2 for visual parity
+// Behavior 4: FRUIT_DEFINITIONS have valid scales
 // ============================================================================
 
-describe('Behavior 4: FRUIT_DEFINITIONS scales updated to 2', () => {
-	it('every fruit definition has scale: 2', async () => {
+describe('Behavior 4: FRUIT_DEFINITIONS have valid scales', () => {
+	it('every fruit definition has a positive scale', async () => {
 		const fruitDefinitions = await import('./shapes/fruit_definitions.js');
 		for (const [key, def] of Object.entries(fruitDefinitions.FRUIT_DEFINITIONS)) {
-			expect((def as { scale: number }).scale, `${key} should have scale 2`).toBe(2);
+			const scale = (def as { scale: number }).scale;
+			expect(scale, `${key} should have a positive scale`).toBeGreaterThan(0);
 		}
 	});
 });

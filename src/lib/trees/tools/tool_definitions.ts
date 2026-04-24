@@ -54,14 +54,14 @@ export const TOOL_DEFINITIONS = {
 	[TOOL_TYPES.rake]: {
 		svgComponent: RakeSvg,
 		anchorTarget: 'trunkBase',
-		snapOffset: { x: 0, y: 18 },
-		pivotPoint: { x: 0, y: 18 },
+		snapOffset: { x: 24, y: 37 },
+		pivotPoint: { x: 0, y: 1 },
 	},
 	[TOOL_TYPES.woodpecker]: {
 		svgComponent: WoodpeckerSvg,
 		anchorTarget: 'trunkMiddle',
-		snapOffset: { x: 6, y: 10 },
-		pivotPoint: { x: 6, y: 10 },
+		snapOffset: { x: 12, y: -12 },
+		pivotPoint: { x: 0, y: 12 },
 	},
 	[TOOL_TYPES.grill]: {
 		svgComponent: GrillSvg,

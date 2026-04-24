@@ -85,12 +85,13 @@ describe('convertSvgToSvelte', () => {
 		expect(result).not.toContain('transform=');
 	});
 
-	it('skips normalization when original matches target size', () => {
+	it('centers at origin when original matches target size', () => {
 		const input =
 			'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 60 60"><rect width="60" height="60"/></svg>';
 		const result = convertSvgToSvelte(input, 'exact', 60, 60);
 
-		expect(result).not.toContain('transform=');
+		expect(result).toContain('translate(-30.00, -30.00)');
+		expect(result).toContain('scale(1.0000)');
 	});
 
 	it('falls back to width/height attributes when viewBox is missing', () => {

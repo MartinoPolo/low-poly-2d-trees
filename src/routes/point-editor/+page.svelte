@@ -97,6 +97,7 @@
 	const EDITOR_VIEWBOX_SIZE = 200;
 	const EDITOR_CENTER = EDITOR_VIEWBOX_SIZE / 2;
 	const EDITOR_DISPLAY_SCALE_FACTOR = 2;
+	const FRUIT_DISPLAY_SCALE_FACTOR = 0.5;
 
 	let activeTab = $state<AssetCategory>('tools');
 	let selectedAssets = $state<Record<AssetCategory, string>>({
@@ -140,7 +141,7 @@
 			const def = FRUIT_DEFINITIONS[assetKey as keyof typeof FRUIT_DEFINITIONS];
 			snapOffset = { ...def.originOffset };
 			pivotPoint = { x: 0, y: 0 };
-			assetScale = def.scale;
+			assetScale = def.scale / FRUIT_DISPLAY_SCALE_FACTOR;
 		} else if (category === 'flowers' && assetKey in FLOWER_DEFINITIONS) {
 			const def = FLOWER_DEFINITIONS[assetKey as keyof typeof FLOWER_DEFINITIONS];
 			snapOffset = { ...def.originOffset };
@@ -249,7 +250,9 @@
 		activeTab === 'tools' ? { toolType: selectedAsset as ToolType, anchorTarget } : undefined,
 	);
 
-	const previewFruitScaleOverride = $derived(activeTab === 'fruits' ? assetScale : undefined);
+	const previewFruitScaleOverride = $derived(
+		activeTab === 'fruits' ? assetScale * FRUIT_DISPLAY_SCALE_FACTOR : undefined,
+	);
 	const previewFruitOriginOffsetOverride = $derived(
 		activeTab === 'fruits' ? snapOffset : undefined,
 	);
@@ -259,9 +262,10 @@
 		activeTab === 'flowers' ? snapOffset : undefined,
 	);
 
-	const editorDisplayScale = $derived(
-		activeTab === 'tools' ? assetScale * EDITOR_DISPLAY_SCALE_FACTOR : 1,
+	const internalScale = $derived(
+		activeTab === 'fruits' ? assetScale * FRUIT_DISPLAY_SCALE_FACTOR : assetScale,
 	);
+	const editorDisplayScale = $derived(internalScale * EDITOR_DISPLAY_SCALE_FACTOR);
 
 	function handleUploadSvg() {
 		fileInputElement?.click();
@@ -285,7 +289,7 @@
 			const result = await response.json();
 			if (response.ok) {
 				uploadStatus = `Uploaded to ${result.outputPath}`;
-				setTimeout(() => (uploadStatus = null), 3000);
+				setTimeout(() => window.location.reload(), 1500);
 			} else {
 				uploadStatus = `Error: ${result.error}`;
 			}
@@ -304,7 +308,9 @@
 					? 'positionOffset'
 					: 'originOffset';
 
-		const values: Record<string, unknown> = { scale: assetScale };
+		const values: Record<string, unknown> = {
+			scale: activeTab === 'fruits' ? assetScale * FRUIT_DISPLAY_SCALE_FACTOR : assetScale,
+		};
 		values[offsetKey] = snapOffset;
 		if (activeTab === 'tools') {
 			values.anchorTarget = anchorTarget;
@@ -348,9 +354,8 @@
 		const svgX = ((event.clientX - rect.left) / rect.width) * EDITOR_VIEWBOX_SIZE;
 		const svgY = ((event.clientY - rect.top) / rect.height) * EDITOR_VIEWBOX_SIZE;
 
-		const displayScale = activeTab === 'tools' ? assetScale * EDITOR_DISPLAY_SCALE_FACTOR : 1;
-		const offsetX = Math.round((svgX - EDITOR_CENTER) / displayScale);
-		const offsetY = Math.round((svgY - EDITOR_CENTER) / displayScale);
+		const offsetX = Math.round((svgX - EDITOR_CENTER) / editorDisplayScale);
+		const offsetY = Math.round((svgY - EDITOR_CENTER) / editorDisplayScale);
 
 		if (isDraggingSnap) {
 			snapOffset = { x: offsetX, y: offsetY };
@@ -444,7 +449,8 @@
 									toolVisibility={demoToolVisibility}
 									toolSnapOffsetOverride={previewToolSnapOffsetOverride}
 									toolAnchorTargetOverride={previewToolAnchorTargetOverride}
-									showAnchorOverlay={activeTab === 'tools' && showAnchorOverlay}
+									showAnchorOverlay={activeTab !== 'overlays' &&
+										showAnchorOverlay}
 									fruitScaleOverride={previewFruitScaleOverride}
 									fruitOriginOffsetOverride={previewFruitOriginOffsetOverride}
 									flowerScaleOverride={previewFlowerScaleOverride}
@@ -509,7 +515,7 @@
 
 								<div class="flex gap-6">
 									<!-- SVG Viewport -->
-									<div class="w-1/2 flex-none">
+									<div class="w-full">
 										<svg
 											bind:this={svgEditorElement}
 											viewBox="0 0 {EDITOR_VIEWBOX_SIZE} {EDITOR_VIEWBOX_SIZE}"
@@ -542,8 +548,7 @@
 
 											<!-- Asset SVG (centered) -->
 											<g
-												transform="translate({EDITOR_CENTER}, {EDITOR_CENTER}) scale({assetScale *
-													EDITOR_DISPLAY_SCALE_FACTOR})"
+												transform="translate({EDITOR_CENTER}, {EDITOR_CENTER}) scale({editorDisplayScale})"
 											>
 												{#if selectedAssetComponent}
 													{@const AssetSvg = selectedAssetComponent}
@@ -593,36 +598,38 @@
 												snap
 											</text>
 
-											<!-- Pivot Point Handle (blue) -->
-											<circle
-												cx={EDITOR_CENTER +
-													pivotPoint.x * editorDisplayScale}
-												cy={EDITOR_CENTER +
-													pivotPoint.y * editorDisplayScale}
-												r="6"
-												fill="rgba(59,130,246,0.7)"
-												stroke="white"
-												stroke-width="1.5"
-												class="cursor-grab"
-												role="img"
-												aria-label={m.point_editor_pivot_handle()}
-												onpointerdown={(e) =>
-													handleEditorPointerDown(e, 'pivot')}
-											/>
-											<text
-												x={EDITOR_CENTER +
-													pivotPoint.x * editorDisplayScale +
-													10}
-												y={EDITOR_CENTER +
-													pivotPoint.y * editorDisplayScale +
-													4}
-												font-size="10"
-												fill="rgba(59,130,246,0.9)"
-												pointer-events="none"
-												style="user-select: none"
-											>
-												pivot
-											</text>
+											{#if activeTab === 'tools'}
+												<!-- Pivot Point Handle (blue) -->
+												<circle
+													cx={EDITOR_CENTER +
+														pivotPoint.x * editorDisplayScale}
+													cy={EDITOR_CENTER +
+														pivotPoint.y * editorDisplayScale}
+													r="6"
+													fill="rgba(59,130,246,0.7)"
+													stroke="white"
+													stroke-width="1.5"
+													class="cursor-grab"
+													role="img"
+													aria-label={m.point_editor_pivot_handle()}
+													onpointerdown={(e) =>
+														handleEditorPointerDown(e, 'pivot')}
+												/>
+												<text
+													x={EDITOR_CENTER +
+														pivotPoint.x * editorDisplayScale +
+														10}
+													y={EDITOR_CENTER +
+														pivotPoint.y * editorDisplayScale +
+														4}
+													font-size="10"
+													fill="rgba(59,130,246,0.9)"
+													pointer-events="none"
+													style="user-select: none"
+												>
+													pivot
+												</text>
+											{/if}
 										</svg>
 									</div>
 
@@ -652,29 +659,31 @@
 											</div>
 										</div>
 
-										<div>
-											<Label class="text-xs font-semibold text-blue-500"
-												>{m.point_editor_pivot_point()}</Label
-											>
-											<div class="mt-1 grid grid-cols-2 gap-2">
-												<div>
-													<Label class="text-xs">{m.label_x()}</Label>
-													<Input
-														type="number"
-														bind:value={pivotPoint.x}
-														class="h-8"
-													/>
-												</div>
-												<div>
-													<Label class="text-xs">{m.label_y()}</Label>
-													<Input
-														type="number"
-														bind:value={pivotPoint.y}
-														class="h-8"
-													/>
+										{#if activeTab === 'tools'}
+											<div>
+												<Label class="text-xs font-semibold text-blue-500"
+													>{m.point_editor_pivot_point()}</Label
+												>
+												<div class="mt-1 grid grid-cols-2 gap-2">
+													<div>
+														<Label class="text-xs">{m.label_x()}</Label>
+														<Input
+															type="number"
+															bind:value={pivotPoint.x}
+															class="h-8"
+														/>
+													</div>
+													<div>
+														<Label class="text-xs">{m.label_y()}</Label>
+														<Input
+															type="number"
+															bind:value={pivotPoint.y}
+															class="h-8"
+														/>
+													</div>
 												</div>
 											</div>
-										</div>
+										{/if}
 
 										<div>
 											<Label class="text-xs font-semibold"
@@ -715,7 +724,9 @@
 													</Select.Content>
 												</Select.Root>
 											</div>
+										{/if}
 
+										{#if category !== 'overlays'}
 											<div class="flex items-center gap-2">
 												<Checkbox
 													id="show-anchors"

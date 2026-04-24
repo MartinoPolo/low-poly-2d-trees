@@ -25,13 +25,17 @@ function buildNormalizationTransform(
 	targetHeight: number,
 ): string | null {
 	const scale = Math.min(targetWidth / origWidth, targetHeight / origHeight);
-	if (Math.abs(scale - 1) < 0.001) {
-		return null;
-	}
 	const scaledWidth = origWidth * scale;
 	const scaledHeight = origHeight * scale;
-	const translateX = (targetWidth - scaledWidth) / 2;
-	const translateY = (targetHeight - scaledHeight) / 2;
+	const translateX = -scaledWidth / 2;
+	const translateY = -scaledHeight / 2;
+	if (
+		Math.abs(scale - 1) < 0.001 &&
+		Math.abs(translateX) < 0.001 &&
+		Math.abs(translateY) < 0.001
+	) {
+		return null;
+	}
 	return `translate(${translateX.toFixed(2)}, ${translateY.toFixed(2)}) scale(${scale.toFixed(4)})`;
 }
 
