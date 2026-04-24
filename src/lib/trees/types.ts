@@ -7,6 +7,7 @@ export {
 	type TreeAnchors,
 	type Tier,
 	type BlobGeometry,
+	type SnowCapGeometry,
 	type BranchGeometry,
 	type JunctionData,
 	type BirchStripe,

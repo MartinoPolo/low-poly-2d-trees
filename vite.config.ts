@@ -7,6 +7,17 @@ import { storybookTest } from '@storybook/addon-vitest/vitest-plugin';
 import { playwright } from '@vitest/browser-playwright';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { execSync } from 'node:child_process';
+
+// Read current git branch at dev-server start so each worktree gets its own
+// branch name baked in — consumed by +layout.svelte to prefix browser tab titles.
+const gitBranch = (() => {
+	try {
+		return execSync('git rev-parse --abbrev-ref HEAD', { encoding: 'utf-8' }).trim();
+	} catch {
+		return 'local';
+	}
+})();
 
 const dirname =
 	typeof __dirname !== 'undefined' ? __dirname : path.dirname(fileURLToPath(import.meta.url));
@@ -14,6 +25,20 @@ const dirname =
 export default defineConfig({
 	server: {
 		open: true,
+		warmup: {
+			clientFiles: [
+				'src/routes/+page.svelte',
+				'src/routes/editor/+page.svelte',
+				'src/routes/gallery/+page.svelte',
+				'src/routes/showcase/+page.svelte',
+				'src/routes/settings/+page.svelte',
+				'src/routes/point-editor/+page.svelte',
+			],
+		},
+	},
+	define: {
+		// Exposed as __GIT_BRANCH__ global; consumed in +layout.svelte to prefix tab titles.
+		__GIT_BRANCH__: JSON.stringify(gitBranch),
 	},
 	plugins: [
 		tailwindcss(),

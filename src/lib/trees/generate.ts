@@ -528,7 +528,13 @@ function generateTreeCore(config: TreeConfig, flags: StageFlags): TreeGeometry {
 		| undefined;
 
 	if (isTiered) {
-		canopyBlobs = generateTierCanopy(rng, tiers, config.polygonsPerBlob, config);
+		canopyBlobs = generateTierCanopy(
+			rng,
+			tiers,
+			config.polygonsPerBlob,
+			config,
+			flags.addSnowBlobs,
+		);
 	} else if (hasBranchingCanopy) {
 		const result = generateBranchingCanopyBlobs(
 			rng,
@@ -552,6 +558,7 @@ function generateTreeCore(config: TreeConfig, flags: StageFlags): TreeGeometry {
 			config.polygonsPerBlob,
 			smoothAcuteAngles,
 			config,
+			flags.addSnowBlobs,
 		);
 	}
 
@@ -608,6 +615,7 @@ function generateTreeCore(config: TreeConfig, flags: StageFlags): TreeGeometry {
 		flowerSlots: flowerSlotsResult,
 		showFallingLeaves: flags.addFallingLeaves,
 		showSnowBlobs: flags.addSnowBlobs,
+		snowAboveCanopy: flags.addSnowBlobs && !isTiered,
 		birchStripes,
 		anchors: anchorsWithTipDepths,
 		viewBox: { width: VIEWBOX_WIDTH, height: VIEWBOX_HEIGHT },

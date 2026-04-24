@@ -21,6 +21,7 @@ export const GEOMETRY_GROUPS = {
 	flower: 'flower',
 	stake: 'stake',
 	pot: 'pot',
+	snow: 'snow',
 } as const;
 
 export type GeometryGroup = (typeof GEOMETRY_GROUPS)[keyof typeof GEOMETRY_GROUPS];
@@ -66,12 +67,17 @@ export interface Tier {
 	readonly baseRightY: number;
 }
 
+export interface SnowCapGeometry {
+	readonly triangles: readonly Triangle[];
+}
+
 export interface BlobGeometry {
 	readonly triangles: readonly Triangle[];
 	readonly center: Point2D;
 	readonly depth: number;
 	/** Z-order layer for 5-layer rendering (REQ-EV2-Z-05). Undefined for branchless shapes. */
 	readonly zOrder?: ZOrderLayer;
+	readonly snowCap?: SnowCapGeometry;
 }
 
 export interface Quad {
@@ -125,6 +131,8 @@ export interface TreeGeometry {
 	readonly showFallingLeaves: boolean;
 	/** Whether to show snow blobs on canopy (seasonal stage, evergreen). */
 	readonly showSnowBlobs: boolean;
+	/** Render snow in a separate pass above all canopy (blob-based shapes). */
+	readonly snowAboveCanopy: boolean;
 	readonly anchors: TreeAnchors;
 	readonly viewBox: { readonly width: number; readonly height: number };
 	/** Dark horizontal stripes on birch trunks. Empty for non-birch shapes. */

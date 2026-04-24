@@ -8,6 +8,9 @@ type AppUser = User & {
 };
 
 declare global {
+	// Injected by vite.config.ts at build/dev time; holds the current git branch name.
+	const __GIT_BRANCH__: string;
+
 	namespace App {
 		// interface Error {}
 		interface Locals {

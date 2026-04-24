@@ -8,6 +8,7 @@ import type { Blob } from '../shapes.js';
 import type { Tier } from '../types.js';
 import { triangulatePoints, isTriangleInsideRegion } from './triangulation.js';
 import { computeDepthDarkeningFactor } from './shape_constants.js';
+import { generateBlobSnowCap, generateTierSnowCap } from './snow_generation.js';
 
 const BLOB_FACET_NOISE_SEED_MULTIPLIER = 3333;
 const TIER_FACET_NOISE_SEED_MULTIPLIER = 4444;
@@ -22,6 +23,7 @@ export function generateBlobCanopy(
 	canopyBudget: number,
 	smoothAcuteAnglesForCircles: boolean,
 	config: TreeConfig,
+	addSnow: boolean = false,
 ): BlobGeometry[] {
 	const totalArea = blobs.reduce((sum, b) => sum + b.rx * b.ry, 0);
 	const averageArea = blobs.length > 0 ? totalArea / blobs.length : 1;
@@ -105,8 +107,10 @@ export function generateBlobCanopy(
 			color: computeCanopyColor(tri, blobBounds, config, blobRng, depthDarkeningFactor),
 			group: GEOMETRY_GROUPS.canopy,
 		}));
+		const snowRng = createPrng(config.seed + i * 5555);
+		const snowCap = addSnow ? generateBlobSnowCap(blob, snowRng) : undefined;
 		blobGeos.push({
-			geo: { triangles: coloredTris, center: { x: blob.cx, y: blob.cy }, depth },
+			geo: { triangles: coloredTris, center: { x: blob.cx, y: blob.cy }, depth, snowCap },
 			depth,
 		});
 	}
@@ -124,6 +128,7 @@ export function generateTierCanopy(
 	tiers: readonly Tier[],
 	canopyBudget: number,
 	config: TreeConfig,
+	addSnow: boolean = false,
 ): BlobGeometry[] {
 	const tierAreas: number[] = tiers.map((t) => {
 		const base = Math.sqrt(
@@ -186,10 +191,13 @@ export function generateTierCanopy(
 		const depth = count - 1 - i;
 		const tierCenterX = (tier.tipX + tier.baseLeftX + tier.baseRightX) / 3;
 		const tierCenterY = (tier.tipY + tier.baseLeftY + tier.baseRightY) / 3;
+		const snowRng = createPrng(config.seed + i * 5555);
+		const snowCap = addSnow ? generateTierSnowCap(tier, snowRng) : undefined;
 		blobGeos.push({
 			triangles: coloredTris,
 			center: { x: tierCenterX, y: tierCenterY },
 			depth,
+			snowCap,
 		});
 	}
 
