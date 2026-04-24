@@ -3,9 +3,10 @@
 	import SectionCard from './SectionCard.svelte';
 	import { Label } from '$lib/components/ui/label/index.js';
 	import { hslToHex } from '$lib/trees/color.js';
+	import { m } from '$lib/paraglide/messages.js';
 
 	interface TrunkPreset {
-		readonly name: string;
+		readonly id: string;
 		readonly hue: number;
 		readonly saturation: number;
 		readonly lightness: number;
@@ -13,17 +14,30 @@
 
 	// .mpx/REQUIREMENTS.md §3.9 — Trunk color preset swatches.
 	const TRUNK_PRESETS: readonly TrunkPreset[] = [
-		{ name: 'Light birch', hue: 40, saturation: 20, lightness: 75 },
-		{ name: 'Warm brown', hue: 25, saturation: 50, lightness: 35 },
-		{ name: 'Dark brown', hue: 20, saturation: 55, lightness: 20 },
-		{ name: 'Red-brown', hue: 10, saturation: 45, lightness: 30 },
-		{ name: 'Gray', hue: 0, saturation: 5, lightness: 45 },
-		{ name: 'White', hue: 0, saturation: 0, lightness: 90 },
-		{ name: 'Black', hue: 0, saturation: 0, lightness: 10 },
-		{ name: 'Dark charcoal', hue: 0, saturation: 5, lightness: 20 },
-		{ name: 'Golden', hue: 45, saturation: 50, lightness: 50 },
-		{ name: 'Pale yellow', hue: 50, saturation: 35, lightness: 65 },
+		{ id: 'light_birch', hue: 40, saturation: 20, lightness: 75 },
+		{ id: 'warm_brown', hue: 25, saturation: 50, lightness: 35 },
+		{ id: 'dark_brown', hue: 20, saturation: 55, lightness: 20 },
+		{ id: 'red_brown', hue: 10, saturation: 45, lightness: 30 },
+		{ id: 'gray', hue: 0, saturation: 5, lightness: 45 },
+		{ id: 'white', hue: 0, saturation: 0, lightness: 90 },
+		{ id: 'black', hue: 0, saturation: 0, lightness: 10 },
+		{ id: 'dark_charcoal', hue: 0, saturation: 5, lightness: 20 },
+		{ id: 'golden', hue: 45, saturation: 50, lightness: 50 },
+		{ id: 'pale_yellow', hue: 50, saturation: 35, lightness: 65 },
 	] as const;
+
+	const PRESET_NAMES: Record<string, () => string> = {
+		light_birch: () => m.preset_light_birch(),
+		warm_brown: () => m.preset_warm_brown(),
+		dark_brown: () => m.preset_dark_brown(),
+		red_brown: () => m.preset_red_brown(),
+		gray: () => m.preset_gray(),
+		white: () => m.preset_white(),
+		black: () => m.preset_black(),
+		dark_charcoal: () => m.preset_dark_charcoal(),
+		golden: () => m.preset_golden(),
+		pale_yellow: () => m.preset_pale_yellow(),
+	};
 
 	interface Props {
 		hue: number;
@@ -46,16 +60,16 @@
 	}
 </script>
 
-<SectionCard title="Trunk Color" contentClass="space-y-4">
+<SectionCard title={m.section_trunk_color()} contentClass="space-y-4">
 	<div class="space-y-2">
-		<Label>Presets</Label>
+		<Label>{m.label_presets()}</Label>
 		<div class="flex flex-wrap gap-2">
-			{#each TRUNK_PRESETS as preset (preset.name)}
+			{#each TRUNK_PRESETS as preset (preset.id)}
 				<button
 					type="button"
-					aria-label={preset.name}
-					title={preset.name}
-					data-trunk-preset={preset.name}
+					aria-label={PRESET_NAMES[preset.id]?.() ?? preset.id}
+					title={PRESET_NAMES[preset.id]?.() ?? preset.id}
+					data-trunk-preset={preset.id}
 					{disabled}
 					onclick={() => applyPreset(preset)}
 					style:background-color={hslToHex(
@@ -68,9 +82,18 @@
 			{/each}
 		</div>
 	</div>
-	<LabeledSlider label="Hue" min={0} max={360} unit="°" bind:value={hue} {disabled} />
 	<LabeledSlider
-		label="Saturation"
+		label={m.label_hue()}
+		id="input-hue"
+		min={0}
+		max={360}
+		unit="°"
+		bind:value={hue}
+		{disabled}
+	/>
+	<LabeledSlider
+		label={m.label_saturation()}
+		id="input-saturation"
 		min={0}
 		max={100}
 		unit="%"
@@ -84,5 +107,13 @@
 		both exceed 60, so the slider bound is driven by data rather than the old
 		control-range req.
 	-->
-	<LabeledSlider label="Lightness" min={5} max={100} unit="%" bind:value={lightness} {disabled} />
+	<LabeledSlider
+		label={m.label_lightness()}
+		id="input-lightness"
+		min={5}
+		max={100}
+		unit="%"
+		bind:value={lightness}
+		{disabled}
+	/>
 </SectionCard>

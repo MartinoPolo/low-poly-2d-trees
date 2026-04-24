@@ -51,8 +51,8 @@ export default defineConfig({
 				{
 					pattern: '/:path(.*)?',
 					localized: [
-						['en', '/:path(.*)?'],
 						['cs', '/cs/:path(.*)?'],
+						['en', '/:path(.*)?'],
 					],
 				},
 			],

@@ -27,38 +27,56 @@
 	import { onMount, type Component } from 'svelte';
 	import Upload from '@lucide/svelte/icons/upload';
 	import Save from '@lucide/svelte/icons/save';
+	import { m } from '$lib/paraglide/messages.js';
+	import PageLayout from '$lib/components/app-shell/PageLayout.svelte';
+	import { SHAPE_LABELS, FRUIT_LABELS } from '$lib/i18n/option_labels.js';
 
 	interface AssetOption {
 		readonly value: string;
 		readonly label: string;
 	}
 
+	const TOOL_LABELS: Record<string, () => string> = {
+		shovel: () => m.tool_shovel(),
+		wateringCan: () => m.tool_watering_can(),
+		ladder: () => m.tool_ladder(),
+		axe: () => m.tool_axe(),
+		rake: () => m.tool_rake(),
+		woodpecker: () => m.tool_woodpecker(),
+		grill: () => m.tool_grill(),
+		speechBubble: () => m.tool_speech_bubble(),
+		stormCloud: () => m.tool_storm_cloud(),
+	};
+
 	const CATEGORY_ASSET_OPTIONS = {
-		tools: TOOL_OPTIONS.map((o) => ({ value: o.value, label: o.label })),
+		tools: TOOL_OPTIONS.map((o) => ({
+			value: o.value,
+			label: TOOL_LABELS[o.value]?.() ?? o.label,
+		})),
 		fruits: FRUIT_TYPE_OPTIONS.filter((o) => o.value !== 'none').map((o) => ({
 			value: o.value,
-			label: o.label,
+			label: FRUIT_LABELS[o.value]?.() ?? o.label,
 		})),
 		flowers: TREE_SHAPE_OPTIONS.filter((o) => o.value !== 'custom').map((o) => ({
 			value: o.value,
-			label: `${o.label} Flower`,
+			label: m.point_editor_shape_flower({ shape: SHAPE_LABELS[o.value]?.() ?? o.label }),
 		})),
 		ground: [
-			{ value: 'grass', label: 'Grass' },
-			{ value: 'stone', label: 'Stone' },
+			{ value: 'grass', label: m.point_editor_ground_grass() },
+			{ value: 'stone', label: m.point_editor_ground_stone() },
 		],
 		stages: [
-			{ value: 'seed', label: 'Seed' },
-			{ value: 'sprouting', label: 'Sprouting' },
-			{ value: 'stump', label: 'Stump' },
+			{ value: 'seed', label: m.point_editor_stage_seed() },
+			{ value: 'sprouting', label: m.point_editor_stage_sprouting() },
+			{ value: 'stump', label: m.point_editor_stage_stump() },
 		],
 		overlays: [
-			{ value: 'leaf', label: 'Leaf' },
-			{ value: 'raindrop', label: 'Raindrop' },
-			{ value: 'snowflake', label: 'Snowflake' },
-			{ value: 'windParticle', label: 'Wind Particle' },
-			{ value: 'firefly', label: 'Firefly' },
-			{ value: 'cloud', label: 'Cloud' },
+			{ value: 'leaf', label: m.point_editor_overlay_leaf() },
+			{ value: 'raindrop', label: m.point_editor_overlay_raindrop() },
+			{ value: 'snowflake', label: m.point_editor_overlay_snowflake() },
+			{ value: 'windParticle', label: m.point_editor_overlay_wind_particle() },
+			{ value: 'firefly', label: m.point_editor_overlay_firefly() },
+			{ value: 'cloud', label: m.point_editor_overlay_cloud() },
 		],
 	} as const satisfies Record<string, readonly AssetOption[]>;
 
@@ -396,17 +414,15 @@
 	});
 </script>
 
-<div class="flex h-full flex-col gap-4 p-4">
-	<h1 class="text-2xl font-bold pl-10">Point Editor</h1>
-
+<PageLayout heading={m.point_editor_heading()}>
 	<Tabs.Root value={activeTab} onValueChange={handleTabChange}>
 		<Tabs.List>
-			<Tabs.Trigger value="tools">Tools</Tabs.Trigger>
-			<Tabs.Trigger value="fruits">Fruits</Tabs.Trigger>
-			<Tabs.Trigger value="flowers">Flowers</Tabs.Trigger>
-			<Tabs.Trigger value="ground">Ground</Tabs.Trigger>
-			<Tabs.Trigger value="stages">Stages</Tabs.Trigger>
-			<Tabs.Trigger value="overlays">Overlays</Tabs.Trigger>
+			<Tabs.Trigger value="tools">{m.point_editor_tab_tools()}</Tabs.Trigger>
+			<Tabs.Trigger value="fruits">{m.point_editor_tab_fruits()}</Tabs.Trigger>
+			<Tabs.Trigger value="flowers">{m.point_editor_tab_flowers()}</Tabs.Trigger>
+			<Tabs.Trigger value="ground">{m.point_editor_tab_ground()}</Tabs.Trigger>
+			<Tabs.Trigger value="stages">{m.point_editor_tab_stages()}</Tabs.Trigger>
+			<Tabs.Trigger value="overlays">{m.point_editor_tab_overlays()}</Tabs.Trigger>
 		</Tabs.List>
 
 		{#each Object.keys(CATEGORY_ASSET_OPTIONS) as category (category)}
@@ -415,7 +431,7 @@
 					<!-- Left Panel: Demo Tree -->
 					<Card.Root>
 						<Card.Header>
-							<Card.Title>Preview</Card.Title>
+							<Card.Title>{m.point_editor_preview()}</Card.Title>
 						</Card.Header>
 						<Card.Content>
 							<div
@@ -444,11 +460,11 @@
 						<!-- SVG Editor with Draggable Handles -->
 						<Card.Root>
 							<Card.Header>
-								<Card.Title>Snap & Pivot Points</Card.Title>
+								<Card.Title>{m.point_editor_snap_pivot()}</Card.Title>
 							</Card.Header>
 							<Card.Content>
 								<div class="mb-4 flex items-center gap-4">
-									<Label>Asset</Label>
+									<Label>{m.point_editor_asset()}</Label>
 									<Select.Root
 										type="single"
 										value={selectedAsset}
@@ -456,7 +472,7 @@
 									>
 										<Select.Trigger class="w-[200px]">
 											{assetOptions.find((o) => o.value === selectedAsset)
-												?.label ?? 'Select...'}
+												?.label ?? m.placeholder_select()}
 										</Select.Trigger>
 										<Select.Content>
 											{#each assetOptions as option (option.value)}
@@ -481,7 +497,7 @@
 											onclick={handleUploadSvg}
 										>
 											<Upload class="mr-2 size-4" />
-											Upload SVG
+											{m.action_upload_svg()}
 										</Button>
 										{#if uploadStatus}
 											<span class="text-xs text-muted-foreground"
@@ -499,7 +515,7 @@
 											viewBox="0 0 {EDITOR_VIEWBOX_SIZE} {EDITOR_VIEWBOX_SIZE}"
 											class="aspect-square w-full rounded-md border bg-muted/20"
 											role="application"
-											aria-label="SVG point editor"
+											aria-label={m.point_editor_svg_editor()}
 											onpointermove={handleEditorPointerMove}
 											onpointerup={handleEditorPointerUp}
 											onpointercancel={handleEditorPointerUp}
@@ -558,7 +574,7 @@
 												stroke-width="1.5"
 												class="cursor-grab"
 												role="img"
-												aria-label="Snap point handle"
+												aria-label={m.point_editor_snap_handle()}
 												onpointerdown={(e) =>
 													handleEditorPointerDown(e, 'snap')}
 											/>
@@ -589,7 +605,7 @@
 												stroke-width="1.5"
 												class="cursor-grab"
 												role="img"
-												aria-label="Pivot point handle"
+												aria-label={m.point_editor_pivot_handle()}
 												onpointerdown={(e) =>
 													handleEditorPointerDown(e, 'pivot')}
 											/>
@@ -614,11 +630,11 @@
 									<div class="flex w-48 flex-col gap-4">
 										<div>
 											<Label class="text-xs font-semibold text-red-500"
-												>Snap Offset</Label
+												>{m.point_editor_snap_offset()}</Label
 											>
 											<div class="mt-1 grid grid-cols-2 gap-2">
 												<div>
-													<Label class="text-xs">X</Label>
+													<Label class="text-xs">{m.label_x()}</Label>
 													<Input
 														type="number"
 														bind:value={snapOffset.x}
@@ -626,7 +642,7 @@
 													/>
 												</div>
 												<div>
-													<Label class="text-xs">Y</Label>
+													<Label class="text-xs">{m.label_y()}</Label>
 													<Input
 														type="number"
 														bind:value={snapOffset.y}
@@ -638,11 +654,11 @@
 
 										<div>
 											<Label class="text-xs font-semibold text-blue-500"
-												>Pivot Point</Label
+												>{m.point_editor_pivot_point()}</Label
 											>
 											<div class="mt-1 grid grid-cols-2 gap-2">
 												<div>
-													<Label class="text-xs">X</Label>
+													<Label class="text-xs">{m.label_x()}</Label>
 													<Input
 														type="number"
 														bind:value={pivotPoint.x}
@@ -650,7 +666,7 @@
 													/>
 												</div>
 												<div>
-													<Label class="text-xs">Y</Label>
+													<Label class="text-xs">{m.label_y()}</Label>
 													<Input
 														type="number"
 														bind:value={pivotPoint.y}
@@ -661,7 +677,9 @@
 										</div>
 
 										<div>
-											<Label class="text-xs font-semibold">Scale</Label>
+											<Label class="text-xs font-semibold"
+												>{m.point_editor_scale()}</Label
+											>
 											<div class="mt-1 flex items-center gap-2">
 												<Input
 													type="number"
@@ -677,7 +695,7 @@
 										{#if category === 'tools'}
 											<div>
 												<Label class="text-xs font-semibold"
-													>Anchor Target</Label
+													>{m.point_editor_anchor_target()}</Label
 												>
 												<Select.Root
 													type="single"
@@ -704,7 +722,7 @@
 													bind:checked={showAnchorOverlay}
 												/>
 												<Label for="show-anchors" class="text-xs"
-													>Show anchor points</Label
+													>{m.point_editor_show_anchors()}</Label
 												>
 											</div>
 										{/if}
@@ -716,7 +734,7 @@
 												onclick={handleApplyDefinition}
 											>
 												<Save class="mr-2 size-4" />
-												{applyStatus ?? 'Apply'}
+												{applyStatus ?? m.action_apply()}
 											</Button>
 										{/if}
 									</div>
@@ -728,4 +746,4 @@
 			</Tabs.Content>
 		{/each}
 	</Tabs.Root>
-</div>
+</PageLayout>

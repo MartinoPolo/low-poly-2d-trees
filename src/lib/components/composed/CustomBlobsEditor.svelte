@@ -15,6 +15,8 @@
 		type CustomBlob,
 		type CustomBlobBoundaryKind,
 	} from '$lib/trees/types.js';
+	import { m } from '$lib/paraglide/messages.js';
+	import { BOUNDARY_LABELS, translateOptions } from '$lib/i18n/option_labels.js';
 
 	interface CustomBlobPatch {
 		readonly boundaryKind?: CustomBlobBoundaryKind;
@@ -30,6 +32,10 @@
 	}
 
 	let { customBlobs, blobCount, onchange }: Props = $props();
+
+	const translatedBoundaryOptions = $derived(
+		translateOptions(CUSTOM_BLOB_BOUNDARY_OPTIONS, BOUNDARY_LABELS),
+	);
 
 	function updateCustomBlob(index: number, patch: CustomBlobPatch): void {
 		if (index < 0 || index >= customBlobs.length) {
@@ -52,7 +58,7 @@
 
 <Card.Root class="xl:col-span-2">
 	<Card.Header>
-		<Card.Title>Custom Blobs</Card.Title>
+		<Card.Title>{m.section_custom_blobs()}</Card.Title>
 	</Card.Header>
 	<Card.Content>
 		<Accordion.Root type="multiple" class="w-full">
@@ -61,9 +67,11 @@
 					<Accordion.Item value={`blob-${i}`}>
 						<Accordion.Trigger>
 							<span class="flex flex-1 items-center justify-between pr-2">
-								<span class="font-medium">Blob {i + 1}</span>
+								<span class="font-medium"
+									>{m.label_blob_number({ number: String(i + 1) })}</span
+								>
 								<span class="text-xs text-muted-foreground">
-									{CUSTOM_BLOB_BOUNDARY_OPTIONS.find(
+									{translatedBoundaryOptions.find(
 										(o) => o.value === blob.boundaryKind,
 									)?.label ?? blob.boundaryKind}
 								</span>
@@ -72,8 +80,8 @@
 						<Accordion.Content>
 							<div class="space-y-4 pt-2">
 								<LabeledSelect
-									label="Boundary"
-									options={CUSTOM_BLOB_BOUNDARY_OPTIONS}
+									label={m.label_boundary()}
+									options={translatedBoundaryOptions}
 									value={blob.boundaryKind}
 									onValueChange={(value) =>
 										updateCustomBlob(i, {
@@ -81,7 +89,8 @@
 										})}
 								/>
 								<LabeledSlider
-									label="Rotation"
+									label={m.label_rotation()}
+									id="input-blob-{i}-rotation"
 									min={0}
 									max={360}
 									step={CUSTOM_BLOB_ROTATION_STEP}
@@ -90,7 +99,8 @@
 									onValueChange={(v) => updateCustomBlob(i, { rotationDeg: v })}
 								/>
 								<LabeledSlider
-									label="Size"
+									label={m.label_size()}
+									id="input-blob-{i}-size"
 									min={CUSTOM_BLOB_SIZE_MIN}
 									max={CUSTOM_BLOB_SIZE_MAX}
 									step={CUSTOM_BLOB_SIZE_STEP}
@@ -100,7 +110,8 @@
 									onValueChange={(v) => updateCustomBlob(i, { sizeScale: v })}
 								/>
 								<LabeledSlider
-									label="X"
+									label={m.label_x()}
+									id="input-blob-{i}-x"
 									min={CUSTOM_BLOB_POSITION_MIN}
 									max={CUSTOM_BLOB_POSITION_MAX}
 									step={CUSTOM_BLOB_POSITION_STEP}
@@ -110,7 +121,8 @@
 										updateCustomBlob(i, { position: { x: v } })}
 								/>
 								<LabeledSlider
-									label="Y"
+									label={m.label_y()}
+									id="input-blob-{i}-y"
 									min={CUSTOM_BLOB_POSITION_MIN}
 									max={CUSTOM_BLOB_POSITION_MAX}
 									step={CUSTOM_BLOB_POSITION_STEP}

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { m } from '$lib/paraglide/messages.js';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import * as Tooltip from '$lib/components/ui/tooltip/index.js';
 	import { mergeProps } from 'bits-ui';
@@ -37,7 +38,7 @@
 				<Button
 					variant="outline"
 					size="icon"
-					aria-label="Toggle theme"
+					aria-label={m.tooltip_theme()}
 					data-testid="floating-theme-toggle"
 					{...mergeProps(props, { onclick: cycleTheme })}
 				>
@@ -51,7 +52,7 @@
 				</Button>
 			{/snippet}
 		</Tooltip.Trigger>
-		<Tooltip.Content side="left">Theme</Tooltip.Content>
+		<Tooltip.Content side="left">{m.tooltip_theme()}</Tooltip.Content>
 	</Tooltip.Root>
 
 	<Tooltip.Root>
@@ -60,7 +61,7 @@
 				<Button
 					variant="outline"
 					size="icon"
-					aria-label="Reset to defaults"
+					aria-label={m.tooltip_reset()}
 					data-testid="floating-reset"
 					{...mergeProps(props, { onclick: onReset })}
 				>
@@ -68,7 +69,7 @@
 				</Button>
 			{/snippet}
 		</Tooltip.Trigger>
-		<Tooltip.Content side="left">Reset to defaults</Tooltip.Content>
+		<Tooltip.Content side="left">{m.tooltip_reset()}</Tooltip.Content>
 	</Tooltip.Root>
 
 	<Tooltip.Root>
@@ -77,7 +78,7 @@
 				<Button
 					variant="outline"
 					size="icon"
-					aria-label="Randomize seed"
+					aria-label={m.tooltip_randomize()}
 					data-testid="floating-randomize"
 					{...mergeProps(props, { onclick: onRandomize })}
 				>
@@ -85,7 +86,7 @@
 				</Button>
 			{/snippet}
 		</Tooltip.Trigger>
-		<Tooltip.Content side="left">Randomize seed</Tooltip.Content>
+		<Tooltip.Content side="left">{m.tooltip_randomize()}</Tooltip.Content>
 	</Tooltip.Root>
 
 	{#if showSave}
@@ -95,7 +96,7 @@
 					<Button
 						variant="default"
 						size="icon"
-						aria-label="Save tree"
+						aria-label={m.tooltip_save()}
 						data-testid="floating-save"
 						disabled={saveDisabled}
 						{...mergeProps(props, { onclick: onSave })}
@@ -104,7 +105,7 @@
 					</Button>
 				{/snippet}
 			</Tooltip.Trigger>
-			<Tooltip.Content side="left">Save tree</Tooltip.Content>
+			<Tooltip.Content side="left">{m.tooltip_save()}</Tooltip.Content>
 		</Tooltip.Root>
 	{/if}
 </div>

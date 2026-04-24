@@ -46,7 +46,7 @@ test.describe('Issue #9 — Color system overhaul', () => {
 		await page.goto('/editor');
 		await page.waitForLoadState('networkidle');
 
-		await page.locator('[data-trunk-preset="Dark brown"]').click();
+		await page.locator('[data-trunk-preset="dark_brown"]').click();
 
 		// Dark brown: hue=20, sat=55, light=20
 		// shadcn sliders: read value from the thumb's aria-valuenow

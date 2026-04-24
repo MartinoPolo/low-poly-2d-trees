@@ -7,6 +7,8 @@
 	import { isParamDisabled } from '$lib/trees/disabled_params.js';
 	import { use_settings_tier, tierAtLeast } from '$lib/context/settings_tier.context.svelte.js';
 	import { useTreeConfig } from '$lib/trees/tree_config.context.svelte.js';
+	import { m } from '$lib/paraglide/messages.js';
+	import { CROOKEDNESS_LABELS, translateOptions } from '$lib/i18n/option_labels.js';
 
 	interface Props {
 		mode: EditorMode;
@@ -35,6 +37,10 @@
 		}),
 	);
 
+	const translatedCrookednessOptions = $derived(
+		translateOptions(CROOKEDNESS_MODE_OPTIONS, CROOKEDNESS_LABELS),
+	);
+
 	function onCrookednessModeChange(v: string) {
 		if (v in CROOKEDNESS_MODES) {
 			treeConfig.current.crookednessMode =
@@ -43,9 +49,10 @@
 	}
 </script>
 
-<SectionCard title="Trunk" contentClass="space-y-4">
+<SectionCard title={m.section_trunk()} contentClass="space-y-4">
 	<LabeledSlider
-		label="Trunk Height"
+		label={m.label_trunk_height()}
+		id="input-trunk-height"
 		min={trunkHeightMin}
 		max={150}
 		unit="%"
@@ -53,7 +60,8 @@
 		onValueChange={() => onTrunkHeightChange?.()}
 	/>
 	<LabeledSlider
-		label="Trunk Thickness"
+		label={m.label_trunk_thickness()}
+		id="input-trunk-thickness"
 		min={25}
 		max={400}
 		step={5}
@@ -62,7 +70,8 @@
 	/>
 	{#if isAdvanced}
 		<LabeledSlider
-			label="Trunk Strips"
+			label={m.label_trunk_strips()}
+			id="input-trunk-strips"
 			min={2}
 			max={4}
 			bind:value={treeConfig.current.trunkStripCount}
@@ -70,14 +79,16 @@
 	{/if}
 	{#if isIntermediate}
 		<LabeledSlider
-			label="Trunk Segments"
+			label={m.label_trunk_segments()}
+			id="input-trunk-segments"
 			min={1}
 			max={10}
 			step={1}
 			bind:value={treeConfig.current.trunkSegments}
 		/>
 		<LabeledSlider
-			label="Trunk Crookedness"
+			label={m.label_trunk_crookedness()}
+			id="input-trunk-crookedness"
 			min={0}
 			max={100}
 			step={5}
@@ -86,7 +97,8 @@
 			bind:value={treeConfig.current.trunkCrookedness}
 		/>
 		<LabeledSlider
-			label="Trunk Lean"
+			label={m.label_trunk_lean()}
+			id="input-trunk-lean"
 			min={-45}
 			max={45}
 			step={1}
@@ -96,7 +108,8 @@
 	{/if}
 	{#if isAdvanced}
 		<LabeledSlider
-			label="Trunk Twist"
+			label={m.label_trunk_twist()}
+			id="input-trunk-twist"
 			min={0}
 			max={100}
 			step={5}
@@ -106,8 +119,8 @@
 			bind:value={treeConfig.current.trunkTwist}
 		/>
 		<LabeledSelect
-			label="Crookedness Mode"
-			options={CROOKEDNESS_MODE_OPTIONS}
+			label={m.label_crookedness_mode()}
+			options={translatedCrookednessOptions}
 			value={treeConfig.current.crookednessMode}
 			onValueChange={onCrookednessModeChange}
 			disabled={crookednessModeDisabled || sceneShapeIsRandom}

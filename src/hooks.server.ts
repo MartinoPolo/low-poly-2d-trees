@@ -5,6 +5,7 @@ import { paraglideMiddleware } from '$lib/paraglide/server';
 import { getTextDirection } from '$lib/paraglide/runtime';
 import { svelteKitHandler } from 'better-auth/svelte-kit';
 import { building } from '$app/environment';
+import { m } from '$lib/paraglide/messages.js';
 
 const paraglideHandle: Handle = ({ event, resolve }) =>
 	paraglideMiddleware(event.request, ({ request: localizedRequest, locale }) => {
@@ -35,8 +36,8 @@ export const handle = sequence(paraglideHandle, authHandle);
 
 export const handleError: HandleServerError = ({ error, status }) => {
 	if (status === 404) {
-		return { message: 'Not found' };
+		return { message: m.error_not_found() };
 	}
 	console.error(error instanceof Error ? error.message : 'Unknown error');
-	return { message: 'An unexpected error occurred' };
+	return { message: m.error_unexpected() };
 };

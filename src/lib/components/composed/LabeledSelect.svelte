@@ -4,6 +4,7 @@
 	import { Label } from '$lib/components/ui/label/index.js';
 	import { Skeleton } from '$lib/components/ui/skeleton/index.js';
 	import type { Snippet } from 'svelte';
+	import { m } from '$lib/paraglide/messages.js';
 
 	interface SelectOption {
 		readonly value: string;
@@ -28,7 +29,7 @@
 		options,
 		value,
 		onValueChange,
-		placeholder = 'Select\u2026',
+		placeholder = m.placeholder_select(),
 		disabled = false,
 		class: className,
 		triggerClass = 'w-full',

@@ -5,6 +5,13 @@
 		isSettingsTier,
 		use_settings_tier,
 	} from '$lib/context/settings_tier.context.svelte.js';
+	import { m } from '$lib/paraglide/messages.js';
+
+	const TIER_LABELS: Record<string, () => string> = {
+		[SETTINGS_TIERS.basic]: () => m.tier_basic(),
+		[SETTINGS_TIERS.intermediate]: () => m.tier_intermediate(),
+		[SETTINGS_TIERS.advanced]: () => m.tier_advanced(),
+	};
 
 	const { tier } = use_settings_tier();
 
@@ -27,8 +34,8 @@
 		class="w-full rounded-xl ring-1 ring-foreground/10 shadow-none"
 	>
 		{#each Object.values(SETTINGS_TIERS) as tierValue (tierValue)}
-			<ToggleGroup.Item value={tierValue} class="flex-1 capitalize">
-				{tierValue}
+			<ToggleGroup.Item value={tierValue} class="flex-1">
+				{TIER_LABELS[tierValue]?.() ?? tierValue}
 			</ToggleGroup.Item>
 		{/each}
 	</ToggleGroup.Root>

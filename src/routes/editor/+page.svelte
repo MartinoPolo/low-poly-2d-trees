@@ -38,6 +38,7 @@
 	import SettingsTierControl from '$lib/components/composed/SettingsTierControl.svelte';
 	import { use_settings_tier, tierAtLeast } from '$lib/context/settings_tier.context.svelte.js';
 	import { PaneGroup, Pane, Handle } from '$lib/components/ui/resizable/index.js';
+	import { m } from '$lib/paraglide/messages.js';
 
 	const overlayConfig = setOverlayConfigContext();
 	const treeConfig = setTreeConfigContext();
@@ -136,7 +137,7 @@
 </script>
 
 <svelte:head>
-	<title>Single Editor</title>
+	<title>{m.page_single_editor()}</title>
 </svelte:head>
 
 <main class="h-dvh overflow-hidden bg-background text-foreground">
@@ -207,12 +208,12 @@
 							</form>
 							{#if saveTree.result?.success}
 								<p class="text-xs text-muted-foreground" role="status">
-									Saved as {saveTree.result.name}
+									{m.status_saved_as({ name: saveTree.result.name })}
 								</p>
 							{/if}
 							{#if saveTree.result && !saveTree.result.success}
 								<p class="text-xs text-destructive" role="alert">
-									Failed to save tree
+									{m.status_failed_save_tree()}
 								</p>
 							{/if}
 						{/snippet}

@@ -18,6 +18,9 @@
 		type TreeShape,
 		type TreeStage,
 	} from '$lib/trees/types.js';
+	import { m } from '$lib/paraglide/messages.js';
+	import PageLayout from '$lib/components/app-shell/PageLayout.svelte';
+	import { SHAPE_LABELS, STAGE_LABELS, translateOptions } from '$lib/i18n/option_labels.js';
 
 	const allStages = Object.values(TREE_STAGES);
 	const allShapes = Object.values(TREE_SHAPES).filter(
@@ -30,6 +33,9 @@
 	let selectedStage = $state<TreeStage>(TREE_STAGES.leafy);
 	let selectedShape = $state<Exclude<TreeShape, 'custom'>>('oak');
 	let seed = $state(42);
+
+	const translatedStageOptions = $derived(translateOptions(TREE_STAGE_OPTIONS, STAGE_LABELS));
+	const translatedShapeOptions = $derived(translateOptions(shapeOptions, SHAPE_LABELS));
 
 	function onStageChange(value: string) {
 		if (!isTreeStage(value)) {
@@ -98,30 +104,29 @@
 </script>
 
 <svelte:head>
-	<title>Tree Showcase</title>
+	<title>{m.page_showcase()}</title>
 </svelte:head>
 
-<main class="flex h-full flex-col gap-4 p-4">
-	<h1 class="text-2xl font-bold pl-10">Tree Showcase</h1>
+<PageLayout heading={m.showcase_heading()}>
 	<div class="mx-auto max-w-7xl space-y-8">
 		<div class="flex items-end gap-4">
 			<div class="w-48">
 				<LabeledSelect
-					label="Stage"
-					options={TREE_STAGE_OPTIONS}
+					label={m.showcase_stage()}
+					options={translatedStageOptions}
 					value={selectedStage}
 					onValueChange={onStageChange}
 				/>
 			</div>
 			<div class="w-48">
 				<LabeledSelect
-					label="Shape"
-					options={shapeOptions}
+					label={m.showcase_shape()}
+					options={translatedShapeOptions}
 					value={selectedShape}
 					onValueChange={onShapeChange}
 				/>
 			</div>
-			<Button variant="outline" onclick={randomizeSeed}>Randomize</Button>
+			<Button variant="outline" onclick={randomizeSeed}>{m.action_randomize()}</Button>
 		</div>
 
 		<div
@@ -132,7 +137,7 @@
 			</div>
 		</div>
 
-		<h2 class="text-xl font-semibold">All Stages</h2>
+		<h2 class="text-xl font-semibold">{m.showcase_all_stages()}</h2>
 
 		<div class="grid grid-cols-3 gap-4 sm:grid-cols-4 md:grid-cols-6">
 			{#each allStages as stage (stage)}
@@ -148,13 +153,14 @@
 					>
 						<LowPolyTree config={stageConfigs.get(stage)!} class="h-auto w-full" />
 					</div>
-					<span class="text-xs font-medium capitalize text-muted-foreground">{stage}</span
+					<span class="text-xs font-medium text-muted-foreground"
+						>{STAGE_LABELS[stage]?.() ?? stage}</span
 					>
 				</button>
 			{/each}
 		</div>
 
-		<h2 class="text-xl font-semibold">All Shapes</h2>
+		<h2 class="text-xl font-semibold">{m.showcase_all_shapes()}</h2>
 
 		<div class="grid grid-cols-3 gap-4 sm:grid-cols-4 md:grid-cols-6">
 			{#each allShapes as shape (shape)}
@@ -170,13 +176,14 @@
 					>
 						<LowPolyTree config={shapeConfigs.get(shape)!} class="h-auto w-full" />
 					</div>
-					<span class="text-xs font-medium capitalize text-muted-foreground">{shape}</span
+					<span class="text-xs font-medium text-muted-foreground"
+						>{SHAPE_LABELS[shape]?.() ?? shape}</span
 					>
 				</button>
 			{/each}
 		</div>
 
-		<h2 class="text-xl font-semibold">Potted Plants</h2>
+		<h2 class="text-xl font-semibold">{m.showcase_potted_plants()}</h2>
 
 		<div class="grid grid-cols-3 gap-4 sm:grid-cols-5">
 			{#each allPlantStages as plantStage (plantStage)}
@@ -191,7 +198,7 @@
 			{/each}
 		</div>
 
-		<h2 class="text-xl font-semibold">Oak PRD Tree (Completion Tracking)</h2>
+		<h2 class="text-xl font-semibold">{m.showcase_oak_prd()}</h2>
 
 		<div class="grid grid-cols-3 gap-4 sm:grid-cols-5">
 			{#each oakCompletionRatios as ratio (ratio)}
@@ -206,7 +213,7 @@
 			{/each}
 		</div>
 
-		<h2 class="text-xl font-semibold">Oak PRD Tree with Nameplate</h2>
+		<h2 class="text-xl font-semibold">{m.showcase_oak_prd_nameplate()}</h2>
 
 		<div
 			class="flex items-center justify-center rounded-xl border border-border bg-muted/30 p-8"
@@ -221,4 +228,4 @@
 			</div>
 		</div>
 	</div>
-</main>
+</PageLayout>
