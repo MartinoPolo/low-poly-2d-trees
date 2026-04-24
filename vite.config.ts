@@ -25,6 +25,16 @@ const dirname =
 export default defineConfig({
 	server: {
 		open: true,
+		warmup: {
+			clientFiles: [
+				'src/routes/+page.svelte',
+				'src/routes/editor/+page.svelte',
+				'src/routes/gallery/+page.svelte',
+				'src/routes/showcase/+page.svelte',
+				'src/routes/settings/+page.svelte',
+				'src/routes/point-editor/+page.svelte',
+			],
+		},
 	},
 	define: {
 		// Exposed as __GIT_BRANCH__ global; consumed in +layout.svelte to prefix tab titles.

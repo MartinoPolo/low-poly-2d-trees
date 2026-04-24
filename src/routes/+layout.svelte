@@ -8,7 +8,8 @@
 	import notoSansLatinUrl from '@fontsource-variable/noto-sans/files/noto-sans-latin-wght-normal.woff2?url';
 	import { set_settings_tier_context } from '$lib/context/settings_tier.context.svelte.js';
 	import { set_avatar_context } from '$lib/context/avatar.context.svelte.js';
-	import { afterNavigate } from '$app/navigation';
+	import { afterNavigate, preloadCode } from '$app/navigation';
+	import { onMount } from 'svelte';
 
 	// Tab title prefix — injected at dev-server start from git branch (vite.config.ts define).
 	// Lets you tell apart multiple worktrees/branches running simultaneously in the browser.
@@ -31,6 +32,15 @@
 	// afterNavigate fires after SvelteKit applies <svelte:head><title> from the page,
 	// so we can safely prepend without the page overwriting us again.
 	// Port is read here (browser-only) so each worktree's port is included.
+	onMount(() => {
+		void Promise.all([
+			preloadCode('/editor'),
+			preloadCode('/gallery'),
+			preloadCode('/showcase'),
+			preloadCode('/settings'),
+		]);
+	});
+
 	afterNavigate(() => {
 		if (document.title && !document.title.startsWith('[')) {
 			const branch = shortBranch(__GIT_BRANCH__);
