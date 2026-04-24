@@ -15,9 +15,9 @@ test.describe('Issue #84 — 3-tier settings control', () => {
 		const items = control.locator('[data-slot="toggle-group-item"]');
 		await expect(items).toHaveCount(3);
 
-		await expect(items.nth(0)).toContainText('basic');
-		await expect(items.nth(1)).toContainText('intermediate');
-		await expect(items.nth(2)).toContainText('advanced');
+		await expect(items.nth(0)).toContainText('Basic');
+		await expect(items.nth(1)).toContainText('Intermediate');
+		await expect(items.nth(2)).toContainText('Advanced');
 	});
 
 	test('default tier is basic — basic controls visible, intermediate hidden', async ({
