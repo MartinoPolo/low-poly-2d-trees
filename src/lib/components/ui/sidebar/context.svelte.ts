@@ -4,7 +4,7 @@ import { SIDEBAR_KEYBOARD_SHORTCUT } from './constants.js';
 
 type Getter<T> = () => T;
 
-/** @knipignore */
+// fallow-ignore-next-line unused-type
 export interface SidebarStateProps {
 	/**
 	 * A getter function that returns the current open state of the sidebar.

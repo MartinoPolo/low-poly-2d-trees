@@ -14,7 +14,7 @@ import {
 type SceneConfigContext = ReturnType<typeof createSceneConfigContext>;
 
 const [useSceneConfig, setSceneConfigInternal] = createContext<SceneConfigContext>();
-/** @knipignore */
+// fallow-ignore-next-line unused-export
 export { useSceneConfig };
 
 export function setSceneConfigContext() {

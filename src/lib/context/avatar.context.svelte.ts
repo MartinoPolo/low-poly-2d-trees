@@ -6,7 +6,7 @@ interface AvatarData {
 	color: string | null;
 }
 
-/** @knipignore */
+// fallow-ignore-next-line unused-type
 export type AvatarContext = ReturnType<typeof createAvatarContext>;
 
 const [useAvatar, setAvatarInternal] = createContext<AvatarContext>();

@@ -10,7 +10,7 @@ type EnvironmentConfigContext = ReturnType<typeof createEnvironmentConfigContext
 
 const [useEnvironmentConfig, setEnvironmentConfigInternal] =
 	createContext<EnvironmentConfigContext>();
-/** @knipignore */
+// fallow-ignore-next-line unused-export
 export { useEnvironmentConfig };
 
 export function setEnvironmentConfigContext() {

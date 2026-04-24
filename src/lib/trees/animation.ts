@@ -9,6 +9,7 @@ export const FALLING_LEAF_STATES = {
 	fading: 'fading',
 } as const;
 
+// fallow-ignore-next-line unused-type
 export type FallingLeafState = (typeof FALLING_LEAF_STATES)[keyof typeof FALLING_LEAF_STATES];
 
 export interface FallingLeaf {
