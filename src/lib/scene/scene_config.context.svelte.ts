@@ -2,7 +2,7 @@ import { createContext } from 'svelte';
 import { browser } from '$app/environment';
 import { Persisted, jsonSerde } from '$lib/reactivity/persisted.svelte.js';
 import { StateRaw } from '$lib/reactivity/state.svelte.js';
-import { isValidSceneConfig } from '$lib/config/validators.js';
+import { isValidSceneConfig } from '$lib/config/validators/index.js';
 import {
 	SCENE_DEFAULTS,
 	SCENE_LIMITS,

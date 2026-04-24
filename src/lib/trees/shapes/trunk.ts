@@ -1,8 +1,8 @@
 import type { Point2D } from '../types.js';
 import { CROOKEDNESS_MODES, VIEWBOX_WIDTH, type CrookednessMode } from '../types.js';
-import { randomInRange } from '../prng.js';
 import { lerp } from '../math.js';
 import type { ShapeDefinition } from './shape_types.js';
+import { applyJunctionJitter } from './crookedness_jitter.js';
 
 // ---------------------------------------------------------------------------
 // Trunk helpers
@@ -84,25 +84,16 @@ function buildCrookedPath(
 		}
 
 		if (i > 1 && clampedCrookedness > 0) {
-			// Per-junction jitter reduction: up to 50% of max
-			const jitterReduction = 0.5 + rng() * 0.5; // 0.5-1.0 multiplier
-			const effectiveMaxJitter = maxJitterDeg * jitterReduction;
-
-			let jitterSign: number;
-			if (crookednessMode === CROOKEDNESS_MODES.alternating) {
-				// Alternate L/R each junction for S-curves
-				alternatingSign *= -1;
-				jitterSign = alternatingSign;
-			} else {
-				// Random direction (legacy behavior)
-				jitterSign = rng() < 0.5 ? -1 : 1;
-			}
-
-			const jitterDeg =
-				randomInRange(rng, effectiveMaxJitter * 0.3, effectiveMaxJitter) * jitterSign;
-			currentAngleRad += (jitterDeg * Math.PI) / 180;
-			// Self-intersection prevention: clamp absolute angle
-			currentAngleRad = Math.max(-maxAbsoluteRad, Math.min(maxAbsoluteRad, currentAngleRad));
+			const jitter = applyJunctionJitter(
+				rng,
+				crookednessMode,
+				maxJitterDeg,
+				maxAbsoluteRad,
+				currentAngleRad,
+				alternatingSign,
+			);
+			currentAngleRad = jitter.angleRad;
+			alternatingSign = jitter.alternatingSign;
 		}
 
 		cumulativeY += segmentLenY;

@@ -48,7 +48,7 @@
 	import SettingsTierControl from '$lib/components/composed/SettingsTierControl.svelte';
 	import { use_settings_tier, tierAtLeast } from '$lib/context/settings_tier.context.svelte.js';
 	import { Persisted, jsonSerde } from '$lib/reactivity/persisted.svelte.js';
-	import { isValidBoolean } from '$lib/config/validators.js';
+	import { isValidBoolean } from '$lib/config/validators/index.js';
 	import { PaneGroup, Pane, Handle } from '$lib/components/ui/resizable/index.js';
 
 	const USE_PER_SHAPE_DEFAULTS_KEY = 'use-per-shape-defaults';

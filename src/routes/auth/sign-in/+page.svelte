@@ -11,18 +11,14 @@
 	} from '$lib/components/ui/card/index.js';
 	import { Alert, AlertDescription } from '$lib/components/ui/alert/index.js';
 	import { authClient } from '$lib/auth/client.js';
+	import {
+		signInWithSocial as signInSocial,
+		type SocialProvider,
+	} from '$lib/auth/social_auth.js';
 	import { goto, invalidateAll } from '$app/navigation';
 	import { resolve } from '$app/paths';
 
-	type SocialProvider = 'google' | 'github';
 	type PendingAction = SocialProvider | 'passkey' | 'email';
-
-	const PROVIDER_LABEL = {
-		google: 'Google',
-		github: 'GitHub',
-		passkey: 'Passkey',
-		email: 'Email',
-	} as const satisfies Record<PendingAction, string>;
 
 	let errorMessage = $state<string | null>(null);
 	let pendingAction = $state<PendingAction | null>(null);
@@ -31,19 +27,12 @@
 	let password = $state('');
 
 	async function signInWithSocial(provider: SocialProvider) {
-		errorMessage = null;
 		pendingAction = provider;
-		try {
-			const result = await authClient.signIn.social({ provider, callbackURL: resolve('/') });
-			if (result.error) {
-				errorMessage =
-					result.error.message ?? `${PROVIDER_LABEL[provider]} sign-in failed.`;
-			}
-		} catch {
-			errorMessage = `${PROVIDER_LABEL[provider]} sign-in failed.`;
-		} finally {
-			pendingAction = null;
-		}
+		await signInSocial(
+			provider,
+			(msg) => (errorMessage = msg),
+			() => (pendingAction = null),
+		);
 	}
 
 	async function signInWithPasskey() {

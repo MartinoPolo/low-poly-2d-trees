@@ -3,7 +3,7 @@ import { browser } from '$app/environment';
 import { Persisted, jsonSerde } from '$lib/reactivity/persisted.svelte.js';
 import { StateRaw } from '$lib/reactivity/state.svelte.js';
 import { Derived } from '$lib/reactivity/derived.svelte.js';
-import { isValidEnvironmentConfig } from '$lib/config/validators.js';
+import { isValidEnvironmentConfig } from '$lib/config/validators/index.js';
 import { ENVIRONMENT_DEFAULTS, type EnvironmentConfig } from './environment_config.js';
 
 type EnvironmentConfigContext = ReturnType<typeof createEnvironmentConfigContext>;
