@@ -14,6 +14,8 @@ const CATEGORY_DEFINITION_PATHS = {
 
 type DefinitionCategory = keyof typeof CATEGORY_DEFINITION_PATHS;
 
+const SAFE_ASSET_NAME = /^[a-z][a-z0-9_]{0,63}$/;
+
 function isValidCategory(value: string): value is DefinitionCategory {
 	return value in CATEGORY_DEFINITION_PATHS;
 }
@@ -68,7 +70,12 @@ export const POST: RequestHandler = async ({ request }) => {
 		return new Response('Not found', { status: 404 });
 	}
 
-	const body: unknown = await request.json();
+	let body: unknown;
+	try {
+		body = await request.json();
+	} catch {
+		return json({ error: 'Invalid JSON' }, { status: 400 });
+	}
 
 	if (typeof body !== 'object' || body === null || Array.isArray(body)) {
 		return json({ error: 'Invalid request body' }, { status: 400 });
@@ -79,8 +86,8 @@ export const POST: RequestHandler = async ({ request }) => {
 	if (typeof category !== 'string' || !isValidCategory(category)) {
 		return json({ error: 'Invalid or missing category' }, { status: 400 });
 	}
-	if (typeof assetName !== 'string' || !assetName) {
-		return json({ error: 'Missing assetName' }, { status: 400 });
+	if (typeof assetName !== 'string' || !SAFE_ASSET_NAME.test(assetName)) {
+		return json({ error: 'Invalid assetName — lowercase snake_case only' }, { status: 400 });
 	}
 	if (typeof values !== 'object' || values === null) {
 		return json({ error: 'Missing values' }, { status: 400 });
@@ -88,7 +95,18 @@ export const POST: RequestHandler = async ({ request }) => {
 
 	const typedValues = values as ApplyDefinitionValues;
 	const definitionPath = path.join(process.cwd(), CATEGORY_DEFINITION_PATHS[category]);
-	let content = readFileSync(definitionPath, 'utf-8');
+
+	let content: string;
+	try {
+		content = readFileSync(definitionPath, 'utf-8');
+	} catch (error) {
+		return json(
+			{
+				error: `File read failed: ${error instanceof Error ? error.message : String(error)}`,
+			},
+			{ status: 500 },
+		);
+	}
 
 	if (typedValues.scale !== undefined) {
 		content = replaceScaleInContent(content, assetName, typedValues.scale);
@@ -119,7 +137,16 @@ export const POST: RequestHandler = async ({ request }) => {
 		content = replaceAnchorTargetInContent(content, assetName, typedValues.anchorTarget);
 	}
 
-	writeFileSync(definitionPath, content, 'utf-8');
+	try {
+		writeFileSync(definitionPath, content, 'utf-8');
+	} catch (error) {
+		return json(
+			{
+				error: `File write failed: ${error instanceof Error ? error.message : String(error)}`,
+			},
+			{ status: 500 },
+		);
+	}
 
 	return json({ success: true });
 };

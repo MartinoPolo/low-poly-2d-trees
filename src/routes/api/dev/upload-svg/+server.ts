@@ -8,6 +8,8 @@ import type { RequestHandler } from './$types.js';
 const VALID_CATEGORIES = ['tools', 'fruits', 'flowers', 'ground', 'stages', 'overlays'] as const;
 type AssetCategory = (typeof VALID_CATEGORIES)[number];
 
+const SAFE_ASSET_NAME = /^[a-z][a-z0-9_]{0,63}$/;
+
 function toPascalCase(snakeCaseName: string): string {
 	return snakeCaseName
 		.split('_')
@@ -32,8 +34,8 @@ export const POST: RequestHandler = async ({ request }) => {
 	if (!(file instanceof File) || !file.size) {
 		return json({ error: 'Missing file' }, { status: 400 });
 	}
-	if (typeof assetName !== 'string' || !assetName) {
-		return json({ error: 'Missing assetName' }, { status: 400 });
+	if (typeof assetName !== 'string' || !SAFE_ASSET_NAME.test(assetName)) {
+		return json({ error: 'Invalid assetName — lowercase snake_case only' }, { status: 400 });
 	}
 	if (typeof category !== 'string' || !isValidCategory(category)) {
 		return json({ error: 'Invalid or missing category' }, { status: 400 });
@@ -45,10 +47,19 @@ export const POST: RequestHandler = async ({ request }) => {
 
 	const pascalName = toPascalCase(assetName);
 	const relativePath = `src/lib/trees/assets/${category}/${pascalName}Svg.svelte`;
-	const absolutePath = path.join(process.cwd(), relativePath);
+	const absolutePath = path.resolve(process.cwd(), relativePath);
 
-	mkdirSync(path.dirname(absolutePath), { recursive: true });
-	writeFileSync(absolutePath, svelteContent, 'utf-8');
+	try {
+		mkdirSync(path.dirname(absolutePath), { recursive: true });
+		writeFileSync(absolutePath, svelteContent, 'utf-8');
+	} catch (error) {
+		return json(
+			{
+				error: `File write failed: ${error instanceof Error ? error.message : String(error)}`,
+			},
+			{ status: 500 },
+		);
+	}
 
 	return json({ success: true, outputPath: relativePath });
 };

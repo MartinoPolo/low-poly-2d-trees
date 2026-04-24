@@ -351,7 +351,7 @@
 		loadAssetConfig(activeTab, selectedAssets[activeTab]);
 	}
 
-	let sessionRestored = false;
+	let sessionRestored = $state(false);
 
 	onMount(() => {
 		const raw = sessionStorage.getItem(SESSION_KEY);

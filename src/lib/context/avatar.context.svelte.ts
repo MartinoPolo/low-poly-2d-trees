@@ -1,26 +1,24 @@
-import { getContext, setContext } from 'svelte';
+import { createContext } from 'svelte';
 import { StateRaw } from '$lib/reactivity/state.svelte.js';
-import { CONTEXT_KEYS } from './context_keys.js';
 
 interface AvatarData {
 	preset: string | null;
 	color: string | null;
 }
 
-function create_avatar_context(initial: AvatarData) {
-	const avatar = new StateRaw<AvatarData>(initial);
-	return { avatar };
-}
-
 /** @knipignore */
-export type AvatarContext = ReturnType<typeof create_avatar_context>;
+export type AvatarContext = ReturnType<typeof createAvatarContext>;
+
+const [useAvatar, setAvatarInternal] = createContext<AvatarContext>();
+export { useAvatar as use_avatar };
 
 export function set_avatar_context(initial: AvatarData) {
-	const context = create_avatar_context(initial);
-	setContext(CONTEXT_KEYS.avatar, context);
-	return context;
+	const ctx = createAvatarContext(initial);
+	setAvatarInternal(ctx);
+	return ctx;
 }
 
-export function use_avatar() {
-	return getContext<AvatarContext>(CONTEXT_KEYS.avatar);
+function createAvatarContext(initial: AvatarData) {
+	const avatar = new StateRaw<AvatarData>(initial);
+	return { avatar };
 }
