@@ -366,6 +366,57 @@ describe('seasonal stage — evergreen', () => {
 	});
 });
 
+describe('snow cap geometry on canopy blobs', () => {
+	it('seasonal + pine: all canopyBlobs have snowCap with triangles', () => {
+		const geo = generateTree(
+			makeConfig({ stage: TREE_STAGES.seasonal, shape: TREE_SHAPES.pine }),
+		);
+		expect(geo.canopyBlobs.length).toBeGreaterThan(0);
+		for (const blob of geo.canopyBlobs) {
+			expect(blob.snowCap).toBeDefined();
+			expect(blob.snowCap!.triangles.length).toBeGreaterThan(0);
+		}
+	});
+
+	it('seasonal + cypress: all canopyBlobs have snowCap', () => {
+		const geo = generateTree(
+			makeConfig({ stage: TREE_STAGES.seasonal, shape: TREE_SHAPES.cypress }),
+		);
+		expect(geo.canopyBlobs.length).toBeGreaterThan(0);
+		for (const blob of geo.canopyBlobs) {
+			expect(blob.snowCap).toBeDefined();
+			expect(blob.snowCap!.triangles.length).toBeGreaterThan(0);
+		}
+	});
+
+	it('seasonal + bush: all canopyBlobs have snowCap', () => {
+		const geo = generateTree(
+			makeConfig({ stage: TREE_STAGES.seasonal, shape: TREE_SHAPES.bush }),
+		);
+		expect(geo.canopyBlobs.length).toBeGreaterThan(0);
+		for (const blob of geo.canopyBlobs) {
+			expect(blob.snowCap).toBeDefined();
+			expect(blob.snowCap!.triangles.length).toBeGreaterThan(0);
+		}
+	});
+
+	it('seasonal + oak (deciduous): no snowCap on any blob', () => {
+		const geo = generateTree(
+			makeConfig({ stage: TREE_STAGES.seasonal, shape: TREE_SHAPES.oak }),
+		);
+		for (const blob of geo.canopyBlobs) {
+			expect(blob.snowCap).toBeUndefined();
+		}
+	});
+
+	it('leafy + pine (non-seasonal): no snowCap on any blob', () => {
+		const geo = generateTree(makeConfig({ stage: TREE_STAGES.leafy, shape: TREE_SHAPES.pine }));
+		for (const blob of geo.canopyBlobs) {
+			expect(blob.snowCap).toBeUndefined();
+		}
+	});
+});
+
 describe('showFallingLeaves — only seasonal+deciduous', () => {
 	const allStages = Object.values(TREE_STAGES) as TreeStage[];
 	const nonSeasonalStages = allStages.filter((s) => s !== TREE_STAGES.seasonal);

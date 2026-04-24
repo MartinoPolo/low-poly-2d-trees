@@ -9,6 +9,8 @@
 		shouldAnimateGrowth: boolean;
 		canopySwayDelay: number;
 		growthScales: { canopyMinScale: number; canopyMaxScale: number };
+		showSnow: boolean;
+		snowAboveCanopy: boolean;
 	}
 
 	let {
@@ -18,10 +20,16 @@
 		shouldAnimateGrowth,
 		canopySwayDelay,
 		growthScales,
+		showSnow,
+		snowAboveCanopy,
 	}: Props = $props();
 </script>
 
-{#snippet canopyBlobSnippet(blob: IndexedCanopyBlob['blob'], blobIndex: number)}
+{#snippet canopyBlobSnippet(
+	blob: IndexedCanopyBlob['blob'],
+	blobIndex: number,
+	includeSnow: boolean,
+)}
 	<g
 		class="canopy-blob"
 		class:animate-canopy-sway={animateCanopySway}
@@ -39,22 +47,61 @@
 				stroke-width="0.5"
 			/>
 		{/each}
+		{#if includeSnow && blob.snowCap}
+			{#each blob.snowCap.triangles as snowTri (snowTri)}
+				<polygon
+					points="{snowTri.points[0].x},{snowTri.points[0].y} {snowTri.points[1]
+						.x},{snowTri.points[1].y} {snowTri.points[2].x},{snowTri.points[2].y}"
+					fill={snowTri.color}
+					stroke={snowTri.color}
+					stroke-width="0.5"
+				/>
+			{/each}
+		{/if}
 	</g>
+{/snippet}
+
+{#snippet snowBlobSnippet(blob: IndexedCanopyBlob['blob'])}
+	{#if blob.snowCap}
+		{#each blob.snowCap.triangles as snowTri (snowTri)}
+			<polygon
+				points="{snowTri.points[0].x},{snowTri.points[0].y} {snowTri.points[1].x},{snowTri
+					.points[1].y} {snowTri.points[2].x},{snowTri.points[2].y}"
+				fill={snowTri.color}
+				stroke={snowTri.color}
+				stroke-width="0.5"
+			/>
+		{/each}
+	{/if}
 {/snippet}
 
 {#if backCanopyBlobs.length > 0}
 	<g class="back-canopy">
 		{#each backCanopyBlobs as { blob, index: blobIndex } (blob)}
-			{@render canopyBlobSnippet(blob, blobIndex)}
+			{@render canopyBlobSnippet(blob, blobIndex, showSnow && !snowAboveCanopy)}
 		{/each}
 	</g>
+	{#if showSnow && snowAboveCanopy}
+		<g class="back-snow">
+			{#each backCanopyBlobs as { blob } (blob)}
+				{@render snowBlobSnippet(blob)}
+			{/each}
+		</g>
+	{/if}
 {/if}
 
 <g class="canopy">
 	{#each frontCanopyBlobs as { blob, index: blobIndex } (blob)}
-		{@render canopyBlobSnippet(blob, blobIndex)}
+		{@render canopyBlobSnippet(blob, blobIndex, showSnow && !snowAboveCanopy)}
 	{/each}
 </g>
+{#if showSnow && snowAboveCanopy}
+	<g class="front-snow">
+		{#each frontCanopyBlobs as { blob } (blob)}
+			{@render snowBlobSnippet(blob)}
+		{/each}
+	</g>
+{/if}
 
 <style>
 	@keyframes canopy-sway {
