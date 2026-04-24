@@ -5,7 +5,7 @@ import {
 	isValidEnvironmentConfig,
 	isValidEditorViewState,
 	migrateStageValue,
-} from './validators.js';
+} from './validators/index.js';
 import { DEFAULT_TREE_CONFIG } from '$lib/trees/types.js';
 import { SCENE_DEFAULTS } from '$lib/scene/scene_config.js';
 import { ENVIRONMENT_DEFAULTS } from '$lib/environment/environment_config.js';
