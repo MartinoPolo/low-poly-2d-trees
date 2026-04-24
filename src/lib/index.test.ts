@@ -117,4 +117,38 @@ describe('barrel exports — src/lib/index.ts', () => {
 		expect(barrel.GROUND_LIMITS.countMax).toBeDefined();
 		expect(barrel.GROUND_LIMITS.sizeDefault).toBeDefined();
 	});
+
+	it('exports TOOL_DEFINITIONS with anchor targets and offsets', async () => {
+		const barrel = await import('$lib/index.js');
+
+		expect(barrel.TOOL_DEFINITIONS).toBeDefined();
+		const axeDef = barrel.TOOL_DEFINITIONS[barrel.TOOL_TYPES.axe];
+		expect(axeDef.anchorTarget).toBe('trunkMiddle');
+		expect(axeDef.snapOffset).toBeDefined();
+		expect(axeDef.pivotPoint).toBeDefined();
+		expect(axeDef.svgComponent).toBeDefined();
+	});
+
+	it('exports z-ordering constants and splitting functions', async () => {
+		const barrel = await import('$lib/index.js');
+
+		expect(barrel.Z_ORDER_LAYERS).toBeDefined();
+		expect(barrel.Z_ORDER_LAYERS.trunk).toBe(2);
+		expect(typeof barrel.splitRootBranchesByZOrder).toBe('function');
+		expect(typeof barrel.splitCanopyBlobsByZOrder).toBe('function');
+	});
+
+	it('exports color conversion utilities', async () => {
+		const barrel = await import('$lib/index.js');
+
+		expect(typeof barrel.hexToHsl).toBe('function');
+		expect(typeof barrel.hslToHex).toBe('function');
+		expect(typeof barrel.interpolateHslInHexSpace).toBe('function');
+		expect(typeof barrel.clamp).toBe('function');
+
+		const hsl = barrel.hexToHsl('#ff0000');
+		expect(hsl.h).toBeCloseTo(0, 0);
+		expect(hsl.s).toBeCloseTo(100, 0);
+		expect(hsl.l).toBeCloseTo(50, 0);
+	});
 });

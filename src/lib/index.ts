@@ -10,9 +10,11 @@ export { default as PottedPlant } from './trees/PottedPlant.svelte';
 export { generateTree } from './trees/generate.js';
 export { generatePottedPlant } from './trees/potted_plant_generator.js';
 
-/** Core geometry primitives and groups */
+/** Core geometry primitives, groups, and z-ordering */
 export {
 	GEOMETRY_GROUPS,
+	Z_ORDER_LAYERS,
+	type ZOrderLayer,
 	type Point2D,
 	type Triangle,
 	type Quad,
@@ -107,8 +109,12 @@ export {
 	TOOL_OPTIONS,
 } from './trees/tools/tool_types.js';
 
-/** Tool anchor and definition types (type-only — no Svelte component refs) */
-export { type ToolAnchorKey, type ToolDefinition } from './trees/tools/tool_definitions.js';
+/** Tool definitions — anchor targets, snap offsets, pivot points, SVG components */
+export {
+	type ToolAnchorKey,
+	type ToolDefinition,
+	TOOL_DEFINITIONS,
+} from './trees/tools/tool_definitions.js';
 
 /** Tool animation configuration */
 export { type ToolAnimationConfig, TOOL_ANIMATIONS } from './trees/tools/tool_animations.js';
@@ -136,3 +142,22 @@ export {
 
 /** Per-shape disabled parameter rules */
 export { DISABLED_PARAMS_BY_SHAPE, isParamDisabled } from './trees/disabled_params.js';
+
+/** Z-order splitting utilities for custom rendering */
+export {
+	type IndexedBranchGroup,
+	type IndexedCanopyBlob,
+	type ZOrderedBranches,
+	type ZOrderedCanopyBlobs,
+	splitRootBranchesByZOrder,
+	splitCanopyBlobsByZOrder,
+} from './trees/tree_z_ordering.js';
+
+/** Color conversion and interpolation */
+export {
+	type HslColor,
+	hexToHsl,
+	hslToHex,
+	interpolateHslInHexSpace,
+	clamp,
+} from './trees/color.js';

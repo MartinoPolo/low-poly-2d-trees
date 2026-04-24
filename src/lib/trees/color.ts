@@ -11,7 +11,7 @@
 
 import { lerp } from './math.js';
 
-interface HslColor {
+export interface HslColor {
 	readonly h: number;
 	readonly s: number;
 	readonly l: number;

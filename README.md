@@ -119,24 +119,26 @@ const geometry: TreeGeometry = generateTree({
 
 The barrel file (`src/lib/index.ts`) exports everything a consumer needs, grouped by domain:
 
-| Category            | Key Exports                                                                                          |
-| ------------------- | ---------------------------------------------------------------------------------------------------- |
-| **Components**      | `LowPolyTree`, `PottedPlant`                                                                         |
-| **Generators**      | `generateTree`, `generatePottedPlant`                                                                |
-| **Tree Config**     | `TreeConfig`, `DEFAULT_TREE_CONFIG`, `VIEWBOX_WIDTH`, `VIEWBOX_HEIGHT`                               |
-| **Shapes**          | `TREE_SHAPES`, `TreeShape`, `TREE_SHAPE_OPTIONS`, `isTreeShape`, `isEvergreen`                       |
-| **Stages**          | `TREE_STAGES`, `TreeStage`, `TREE_STAGE_OPTIONS`, `isTreeStage`                                      |
-| **Shape Defaults**  | `SHAPE_DEFAULTS` — per-shape config presets                                                          |
-| **Config Enums**    | `CROOKEDNESS_MODES`, `CrookednessMode`, `BRANCH_MIRRORING`, `BranchMirroring`                        |
-| **Fruit**           | `FRUIT_TYPES`, `FruitType`, `FRUIT_TYPE_OPTIONS`, `SHAPE_FRUIT_MAP`, `isFruitType`                   |
-| **Custom Blobs**    | `CustomBlob`, `CUSTOM_BLOB_DEFAULT`, `CUSTOM_BLOB_BOUNDARY_KINDS` + size/position constants          |
-| **Core Geometry**   | `Point2D`, `Triangle`, `Quad`, `TreeAnchors`, `TreeGeometry`, `BlobGeometry`, `BranchGeometry`, etc. |
-| **Tools**           | `TOOL_TYPES`, `ToolType`, `ToolVisibility`, `createDefaultToolVisibility`, `TOOL_ANIMATIONS`         |
-| **Overlays**        | `GlowConfig`, `GLOW_LIMITS`, `OverlayConfig`, `OVERLAY_DEFAULTS`, `hasActiveOverlay`                 |
-| **Ground**          | `GROUND_LIMITS`                                                                                      |
-| **Animation**       | `GROWTH_DURATION_SECONDS`, `computeAnimationDelay`, `computeGrowthScales`                            |
-| **Potted Plants**   | `POTTED_PLANT_STAGES`, `PottedPlantStage`, `PottedPlantConfig`, `DEFAULT_POTTED_PLANT_CONFIG`        |
-| **Disabled Params** | `DISABLED_PARAMS_BY_SHAPE`, `isParamDisabled` — which config params are irrelevant per shape         |
+| Category            | Key Exports                                                                                                      |
+| ------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| **Components**      | `LowPolyTree`, `PottedPlant`                                                                                     |
+| **Generators**      | `generateTree`, `generatePottedPlant`                                                                            |
+| **Tree Config**     | `TreeConfig`, `DEFAULT_TREE_CONFIG`, `VIEWBOX_WIDTH`, `VIEWBOX_HEIGHT`                                           |
+| **Shapes**          | `TREE_SHAPES`, `TreeShape`, `TREE_SHAPE_OPTIONS`, `isTreeShape`, `isEvergreen`                                   |
+| **Stages**          | `TREE_STAGES`, `TreeStage`, `TREE_STAGE_OPTIONS`, `isTreeStage`                                                  |
+| **Shape Defaults**  | `SHAPE_DEFAULTS` — per-shape config presets                                                                      |
+| **Config Enums**    | `CROOKEDNESS_MODES`, `CrookednessMode`, `BRANCH_MIRRORING`, `BranchMirroring`                                    |
+| **Fruit**           | `FRUIT_TYPES`, `FruitType`, `FRUIT_TYPE_OPTIONS`, `SHAPE_FRUIT_MAP`, `isFruitType`                               |
+| **Custom Blobs**    | `CustomBlob`, `CUSTOM_BLOB_DEFAULT`, `CUSTOM_BLOB_BOUNDARY_KINDS` + size/position constants                      |
+| **Core Geometry**   | `Point2D`, `Triangle`, `Quad`, `TreeAnchors`, `TreeGeometry`, `BlobGeometry`, `BranchGeometry`, etc.             |
+| **Z-Ordering**      | `Z_ORDER_LAYERS`, `ZOrderLayer`, `splitRootBranchesByZOrder`, `splitCanopyBlobsByZOrder`                         |
+| **Tools**           | `TOOL_TYPES`, `ToolType`, `TOOL_DEFINITIONS`, `ToolVisibility`, `createDefaultToolVisibility`, `TOOL_ANIMATIONS` |
+| **Overlays**        | `GlowConfig`, `GLOW_LIMITS`, `OverlayConfig`, `OVERLAY_DEFAULTS`, `hasActiveOverlay`                             |
+| **Ground**          | `GROUND_LIMITS`                                                                                                  |
+| **Animation**       | `GROWTH_DURATION_SECONDS`, `computeAnimationDelay`, `computeGrowthScales`                                        |
+| **Potted Plants**   | `POTTED_PLANT_STAGES`, `PottedPlantStage`, `PottedPlantConfig`, `DEFAULT_POTTED_PLANT_CONFIG`                    |
+| **Color**           | `HslColor`, `hexToHsl`, `hslToHex`, `interpolateHslInHexSpace`, `clamp`                                          |
+| **Disabled Params** | `DISABLED_PARAMS_BY_SHAPE`, `isParamDisabled` — which config params are irrelevant per shape                     |
 
 ### Building the Package
 
