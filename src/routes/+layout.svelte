@@ -8,7 +8,14 @@
 	import notoSansLatinUrl from '@fontsource-variable/noto-sans/files/noto-sans-latin-wght-normal.woff2?url';
 	import { set_settings_tier_context } from '$lib/context/settings_tier.context.svelte.js';
 	import { set_avatar_context } from '$lib/context/avatar.context.svelte.js';
+	import { afterNavigate } from '$app/navigation';
 
+	// Tab title prefix — injected at dev-server start from git branch (vite.config.ts define).
+	// Lets you tell apart multiple worktrees/branches running simultaneously in the browser.
+	function shortBranch(full: string): string {
+		const stripped = full.replace(/^[^/]+\//, ''); // strip feature/, fix/, etc.
+		return stripped.split(/[-_]/).slice(0, 2).join('-'); // first two segments
+	}
 	let { data, children } = $props();
 
 	set_settings_tier_context();
@@ -19,6 +26,18 @@
 			preset: data.user?.avatarPreset ?? null,
 			color: data.user?.avatarColor ?? null,
 		};
+	});
+
+	// afterNavigate fires after SvelteKit applies <svelte:head><title> from the page,
+	// so we can safely prepend without the page overwriting us again.
+	// Port is read here (browser-only) so each worktree's port is included.
+	afterNavigate(() => {
+		if (document.title && !document.title.startsWith('[')) {
+			const branch = shortBranch(__GIT_BRANCH__);
+			const port = window.location.port;
+			const prefix = port ? `[${branch}:${port}]` : `[${branch}]`;
+			document.title = `${prefix} ${document.title}`;
+		}
 	});
 </script>
 
