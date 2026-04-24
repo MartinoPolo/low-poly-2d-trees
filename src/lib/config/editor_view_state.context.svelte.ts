@@ -7,9 +7,7 @@ import { EDITOR_VIEW_DEFAULTS, type EditorViewState } from './editor_view_state.
 
 type EditorViewStateContext = ReturnType<typeof createEditorViewStateContext>;
 
-const [useEditorViewState, setEditorViewStateInternal] = createContext<EditorViewStateContext>();
-/** @knipignore */
-export { useEditorViewState };
+const [, setEditorViewStateInternal] = createContext<EditorViewStateContext>();
 
 export function setEditorViewStateContext() {
 	const ctx = createEditorViewStateContext();

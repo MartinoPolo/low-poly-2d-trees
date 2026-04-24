@@ -13,9 +13,7 @@ import {
 
 type SceneConfigContext = ReturnType<typeof createSceneConfigContext>;
 
-const [useSceneConfig, setSceneConfigInternal] = createContext<SceneConfigContext>();
-/** @knipignore */
-export { useSceneConfig };
+const [, setSceneConfigInternal] = createContext<SceneConfigContext>();
 
 export function setSceneConfigContext() {
 	const ctx = createSceneConfigContext();

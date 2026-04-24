@@ -8,10 +8,7 @@ import { ENVIRONMENT_DEFAULTS, type EnvironmentConfig } from './environment_conf
 
 type EnvironmentConfigContext = ReturnType<typeof createEnvironmentConfigContext>;
 
-const [useEnvironmentConfig, setEnvironmentConfigInternal] =
-	createContext<EnvironmentConfigContext>();
-/** @knipignore */
-export { useEnvironmentConfig };
+const [, setEnvironmentConfigInternal] = createContext<EnvironmentConfigContext>();
 
 export function setEnvironmentConfigContext() {
 	const ctx = createEnvironmentConfigContext();
