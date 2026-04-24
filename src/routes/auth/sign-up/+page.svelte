@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { m } from '$lib/paraglide/messages.js';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import { Input } from '$lib/components/ui/input/index.js';
 	import { Label } from '$lib/components/ui/label/index.js';
@@ -12,16 +13,16 @@
 	import { Alert, AlertDescription } from '$lib/components/ui/alert/index.js';
 	import { authClient } from '$lib/auth/client.js';
 	import { goto, invalidateAll } from '$app/navigation';
-	import { resolve } from '$app/paths';
+	import { localizedResolve } from '$lib/i18n/localized_resolve.js';
 
 	type SocialProvider = 'google' | 'github';
 	type PendingAction = SocialProvider | 'email';
 
 	const PROVIDER_LABEL = {
-		google: 'Google',
-		github: 'GitHub',
-		email: 'Email',
-	} as const satisfies Record<PendingAction, string>;
+		google: () => m.auth_google(),
+		github: () => m.auth_github(),
+		email: () => m.auth_email(),
+	} as const satisfies Record<PendingAction, () => string>;
 
 	let errorMessage = $state<string | null>(null);
 	let pendingAction = $state<PendingAction | null>(null);
@@ -35,13 +36,17 @@
 		errorMessage = null;
 		pendingAction = provider;
 		try {
-			const result = await authClient.signIn.social({ provider, callbackURL: resolve('/') });
+			const result = await authClient.signIn.social({
+				provider,
+				callbackURL: localizedResolve('/'),
+			});
 			if (result.error) {
 				errorMessage =
-					result.error.message ?? `${PROVIDER_LABEL[provider]} sign-in failed.`;
+					result.error.message ??
+					m.auth_provider_sign_in_failed({ provider: PROVIDER_LABEL[provider]() });
 			}
 		} catch {
-			errorMessage = `${PROVIDER_LABEL[provider]} sign-in failed.`;
+			errorMessage = m.auth_provider_sign_in_failed({ provider: PROVIDER_LABEL[provider]() });
 		} finally {
 			pendingAction = null;
 		}
@@ -51,7 +56,7 @@
 		errorMessage = null;
 
 		if (password !== confirmPassword) {
-			errorMessage = 'Passwords do not match.';
+			errorMessage = m.auth_passwords_mismatch();
 			return;
 		}
 
@@ -59,13 +64,13 @@
 		try {
 			const result = await authClient.signUp.email({ email, password, name });
 			if (result.error) {
-				errorMessage = result.error.message ?? 'Sign-up failed.';
+				errorMessage = result.error.message ?? m.auth_sign_up_failed();
 				return;
 			}
 			await invalidateAll();
-			await goto(resolve('/'));
+			await goto(localizedResolve('/'));
 		} catch {
-			errorMessage = 'Sign-up failed.';
+			errorMessage = m.auth_sign_up_failed();
 		} finally {
 			pendingAction = null;
 		}
@@ -73,13 +78,13 @@
 </script>
 
 <svelte:head>
-	<title>Sign Up</title>
+	<title>{m.page_sign_up()}</title>
 </svelte:head>
 
 <Card>
 	<CardHeader class="text-center">
-		<h1 class="text-2xl font-medium leading-normal">Create an account</h1>
-		<CardDescription>Create your account to get started.</CardDescription>
+		<h1 class="text-2xl font-medium leading-normal">{m.auth_sign_up_heading()}</h1>
+		<CardDescription>{m.auth_sign_up_description()}</CardDescription>
 	</CardHeader>
 	<CardContent class="space-y-4">
 		<div class="flex gap-3">
@@ -89,7 +94,7 @@
 				disabled={pendingAction !== null}
 				onclick={() => signInWithSocial('google')}
 			>
-				Google
+				{m.auth_google()}
 			</Button>
 			<Button
 				class="flex-1"
@@ -97,13 +102,15 @@
 				disabled={pendingAction !== null}
 				onclick={() => signInWithSocial('github')}
 			>
-				GitHub
+				{m.auth_github()}
 			</Button>
 		</div>
 
 		<div class="flex items-center gap-4">
 			<Separator class="flex-1" />
-			<span class="text-muted-foreground text-xs uppercase">Or continue with email</span>
+			<span class="text-muted-foreground text-xs uppercase"
+				>{m.auth_or_continue_with_email()}</span
+			>
 			<Separator class="flex-1" />
 		</div>
 
@@ -115,36 +122,36 @@
 			}}
 		>
 			<div class="space-y-2">
-				<Label for="name">Name</Label>
+				<Label for="name">{m.auth_name()}</Label>
 				<Input
 					id="name"
 					data-testid="auth-name"
 					type="text"
-					placeholder="Your name"
+					placeholder={m.auth_name_placeholder()}
 					required
 					bind:value={name}
 				/>
 			</div>
 
 			<div class="space-y-2">
-				<Label for="email">Email</Label>
+				<Label for="email">{m.auth_email()}</Label>
 				<Input
 					id="email"
 					data-testid="auth-email"
 					type="email"
-					placeholder="you@example.com"
+					placeholder={m.auth_email_placeholder()}
 					required
 					bind:value={email}
 				/>
 			</div>
 
 			<div class="space-y-2">
-				<Label for="password">Password</Label>
+				<Label for="password">{m.auth_password()}</Label>
 				<Input
 					id="password"
 					data-testid="auth-password"
 					type="password"
-					placeholder="••••••••"
+					placeholder={m.auth_password_placeholder()}
 					required
 					minlength={8}
 					bind:value={password}
@@ -152,12 +159,12 @@
 			</div>
 
 			<div class="space-y-2">
-				<Label for="confirm-password">Confirm Password</Label>
+				<Label for="confirm-password">{m.auth_confirm_password()}</Label>
 				<Input
 					id="confirm-password"
 					data-testid="auth-confirm-password"
 					type="password"
-					placeholder="••••••••"
+					placeholder={m.auth_password_placeholder()}
 					required
 					minlength={8}
 					bind:value={confirmPassword}
@@ -165,7 +172,7 @@
 			</div>
 
 			<Button type="submit" data-testid="auth-email-submit" disabled={pendingAction !== null}>
-				Sign up
+				{m.action_sign_up()}
 			</Button>
 		</form>
 
@@ -176,13 +183,13 @@
 		{/if}
 
 		<p class="text-muted-foreground text-center text-sm">
-			Already have an account?
+			{m.auth_have_account()}
 			<a
-				href={resolve('/auth/sign-in')}
+				href={localizedResolve('/auth/sign-in')}
 				class="text-foreground underline underline-offset-4 hover:text-primary"
 				data-testid="auth-cross-link"
 			>
-				Sign in
+				{m.action_sign_in()}
 			</a>
 		</p>
 	</CardContent>

@@ -9,8 +9,10 @@
 	} from '$lib/trees/saved_trees.remote.js';
 	import { formatRelative } from '$lib/utils/format_relative.js';
 	import { goto } from '$app/navigation';
-	import { resolve } from '$app/paths';
+	import { localizedResolve } from '$lib/i18n/localized_resolve.js';
 	import Trash2 from '@lucide/svelte/icons/trash-2';
+	import { m } from '$lib/paraglide/messages.js';
+	import PageLayout from '$lib/components/app-shell/PageLayout.svelte';
 
 	let renamingId = $state<string | null>(null);
 	let renameValue = $state('');
@@ -28,14 +30,14 @@
 				await renameSavedTree({ id, name: trimmed });
 				operationError = null;
 			} catch {
-				operationError = 'Failed to rename tree';
+				operationError = m.status_failed_rename_tree();
 			}
 		}
 		renamingId = null;
 	}
 
 	async function confirmDelete(id: string, name: string) {
-		const confirmed = globalThis.confirm(`Delete ${name}? This cannot be undone.`);
+		const confirmed = globalThis.confirm(m.action_confirm_delete_tree({ name }));
 		if (!confirmed) {
 			return;
 		}
@@ -43,7 +45,7 @@
 			await deleteSavedTree(id);
 			operationError = null;
 		} catch {
-			operationError = 'Failed to delete tree';
+			operationError = m.status_failed_delete_tree();
 		}
 	}
 
@@ -54,23 +56,16 @@
 			'status' in error &&
 			(error as { status: unknown }).status === 401
 		) {
-			void goto(resolve('/auth/sign-in'));
+			void goto(localizedResolve('/auth/sign-in'));
 		}
 	}
 </script>
 
 <svelte:head>
-	<title>Gallery</title>
+	<title>{m.page_gallery()}</title>
 </svelte:head>
 
-<main class="container mx-auto p-6">
-	<header class="mb-6">
-		<h1 class="text-2xl font-bold tracking-tight">Your Saved Trees</h1>
-		<p class="text-sm text-muted-foreground">
-			Click a thumbnail to open it in the single editor.
-		</p>
-	</header>
-
+<PageLayout heading={m.gallery_heading()} subtitle={m.gallery_subtitle()}>
 	{#if operationError}
 		<div class="mb-4 rounded-md border border-destructive/40 bg-destructive/10 p-3">
 			<p class="text-sm text-destructive">{operationError}</p>
@@ -79,23 +74,23 @@
 
 	<svelte:boundary onerror={handleAuthError}>
 		{#snippet pending()}
-			<p class="text-muted-foreground">Loading gallery…</p>
+			<p class="text-muted-foreground">{m.status_loading_gallery()}</p>
 		{/snippet}
 
 		{#snippet failed(error, reset)}
 			{@const message = error instanceof Error ? error.message : 'Something went wrong'}
 			<div class="rounded-md border border-destructive/40 bg-destructive/10 p-4">
-				<p class="text-sm text-destructive">Error: {message}</p>
-				<Button variant="outline" class="mt-2" onclick={reset}>Retry</Button>
+				<p class="text-sm text-destructive">{m.status_error_prefix({ message })}</p>
+				<Button variant="outline" class="mt-2" onclick={reset}>{m.action_retry()}</Button>
 			</div>
 		{/snippet}
 
 		{@const trees = await listSavedTrees()}
 		{#if trees.length === 0}
 			<p class="text-muted-foreground" data-testid="gallery-empty">
-				No saved trees yet. Head to the
-				<a href={resolve('/editor')} class="underline">Single Editor</a>
-				to create one.
+				{m.gallery_empty_prefix()}
+				<a href={localizedResolve('/editor')} class="underline">{m.gallery_empty_link()}</a>
+				{m.gallery_empty_suffix()}
 			</p>
 		{:else}
 			<div
@@ -109,9 +104,9 @@
 						data-tree-id={tree.id}
 					>
 						<a
-							href={`${resolve('/editor')}?saved=${encodeURIComponent(tree.id)}`}
+							href={`${localizedResolve('/editor')}?saved=${encodeURIComponent(tree.id)}`}
 							class="block aspect-square overflow-hidden rounded-md bg-muted/30"
-							aria-label={`Open ${tree.name} in editor`}
+							aria-label={m.gallery_open_in_editor({ name: tree.name })}
 						>
 							<LowPolyTree config={tree.config} class="h-full w-full" />
 						</a>
@@ -157,7 +152,7 @@
 								event.stopPropagation();
 								void confirmDelete(tree.id, tree.name);
 							}}
-							aria-label={`Delete ${tree.name}`}
+							aria-label={m.gallery_delete({ name: tree.name })}
 						>
 							<Trash2 class="size-4" />
 						</Button>
@@ -166,4 +161,4 @@
 			</div>
 		{/if}
 	</svelte:boundary>
-</main>
+</PageLayout>

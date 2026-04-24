@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { m } from '$lib/paraglide/messages.js';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import { Input } from '$lib/components/ui/input/index.js';
 	import { Label } from '$lib/components/ui/label/index.js';
@@ -12,17 +13,17 @@
 	import { Alert, AlertDescription } from '$lib/components/ui/alert/index.js';
 	import { authClient } from '$lib/auth/client.js';
 	import { goto, invalidateAll } from '$app/navigation';
-	import { resolve } from '$app/paths';
+	import { localizedResolve } from '$lib/i18n/localized_resolve.js';
 
 	type SocialProvider = 'google' | 'github';
 	type PendingAction = SocialProvider | 'passkey' | 'email';
 
 	const PROVIDER_LABEL = {
-		google: 'Google',
-		github: 'GitHub',
-		passkey: 'Passkey',
-		email: 'Email',
-	} as const satisfies Record<PendingAction, string>;
+		google: () => m.auth_google(),
+		github: () => m.auth_github(),
+		passkey: () => m.auth_passkey(),
+		email: () => m.auth_email(),
+	} as const satisfies Record<PendingAction, () => string>;
 
 	let errorMessage = $state<string | null>(null);
 	let pendingAction = $state<PendingAction | null>(null);
@@ -34,13 +35,17 @@
 		errorMessage = null;
 		pendingAction = provider;
 		try {
-			const result = await authClient.signIn.social({ provider, callbackURL: resolve('/') });
+			const result = await authClient.signIn.social({
+				provider,
+				callbackURL: localizedResolve('/'),
+			});
 			if (result.error) {
 				errorMessage =
-					result.error.message ?? `${PROVIDER_LABEL[provider]} sign-in failed.`;
+					result.error.message ??
+					m.auth_provider_sign_in_failed({ provider: PROVIDER_LABEL[provider]() });
 			}
 		} catch {
-			errorMessage = `${PROVIDER_LABEL[provider]} sign-in failed.`;
+			errorMessage = m.auth_provider_sign_in_failed({ provider: PROVIDER_LABEL[provider]() });
 		} finally {
 			pendingAction = null;
 		}
@@ -52,13 +57,13 @@
 		try {
 			const result = await authClient.signIn.passkey();
 			if (result?.error) {
-				errorMessage = result.error.message ?? 'Passkey sign-in failed.';
+				errorMessage = result.error.message ?? m.auth_passkey_sign_in_failed();
 				return;
 			}
 			await invalidateAll();
-			await goto(resolve('/'));
+			await goto(localizedResolve('/'));
 		} catch {
-			errorMessage = 'Passkey sign-in failed.';
+			errorMessage = m.auth_passkey_sign_in_failed();
 		} finally {
 			pendingAction = null;
 		}
@@ -70,13 +75,13 @@
 		try {
 			const result = await authClient.signIn.email({ email, password });
 			if (result.error) {
-				errorMessage = result.error.message ?? 'Sign-in failed.';
+				errorMessage = result.error.message ?? m.auth_sign_in_failed();
 				return;
 			}
 			await invalidateAll();
-			await goto(resolve('/'));
+			await goto(localizedResolve('/'));
 		} catch {
-			errorMessage = 'Sign-in failed.';
+			errorMessage = m.auth_sign_in_failed();
 		} finally {
 			pendingAction = null;
 		}
@@ -84,13 +89,13 @@
 </script>
 
 <svelte:head>
-	<title>Sign In</title>
+	<title>{m.page_sign_in()}</title>
 </svelte:head>
 
 <Card>
 	<CardHeader class="text-center">
-		<h1 class="text-2xl font-medium leading-normal">Sign In</h1>
-		<CardDescription>Continue with a social account, passkey, or email.</CardDescription>
+		<h1 class="text-2xl font-medium leading-normal">{m.auth_sign_in_heading()}</h1>
+		<CardDescription>{m.auth_sign_in_description()}</CardDescription>
 	</CardHeader>
 	<CardContent class="space-y-4">
 		<div class="flex gap-3">
@@ -100,7 +105,7 @@
 				disabled={pendingAction !== null}
 				onclick={() => signInWithSocial('google')}
 			>
-				Google
+				{m.auth_google()}
 			</Button>
 			<Button
 				class="flex-1"
@@ -108,7 +113,7 @@
 				disabled={pendingAction !== null}
 				onclick={() => signInWithSocial('github')}
 			>
-				GitHub
+				{m.auth_github()}
 			</Button>
 			<Button
 				class="flex-1"
@@ -117,13 +122,15 @@
 				disabled={pendingAction !== null}
 				onclick={signInWithPasskey}
 			>
-				Passkey
+				{m.auth_passkey()}
 			</Button>
 		</div>
 
 		<div class="flex items-center gap-4">
 			<Separator class="flex-1" />
-			<span class="text-muted-foreground text-xs uppercase">Or continue with email</span>
+			<span class="text-muted-foreground text-xs uppercase"
+				>{m.auth_or_continue_with_email()}</span
+			>
 			<Separator class="flex-1" />
 		</div>
 
@@ -135,24 +142,24 @@
 			}}
 		>
 			<div class="space-y-2">
-				<Label for="email">Email</Label>
+				<Label for="email">{m.auth_email()}</Label>
 				<Input
 					id="email"
 					data-testid="auth-email"
 					type="email"
-					placeholder="you@example.com"
+					placeholder={m.auth_email_placeholder()}
 					required
 					bind:value={email}
 				/>
 			</div>
 
 			<div class="space-y-2">
-				<Label for="password">Password</Label>
+				<Label for="password">{m.auth_password()}</Label>
 				<Input
 					id="password"
 					data-testid="auth-password"
 					type="password"
-					placeholder="••••••••"
+					placeholder={m.auth_password_placeholder()}
 					required
 					minlength={8}
 					bind:value={password}
@@ -160,7 +167,7 @@
 			</div>
 
 			<Button type="submit" data-testid="auth-email-submit" disabled={pendingAction !== null}>
-				Sign in
+				{m.action_sign_in()}
 			</Button>
 		</form>
 
@@ -171,13 +178,13 @@
 		{/if}
 
 		<p class="text-muted-foreground text-center text-sm">
-			Don't have an account?
+			{m.auth_no_account()}
 			<a
-				href={resolve('/auth/sign-up')}
+				href={localizedResolve('/auth/sign-up')}
 				class="text-foreground underline underline-offset-4 hover:text-primary"
 				data-testid="auth-cross-link"
 			>
-				Sign up
+				{m.action_sign_up()}
 			</a>
 		</p>
 	</CardContent>
