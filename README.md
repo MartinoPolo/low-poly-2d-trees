@@ -4,7 +4,7 @@
 
 ![Tree Editor](docs/screenshot.png)
 
-A procedural **low-poly tree generator and visual editor** — companion project for [BamGit](https://github.com/MartinoPolo/bamgit). Design customizable polygon-based trees of multiple shapes across lifecycle stages, save them to a gallery, and compose multi-tree scenes.
+A procedural **low-poly tree generator and visual editor** — companion project for [Grovekeeper](https://github.com/MartinoPolo/grovekeeper). Design customizable polygon-based trees of multiple shapes across lifecycle stages, save them to a gallery, and compose multi-tree scenes.
 
 ## Features
 
@@ -22,12 +22,12 @@ A procedural **low-poly tree generator and visual editor** — companion project
 
 ## Library Usage
 
-This project doubles as a **Svelte component library** consumed by [BamGit](https://github.com/MartinoPolo/bamgit). The public API is defined in `src/lib/index.ts` — everything else is internal.
+This project doubles as a **Svelte component library** consumed by [Grovekeeper](https://github.com/MartinoPolo/grovekeeper). The public API is defined in `src/lib/index.ts` — everything else is internal.
 
 ### Install
 
 ```sh
-# from BamGit or any SvelteKit 2 project
+# from Grovekeeper or any SvelteKit 2 project
 pnpm add low-poly-2d-trees
 ```
 

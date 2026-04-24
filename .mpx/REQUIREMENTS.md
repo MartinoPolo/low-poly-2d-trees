@@ -1499,7 +1499,7 @@ Reusable SVG overlays. Visual shapes only — consumer applies semantics.
 - **REQ-PRD8-05c** Remove the wilting overlay from `OverlayPersistedState` and overlay
   components. Wilting is now exclusively a stage, not an overlay.
 - **REQ-PRD8-05d** The glow effect remains as an overlay (not tied to any stage). Its existing
-  API (`enabled`, `color`, `intensity`, `pulse`) is unchanged. BamGit uses it for hover
+  API (`enabled`, `color`, `intensity`, `pulse`) is unchanged. Grovekeeper uses it for hover
   effects or any other purpose.
 
 **Acceptance Criteria:**
@@ -1524,7 +1524,7 @@ Reusable SVG overlays. Visual shapes only — consumer applies semantics.
 - **REQ-PRD8-06c** In the showcase app, add a "Disable trees from row 2+" checkbox in the
   Debug card (scene editor only). When checked, all trees in rows 2-10 render with
   `disabled={true}`. Default: unchecked. This is a debug/demo feature.
-- **REQ-PRD8-06d** The `disabled` prop is part of the library's public API surface for BamGit
+- **REQ-PRD8-06d** The `disabled` prop is part of the library's public API surface for Grovekeeper
   consumption.
 
 **Acceptance Criteria:**
@@ -1760,8 +1760,8 @@ Reusable SVG overlays. Visual shapes only — consumer applies semantics.
     - Enable/disable glow overlay programmatically (for hover effects)
     - Set a tree to disabled state
     - Set any stage including seasonal (with automatic evergreen/deciduous behavior)
-- **REQ-PRD8-15c** No BamGit-specific logic in the library. The `disabled` prop and glow
-  overlay are generic — BamGit assigns meaning to them.
+- **REQ-PRD8-15c** No Grovekeeper-specific logic in the library. The `disabled` prop and glow
+  overlay are generic — Grovekeeper assigns meaning to them.
 
 **Acceptance Criteria:**
 
