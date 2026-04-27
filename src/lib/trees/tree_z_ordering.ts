@@ -11,13 +11,11 @@ export interface IndexedCanopyBlob {
 	readonly index: number;
 }
 
-// fallow-ignore-next-line unused-type
 export interface ZOrderedBranches {
 	readonly backRootBranches: readonly IndexedBranchGroup[];
 	readonly frontRootBranches: readonly IndexedBranchGroup[];
 }
 
-// fallow-ignore-next-line unused-type
 export interface ZOrderedCanopyBlobs {
 	readonly backCanopyBlobs: readonly IndexedCanopyBlob[];
 	readonly frontCanopyBlobs: readonly IndexedCanopyBlob[];

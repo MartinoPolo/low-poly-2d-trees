@@ -20,6 +20,8 @@ jobs:
             - run: pnpm cf:types
             - run: pnpm paraglide:compile
             - run: pnpm check:all
+            - name: Audit changed files for quality regressions
+              run: pnpm exec fallow audit
             - run: pnpm test -- --coverage
             - run: pnpm exec playwright install --with-deps chromium
             - name: Create .env and .dev.vars for e2e build + preview server
