@@ -10,11 +10,11 @@
 
 ## Commands
 
-- `pnpm run dev` -- dev server
-- `pnpm run check` -- typecheck
-- `pnpm run check:all` -- full check suite (format + lint + typecheck + stylelint + fallow dead-code)
-- `pnpm run test` -- unit tests
-- `pnpm run test:e2e` -- E2E tests
+- `pnpm dev` -- dev server
+- `pnpm typecheck` -- typecheck
+- `pnpm check:all` -- full check suite (format + lint + typecheck + stylelint + fallow dead-code)
+- `pnpm test` -- unit tests
+- `pnpm test:e2e` -- E2E tests
 
 ## Svelte Rules
 

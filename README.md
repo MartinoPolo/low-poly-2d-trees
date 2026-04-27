@@ -143,7 +143,7 @@ The barrel file (`src/lib/index.ts`) exports everything a consumer needs, groupe
 ### Building the Package
 
 ```sh
-pnpm run package    # runs svelte-package → outputs to ./dist
+pnpm package    # runs svelte-package → outputs to ./dist
 ```
 
 ## Stack
@@ -163,9 +163,9 @@ pnpm run package    # runs svelte-package → outputs to ./dist
 ```sh
 pnpm install
 cp .env.example .env   # set DATABASE_URL and AUTH_SECRET
-pnpm run db:start      # requires Docker
-pnpm run db:push
-pnpm run dev
+pnpm db:start      # requires Docker
+pnpm db:push
+pnpm dev
 ```
 
 ## Environment Variables
@@ -182,10 +182,10 @@ pnpm run dev
 ## Scripts
 
 ```sh
-pnpm run dev          # dev server
-pnpm run check        # typecheck + sveltecheck
-pnpm run check:all    # format + lint + typecheck + dead code + style
-pnpm run test         # unit tests
-pnpm run test:e2e     # E2E tests
-pnpm run db:studio    # Drizzle Studio GUI
+pnpm dev          # dev server
+pnpm typecheck        # typecheck + sveltecheck
+pnpm check:all    # format + lint + typecheck + dead code + style
+pnpm test         # unit tests
+pnpm test:e2e     # E2E tests
+pnpm db:studio    # Drizzle Studio GUI
 ```

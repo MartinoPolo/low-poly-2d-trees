@@ -1600,7 +1600,7 @@ Reusable SVG overlays. Visual shapes only — consumer applies semantics.
   `ground_definitions.ts`, `stage_definitions.ts`, `overlay_definitions.ts`) as the single source
   of truth. Remove parallel component maps (`FRUIT_SVG_COMPONENTS`, `FLOWER_SVG_COMPONENTS`, etc.).
 - **REQ-PRD8-08g** **CLI interface alignment:** Align the SVG conversion script CLI to use
-  positional args (`pnpm run convert-svg <input> <name>`) as specified, or update documentation
+  positional args (`pnpm convert-svg <input> <name>`) as specified, or update documentation
   to match the current named-flag interface. Pick one and be consistent.
 - **REQ-PRD8-08h** Rename the "Demo Preview" card/section to just "Preview."
 

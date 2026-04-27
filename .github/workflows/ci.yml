@@ -17,14 +17,14 @@ jobs:
                   node-version: 22
                   cache: pnpm
             - run: pnpm install --frozen-lockfile
-            - run: pnpm run cf:types
-            - run: pnpm run paraglide:compile
-            - run: pnpm run check:all
-            - run: pnpm run test -- --coverage
+            - run: pnpm cf:types
+            - run: pnpm paraglide:compile
+            - run: pnpm check:all
+            - run: pnpm test -- --coverage
             - run: pnpm exec playwright install --with-deps chromium
             - name: Create .env and .dev.vars for e2e build + preview server
               run: |
                   echo "DATABASE_URL=postgresql://test:test@localhost:5432/test" > .env
                   echo "AUTH_SECRET=ci-test-secret-not-for-production" >> .env
                   cp .env .dev.vars
-            - run: pnpm run test:e2e
+            - run: pnpm test:e2e
