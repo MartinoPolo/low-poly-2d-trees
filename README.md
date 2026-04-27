@@ -184,7 +184,9 @@ pnpm dev
 ```sh
 pnpm dev          # dev server
 pnpm typecheck        # typecheck + sveltecheck
-pnpm check:all    # format + lint + typecheck + dead code + style
+pnpm check:fast   # prettier + oxlint (pre-commit tier)
+pnpm check:fallow # dead-code regression gate
+pnpm check:all    # format + lint + fallow + typecheck + eslint
 pnpm test         # unit tests
 pnpm test:e2e     # E2E tests
 pnpm db:studio    # Drizzle Studio GUI
