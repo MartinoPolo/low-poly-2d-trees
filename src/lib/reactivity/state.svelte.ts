@@ -39,12 +39,9 @@ export class StateRaw<T> implements MutableState<T> {
 		this.#current = newValueTransformed;
 	}
 
+	// fallow-ignore-next-line unused-class-member
 	readonly() {
 		return new ReadonlyState(this);
-	}
-
-	protected() {
-		return new ProtectedState(this);
 	}
 }
 
@@ -55,24 +52,8 @@ export class ReadonlyState<T> implements ReadableState<T> {
 		this.#state = state;
 	}
 
+	// fallow-ignore-next-line unused-class-member
 	get current(): T {
 		return this.#state.current;
-	}
-}
-
-// fallow-ignore-next-line unused-export
-export class ProtectedState<T> implements ReadableState<T> {
-	#state;
-
-	constructor(state: MutableState<T>) {
-		this.#state = state;
-	}
-
-	get current() {
-		return this.#state.current;
-	}
-
-	setUnprotected(value: T) {
-		this.#state.current = value;
 	}
 }

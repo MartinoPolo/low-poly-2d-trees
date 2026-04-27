@@ -24,7 +24,7 @@ export const GEOMETRY_GROUPS = {
 	snow: 'snow',
 } as const;
 
-export type GeometryGroup = (typeof GEOMETRY_GROUPS)[keyof typeof GEOMETRY_GROUPS];
+type GeometryGroup = (typeof GEOMETRY_GROUPS)[keyof typeof GEOMETRY_GROUPS];
 
 export interface Point2D {
 	readonly x: number;
