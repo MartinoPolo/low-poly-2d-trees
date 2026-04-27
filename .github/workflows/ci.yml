@@ -24,7 +24,7 @@ jobs:
             - run: pnpm check:all
             - name: Audit changed files for quality regressions
               if: github.event_name == 'pull_request'
-              run: fallow audit --format json --quiet --explain --base origin/${{ github.base_ref }}
+              run: pnpm exec fallow audit --format json --quiet --explain --base origin/${{ github.base_ref }}
             - run: pnpm test -- --coverage
             - run: pnpm exec playwright install --with-deps chromium
             - name: Create .env and .dev.vars for e2e build + preview server
