@@ -1,1 +1,1 @@
-pnpm typecheck && pnpm test run
+pnpm check:fallow && pnpm typecheck && pnpm test run

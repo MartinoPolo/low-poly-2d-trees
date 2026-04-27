@@ -12,7 +12,9 @@
 
 - `pnpm dev` -- dev server
 - `pnpm typecheck` -- typecheck
-- `pnpm check:all` -- full check suite (format + lint + typecheck + stylelint + fallow dead-code)
+- `pnpm check:fast` -- prettier + oxlint (pre-commit tier)
+- `pnpm check:fallow` -- dead-code regression gate
+- `pnpm check:all` -- full check suite (format + lint + fallow + typecheck + eslint)
 - `pnpm test` -- unit tests
 - `pnpm test:e2e` -- E2E tests
 

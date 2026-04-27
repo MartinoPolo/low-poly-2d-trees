@@ -25,6 +25,7 @@
 		"unresolved-imports": "error",
 		"duplicate-exports": "off",
 		"circular-dependencies": "error",
-		"boundary-violations": "off"
+		"boundary-violations": "off",
+		"stale-suppressions": "error"
 	}
 }
