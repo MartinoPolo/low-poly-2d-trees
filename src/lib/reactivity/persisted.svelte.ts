@@ -111,6 +111,7 @@ export class Persisted<T> implements MutableState<T> {
 		this.#update?.();
 	}
 
+	// fallow-ignore-next-line unused-class-member
 	readonly(): ReadableState<T> {
 		return new ReadonlyState(this);
 	}

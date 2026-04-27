@@ -1,7 +1,7 @@
 import { TREE_SHAPE_OPTIONS, type TreeShape } from '$lib/trees/types.js';
 
 /** Non-custom tree shapes eligible for random scene assignment. */
-export type SceneTreeShape = Exclude<TreeShape, 'custom'>;
+type SceneTreeShape = Exclude<TreeShape, 'custom'>;
 
 /** Shapes eligible for random scene assignment (excludes 'custom'). */
 export const SCENE_SHAPES: readonly SceneTreeShape[] = [

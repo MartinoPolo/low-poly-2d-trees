@@ -13,6 +13,7 @@ export default [
 			'.storybook',
 			'.wrangler',
 			'build',
+			'dist',
 			'node_modules',
 			'src/lib/paraglide',
 			'**/*.config.*',
@@ -26,8 +27,7 @@ export default [
 			globals: { ...globals.browser, ...globals.node },
 			parserOptions: {
 				extraFileExtensions: ['.svelte'],
-				project: true,
-				tsconfigRootDir: import.meta.dirname,
+				projectService: true,
 			},
 		},
 		rules: {
@@ -42,7 +42,7 @@ export default [
 			],
 			'@typescript-eslint/require-array-sort-compare': 'error',
 			'@typescript-eslint/naming-convention': [
-				'warn',
+				'error',
 				{
 					selector: 'variableLike',
 					format: ['camelCase', 'PascalCase'],
@@ -55,16 +55,21 @@ export default [
 					leadingUnderscore: 'allow',
 				},
 				{
+					selector: 'variable',
+					filter: { regex: '^__[A-Z_]+__$', match: true },
+					format: null,
+				},
+				{
 					selector: 'typeLike',
 					format: ['PascalCase'],
 				},
 			],
-			'@typescript-eslint/consistent-type-definitions': 'warn',
+			'@typescript-eslint/consistent-type-definitions': 'error',
 			'@typescript-eslint/consistent-type-imports': [
-				'warn',
+				'error',
 				{ fixStyle: 'inline-type-imports' },
 			],
-			'@typescript-eslint/no-import-type-side-effects': 'warn',
+			'@typescript-eslint/no-import-type-side-effects': 'error',
 		},
 	},
 	...sveltePlugin.configs['flat/recommended'],
@@ -75,7 +80,7 @@ export default [
 			parserOptions: {
 				parser: '@typescript-eslint/parser',
 				extraFileExtensions: ['.svelte'],
-				project: true,
+				projectService: true,
 				svelteConfig,
 				svelteFeatures: {
 					experimentalGenerics: true,
@@ -88,8 +93,7 @@ export default [
 		languageOptions: {
 			parser: tseslint.parser,
 			parserOptions: {
-				project: true,
-				tsconfigRootDir: import.meta.dirname,
+				projectService: true,
 			},
 		},
 	},
@@ -117,7 +121,7 @@ export default [
 		files: ['src/lib/context/*.context.svelte.ts'],
 		rules: {
 			'@typescript-eslint/naming-convention': [
-				'warn',
+				'error',
 				{
 					selector: 'function',
 					format: ['snake_case', 'camelCase'],
