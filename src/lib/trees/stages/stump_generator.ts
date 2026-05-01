@@ -1,6 +1,6 @@
 import type { TreeGeometry } from '../types.js';
-import { VIEWBOX_WIDTH, VIEWBOX_HEIGHT } from '../types.js';
-import { GROUND_LINE_Y } from './constants.js';
+import { VIEWBOX_WIDTH } from '../types.js';
+import { GROUND_LINE_Y, createEmptyStageGeometry } from './constants.js';
 
 /** Stump geometry — visual rendering handled by StumpSvg component. */
 export function generateStumpGeometry(): TreeGeometry {
@@ -8,7 +8,7 @@ export function generateStumpGeometry(): TreeGeometry {
 	const groundY = GROUND_LINE_Y;
 	const stumpTop = groundY - 20;
 
-	const anchors = {
+	return createEmptyStageGeometry({
 		trunkTop: { x: cx, y: stumpTop - 3 },
 		trunkMiddle: { x: cx, y: (groundY + stumpTop) / 2 },
 		trunkBase: { x: cx, y: groundY },
@@ -17,22 +17,5 @@ export function generateStumpGeometry(): TreeGeometry {
 		roots: { x: cx, y: groundY + 15 },
 		branchTips: [],
 		fruitSlots: [],
-	};
-
-	return {
-		trunkQuads: [],
-		trunkTriangles: [],
-		branchGroups: [],
-		canopyBlobs: [],
-		fruitTriangles: [],
-		stakeTriangles: [],
-		fruitSlots: [],
-		flowerSlots: [],
-		showFallingLeaves: false,
-		showSnowBlobs: false,
-		snowAboveCanopy: false,
-		birchStripes: [],
-		anchors,
-		viewBox: { width: VIEWBOX_WIDTH, height: VIEWBOX_HEIGHT },
-	};
+	});
 }

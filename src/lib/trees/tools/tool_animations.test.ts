@@ -4,7 +4,7 @@ import type { ToolAnimationConfig } from './tool_animations.js';
 import { TOOL_TYPES } from './tool_types.js';
 
 describe('TOOL_ANIMATIONS', () => {
-	it('has animation config for all 9 tool types', () => {
+	it('has animation config for all 11 tool types', () => {
 		for (const toolType of Object.values(TOOL_TYPES)) {
 			expect(TOOL_ANIMATIONS).toHaveProperty(toolType);
 		}
@@ -54,6 +54,14 @@ describe('TOOL_ANIMATIONS', () => {
 
 	it('stormCloud duration is 2s', () => {
 		expect(TOOL_ANIMATIONS.stormCloud.duration).toBe(2);
+	});
+
+	it('lantern duration is 4s', () => {
+		expect(TOOL_ANIMATIONS.lantern.duration).toBe(4);
+	});
+
+	it('pruningShears duration is 1.5s', () => {
+		expect(TOOL_ANIMATIONS.pruningShears.duration).toBe(1.5);
 	});
 
 	it('ToolAnimationConfig type is exported and usable', () => {

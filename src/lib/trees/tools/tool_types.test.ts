@@ -2,12 +2,12 @@ import { describe, it, expect } from 'vitest';
 import { TOOL_TYPES, TOOL_OPTIONS, createDefaultToolVisibility } from './tool_types.js';
 
 describe('TOOL_TYPES', () => {
-	it('defines exactly 9 tools', () => {
+	it('defines exactly 11 tools', () => {
 		const types = Object.values(TOOL_TYPES);
-		expect(types).toHaveLength(9);
+		expect(types).toHaveLength(11);
 	});
 
-	it('contains shovel, wateringCan, ladder, axe, rake, woodpecker, grill, speechBubble, stormCloud', () => {
+	it('contains all 11 tool types', () => {
 		expect(TOOL_TYPES.shovel).toBe('shovel');
 		expect(TOOL_TYPES.wateringCan).toBe('wateringCan');
 		expect(TOOL_TYPES.ladder).toBe('ladder');
@@ -17,6 +17,8 @@ describe('TOOL_TYPES', () => {
 		expect(TOOL_TYPES.grill).toBe('grill');
 		expect(TOOL_TYPES.speechBubble).toBe('speechBubble');
 		expect(TOOL_TYPES.stormCloud).toBe('stormCloud');
+		expect(TOOL_TYPES.lantern).toBe('lantern');
+		expect(TOOL_TYPES.pruningShears).toBe('pruningShears');
 	});
 
 	it('does not contain birdNest', () => {
@@ -44,7 +46,7 @@ describe('TOOL_OPTIONS', () => {
 		}
 	});
 
-	it('has correct labels for all 9 tools', () => {
+	it('has correct labels for all 11 tools', () => {
 		const labelMap = new Map(TOOL_OPTIONS.map((o) => [o.value, o.label]));
 		expect(labelMap.get('shovel')).toBe('Shovel');
 		expect(labelMap.get('wateringCan')).toBe('Watering Can');
@@ -55,11 +57,13 @@ describe('TOOL_OPTIONS', () => {
 		expect(labelMap.get('grill')).toBe('Grill');
 		expect(labelMap.get('speechBubble')).toBe('Speech Bubble');
 		expect(labelMap.get('stormCloud')).toBe('Storm Cloud');
+		expect(labelMap.get('lantern')).toBe('Lantern');
+		expect(labelMap.get('pruningShears')).toBe('Pruning Shears');
 	});
 });
 
 describe('createDefaultToolVisibility', () => {
-	it('has entries for all 9 tools', () => {
+	it('has entries for all 11 tools', () => {
 		const visibility = createDefaultToolVisibility();
 		for (const toolType of Object.values(TOOL_TYPES)) {
 			expect(visibility).toHaveProperty(toolType);
@@ -83,6 +87,11 @@ describe('createDefaultToolVisibility', () => {
 	it('speechBubble entry has text field defaulting to empty string', () => {
 		const visibility = createDefaultToolVisibility();
 		expect(visibility.speechBubble.text).toBe('');
+	});
+
+	it('speechBubble entry has color field defaulting to undefined', () => {
+		const visibility = createDefaultToolVisibility();
+		expect(visibility.speechBubble.color).toBeUndefined();
 	});
 
 	it('returns a new object each call', () => {

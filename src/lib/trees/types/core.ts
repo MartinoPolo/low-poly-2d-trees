@@ -115,6 +115,14 @@ export interface BirchStripe {
 	readonly color: string;
 }
 
+export interface TrunkMushroom {
+	readonly y: number;
+	readonly centerX: number;
+	readonly side: 'left' | 'right';
+	readonly variant: number;
+	readonly scale: number;
+}
+
 export interface TreeGeometry {
 	/** Stacked trapezoid quads for trunk (BR-1). Empty for simple stages. */
 	readonly trunkQuads: readonly Quad[];
@@ -137,6 +145,8 @@ export interface TreeGeometry {
 	readonly viewBox: { readonly width: number; readonly height: number };
 	/** Dark horizontal stripes on birch trunks. Empty for non-birch shapes. */
 	readonly birchStripes: readonly BirchStripe[];
+	/** Small mushroom clusters on trunk edges. Empty when showMushrooms is off. */
+	readonly trunkMushrooms: readonly TrunkMushroom[];
 	/** Junction positions/widths/ratios for Phase 2 (REQ-EV2-C-01). */
 	readonly junctionData?: readonly JunctionData[];
 	/** Canopy envelope bounds for Phase 2 (REQ-EV2-C-04). */

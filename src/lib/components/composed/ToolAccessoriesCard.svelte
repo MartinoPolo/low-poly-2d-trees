@@ -16,6 +16,8 @@
 		[TOOL_TYPES.grill]: () => m.tool_grill(),
 		[TOOL_TYPES.speechBubble]: () => m.tool_speech_bubble(),
 		[TOOL_TYPES.stormCloud]: () => m.tool_storm_cloud(),
+		[TOOL_TYPES.lantern]: () => 'Lantern',
+		[TOOL_TYPES.pruningShears]: () => 'Pruning Shears',
 	};
 
 	interface Props {
@@ -47,12 +49,25 @@
 				id="tool-{option.value}-size"
 			/>
 			{#if option.value === TOOL_TYPES.speechBubble}
-				<div class="ml-6">
+				<div class="ml-6 space-y-2">
 					<Textarea
 						data-testid="tool-speechBubble-text"
 						placeholder={m.placeholder_enter_text()}
 						bind:value={toolVisibility[option.value].text}
 					/>
+					<label class="flex items-center gap-2 text-sm">
+						<span>Bubble Color</span>
+						<input
+							type="color"
+							value={toolVisibility[option.value].color ?? '#ffffff'}
+							oninput={(e) =>
+								(toolVisibility[option.value] = {
+									...toolVisibility[option.value],
+									color: e.currentTarget.value,
+								})}
+							data-testid="tool-speechBubble-color"
+						/>
+					</label>
 				</div>
 			{/if}
 		{/if}

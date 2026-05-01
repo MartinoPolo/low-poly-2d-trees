@@ -3,7 +3,7 @@ import { TOOL_DEFINITIONS } from './tool_definitions.js';
 import { TOOL_TYPES } from './tool_types.js';
 
 describe('TOOL_DEFINITIONS', () => {
-	it('has entries for all 9 tool types', () => {
+	it('has entries for all 11 tool types', () => {
 		for (const toolType of Object.values(TOOL_TYPES)) {
 			expect(TOOL_DEFINITIONS).toHaveProperty(toolType);
 		}
@@ -60,5 +60,13 @@ describe('TOOL_DEFINITIONS', () => {
 
 	it('stormCloud anchorTarget is crownTop', () => {
 		expect(TOOL_DEFINITIONS.stormCloud.anchorTarget).toBe('crownTop');
+	});
+
+	it('lantern anchorTarget is trunkBase', () => {
+		expect(TOOL_DEFINITIONS.lantern.anchorTarget).toBe('trunkBase');
+	});
+
+	it('pruningShears anchorTarget is trunkBase', () => {
+		expect(TOOL_DEFINITIONS.pruningShears.anchorTarget).toBe('trunkBase');
 	});
 });

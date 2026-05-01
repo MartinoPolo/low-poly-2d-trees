@@ -18,6 +18,8 @@ import WoodpeckerSvg from '$lib/trees/assets/tools/WoodpeckerSvg.svelte';
 import GrillSvg from '$lib/trees/assets/tools/GrillSvg.svelte';
 import SpeechBubbleSvg from '$lib/trees/assets/tools/SpeechBubbleSvg.svelte';
 import StormCloudSvg from '$lib/trees/assets/tools/StormCloudSvg.svelte';
+import LanternSvg from '$lib/trees/assets/tools/LanternSvg.svelte';
+import PruningShearsSvg from '$lib/trees/assets/tools/PruningShearsSvg.svelte';
 
 export interface ToolDefinition {
 	readonly svgComponent: Component;
@@ -80,5 +82,17 @@ export const TOOL_DEFINITIONS = {
 		anchorTarget: 'crownTop',
 		snapOffset: { x: 0, y: 10 },
 		pivotPoint: { x: 0, y: -20 },
+	},
+	[TOOL_TYPES.lantern]: {
+		svgComponent: LanternSvg,
+		anchorTarget: 'trunkBase',
+		snapOffset: { x: -20, y: 25 },
+		pivotPoint: { x: 20, y: 50 },
+	},
+	[TOOL_TYPES.pruningShears]: {
+		svgComponent: PruningShearsSvg,
+		anchorTarget: 'trunkBase',
+		snapOffset: { x: 20, y: 30 },
+		pivotPoint: { x: 15, y: 20 },
 	},
 } as const satisfies Record<ToolType, ToolDefinition>;

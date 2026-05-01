@@ -14,4 +14,6 @@ export const TOOL_ANIMATIONS = {
 	grill: { duration: 2 },
 	speechBubble: { duration: 0 },
 	stormCloud: { duration: 2 },
+	lantern: { duration: 4 },
+	pruningShears: { duration: 1.5 },
 } as const satisfies Record<ToolType, ToolAnimationConfig>;

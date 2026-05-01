@@ -46,12 +46,14 @@ import {
 import { generateAllBranchQuads } from './generate/branch_geometry.js';
 import { generateBlobCanopy, generateTierCanopy } from './generate/canopy_triangulation.js';
 import { generateBirchStripes } from './generate/birch_stripes.js';
+import { generateTrunkMushrooms } from './generate/trunk_mushrooms.js';
 import { computeAnchors } from './generate/anchors.js';
 
 export { computeJunctionStripRatios, computeHybridTaper };
 
 const FRUIT_COUNT_CAP = 7;
 const BIRCH_STRIPE_SEED_OFFSET = 9999;
+const MUSHROOM_SEED_OFFSET = 8888;
 
 interface StageFlags {
 	readonly addStakes: boolean;
@@ -91,6 +93,7 @@ export function generateTree(config: TreeConfig): TreeGeometry {
 	return generateTreeCore(config, customFlags);
 }
 
+// fallow-ignore-next-line complexity
 function generateTreeCore(config: TreeConfig, flags: StageFlags): TreeGeometry {
 	const rng = createPrng(config.seed);
 	const shapeDef = getShapeDefinition(config.shape);
@@ -557,6 +560,15 @@ function generateTreeCore(config: TreeConfig, flags: StageFlags): TreeGeometry {
 				)
 			: [];
 
+	const trunkMushrooms =
+		config.showMushrooms === true
+			? generateTrunkMushrooms(
+					trunkJunctions,
+					trunkResult.junctionWidths,
+					createPrng(config.seed + MUSHROOM_SEED_OFFSET),
+				)
+			: [];
+
 	return {
 		trunkQuads,
 		trunkTriangles: [],
@@ -570,6 +582,7 @@ function generateTreeCore(config: TreeConfig, flags: StageFlags): TreeGeometry {
 		showSnowBlobs: flags.addSnowBlobs,
 		snowAboveCanopy: flags.addSnowBlobs && !isTiered,
 		birchStripes,
+		trunkMushrooms,
 		anchors: anchorsWithTipDepths,
 		viewBox: { width: VIEWBOX_WIDTH, height: VIEWBOX_HEIGHT },
 		junctionData,

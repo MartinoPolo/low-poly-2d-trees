@@ -3,6 +3,7 @@
 	import { TREE_STAGES } from '$lib/trees/types.js';
 	import type { TreeGeometry } from '$lib/trees/types/core.js';
 	import type { TreeStage } from '$lib/trees/types.js';
+	import MushroomSvg from '$lib/trees/assets/decorations/MushroomSvg.svelte';
 
 	const STAGE_TO_ASSET_TYPE: Partial<Record<TreeStage, keyof typeof STAGE_DEFINITIONS>> = {
 		[TREE_STAGES.seed]: STAGE_ASSET_TYPES.seed,
@@ -60,6 +61,16 @@
 				height={stripe.height}
 				fill={stripe.color}
 			/>
+		{/each}
+		{#each geometry.trunkMushrooms as mushroom (mushroom)}
+			<g
+				transform="translate({mushroom.centerX}, {mushroom.y}) scale({mushroom.side ===
+				'left'
+					? -1
+					: 1}, 1) scale({mushroom.scale})"
+			>
+				<MushroomSvg variant={mushroom.variant} />
+			</g>
 		{/each}
 	{/if}
 </g>
