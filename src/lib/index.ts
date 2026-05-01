@@ -25,6 +25,7 @@ export {
 	type BranchGeometry,
 	type JunctionData,
 	type BirchStripe,
+	type TrunkMushroom,
 	type TreeGeometry,
 } from './trees/types/core.js';
 
@@ -164,4 +165,11 @@ export {
 	hslToHex,
 	interpolateHslInHexSpace,
 	clamp,
+	relativeLuminance,
+	contrastTextColor,
 } from './trees/color.js';
+
+/** Bird system — sub-agent visualization */
+export { BIRD_SPECIES, type BirdSpecies, type BirdConfig } from './trees/birds/bird_types.js';
+
+export { type BirdDefinition, BIRD_DEFINITIONS } from './trees/birds/bird_definitions.js';

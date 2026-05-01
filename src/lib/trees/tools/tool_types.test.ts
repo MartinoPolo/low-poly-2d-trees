@@ -58,6 +58,8 @@ describe('TOOL_OPTIONS', () => {
 		expect(labelMap.get('grill')).toBe('Grill');
 		expect(labelMap.get('speechBubble')).toBe('Speech Bubble');
 		expect(labelMap.get('stormCloud')).toBe('Storm Cloud');
+		expect(labelMap.get('lantern')).toBe('Lantern');
+		expect(labelMap.get('pruningShears')).toBe('Pruning Shears');
 	});
 });
 
@@ -86,6 +88,11 @@ describe('createDefaultToolVisibility', () => {
 	it('speechBubble entry has text field defaulting to empty string', () => {
 		const visibility = createDefaultToolVisibility();
 		expect(visibility.speechBubble.text).toBe('');
+	});
+
+	it('speechBubble entry has color field defaulting to undefined', () => {
+		const visibility = createDefaultToolVisibility();
+		expect(visibility.speechBubble.color).toBeUndefined();
 	});
 
 	it('returns a new object each call', () => {

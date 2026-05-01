@@ -25,18 +25,30 @@ function normalizeHue(hue: number): number {
 	return ((hue % 360) + 360) % 360;
 }
 
-/**
- * Parse a `#rrggbb` hex string into HSL. Throws on malformed input.
- */
-export function hexToHsl(hex: string): HslColor {
+interface Rgb {
+	readonly r: number;
+	readonly g: number;
+	readonly b: number;
+}
+
+function parseHexToRgb(hex: string): Rgb {
 	const match = /^#([0-9a-f]{6})$/i.exec(hex);
 	if (!match) {
 		throw new Error(`Invalid hex color: ${hex}`);
 	}
 	const digits = match[1]!;
-	const r = parseInt(digits.slice(0, 2), 16) / 255;
-	const g = parseInt(digits.slice(2, 4), 16) / 255;
-	const b = parseInt(digits.slice(4, 6), 16) / 255;
+	return {
+		r: parseInt(digits.slice(0, 2), 16) / 255,
+		g: parseInt(digits.slice(2, 4), 16) / 255,
+		b: parseInt(digits.slice(4, 6), 16) / 255,
+	};
+}
+
+/**
+ * Parse a `#rrggbb` hex string into HSL. Throws on malformed input.
+ */
+export function hexToHsl(hex: string): HslColor {
+	const { r, g, b } = parseHexToRgb(hex);
 
 	const max = Math.max(r, g, b);
 	const min = Math.min(r, g, b);
@@ -117,6 +129,27 @@ function lerpHue(from: number, to: number, t: number): number {
 		shortest = diff + 360;
 	}
 	return normalizeHue(from + shortest * t);
+}
+
+/**
+ * Compute W3C relative luminance from a `#rrggbb` hex string.
+ * Linearizes sRGB channels then applies the ITU-R BT.709 coefficients.
+ */
+export function relativeLuminance(hex: string): number {
+	const { r, g, b } = parseHexToRgb(hex);
+
+	const linearize = (channel: number): number =>
+		channel <= 0.04045 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4;
+
+	return 0.2126 * linearize(r) + 0.7152 * linearize(g) + 0.0722 * linearize(b);
+}
+
+/**
+ * Return `'#000000'` (dark text) for light backgrounds, `'#ffffff'` (light
+ * text) for dark backgrounds. Uses the W3C 0.179 luminance threshold.
+ */
+export function contrastTextColor(backgroundHex: string): string {
+	return relativeLuminance(backgroundHex) > 0.179 ? '#000000' : '#ffffff';
 }
 
 /**

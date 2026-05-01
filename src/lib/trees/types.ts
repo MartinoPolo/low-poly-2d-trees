@@ -11,6 +11,7 @@ export {
 	type BranchGeometry,
 	type JunctionData,
 	type BirchStripe,
+	type TrunkMushroom,
 	type TreeGeometry,
 } from './types/core.js';
 

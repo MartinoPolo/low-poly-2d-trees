@@ -167,6 +167,7 @@ function generateFruitSlotPositions(
 	return slots;
 }
 
+// fallow-ignore-next-line complexity
 export function generatePottedPlant(config: PottedPlantConfig): TreeGeometry {
 	const rng = createPrng(config.seed);
 	const cx = VIEWBOX_WIDTH / 2;
@@ -263,6 +264,7 @@ export function generatePottedPlant(config: PottedPlantConfig): TreeGeometry {
 		showSnowBlobs: false,
 		snowAboveCanopy: false,
 		birchStripes: [],
+		trunkMushrooms: [],
 		anchors,
 		viewBox: { width: VIEWBOX_WIDTH, height: VIEWBOX_HEIGHT },
 	};

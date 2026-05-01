@@ -1,5 +1,11 @@
 import { describe, it, expect } from 'vitest';
-import { hexToHsl, hslToHex, interpolateHslInHexSpace } from './color.js';
+import {
+	hexToHsl,
+	hslToHex,
+	interpolateHslInHexSpace,
+	relativeLuminance,
+	contrastTextColor,
+} from './color.js';
 
 // Round-trip tolerance in HSL channel units. Converting hex -> HSL -> hex
 // is lossy at the edges due to integer rounding on 0..255 channels, so
@@ -172,5 +178,39 @@ describe('color: interpolateHslInHexSpace', () => {
 		const a = interpolateHslInHexSpace(dark, light, 0.37);
 		const b = interpolateHslInHexSpace(dark, light, 0.37);
 		expect(a).toBe(b);
+	});
+});
+
+describe('color: relativeLuminance', () => {
+	it('white has luminance ≈ 1.0', () => {
+		expect(relativeLuminance('#ffffff')).toBeCloseTo(1.0, 2);
+	});
+
+	it('black has luminance ≈ 0.0', () => {
+		expect(relativeLuminance('#000000')).toBeCloseTo(0.0, 2);
+	});
+
+	it('red luminance is between 0.1 and 0.3', () => {
+		const lum = relativeLuminance('#ff0000');
+		expect(lum).toBeGreaterThan(0.1);
+		expect(lum).toBeLessThan(0.3);
+	});
+});
+
+describe('color: contrastTextColor', () => {
+	it('returns black text on white background', () => {
+		expect(contrastTextColor('#ffffff')).toBe('#000000');
+	});
+
+	it('returns white text on black background', () => {
+		expect(contrastTextColor('#000000')).toBe('#ffffff');
+	});
+
+	it('returns white text on dark red (#cc0000)', () => {
+		expect(contrastTextColor('#cc0000')).toBe('#ffffff');
+	});
+
+	it('returns black text on yellow (#ffff00)', () => {
+		expect(contrastTextColor('#ffff00')).toBe('#000000');
 	});
 });

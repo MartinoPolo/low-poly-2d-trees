@@ -33,7 +33,7 @@ export function createDefaultToolVisibility(): ToolVisibility {
 		[TOOL_TYPES.rake]: { visible: false, size: 1 },
 		[TOOL_TYPES.woodpecker]: { visible: false, size: 1 },
 		[TOOL_TYPES.grill]: { visible: false, size: 1 },
-		[TOOL_TYPES.speechBubble]: { visible: false, size: 1, text: '' },
+		[TOOL_TYPES.speechBubble]: { visible: false, size: 1, text: '', color: undefined },
 		[TOOL_TYPES.stormCloud]: { visible: false, size: 1 },
 		[TOOL_TYPES.lantern]: { visible: false, size: 1 },
 		[TOOL_TYPES.pruningShears]: { visible: false, size: 1 },

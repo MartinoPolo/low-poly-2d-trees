@@ -1,12 +1,11 @@
 import { describe, it, expect } from 'vitest';
 import { TOOL_DEFINITIONS } from './tool_definitions.js';
-import { TOOL_TYPES } from './tool_types.js';
 
 const DEFINED_TOOLS = Object.keys(TOOL_DEFINITIONS) as Array<keyof typeof TOOL_DEFINITIONS>;
 
 describe('TOOL_DEFINITIONS', () => {
-	it('has entries for all original tool types', () => {
-		const originalTools = [
+	it('has entries for all tools with SVG components', () => {
+		const toolsWithSvg = [
 			'shovel',
 			'wateringCan',
 			'ladder',
@@ -16,8 +15,10 @@ describe('TOOL_DEFINITIONS', () => {
 			'grill',
 			'speechBubble',
 			'stormCloud',
+			'lantern',
+			'pruningShears',
 		];
-		for (const toolType of originalTools) {
+		for (const toolType of toolsWithSvg) {
 			expect(TOOL_DEFINITIONS).toHaveProperty(toolType);
 		}
 	});
@@ -73,5 +74,13 @@ describe('TOOL_DEFINITIONS', () => {
 
 	it('stormCloud anchorTarget is crownTop', () => {
 		expect(TOOL_DEFINITIONS.stormCloud.anchorTarget).toBe('crownTop');
+	});
+
+	it('lantern anchorTarget is trunkBase', () => {
+		expect(TOOL_DEFINITIONS.lantern.anchorTarget).toBe('trunkBase');
+	});
+
+	it('pruningShears anchorTarget is trunkBase', () => {
+		expect(TOOL_DEFINITIONS.pruningShears.anchorTarget).toBe('trunkBase');
 	});
 });

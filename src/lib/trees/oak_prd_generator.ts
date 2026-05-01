@@ -92,6 +92,7 @@ function scaleGeometry(geometry: TreeGeometry): TreeGeometry {
 		showSnowBlobs: geometry.showSnowBlobs,
 		snowAboveCanopy: geometry.snowAboveCanopy,
 		birchStripes: [],
+		trunkMushrooms: [],
 		anchors: scaleAnchors(geometry.anchors),
 		viewBox: OAK_PRD_VIEWBOX,
 	};

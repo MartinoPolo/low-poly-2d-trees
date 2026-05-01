@@ -40,7 +40,9 @@
 	import TreeCanopyLayer from '$lib/trees/TreeCanopyLayer.svelte';
 	import TreeFruitAndFlowerLayer from '$lib/trees/TreeFruitAndFlowerLayer.svelte';
 	import TreeFallingLeavesLayer from '$lib/trees/TreeFallingLeavesLayer.svelte';
+	import TreeBirdLayer from '$lib/trees/TreeBirdLayer.svelte';
 	import TreeDebugOverlays from '$lib/trees/TreeDebugOverlays.svelte';
+	import type { BirdConfig } from '$lib/trees/birds/bird_types.js';
 
 	interface Props {
 		config?: TreeConfig;
@@ -68,6 +70,8 @@
 		toolSnapOffsetOverride?: { toolType: ToolType; offset: Point2D };
 		toolAnchorTargetOverride?: { toolType: ToolType; anchorTarget: ToolAnchorKey };
 		showAnchorOverlay?: boolean;
+		birds?: BirdConfig[];
+		onbirdclick?: (bird: BirdConfig, index: number) => void;
 		/** @default false */
 		disabled?: boolean;
 		class?: string;
@@ -99,6 +103,8 @@
 		flowerOriginOffsetOverride,
 		toolSnapOffsetOverride,
 		toolAnchorTargetOverride,
+		birds,
+		onbirdclick,
 		showAnchorOverlay = false,
 		disabled = false,
 		class: className = '',
@@ -313,6 +319,7 @@
 							size={toolVisibility[toolType].size}
 							animate={animateTools}
 							text={toolVisibility[toolType].text}
+							color={toolVisibility[toolType].color}
 							snapOffsetOverride={toolSnapOffsetOverride?.toolType === toolType
 								? toolSnapOffsetOverride.offset
 								: undefined}
@@ -320,6 +327,10 @@
 					{/if}
 				{/each}
 			</g>
+		{/if}
+
+		{#if birds && birds.length > 0}
+			<TreeBirdLayer {birds} branchTips={geometry.anchors.branchTips} {onbirdclick} />
 		{/if}
 
 		<TreeDebugOverlays

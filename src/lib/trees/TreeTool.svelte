@@ -11,6 +11,7 @@
 		animate: boolean;
 		reviewerCount?: number;
 		text?: string;
+		color?: string;
 		snapOffsetOverride?: { x: number; y: number };
 	}
 
@@ -21,6 +22,7 @@
 		animate,
 		reviewerCount = 0,
 		text,
+		color,
 		snapOffsetOverride,
 	}: Props = $props();
 
@@ -47,7 +49,9 @@
 			style="--tool-duration: {animationConfig.duration}s; --pivot-x: {definition?.pivotPoint
 				?.x ?? 0}px; --pivot-y: {definition?.pivotPoint?.y ?? 0}px;"
 		>
-			{#if text !== undefined}
+			{#if text !== undefined && color !== undefined}
+				<SvgComponent {text} {color} />
+			{:else if text !== undefined}
 				<SvgComponent {text} />
 			{:else}
 				<SvgComponent />
@@ -237,6 +241,52 @@
 
 	.tool-anim.animate-tool[data-tool-type='stormCloud'] {
 		animation: tool-storm-cloud-idle var(--tool-duration) ease-in-out infinite;
+	}
+
+	@keyframes tool-lantern-idle {
+		0%,
+		100% {
+			transform: translate(0, 0);
+		}
+
+		25% {
+			transform: translate(6px, -3px);
+		}
+
+		50% {
+			transform: translate(0, 0);
+		}
+
+		75% {
+			transform: translate(-6px, -3px);
+		}
+	}
+
+	.tool-anim.animate-tool[data-tool-type='lantern'] {
+		animation: tool-lantern-idle var(--tool-duration) ease-in-out infinite;
+	}
+
+	@keyframes tool-pruning-shears-idle {
+		0%,
+		100% {
+			transform: rotate(0deg);
+		}
+
+		40% {
+			transform: rotate(-8deg);
+		}
+
+		50% {
+			transform: rotate(5deg);
+		}
+
+		60% {
+			transform: rotate(-3deg);
+		}
+	}
+
+	.tool-anim.animate-tool[data-tool-type='pruningShears'] {
+		animation: tool-pruning-shears-idle var(--tool-duration) ease-in-out infinite;
 	}
 
 	.woodpecker-badge text {

@@ -75,6 +75,7 @@ export interface TreeConfig {
 	readonly customBlobs?: readonly CustomBlob[];
 	readonly fruitType: FruitType;
 	readonly fruitCount: number;
+	readonly showMushrooms?: boolean;
 }
 
 export const DEFAULT_TREE_CONFIG: TreeConfig = {

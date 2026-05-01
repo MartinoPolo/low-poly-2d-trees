@@ -5,3 +5,5 @@ export { default as RakeSvg } from './RakeSvg.svelte';
 export { default as ShovelSvg } from './ShovelSvg.svelte';
 export { default as WateringCanSvg } from './WateringCanSvg.svelte';
 export { default as WoodpeckerSvg } from './WoodpeckerSvg.svelte';
+export { default as LanternSvg } from './LanternSvg.svelte';
+export { default as PruningShearsSvg } from './PruningShearsSvg.svelte';

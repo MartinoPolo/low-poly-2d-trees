@@ -1,11 +1,10 @@
 import { describe, it, expect } from 'vitest';
 import { TOOL_ANIMATIONS } from './tool_animations.js';
 import type { ToolAnimationConfig } from './tool_animations.js';
-import { TOOL_TYPES } from './tool_types.js';
 
 describe('TOOL_ANIMATIONS', () => {
-	it('has animation config for all original tool types', () => {
-		const originalTools = [
+	it('has animation config for all tools with animations', () => {
+		const toolsWithAnimations = [
 			'shovel',
 			'wateringCan',
 			'ladder',
@@ -15,8 +14,10 @@ describe('TOOL_ANIMATIONS', () => {
 			'grill',
 			'speechBubble',
 			'stormCloud',
+			'lantern',
+			'pruningShears',
 		];
-		for (const toolType of originalTools) {
+		for (const toolType of toolsWithAnimations) {
 			expect(TOOL_ANIMATIONS).toHaveProperty(toolType);
 		}
 	});
@@ -66,6 +67,14 @@ describe('TOOL_ANIMATIONS', () => {
 
 	it('stormCloud duration is 2s', () => {
 		expect(TOOL_ANIMATIONS.stormCloud.duration).toBe(2);
+	});
+
+	it('lantern duration is 4s', () => {
+		expect(TOOL_ANIMATIONS.lantern.duration).toBe(4);
+	});
+
+	it('pruningShears duration is 1.5s', () => {
+		expect(TOOL_ANIMATIONS.pruningShears.duration).toBe(1.5);
 	});
 
 	it('ToolAnimationConfig type is exported and usable', () => {
