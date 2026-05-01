@@ -16,4 +16,10 @@ export const TOOL_ANIMATIONS = {
 	stormCloud: { duration: 2 },
 	lantern: { duration: 4 },
 	pruningShears: { duration: 1.5 },
-} as const satisfies Record<ToolType, ToolAnimationConfig>;
+} as const satisfies Partial<Record<ToolType, ToolAnimationConfig>>;
+
+const DEFAULT_ANIMATION: ToolAnimationConfig = { duration: 0 };
+
+export function getToolAnimation(toolType: ToolType): ToolAnimationConfig {
+	return TOOL_ANIMATIONS[toolType as keyof typeof TOOL_ANIMATIONS] ?? DEFAULT_ANIMATION;
+}

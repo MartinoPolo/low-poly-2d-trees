@@ -118,7 +118,11 @@ export {
 } from './trees/tools/tool_definitions.js';
 
 /** Tool animation configuration */
-export { type ToolAnimationConfig, TOOL_ANIMATIONS } from './trees/tools/tool_animations.js';
+export {
+	type ToolAnimationConfig,
+	TOOL_ANIMATIONS,
+	getToolAnimation,
+} from './trees/tools/tool_animations.js';
 
 /** Overlay and glow configuration */
 export {

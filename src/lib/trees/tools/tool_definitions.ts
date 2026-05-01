@@ -1,14 +1,5 @@
 import type { Component } from 'svelte';
 import type { ToolType } from './tool_types.js';
-import { TOOL_TYPES } from './tool_types.js';
-
-export type ToolAnchorKey =
-	| 'trunkBase'
-	| 'trunkMiddle'
-	| 'trunkTop'
-	| 'crownCenter'
-	| 'crownTop'
-	| 'roots';
 import ShovelSvg from '$lib/trees/assets/tools/ShovelSvg.svelte';
 import WateringCanSvg from '$lib/trees/assets/tools/WateringCanSvg.svelte';
 import LadderSvg from '$lib/trees/assets/tools/LadderSvg.svelte';
@@ -21,6 +12,14 @@ import StormCloudSvg from '$lib/trees/assets/tools/StormCloudSvg.svelte';
 import LanternSvg from '$lib/trees/assets/tools/LanternSvg.svelte';
 import PruningShearsSvg from '$lib/trees/assets/tools/PruningShearsSvg.svelte';
 
+export type ToolAnchorKey =
+	| 'trunkBase'
+	| 'trunkMiddle'
+	| 'trunkTop'
+	| 'crownCenter'
+	| 'crownTop'
+	| 'roots';
+
 export interface ToolDefinition {
 	readonly svgComponent: Component;
 	readonly anchorTarget: ToolAnchorKey;
@@ -29,70 +28,78 @@ export interface ToolDefinition {
 }
 
 export const TOOL_DEFINITIONS = {
-	[TOOL_TYPES.shovel]: {
+	shovel: {
 		svgComponent: ShovelSvg,
-		anchorTarget: 'trunkBase',
+		anchorTarget: 'trunkBase' as const,
 		snapOffset: { x: 0, y: 47 },
 		pivotPoint: { x: 38, y: 2 },
 	},
-	[TOOL_TYPES.wateringCan]: {
+	wateringCan: {
 		svgComponent: WateringCanSvg,
-		anchorTarget: 'trunkBase',
+		anchorTarget: 'trunkBase' as const,
 		snapOffset: { x: 16, y: -8 },
 		pivotPoint: { x: 16, y: 0 },
 	},
-	[TOOL_TYPES.ladder]: {
+	ladder: {
 		svgComponent: LadderSvg,
-		anchorTarget: 'trunkBase',
+		anchorTarget: 'trunkBase' as const,
 		snapOffset: { x: 4, y: 79 },
 		pivotPoint: { x: 1, y: 0 },
 	},
-	[TOOL_TYPES.axe]: {
+	axe: {
 		svgComponent: AxeSvg,
-		anchorTarget: 'trunkMiddle',
+		anchorTarget: 'trunkMiddle' as const,
 		snapOffset: { x: 50, y: 43 },
 		pivotPoint: { x: 1, y: 44 },
 	},
-	[TOOL_TYPES.rake]: {
+	rake: {
 		svgComponent: RakeSvg,
-		anchorTarget: 'trunkBase',
+		anchorTarget: 'trunkBase' as const,
 		snapOffset: { x: 24, y: 37 },
 		pivotPoint: { x: 0, y: 1 },
 	},
-	[TOOL_TYPES.woodpecker]: {
+	woodpecker: {
 		svgComponent: WoodpeckerSvg,
-		anchorTarget: 'trunkMiddle',
+		anchorTarget: 'trunkMiddle' as const,
 		snapOffset: { x: 12, y: -12 },
 		pivotPoint: { x: 0, y: 12 },
 	},
-	[TOOL_TYPES.grill]: {
+	grill: {
 		svgComponent: GrillSvg,
-		anchorTarget: 'trunkBase',
+		anchorTarget: 'trunkBase' as const,
 		snapOffset: { x: -25, y: 25 },
 		pivotPoint: { x: 10, y: 20 },
 	},
-	[TOOL_TYPES.speechBubble]: {
+	speechBubble: {
 		svgComponent: SpeechBubbleSvg,
-		anchorTarget: 'crownTop',
+		anchorTarget: 'crownTop' as const,
 		snapOffset: { x: 0, y: -10 },
 		pivotPoint: { x: 0, y: 0 },
 	},
-	[TOOL_TYPES.stormCloud]: {
+	stormCloud: {
 		svgComponent: StormCloudSvg,
-		anchorTarget: 'crownTop',
+		anchorTarget: 'crownTop' as const,
 		snapOffset: { x: 0, y: 10 },
 		pivotPoint: { x: 0, y: -20 },
 	},
-	[TOOL_TYPES.lantern]: {
+	lantern: {
 		svgComponent: LanternSvg,
-		anchorTarget: 'trunkBase',
+		anchorTarget: 'trunkBase' as const,
 		snapOffset: { x: -20, y: 25 },
 		pivotPoint: { x: 20, y: 50 },
 	},
-	[TOOL_TYPES.pruningShears]: {
+	pruningShears: {
 		svgComponent: PruningShearsSvg,
-		anchorTarget: 'trunkBase',
+		anchorTarget: 'trunkBase' as const,
 		snapOffset: { x: 20, y: 30 },
 		pivotPoint: { x: 15, y: 20 },
 	},
-} as const satisfies Record<ToolType, ToolDefinition>;
+} as const satisfies Partial<Record<ToolType, ToolDefinition>>;
+
+/**
+ * Safely get a tool definition, returning undefined if not found.
+ * Enables graceful degradation for tools without SVG components.
+ */
+export function getToolDefinition(toolType: ToolType): ToolDefinition | undefined {
+	return TOOL_DEFINITIONS[toolType as keyof typeof TOOL_DEFINITIONS];
+}

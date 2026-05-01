@@ -10,6 +10,7 @@ export const TOOL_TYPES = {
 	stormCloud: 'stormCloud',
 	lantern: 'lantern',
 	pruningShears: 'pruningShears',
+	mushrooms: 'mushrooms',
 } as const;
 
 export type ToolType = (typeof TOOL_TYPES)[keyof typeof TOOL_TYPES];
@@ -36,6 +37,7 @@ export function createDefaultToolVisibility(): ToolVisibility {
 		[TOOL_TYPES.stormCloud]: { visible: false, size: 1 },
 		[TOOL_TYPES.lantern]: { visible: false, size: 1 },
 		[TOOL_TYPES.pruningShears]: { visible: false, size: 1 },
+		[TOOL_TYPES.mushrooms]: { visible: false, size: 1 },
 	};
 }
 
@@ -51,4 +53,5 @@ export const TOOL_OPTIONS = [
 	{ value: TOOL_TYPES.stormCloud, label: 'Storm Cloud' },
 	{ value: TOOL_TYPES.lantern, label: 'Lantern' },
 	{ value: TOOL_TYPES.pruningShears, label: 'Pruning Shears' },
+	{ value: TOOL_TYPES.mushrooms, label: 'Mushrooms' },
 ] as const;
