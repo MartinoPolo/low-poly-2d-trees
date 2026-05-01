@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { Point2D } from '$lib/trees/types/core.js';
-	import { TOOL_DEFINITIONS, type ToolDefinition } from '$lib/trees/tools/tool_definitions.js';
-	import { TOOL_ANIMATIONS } from '$lib/trees/tools/tool_animations.js';
+	import { getToolDefinition, type ToolDefinition } from '$lib/trees/tools/tool_definitions.js';
+	import { getToolAnimation } from '$lib/trees/tools/tool_animations.js';
 	import { TOOL_TYPES, type ToolType } from '$lib/trees/tools/tool_types.js';
 
 	interface Props {
@@ -24,49 +24,54 @@
 		snapOffsetOverride,
 	}: Props = $props();
 
-	const definition: ToolDefinition = $derived(TOOL_DEFINITIONS[tool]);
-	const animationConfig = $derived(TOOL_ANIMATIONS[tool]);
-	const snapOffset = $derived(snapOffsetOverride ?? definition.snapOffset);
+	const definition: ToolDefinition | undefined = $derived(getToolDefinition(tool));
+	const animationConfig = $derived(getToolAnimation(tool));
+	const snapOffset = $derived(snapOffsetOverride ?? definition?.snapOffset ?? { x: 0, y: 0 });
 
 	const posX = $derived(anchor.x - snapOffset.x * size);
 	const posY = $derived(anchor.y - snapOffset.y * size);
 
-	const SvgComponent = $derived(definition.svgComponent);
+	const SvgComponent = $derived(definition?.svgComponent);
 
 	const showBadge = $derived(tool === TOOL_TYPES.woodpecker && reviewerCount > 0);
 </script>
 
-<!-- Outer <g> for positioning (translate + scale) — not animated -->
-<g data-tool={tool} transform="translate({posX}, {posY}) scale({size})">
-	<!-- Inner <g> for CSS animation — pivots around configured pivot point -->
-	<g
-		class="tool-anim"
-		class:animate-tool={animate}
-		data-tool-type={tool}
-		style="--tool-duration: {animationConfig.duration}s; --pivot-x: {definition.pivotPoint
-			.x}px; --pivot-y: {definition.pivotPoint.y}px;"
-	>
-		{#if text !== undefined}
-			<SvgComponent {text} />
-		{:else}
-			<SvgComponent />
+{#if SvgComponent}
+	<!-- Outer <g> for positioning (translate + scale) — not animated -->
+	<g data-tool={tool} transform="translate({posX}, {posY}) scale({size})">
+		<!-- Inner <g> for CSS animation — pivots around configured pivot point -->
+		<g
+			class="tool-anim"
+			class:animate-tool={animate}
+			data-tool-type={tool}
+			style="--tool-duration: {animationConfig.duration}s; --pivot-x: {definition?.pivotPoint
+				?.x ?? 0}px; --pivot-y: {definition?.pivotPoint?.y ?? 0}px;"
+		>
+			{#if text !== undefined}
+				<SvgComponent {text} />
+			{:else}
+				<SvgComponent />
+			{/if}
+		</g>
+
+		<!-- Woodpecker review badge -->
+		{#if showBadge}
+			<g
+				class="woodpecker-badge"
+				transform="translate({snapOffset.x + 10}, {snapOffset.y - 22})"
+			>
+				<circle r="7" fill="#ef4444" stroke="white" stroke-width="1" />
+				<text
+					text-anchor="middle"
+					dominant-baseline="central"
+					fill="white"
+					font-size="9"
+					font-weight="bold">{reviewerCount}</text
+				>
+			</g>
 		{/if}
 	</g>
-
-	<!-- Woodpecker review badge -->
-	{#if showBadge}
-		<g class="woodpecker-badge" transform="translate({snapOffset.x + 10}, {snapOffset.y - 22})">
-			<circle r="7" fill="#ef4444" stroke="white" stroke-width="1" />
-			<text
-				text-anchor="middle"
-				dominant-baseline="central"
-				fill="white"
-				font-size="9"
-				font-weight="bold">{reviewerCount}</text
-			>
-		</g>
-	{/if}
-</g>
+{/if}
 
 <style>
 	@keyframes tool-shovel-idle {

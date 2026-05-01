@@ -22,7 +22,7 @@
 	import GroundElements from '$lib/trees/ground/GroundElements.svelte';
 	import TreeTool from '$lib/trees/TreeTool.svelte';
 	import { TOOL_TYPES, type ToolVisibility, type ToolType } from '$lib/trees/tools/tool_types.js';
-	import { TOOL_DEFINITIONS, type ToolAnchorKey } from '$lib/trees/tools/tool_definitions.js';
+	import { getToolDefinition, type ToolAnchorKey } from '$lib/trees/tools/tool_definitions.js';
 	import {
 		OVERLAY_DEFAULTS,
 		OVERLAY_VIEWBOX_HEADROOM,
@@ -301,13 +301,14 @@
 		{#if toolVisibility}
 			<g class="tools-group">
 				{#each Object.values(TOOL_TYPES) as toolType (toolType)}
-					{#if toolVisibility[toolType].visible}
+					{@const toolDef = getToolDefinition(toolType)}
+					{#if toolVisibility[toolType].visible && toolDef}
 						<TreeTool
 							tool={toolType}
 							anchor={geometry.anchors[
 								toolAnchorTargetOverride?.toolType === toolType
 									? toolAnchorTargetOverride.anchorTarget
-									: TOOL_DEFINITIONS[toolType].anchorTarget
+									: toolDef.anchorTarget
 							]}
 							size={toolVisibility[toolType].size}
 							animate={animateTools}

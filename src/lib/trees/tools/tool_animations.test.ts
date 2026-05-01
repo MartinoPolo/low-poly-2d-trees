@@ -4,8 +4,19 @@ import type { ToolAnimationConfig } from './tool_animations.js';
 import { TOOL_TYPES } from './tool_types.js';
 
 describe('TOOL_ANIMATIONS', () => {
-	it('has animation config for all 9 tool types', () => {
-		for (const toolType of Object.values(TOOL_TYPES)) {
+	it('has animation config for all original tool types', () => {
+		const originalTools = [
+			'shovel',
+			'wateringCan',
+			'ladder',
+			'axe',
+			'rake',
+			'woodpecker',
+			'grill',
+			'speechBubble',
+			'stormCloud',
+		];
+		for (const toolType of originalTools) {
 			expect(TOOL_ANIMATIONS).toHaveProperty(toolType);
 		}
 	});
@@ -14,9 +25,10 @@ describe('TOOL_ANIMATIONS', () => {
 		expect(TOOL_ANIMATIONS).not.toHaveProperty('birdNest');
 	});
 
-	it('each tool has a non-negative duration', () => {
-		for (const toolType of Object.values(TOOL_TYPES)) {
-			expect(TOOL_ANIMATIONS[toolType].duration).toBeGreaterThanOrEqual(0);
+	it('each defined tool has a non-negative duration', () => {
+		const definedTools = Object.keys(TOOL_ANIMATIONS) as Array<keyof typeof TOOL_ANIMATIONS>;
+		for (const toolType of definedTools) {
+			expect(TOOL_ANIMATIONS[toolType]!.duration).toBeGreaterThanOrEqual(0);
 		}
 	});
 

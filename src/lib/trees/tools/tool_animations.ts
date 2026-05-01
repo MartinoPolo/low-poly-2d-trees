@@ -14,4 +14,10 @@ export const TOOL_ANIMATIONS = {
 	grill: { duration: 2 },
 	speechBubble: { duration: 0 },
 	stormCloud: { duration: 2 },
-} as const satisfies Record<ToolType, ToolAnimationConfig>;
+} as const satisfies Partial<Record<ToolType, ToolAnimationConfig>>;
+
+const DEFAULT_ANIMATION: ToolAnimationConfig = { duration: 0 };
+
+export function getToolAnimation(toolType: ToolType): ToolAnimationConfig {
+	return TOOL_ANIMATIONS[toolType as keyof typeof TOOL_ANIMATIONS] ?? DEFAULT_ANIMATION;
+}

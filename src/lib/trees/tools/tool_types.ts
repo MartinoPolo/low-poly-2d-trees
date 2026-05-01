@@ -8,6 +8,9 @@ export const TOOL_TYPES = {
 	grill: 'grill',
 	speechBubble: 'speechBubble',
 	stormCloud: 'stormCloud',
+	lantern: 'lantern',
+	pruningShears: 'pruningShears',
+	mushrooms: 'mushrooms',
 } as const;
 
 export type ToolType = (typeof TOOL_TYPES)[keyof typeof TOOL_TYPES];
@@ -16,6 +19,7 @@ export interface ToolVisibilityEntry {
 	visible: boolean;
 	size: number;
 	text?: string;
+	color?: string;
 }
 
 export type ToolVisibility = Record<ToolType, ToolVisibilityEntry>;
@@ -31,6 +35,9 @@ export function createDefaultToolVisibility(): ToolVisibility {
 		[TOOL_TYPES.grill]: { visible: false, size: 1 },
 		[TOOL_TYPES.speechBubble]: { visible: false, size: 1, text: '' },
 		[TOOL_TYPES.stormCloud]: { visible: false, size: 1 },
+		[TOOL_TYPES.lantern]: { visible: false, size: 1 },
+		[TOOL_TYPES.pruningShears]: { visible: false, size: 1 },
+		[TOOL_TYPES.mushrooms]: { visible: false, size: 1 },
 	};
 }
 
@@ -44,4 +51,7 @@ export const TOOL_OPTIONS = [
 	{ value: TOOL_TYPES.grill, label: 'Grill' },
 	{ value: TOOL_TYPES.speechBubble, label: 'Speech Bubble' },
 	{ value: TOOL_TYPES.stormCloud, label: 'Storm Cloud' },
+	{ value: TOOL_TYPES.lantern, label: 'Lantern' },
+	{ value: TOOL_TYPES.pruningShears, label: 'Pruning Shears' },
+	{ value: TOOL_TYPES.mushrooms, label: 'Mushrooms' },
 ] as const;
