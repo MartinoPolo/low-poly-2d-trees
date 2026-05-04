@@ -14,7 +14,7 @@ const CATEGORY_DEFINITION_PATHS = {
 
 type DefinitionCategory = keyof typeof CATEGORY_DEFINITION_PATHS;
 
-const SAFE_ASSET_NAME = /^[a-zA-Z][a-zA-Z0-9_]{0,63}$/;
+const SAFE_ASSET_NAME = /^[a-zA-Z][a-zA-Z0-9_]*$/;
 
 function isValidCategory(value: string): value is DefinitionCategory {
 	return value in CATEGORY_DEFINITION_PATHS;
@@ -52,7 +52,9 @@ function validateInput(body: unknown): ValidatedInput | { error: string } {
 		return { error: 'Invalid or missing category' };
 	}
 	if (typeof assetName !== 'string' || !SAFE_ASSET_NAME.test(assetName)) {
-		return { error: 'Invalid assetName — lowercase snake_case only' };
+		return {
+			error: 'Invalid assetName — must start with letter, contain only letters, digits, and underscores',
+		};
 	}
 	if (typeof values !== 'object' || values === null) {
 		return { error: 'Missing values' };
@@ -62,7 +64,7 @@ function validateInput(body: unknown): ValidatedInput | { error: string } {
 }
 
 function assetKeyPattern(assetName: string): string {
-	return `(?:[w+.${assetName}]|\b${assetName})s*:`;
+	return `(?:[w+.${assetName}]|${assetName})s*:`;
 }
 
 function replaceOffsetInContent(
