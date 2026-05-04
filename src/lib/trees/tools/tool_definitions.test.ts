@@ -44,11 +44,11 @@ describe('TOOL_DEFINITIONS', () => {
 	});
 
 	it('ladder anchorTarget is trunkBase', () => {
-		expect(TOOL_DEFINITIONS.ladder.anchorTarget).toBe('trunkBase');
+		expect(TOOL_DEFINITIONS.ladder!.anchorTarget).toBe('trunkBase');
 	});
 
 	it('axe anchorTarget is trunkMiddle', () => {
-		expect(TOOL_DEFINITIONS.axe.anchorTarget).toBe('trunkMiddle');
+		expect(TOOL_DEFINITIONS.axe!.anchorTarget).toBe('trunkMiddle');
 	});
 
 	it('each tool has a unique svgComponent', () => {
@@ -65,22 +65,22 @@ describe('TOOL_DEFINITIONS', () => {
 	});
 
 	it('grill anchorTarget is trunkBase', () => {
-		expect(TOOL_DEFINITIONS.grill.anchorTarget).toBe('trunkBase');
+		expect(TOOL_DEFINITIONS.grill!.anchorTarget).toBe('trunkBase');
 	});
 
 	it('speechBubble anchorTarget is crownTop', () => {
-		expect(TOOL_DEFINITIONS.speechBubble.anchorTarget).toBe('crownTop');
+		expect(TOOL_DEFINITIONS.speechBubble!.anchorTarget).toBe('crownTop');
 	});
 
 	it('stormCloud anchorTarget is crownTop', () => {
-		expect(TOOL_DEFINITIONS.stormCloud.anchorTarget).toBe('crownTop');
+		expect(TOOL_DEFINITIONS.stormCloud!.anchorTarget).toBe('crownTop');
 	});
 
 	it('lantern anchorTarget is trunkBase', () => {
-		expect(TOOL_DEFINITIONS.lantern.anchorTarget).toBe('trunkBase');
+		expect(TOOL_DEFINITIONS.lantern!.anchorTarget).toBe('trunkBase');
 	});
 
 	it('pruningShears anchorTarget is trunkBase', () => {
-		expect(TOOL_DEFINITIONS.pruningShears.anchorTarget).toBe('trunkBase');
+		expect(TOOL_DEFINITIONS.pruningShears!.anchorTarget).toBe('trunkBase');
 	});
 });

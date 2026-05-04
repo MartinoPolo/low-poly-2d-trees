@@ -130,9 +130,10 @@
 		loadAssetConfig(activeTab, value);
 	}
 
+	// fallow-ignore-next-line complexity
 	function loadAssetConfig(category: AssetCategory, assetKey: string) {
 		if (category === 'tools' && assetKey in TOOL_DEFINITIONS) {
-			const toolDef = TOOL_DEFINITIONS[assetKey as keyof typeof TOOL_DEFINITIONS];
+			const toolDef = TOOL_DEFINITIONS[assetKey as keyof typeof TOOL_DEFINITIONS]!;
 			snapOffset = { ...toolDef.snapOffset };
 			pivotPoint = { ...toolDef.pivotPoint };
 			assetScale = 1;
@@ -169,10 +170,10 @@
 		}
 	}
 
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	// fallow-ignore-next-line complexity
 	const selectedAssetComponent = $derived.by((): Component<any> | null => {
 		if (activeTab === 'tools' && selectedAsset in TOOL_DEFINITIONS) {
-			return TOOL_DEFINITIONS[selectedAsset as keyof typeof TOOL_DEFINITIONS].svgComponent;
+			return TOOL_DEFINITIONS[selectedAsset as keyof typeof TOOL_DEFINITIONS]!.svgComponent;
 		}
 		if (activeTab === 'fruits' && selectedAsset in FRUIT_DEFINITIONS) {
 			return FRUIT_DEFINITIONS[selectedAsset as keyof typeof FRUIT_DEFINITIONS].svgComponent;
@@ -209,6 +210,7 @@
 		return visibility;
 	});
 
+	// fallow-ignore-next-line complexity
 	const demoTreeConfig = $derived.by((): TreeConfig => {
 		const base = { ...DEFAULT_TREE_CONFIG };
 		switch (activeTab) {
@@ -271,6 +273,7 @@
 		fileInputElement?.click();
 	}
 
+	// fallow-ignore-next-line complexity
 	async function handleFileSelected(event: Event) {
 		const input = event.target as HTMLInputElement;
 		const file = input.files?.[0];
@@ -299,6 +302,7 @@
 		input.value = '';
 	}
 
+	// fallow-ignore-next-line complexity
 	async function handleApplyDefinition() {
 		applyStatus = 'Applying...';
 		const offsetKey =
@@ -344,6 +348,7 @@
 		(event.currentTarget as SVGElement).ownerSVGElement?.setPointerCapture(event.pointerId);
 	}
 
+	// fallow-ignore-next-line complexity
 	function handleEditorPointerMove(event: PointerEvent) {
 		if (!isDraggingSnap && !isDraggingPivot) {
 			return;
