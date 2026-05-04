@@ -63,8 +63,13 @@ function validateInput(body: unknown): ValidatedInput | { error: string } {
 	return { category, assetName, values: values as ApplyDefinitionValues };
 }
 
+function escapeForRegex(str: string): string {
+	return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 function assetKeyPattern(assetName: string): string {
-	return `(?:[w+.${assetName}]|${assetName})s*:`;
+	const escaped = escapeForRegex(assetName);
+	return `(?:\\[\\w+\\.${escaped}\\]|${escaped})\\s*:`;
 }
 
 function replaceOffsetInContent(
@@ -74,7 +79,7 @@ function replaceOffsetInContent(
 	offsetValue: OffsetValue,
 ): string {
 	const offsetPattern = new RegExp(
-		`(${assetKeyPattern(assetName)}[sS]*?)${offsetKey}:s*{s*x:s*[d.eE+-]+,s*y:s*[d.eE+-]+s*}`,
+		`(${assetKeyPattern(assetName)}[\\s\\S]*?)${offsetKey}:\\s*\\{\\s*x:\\s*[\\d.eE+-]+,\\s*y:\\s*[\\d.eE+-]+\\s*\\}`,
 	);
 	return content.replace(
 		offsetPattern,
@@ -87,12 +92,14 @@ function replaceAnchorTargetInContent(
 	assetName: string,
 	anchorTarget: string,
 ): string {
-	const pattern = new RegExp(`(${assetKeyPattern(assetName)}[sS]*?)anchorTarget:s*'[^']*'`);
+	const pattern = new RegExp(`(${assetKeyPattern(assetName)}[\\s\\S]*?)anchorTarget:\\s*'[^']*'`);
 	return content.replace(pattern, `$1anchorTarget: '${anchorTarget}'`);
 }
 
 function replaceScaleInContent(content: string, assetName: string, scaleValue: number): string {
-	const scalePattern = new RegExp(`(${assetKeyPattern(assetName)}[sS]*?)scale:s*[d.eE+-]+`);
+	const scalePattern = new RegExp(
+		`(${assetKeyPattern(assetName)}[\\s\\S]*?)scale:\\s*[\\d.eE+-]+`,
+	);
 	return content.replace(scalePattern, `$1scale: ${scaleValue}`);
 }
 
