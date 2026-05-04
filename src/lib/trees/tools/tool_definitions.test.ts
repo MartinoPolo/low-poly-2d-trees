@@ -76,8 +76,8 @@ describe('TOOL_DEFINITIONS', () => {
 		expect(TOOL_DEFINITIONS.stormCloud.anchorTarget).toBe('crownTop');
 	});
 
-	it('lantern anchorTarget is trunkBase', () => {
-		expect(TOOL_DEFINITIONS.lantern.anchorTarget).toBe('trunkBase');
+	it('lantern anchorTarget is trunkMiddle', () => {
+		expect(TOOL_DEFINITIONS.lantern.anchorTarget).toBe('trunkMiddle');
 	});
 
 	it('pruningShears anchorTarget is trunkBase', () => {
