@@ -27,7 +27,7 @@ export interface ToolDefinition {
 	readonly pivotPoint: { readonly x: number; readonly y: number };
 }
 
-export const TOOL_DEFINITIONS: Partial<Record<ToolType, ToolDefinition>> = {
+export const TOOL_DEFINITIONS = {
 	shovel: {
 		svgComponent: ShovelSvg,
 		anchorTarget: 'trunkBase',
@@ -94,12 +94,12 @@ export const TOOL_DEFINITIONS: Partial<Record<ToolType, ToolDefinition>> = {
 		snapOffset: { x: 20, y: 30 },
 		pivotPoint: { x: 15, y: 20 },
 	},
-};
+} satisfies Partial<Record<ToolType, ToolDefinition>>;
 
 /**
  * Safely get a tool definition, returning undefined if not found.
  * Enables graceful degradation for tools without SVG components.
  */
 export function getToolDefinition(toolType: ToolType): ToolDefinition | undefined {
-	return TOOL_DEFINITIONS[toolType];
+	return (TOOL_DEFINITIONS as Partial<Record<ToolType, ToolDefinition>>)[toolType];
 }

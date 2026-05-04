@@ -122,7 +122,7 @@ describe('barrel exports — src/lib/index.ts', () => {
 		const barrel = await import('$lib/index.js');
 
 		expect(barrel.TOOL_DEFINITIONS).toBeDefined();
-		const axeDef = barrel.TOOL_DEFINITIONS[barrel.TOOL_TYPES.axe]!;
+		const axeDef = barrel.TOOL_DEFINITIONS[barrel.TOOL_TYPES.axe];
 		expect(axeDef.anchorTarget).toBe('trunkMiddle');
 		expect(axeDef.snapOffset).toBeDefined();
 		expect(axeDef.pivotPoint).toBeDefined();

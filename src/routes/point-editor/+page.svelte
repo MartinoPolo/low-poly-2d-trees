@@ -115,8 +115,7 @@
 	let anchorTarget = $state<ToolAnchorKey>('trunkBase');
 	let showAnchorOverlay = $state(false);
 	let svgEditorElement = $state<SVGSVGElement>();
-	let isDraggingSnap = $state(false);
-	let isDraggingPivot = $state(false);
+	let dragMode = $state<'snap' | 'pivot' | null>(null);
 	let fileInputElement = $state<HTMLInputElement>();
 	let uploadStatus = $state<string | null>(null);
 	let applyStatus = $state<string | null>(null);
@@ -125,76 +124,104 @@
 	const assetOptions = $derived(CATEGORY_ASSET_OPTIONS[activeTab]);
 	const isDev = import.meta.env.DEV;
 
+	interface AssetSlot {
+		snapOffset: { x: number; y: number };
+		pivotPoint: { x: number; y: number };
+		assetScale: number;
+		anchorTarget?: ToolAnchorKey;
+	}
+
+	// Underlying ground/overlay definitions declare Component<any>; localize the escape hatch here.
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	type AssetComponent = Component<any>;
+
+	interface CategoryHandler {
+		resolveSlot(assetKey: string): AssetSlot | null;
+		resolveComponent(assetKey: string): AssetComponent | null;
+	}
+
+	function lookupDefinition<T extends Record<string, { svgComponent: AssetComponent }>>(
+		definitions: T,
+		assetKey: string,
+	): T[keyof T] | null {
+		return assetKey in definitions ? definitions[assetKey as keyof T] : null;
+	}
+
+	function makeCategoryHandler<T extends Record<string, { svgComponent: AssetComponent }>>(
+		definitions: T,
+		toSlot: (def: T[keyof T]) => AssetSlot,
+	): CategoryHandler {
+		return {
+			resolveSlot(assetKey) {
+				const def = lookupDefinition(definitions, assetKey);
+				return def === null ? null : toSlot(def);
+			},
+			resolveComponent(assetKey) {
+				return lookupDefinition(definitions, assetKey)?.svgComponent ?? null;
+			},
+		};
+	}
+
+	const ZERO_POINT = { x: 0, y: 0 } as const;
+
+	const CATEGORY_HANDLERS: Record<AssetCategory, CategoryHandler> = {
+		tools: makeCategoryHandler(TOOL_DEFINITIONS, (def) => ({
+			snapOffset: { ...def.snapOffset },
+			pivotPoint: { ...def.pivotPoint },
+			assetScale: 1,
+			anchorTarget: def.anchorTarget,
+		})),
+		fruits: makeCategoryHandler(FRUIT_DEFINITIONS, (def) => ({
+			snapOffset: { ...def.originOffset },
+			pivotPoint: { ...ZERO_POINT },
+			assetScale: def.scale / FRUIT_DISPLAY_SCALE_FACTOR,
+		})),
+		flowers: makeCategoryHandler(FLOWER_DEFINITIONS, (def) => ({
+			snapOffset: { ...def.originOffset },
+			pivotPoint: { ...ZERO_POINT },
+			assetScale: def.scale,
+		})),
+		ground: makeCategoryHandler(GROUND_DEFINITIONS, (def) => ({
+			snapOffset: { ...ZERO_POINT },
+			pivotPoint: { ...ZERO_POINT },
+			assetScale: (def.scaleRange.min + def.scaleRange.max) / 2,
+		})),
+		stages: makeCategoryHandler(STAGE_DEFINITIONS, (def) => ({
+			snapOffset: { ...def.positionOffset },
+			pivotPoint: { ...ZERO_POINT },
+			assetScale: def.scale,
+		})),
+		overlays: makeCategoryHandler(OVERLAY_DEFINITIONS, (def) => ({
+			snapOffset: { ...ZERO_POINT },
+			pivotPoint: { ...ZERO_POINT },
+			assetScale: def.scale,
+		})),
+	};
+
 	function selectAsset(value: string) {
 		selectedAssets[activeTab] = value;
 		loadAssetConfig(activeTab, value);
 	}
 
-	// fallow-ignore-next-line complexity
 	function loadAssetConfig(category: AssetCategory, assetKey: string) {
-		if (category === 'tools' && assetKey in TOOL_DEFINITIONS) {
-			const toolDef = TOOL_DEFINITIONS[assetKey as keyof typeof TOOL_DEFINITIONS]!;
-			snapOffset = { ...toolDef.snapOffset };
-			pivotPoint = { ...toolDef.pivotPoint };
+		const slot = CATEGORY_HANDLERS[category].resolveSlot(assetKey);
+		if (slot === null) {
+			snapOffset = { ...ZERO_POINT };
+			pivotPoint = { ...ZERO_POINT };
 			assetScale = 1;
-			anchorTarget = toolDef.anchorTarget;
-		} else if (category === 'fruits' && assetKey in FRUIT_DEFINITIONS) {
-			const def = FRUIT_DEFINITIONS[assetKey as keyof typeof FRUIT_DEFINITIONS];
-			snapOffset = { ...def.originOffset };
-			pivotPoint = { x: 0, y: 0 };
-			assetScale = def.scale / FRUIT_DISPLAY_SCALE_FACTOR;
-		} else if (category === 'flowers' && assetKey in FLOWER_DEFINITIONS) {
-			const def = FLOWER_DEFINITIONS[assetKey as keyof typeof FLOWER_DEFINITIONS];
-			snapOffset = { ...def.originOffset };
-			pivotPoint = { x: 0, y: 0 };
-			assetScale = def.scale;
-		} else if (category === 'ground' && assetKey in GROUND_DEFINITIONS) {
-			const def = GROUND_DEFINITIONS[assetKey as keyof typeof GROUND_DEFINITIONS];
-			snapOffset = { x: 0, y: 0 };
-			pivotPoint = { x: 0, y: 0 };
-			assetScale = (def.scaleRange.min + def.scaleRange.max) / 2;
-		} else if (category === 'stages' && assetKey in STAGE_DEFINITIONS) {
-			const def = STAGE_DEFINITIONS[assetKey as keyof typeof STAGE_DEFINITIONS];
-			snapOffset = { ...def.positionOffset };
-			pivotPoint = { x: 0, y: 0 };
-			assetScale = def.scale;
-		} else if (category === 'overlays' && assetKey in OVERLAY_DEFINITIONS) {
-			const def = OVERLAY_DEFINITIONS[assetKey as keyof typeof OVERLAY_DEFINITIONS];
-			snapOffset = { x: 0, y: 0 };
-			pivotPoint = { x: 0, y: 0 };
-			assetScale = def.scale;
-		} else {
-			snapOffset = { x: 0, y: 0 };
-			pivotPoint = { x: 0, y: 0 };
-			assetScale = 1;
+			return;
+		}
+		snapOffset = slot.snapOffset;
+		pivotPoint = slot.pivotPoint;
+		assetScale = slot.assetScale;
+		if (slot.anchorTarget !== undefined) {
+			anchorTarget = slot.anchorTarget;
 		}
 	}
 
-	// fallow-ignore-next-line complexity
-	const selectedAssetComponent = $derived.by((): Component<any> | null => {
-		if (activeTab === 'tools' && selectedAsset in TOOL_DEFINITIONS) {
-			return TOOL_DEFINITIONS[selectedAsset as keyof typeof TOOL_DEFINITIONS]!.svgComponent;
-		}
-		if (activeTab === 'fruits' && selectedAsset in FRUIT_DEFINITIONS) {
-			return FRUIT_DEFINITIONS[selectedAsset as keyof typeof FRUIT_DEFINITIONS].svgComponent;
-		}
-		if (activeTab === 'flowers' && selectedAsset in FLOWER_DEFINITIONS) {
-			return FLOWER_DEFINITIONS[selectedAsset as keyof typeof FLOWER_DEFINITIONS]
-				.svgComponent;
-		}
-		if (activeTab === 'ground' && selectedAsset in GROUND_DEFINITIONS) {
-			return GROUND_DEFINITIONS[selectedAsset as keyof typeof GROUND_DEFINITIONS]
-				.svgComponent;
-		}
-		if (activeTab === 'stages' && selectedAsset in STAGE_DEFINITIONS) {
-			return STAGE_DEFINITIONS[selectedAsset as keyof typeof STAGE_DEFINITIONS].svgComponent;
-		}
-		if (activeTab === 'overlays' && selectedAsset in OVERLAY_DEFINITIONS) {
-			return OVERLAY_DEFINITIONS[selectedAsset as keyof typeof OVERLAY_DEFINITIONS]
-				.svgComponent;
-		}
-		return null;
-	});
+	const selectedAssetComponent = $derived(
+		CATEGORY_HANDLERS[activeTab].resolveComponent(selectedAsset),
+	);
 
 	const demoToolVisibility = $derived.by((): ToolVisibility | undefined => {
 		if (activeTab !== 'tools') {
@@ -210,36 +237,35 @@
 		return visibility;
 	});
 
-	// fallow-ignore-next-line complexity
+	const STAGE_BY_ASSET_KEY: Record<string, TreeConfig['stage']> = {
+		seed: TREE_STAGES.seed,
+		sprouting: TREE_STAGES.sprouting,
+		stump: TREE_STAGES.stump,
+	};
+
+	const TAB_TREE_TRANSFORMS: Partial<
+		Record<AssetCategory, (base: TreeConfig, asset: string) => TreeConfig>
+	> = {
+		fruits: (base, asset) => ({
+			...base,
+			stage: TREE_STAGES.fruiting,
+			fruitType: asset as TreeConfig['fruitType'],
+			fruitCount: 5,
+		}),
+		flowers: (base, asset) => ({
+			...base,
+			stage: TREE_STAGES.flowering,
+			shape: asset as TreeConfig['shape'],
+		}),
+		stages: (base, asset) => ({
+			...base,
+			stage: STAGE_BY_ASSET_KEY[asset] ?? TREE_STAGES.leafy,
+		}),
+	};
+
 	const demoTreeConfig = $derived.by((): TreeConfig => {
 		const base = { ...DEFAULT_TREE_CONFIG };
-		switch (activeTab) {
-			case 'tools':
-				return base;
-			case 'fruits':
-				return {
-					...base,
-					stage: TREE_STAGES.fruiting,
-					fruitType: selectedAsset as typeof base.fruitType,
-					fruitCount: 5,
-				};
-			case 'flowers':
-				return {
-					...base,
-					stage: TREE_STAGES.flowering,
-					shape: selectedAsset as typeof base.shape,
-				};
-			case 'stages': {
-				const stageMap: Record<string, typeof base.stage> = {
-					seed: TREE_STAGES.seed,
-					sprouting: TREE_STAGES.sprouting,
-					stump: TREE_STAGES.stump,
-				};
-				return { ...base, stage: stageMap[selectedAsset] ?? TREE_STAGES.leafy };
-			}
-			default:
-				return base;
-		}
+		return TAB_TREE_TRANSFORMS[activeTab]?.(base, selectedAsset) ?? base;
 	});
 
 	const previewToolSnapOffsetOverride = $derived(
@@ -273,7 +299,25 @@
 		fileInputElement?.click();
 	}
 
-	// fallow-ignore-next-line complexity
+	const APPLY_OFFSET_KEY: Record<AssetCategory, string> = {
+		tools: 'snapOffset',
+		stages: 'positionOffset',
+		fruits: 'originOffset',
+		flowers: 'originOffset',
+		ground: 'originOffset',
+		overlays: 'originOffset',
+	};
+
+	async function readUploadResponse(response: Response) {
+		const result = await response.json();
+		if (response.ok) {
+			uploadStatus = `Uploaded to ${result.outputPath}`;
+			setTimeout(() => window.location.reload(), 1500);
+		} else {
+			uploadStatus = `Error: ${result.error}`;
+		}
+	}
+
 	async function handleFileSelected(event: Event) {
 		const input = event.target as HTMLInputElement;
 		const file = input.files?.[0];
@@ -289,33 +333,29 @@
 
 		try {
 			const response = await fetch('/api/dev/upload-svg', { method: 'POST', body: formData });
-			const result = await response.json();
-			if (response.ok) {
-				uploadStatus = `Uploaded to ${result.outputPath}`;
-				setTimeout(() => window.location.reload(), 1500);
-			} else {
-				uploadStatus = `Error: ${result.error}`;
-			}
+			await readUploadResponse(response);
 		} catch {
 			uploadStatus = 'Upload failed';
 		}
 		input.value = '';
 	}
 
-	// fallow-ignore-next-line complexity
+	async function readApplyResponse(response: Response) {
+		const result = await response.json();
+		if (response.ok) {
+			applyStatus = 'Applied!';
+			setTimeout(() => (applyStatus = null), 2000);
+		} else {
+			applyStatus = `Error: ${result.error}`;
+		}
+	}
+
 	async function handleApplyDefinition() {
 		applyStatus = 'Applying...';
-		const offsetKey =
-			activeTab === 'tools'
-				? 'snapOffset'
-				: activeTab === 'stages'
-					? 'positionOffset'
-					: 'originOffset';
-
 		const values: Record<string, unknown> = {
 			scale: activeTab === 'fruits' ? assetScale * FRUIT_DISPLAY_SCALE_FACTOR : assetScale,
+			[APPLY_OFFSET_KEY[activeTab]]: snapOffset,
 		};
-		values[offsetKey] = snapOffset;
 		if (activeTab === 'tools') {
 			values.anchorTarget = anchorTarget;
 			values.pivotPoint = pivotPoint;
@@ -327,30 +367,19 @@
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({ category: activeTab, assetName: selectedAsset, values }),
 			});
-			const result = await response.json();
-			if (response.ok) {
-				applyStatus = 'Applied!';
-				setTimeout(() => (applyStatus = null), 2000);
-			} else {
-				applyStatus = `Error: ${result.error}`;
-			}
+			await readApplyResponse(response);
 		} catch {
 			applyStatus = 'Apply failed';
 		}
 	}
 
 	function handleEditorPointerDown(event: PointerEvent, handleType: 'snap' | 'pivot') {
-		if (handleType === 'snap') {
-			isDraggingSnap = true;
-		} else {
-			isDraggingPivot = true;
-		}
+		dragMode = handleType;
 		(event.currentTarget as SVGElement).ownerSVGElement?.setPointerCapture(event.pointerId);
 	}
 
-	// fallow-ignore-next-line complexity
 	function handleEditorPointerMove(event: PointerEvent) {
-		if (!isDraggingSnap && !isDraggingPivot) {
+		if (dragMode === null) {
 			return;
 		}
 
@@ -358,20 +387,19 @@
 		const rect = svgEl.getBoundingClientRect();
 		const svgX = ((event.clientX - rect.left) / rect.width) * EDITOR_VIEWBOX_SIZE;
 		const svgY = ((event.clientY - rect.top) / rect.height) * EDITOR_VIEWBOX_SIZE;
-
 		const offsetX = Math.round((svgX - EDITOR_CENTER) / editorDisplayScale);
 		const offsetY = Math.round((svgY - EDITOR_CENTER) / editorDisplayScale);
+		const newPoint = { x: offsetX, y: offsetY };
 
-		if (isDraggingSnap) {
-			snapOffset = { x: offsetX, y: offsetY };
-		} else if (isDraggingPivot) {
-			pivotPoint = { x: offsetX, y: offsetY };
+		if (dragMode === 'snap') {
+			snapOffset = newPoint;
+		} else {
+			pivotPoint = newPoint;
 		}
 	}
 
 	function handleEditorPointerUp() {
-		isDraggingSnap = false;
-		isDraggingPivot = false;
+		dragMode = null;
 	}
 
 	function handleTabChange(value: string) {
