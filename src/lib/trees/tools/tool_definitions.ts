@@ -84,8 +84,8 @@ export const TOOL_DEFINITIONS = {
 	},
 	lantern: {
 		svgComponent: LanternSvg,
-		anchorTarget: 'trunkBase',
-		snapOffset: { x: -20, y: 25 },
+		anchorTarget: 'trunkMiddle',
+		snapOffset: { x: 19, y: 28 },
 		pivotPoint: { x: 20, y: 50 },
 	},
 	pruningShears: {
