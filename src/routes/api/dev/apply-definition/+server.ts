@@ -14,7 +14,7 @@ const CATEGORY_DEFINITION_PATHS = {
 
 type DefinitionCategory = keyof typeof CATEGORY_DEFINITION_PATHS;
 
-const SAFE_ASSET_NAME = /^[a-z][a-z0-9_]{0,63}$/;
+const SAFE_ASSET_NAME = /^[a-zA-Z][a-zA-Z0-9_]{0,63}$/;
 
 function isValidCategory(value: string): value is DefinitionCategory {
 	return value in CATEGORY_DEFINITION_PATHS;
@@ -34,16 +34,45 @@ interface ApplyDefinitionValues {
 	readonly anchorTarget?: string;
 }
 
+interface ValidatedInput {
+	category: DefinitionCategory;
+	assetName: string;
+	values: ApplyDefinitionValues;
+}
+
+// fallow-ignore-next-line complexity
+function validateInput(body: unknown): ValidatedInput | { error: string } {
+	if (typeof body !== 'object' || body === null || Array.isArray(body)) {
+		return { error: 'Invalid request body' };
+	}
+
+	const { category, assetName, values } = body as Record<string, unknown>;
+
+	if (typeof category !== 'string' || !isValidCategory(category)) {
+		return { error: 'Invalid or missing category' };
+	}
+	if (typeof assetName !== 'string' || !SAFE_ASSET_NAME.test(assetName)) {
+		return { error: 'Invalid assetName — lowercase snake_case only' };
+	}
+	if (typeof values !== 'object' || values === null) {
+		return { error: 'Missing values' };
+	}
+
+	return { category, assetName, values: values as ApplyDefinitionValues };
+}
+
+function assetKeyPattern(assetName: string): string {
+	return `(?:[w+.${assetName}]|\b${assetName})s*:`;
+}
+
 function replaceOffsetInContent(
 	content: string,
 	assetName: string,
 	offsetKey: string,
 	offsetValue: OffsetValue,
 ): string {
-	// Match the offset property within the asset's definition entry
-	// Handles both single-line and multi-line formats
 	const offsetPattern = new RegExp(
-		`(\\[\\w+\\.${assetName}\\][\\s\\S]*?)${offsetKey}:\\s*\\{\\s*x:\\s*[\\d.eE+-]+,\\s*y:\\s*[\\d.eE+-]+\\s*\\}`,
+		`(${assetKeyPattern(assetName)}[sS]*?)${offsetKey}:s*{s*x:s*[d.eE+-]+,s*y:s*[d.eE+-]+s*}`,
 	);
 	return content.replace(
 		offsetPattern,
@@ -56,13 +85,49 @@ function replaceAnchorTargetInContent(
 	assetName: string,
 	anchorTarget: string,
 ): string {
-	const pattern = new RegExp(`(\\[\\w+\\.${assetName}\\][\\s\\S]*?)anchorTarget:\\s*'[^']*'`);
+	const pattern = new RegExp(`(${assetKeyPattern(assetName)}[sS]*?)anchorTarget:s*'[^']*'`);
 	return content.replace(pattern, `$1anchorTarget: '${anchorTarget}'`);
 }
 
 function replaceScaleInContent(content: string, assetName: string, scaleValue: number): string {
-	const scalePattern = new RegExp(`(\\[\\w+\\.${assetName}\\][\\s\\S]*?)scale:\\s*[\\d.eE+-]+`);
+	const scalePattern = new RegExp(`(${assetKeyPattern(assetName)}[sS]*?)scale:s*[d.eE+-]+`);
 	return content.replace(scalePattern, `$1scale: ${scaleValue}`);
+}
+
+type ValueKey = keyof ApplyDefinitionValues;
+type ValueHandler = (content: string, assetName: string, value: unknown) => string;
+
+const VALUE_HANDLERS: Record<ValueKey, ValueHandler | null> = {
+	scale: (content, assetName, value) =>
+		replaceScaleInContent(content, assetName, value as number),
+	originOffset: (content, assetName, value) =>
+		replaceOffsetInContent(content, assetName, 'originOffset', value as OffsetValue),
+	snapOffset: (content, assetName, value) =>
+		replaceOffsetInContent(content, assetName, 'snapOffset', value as OffsetValue),
+	positionOffset: (content, assetName, value) =>
+		replaceOffsetInContent(content, assetName, 'positionOffset', value as OffsetValue),
+	pivotPoint: (content, assetName, value) =>
+		replaceOffsetInContent(content, assetName, 'pivotPoint', value as OffsetValue),
+	anchorTarget: (content, assetName, value) =>
+		replaceAnchorTargetInContent(content, assetName, value as string),
+};
+
+function applyValueUpdates(
+	content: string,
+	assetName: string,
+	values: ApplyDefinitionValues,
+): string {
+	let result = content;
+	for (const key of Object.keys(values) as ValueKey[]) {
+		const value = values[key];
+		if (value !== undefined) {
+			const handler = VALUE_HANDLERS[key];
+			if (handler) {
+				result = handler(result, assetName, value);
+			}
+		}
+	}
+	return result;
 }
 
 export const POST: RequestHandler = async ({ request }) => {
@@ -77,23 +142,12 @@ export const POST: RequestHandler = async ({ request }) => {
 		return json({ error: 'Invalid JSON' }, { status: 400 });
 	}
 
-	if (typeof body !== 'object' || body === null || Array.isArray(body)) {
-		return json({ error: 'Invalid request body' }, { status: 400 });
+	const validation = validateInput(body);
+	if ('error' in validation) {
+		return json(validation, { status: 400 });
 	}
 
-	const { category, assetName, values } = body as Record<string, unknown>;
-
-	if (typeof category !== 'string' || !isValidCategory(category)) {
-		return json({ error: 'Invalid or missing category' }, { status: 400 });
-	}
-	if (typeof assetName !== 'string' || !SAFE_ASSET_NAME.test(assetName)) {
-		return json({ error: 'Invalid assetName — lowercase snake_case only' }, { status: 400 });
-	}
-	if (typeof values !== 'object' || values === null) {
-		return json({ error: 'Missing values' }, { status: 400 });
-	}
-
-	const typedValues = values as ApplyDefinitionValues;
+	const { category, assetName, values } = validation;
 	const definitionPath = path.join(process.cwd(), CATEGORY_DEFINITION_PATHS[category]);
 
 	let content: string;
@@ -108,34 +162,7 @@ export const POST: RequestHandler = async ({ request }) => {
 		);
 	}
 
-	if (typedValues.scale !== undefined) {
-		content = replaceScaleInContent(content, assetName, typedValues.scale);
-	}
-	if (typedValues.originOffset !== undefined) {
-		content = replaceOffsetInContent(
-			content,
-			assetName,
-			'originOffset',
-			typedValues.originOffset,
-		);
-	}
-	if (typedValues.snapOffset !== undefined) {
-		content = replaceOffsetInContent(content, assetName, 'snapOffset', typedValues.snapOffset);
-	}
-	if (typedValues.positionOffset !== undefined) {
-		content = replaceOffsetInContent(
-			content,
-			assetName,
-			'positionOffset',
-			typedValues.positionOffset,
-		);
-	}
-	if (typedValues.pivotPoint !== undefined) {
-		content = replaceOffsetInContent(content, assetName, 'pivotPoint', typedValues.pivotPoint);
-	}
-	if (typedValues.anchorTarget !== undefined) {
-		content = replaceAnchorTargetInContent(content, assetName, typedValues.anchorTarget);
-	}
+	content = applyValueUpdates(content, assetName, values);
 
 	try {
 		writeFileSync(definitionPath, content, 'utf-8');

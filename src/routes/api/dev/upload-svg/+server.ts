@@ -8,7 +8,7 @@ import type { RequestHandler } from './$types.js';
 const VALID_CATEGORIES = ['tools', 'fruits', 'flowers', 'ground', 'stages', 'overlays'] as const;
 type AssetCategory = (typeof VALID_CATEGORIES)[number];
 
-const SAFE_ASSET_NAME = /^[a-z][a-z0-9_]{0,63}$/;
+const SAFE_ASSET_NAME = /^[a-zA-Z][a-zA-Z0-9_]{0,63}$/;
 
 function toPascalCase(snakeCaseName: string): string {
 	return snakeCaseName

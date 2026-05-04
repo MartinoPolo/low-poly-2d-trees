@@ -57,21 +57,25 @@ export const FRUIT_DEFINITIONS = {
 		expect(writtenContent).toContain('[FRUIT_TYPES.apple]');
 	});
 
-	it('updates tool definition snapOffset values', async () => {
-		const existingContent = `import { TOOL_TYPES } from './tool_types.js';
-export const TOOL_DEFINITIONS = {
-	[TOOL_TYPES.shovel]: {
+	it('updates tool definition with plain keys (not computed)', async () => {
+		const existingContent = `export const TOOL_DEFINITIONS = {
+	shovel: {
 		svgComponent: ShovelSvg,
 		anchorTarget: 'trunkBase',
 		snapOffset: { x: 0, y: 25 },
+		pivotPoint: { x: 38, y: 2 },
 	},
-} as const;`;
+} satisfies Partial<Record<ToolType, ToolDefinition>>;`;
 		readFileSyncMock.mockReturnValue(existingContent);
 
 		const request = makeJsonRequest({
 			category: 'tools',
 			assetName: 'shovel',
-			values: { snapOffset: { x: 10, y: -15 } },
+			values: {
+				snapOffset: { x: 10, y: -15 },
+				pivotPoint: { x: 5, y: 3 },
+				anchorTarget: 'trunkMiddle',
+			},
 		});
 
 		const response = await POST(makeEvent(request));
@@ -82,6 +86,35 @@ export const TOOL_DEFINITIONS = {
 
 		const writtenContent = writeFileSyncMock.mock.calls[0][1] as string;
 		expect(writtenContent).toContain('snapOffset: { x: 10, y: -15 }');
+		expect(writtenContent).toContain('pivotPoint: { x: 5, y: 3 }');
+		expect(writtenContent).toContain("anchorTarget: 'trunkMiddle'");
+	});
+
+	it('accepts camelCase asset names', async () => {
+		const existingContent = `export const TOOL_DEFINITIONS = {
+	wateringCan: {
+		svgComponent: WateringCanSvg,
+		anchorTarget: 'trunkBase',
+		snapOffset: { x: 16, y: -8 },
+		pivotPoint: { x: 16, y: 0 },
+	},
+} satisfies Partial<Record<ToolType, ToolDefinition>>;`;
+		readFileSyncMock.mockReturnValue(existingContent);
+
+		const request = makeJsonRequest({
+			category: 'tools',
+			assetName: 'wateringCan',
+			values: { snapOffset: { x: 20, y: 5 } },
+		});
+
+		const response = await POST(makeEvent(request));
+		const body = await response.json();
+
+		expect(response.status).toBe(200);
+		expect(body.success).toBe(true);
+
+		const writtenContent = writeFileSyncMock.mock.calls[0][1] as string;
+		expect(writtenContent).toContain('snapOffset: { x: 20, y: 5 }');
 	});
 
 	it('updates stage definition positionOffset values', async () => {
