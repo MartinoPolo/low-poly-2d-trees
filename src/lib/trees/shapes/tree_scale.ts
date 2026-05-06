@@ -8,7 +8,8 @@ const H = VIEWBOX_HEIGHT;
 // ---------------------------------------------------------------------------
 
 export const TREE_SCALE = 0.6;
-const TRUNK_BASE_Y = H * 0.95;
+export const TRUNK_DEAD_SPACE_PERCENT = 0.05;
+const TRUNK_BASE_Y = H * (1 - TRUNK_DEAD_SPACE_PERCENT);
 
 /** Map a fractional Y position into scaled tree space, anchored at the ground. */
 export function treeY(fraction: number): number {

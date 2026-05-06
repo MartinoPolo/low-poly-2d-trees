@@ -37,6 +37,17 @@ export {
 	VIEWBOX_HEIGHT,
 } from './trees/types/tree_config.js';
 
+/** Tree scale and ground alignment */
+export { TRUNK_DEAD_SPACE_PERCENT } from './trees/shapes/tree_scale.js';
+
+/** Convex hull computation for hover targets */
+export {
+	computeConvexHull,
+	padConvexHull,
+	extractTreeVertices,
+	computeTreeHull,
+} from './trees/convex_hull.js';
+
 /** Tree shape definitions and guards */
 export {
 	TREE_SHAPES,
