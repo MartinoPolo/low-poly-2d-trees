@@ -18,12 +18,12 @@ interface StageDefinition {
 export const STAGE_DEFINITIONS = {
 	[STAGE_ASSET_TYPES.seed]: {
 		svgComponent: SeedSvg,
-		scale: 1,
+		scale: 2.5,
 		positionOffset: { x: 0, y: 0 },
 	},
 	[STAGE_ASSET_TYPES.sprouting]: {
 		svgComponent: SproutingSvg,
-		scale: 1,
+		scale: 1.8,
 		positionOffset: { x: 0, y: 0 },
 	},
 	[STAGE_ASSET_TYPES.stump]: {

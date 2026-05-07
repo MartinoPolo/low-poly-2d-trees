@@ -21,6 +21,15 @@ describe('STAGE_DEFINITIONS', () => {
 		}
 	});
 
+	it('seed and sprouting have enlarged scales for thumbnail visibility', () => {
+		expect(STAGE_DEFINITIONS.seed.scale).toBe(2.5);
+		expect(STAGE_DEFINITIONS.sprouting.scale).toBe(1.8);
+	});
+
+	it('stump scale remains at 1.0', () => {
+		expect(STAGE_DEFINITIONS.stump.scale).toBe(1);
+	});
+
 	it('each entry has positionOffset with numeric x and y', () => {
 		for (const stageType of Object.values(STAGE_ASSET_TYPES)) {
 			const { positionOffset } = STAGE_DEFINITIONS[stageType];
