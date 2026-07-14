@@ -23,11 +23,7 @@
 	import TreeTool from '$lib/trees/TreeTool.svelte';
 	import { TOOL_TYPES, type ToolVisibility, type ToolType } from '$lib/trees/tools/tool_types.js';
 	import { getToolDefinition, type ToolAnchorKey } from '$lib/trees/tools/tool_definitions.js';
-	import {
-		OVERLAY_DEFAULTS,
-		OVERLAY_VIEWBOX_HEADROOM,
-		type OverlayConfig,
-	} from '$lib/trees/overlays/overlay_types.js';
+	import { OVERLAY_DEFAULTS, type OverlayConfig } from '$lib/trees/overlays/overlay_types.js';
 	import {
 		splitRootBranchesByZOrder,
 		splitCanopyBlobsByZOrder,
@@ -125,11 +121,7 @@
 	const shouldAnimateGrowth = $derived(animateGrowth && growthVariance > 0);
 
 	const glowFilterId = $derived(`glow-${config.seed}`);
-	const expandViewbox = $derived(toolVisibility?.stormCloud?.visible ?? false);
-	const viewBoxY = $derived(expandViewbox ? -OVERLAY_VIEWBOX_HEADROOM : 0);
-	const viewBoxHeight = $derived(
-		geometry.viewBox.height + (expandViewbox ? OVERLAY_VIEWBOX_HEADROOM : 0),
-	);
+	const hasOverflowingTool = $derived(toolVisibility?.stormCloud?.visible ?? false);
 
 	const canopySwayDelay = $derived(computeAnimationDelay(config.seed));
 
@@ -209,9 +201,9 @@
 </script>
 
 <svg
-	viewBox="0 {viewBoxY} {geometry.viewBox.width} {viewBoxHeight}"
+	viewBox="0 0 {geometry.viewBox.width} {geometry.viewBox.height}"
 	xmlns="http://www.w3.org/2000/svg"
-	overflow="hidden"
+	overflow={hasOverflowingTool ? 'visible' : 'hidden'}
 	class={className}
 	class:disabled-tree={disabled}
 >

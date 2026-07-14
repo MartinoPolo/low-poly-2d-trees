@@ -7,11 +7,20 @@
 	} from '../environment_config.js';
 	import FireflySvg from '$lib/trees/assets/overlays/FireflySvg.svelte';
 
-	const fireflies = generateFireflyPositions(
-		20,
-		ENVIRONMENT_SEEDS.fireflies,
-		ENVIRONMENT_VIEW_WIDTH,
-		ENVIRONMENT_VIEW_HEIGHT,
+	interface Props {
+		color?: string;
+		count?: number;
+	}
+
+	const { color, count = 20 }: Props = $props();
+
+	const fireflies = $derived(
+		generateFireflyPositions(
+			count,
+			ENVIRONMENT_SEEDS.fireflies,
+			ENVIRONMENT_VIEW_WIDTH,
+			ENVIRONMENT_VIEW_HEIGHT,
+		),
 	);
 </script>
 
@@ -38,7 +47,7 @@
 				class="firefly"
 				style="animation-delay: {ff.delay}s; animation-duration: {ff.duration}s;"
 			>
-				<FireflySvg />
+				<FireflySvg {color} />
 			</g>
 		</g>
 	{/each}

@@ -184,3 +184,8 @@ export {
 export { BIRD_SPECIES, type BirdSpecies, type BirdConfig } from './trees/birds/bird_types.js';
 
 export { type BirdDefinition, BIRD_DEFINITIONS } from './trees/birds/bird_definitions.js';
+
+/** Environment overlay and effects */
+export { default as EnvironmentOverlay } from './environment/EnvironmentOverlay.svelte';
+export { default as FirefliesEffect } from './environment/effects/FirefliesEffect.svelte';
+export { type EnvironmentConfig, ENVIRONMENT_DEFAULTS } from './environment/environment_config.js';
