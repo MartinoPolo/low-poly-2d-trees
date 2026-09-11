@@ -28,7 +28,10 @@ import { m } from '$lib/paraglide/messages.js';
 
 ### ID Stabilization Rule
 
-Every `LabeledSlider`, `LabeledCheckbox`, `LabeledSelect`, `LabeledRangeSliderDual` call site needs an explicit `id` prop matching what `labelToInputId(englishLabel)` would produce (lowercase, non-alnum → `-`, prefix `input-`). E.g. `label="Blob Count"` → add `id="input-blob-count"`. This prevents E2E test breakage when labels change per locale.
+Every `LabeledSlider`, `LabeledCheckbox`, `LabeledSelect`, `LabeledRangeSliderDual` call site needs
+an explicit `id` prop matching what `labelToInputId(englishLabel)` would produce (lowercase,
+non-alnum → `-`, prefix `input-`). E.g. `label="Blob Count"` → add `id="input-blob-count"`. This
+prevents E2E test breakage when labels change per locale.
 
 ### Composed Card Components
 
@@ -69,7 +72,8 @@ Every `LabeledSlider`, `LabeledCheckbox`, `LabeledSelect`, `LabeledRangeSliderDu
 
 ### Language Switcher (New Feature)
 
-Add language switcher in the account dropdown in `AppSidebar.svelte`, next to the Theme submenu. English/Czech options with flag icons.
+Add language switcher in the account dropdown in `AppSidebar.svelte`, next to the Theme submenu.
+English/Czech options with flag icons.
 
 ---
 
@@ -77,22 +81,33 @@ Add language switcher in the account dropdown in `AppSidebar.svelte`, next to th
 
 ### TrunkColorCard preset names
 
-The `TRUNK_PRESETS` array has `name` strings used for `aria-label`, `title`, AND `data-trunk-preset` test attribute. An E2E test (`tests/e2e/issue9_color_picker.spec.ts:49`) depends on `[data-trunk-preset="Dark brown"]`.
+The `TRUNK_PRESETS` array has `name` strings used for `aria-label`, `title`, AND `data-trunk-preset`
+test attribute. An E2E test (`tests/e2e/issue9_color_picker.spec.ts:49`) depends on
+`[data-trunk-preset="Dark brown"]`.
 
-**Fix:** Add stable `id` field to each preset (e.g. `'dark_brown'`). Use `id` for `data-trunk-preset`. Use `m.preset_*()` for `aria-label`/`title`. Remove `name` field.
+**Fix:** Add stable `id` field to each preset (e.g. `'dark_brown'`). Use `id` for
+`data-trunk-preset`. Use `m.preset_*()` for `aria-label`/`title`. Remove `name` field.
 
 ### ToolAccessoriesCard dynamic labels
 
-`label="{option.label} Size"` needs parameterized message: `m.label_tool_size({ tool: translatedToolLabel })`. Create a `TOOL_LABELS` lookup mapping tool type keys → `m.tool_*()` calls.
+`label="{option.label} Size"` needs parameterized message:
+`m.label_tool_size({ tool: translatedToolLabel })`. Create a `TOOL_LABELS` lookup mapping tool type
+keys → `m.tool_*()` calls.
 
 ### SettingsTierControl
 
-Tier values displayed with CSS `capitalize`. Replace with translated labels from a lookup and remove the `capitalize` class.
+Tier values displayed with CSS `capitalize`. Replace with translated labels from a lookup and remove
+the `capitalize` class.
 
 ### Select option arrays in .ts files
 
-`TREE_SHAPE_OPTIONS`, `TREE_STAGE_OPTIONS`, `FRUIT_TYPE_OPTIONS`, `TOOL_OPTIONS`, `BRANCH_MIRRORING_OPTIONS`, `CROOKEDNESS_MODE_OPTIONS`, `CUSTOM_BLOB_BOUNDARY_OPTIONS` are defined in plain `.ts` files with English labels. **Don't modify** those files. Instead, create translation lookups in each consuming `.svelte` component and override labels at render time.
+`TREE_SHAPE_OPTIONS`, `TREE_STAGE_OPTIONS`, `FRUIT_TYPE_OPTIONS`, `TOOL_OPTIONS`,
+`BRANCH_MIRRORING_OPTIONS`, `CROOKEDNESS_MODE_OPTIONS`, `CUSTOM_BLOB_BOUNDARY_OPTIONS` are defined
+in plain `.ts` files with English labels. **Don't modify** those files. Instead, create translation
+lookups in each consuming `.svelte` component and override labels at render time.
 
 ### Point Editor CATEGORY_ASSET_OPTIONS
 
-This const has inline English labels for ground/stages/overlays/flowers. Since it's in a `.svelte` file script block, you can use `m.*()` directly in the definition. Make it `$derived` or use lookup functions.
+This const has inline English labels for ground/stages/overlays/flowers. Since it's in a `.svelte`
+file script block, you can use `m.*()` directly in the definition. Make it `$derived` or use lookup
+functions.

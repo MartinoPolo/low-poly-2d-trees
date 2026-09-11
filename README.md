@@ -4,13 +4,18 @@
 
 ![Tree Editor](docs/screenshot.png)
 
-A procedural **low-poly tree generator and visual editor** — companion project for [Grovekeeper](https://github.com/MartinoPolo/grovekeeper). Design customizable polygon-based trees of multiple shapes across lifecycle stages, save them to a gallery, and compose multi-tree scenes.
+A procedural **low-poly tree generator and visual editor** — companion project for
+[Grovekeeper](https://github.com/MartinoPolo/grovekeeper). Design customizable polygon-based trees
+of multiple shapes across lifecycle stages, save them to a gallery, and compose multi-tree scenes.
 
 ## Features
 
-- **Tree Editor** — 30+ parameters: shape, canopy geometry, branch depth, trunk structure, fruit, colors
-- **Tree shapes** — oak, pine, birch, fir, maple, willow, cypress, apple, cherry, bush, baobab, acacia, custom
-- **Lifecycle stages** — seed → sprouting → sapling → growing → leafy → flowering → fruiting → autumn → ready → bare → dead → stump
+- **Tree Editor** — 30+ parameters: shape, canopy geometry, branch depth, trunk structure, fruit,
+  colors
+- **Tree shapes** — oak, pine, birch, fir, maple, willow, cypress, apple, cherry, bush, baobab,
+  acacia, custom
+- **Lifecycle stages** — seed → sprouting → sapling → growing → leafy → flowering → fruiting →
+  autumn → ready → bare → dead → stump
 - **Animations** — canopy sway, growth oscillation, falling leaves, tool idle animations
 - **Environment effects** — rain, snow, lightning, fireflies, wind particles, sun rays, clouds
 - **Overlays** — glow, speech bubble, storm cloud, wilting effect
@@ -22,7 +27,9 @@ A procedural **low-poly tree generator and visual editor** — companion project
 
 ## Library Usage
 
-This project doubles as a **Svelte component library** consumed by [Grovekeeper](https://github.com/MartinoPolo/grovekeeper). The public API is defined in `src/lib/index.ts` — everything else is internal.
+This project doubles as a **Svelte component library** consumed by
+[Grovekeeper](https://github.com/MartinoPolo/grovekeeper). The public API is defined in
+`src/lib/index.ts` — everything else is internal.
 
 ### Install
 

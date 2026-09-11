@@ -1,7 +1,7 @@
 # Requirements
 
-Canonical source of truth for what the system should do.
-GitHub issues track execution; this file tracks the specification.
+Canonical source of truth for what the system should do. GitHub issues track execution; this file
+tracks the specification.
 
 ---
 
@@ -20,22 +20,21 @@ GitHub issues track execution; this file tracks the specification.
 
 ### 2.1 SVG Structure
 
-- **REQ-R-01** Render each tree as a single `<svg>` element with a fixed viewBox of `500×500`.
-  SVG overflow is hidden — content beyond the viewBox is clipped.
-  Geometry constants are scaled to 300-equivalent so visual size is unchanged; the larger
-  viewBox provides headroom for overlays. `TREE_SCALE = 0.6` is applied via helper functions
-  `treeY()`, `treeSizeW()`, `treeSizeH()` in `blob_generators.ts`. Hard-coded pixel constants
-  (trunk widths, branch widths, stage offsets) use pre-500 values — helpers apply the scaling.
-  `GROUND_LINE_Y = VIEWBOX_HEIGHT * 0.95 = 475`.
+- **REQ-R-01** Render each tree as a single `<svg>` element with a fixed viewBox of `500×500`. SVG
+  overflow is hidden — content beyond the viewBox is clipped. Geometry constants are scaled to
+  300-equivalent so visual size is unchanged; the larger viewBox provides headroom for overlays.
+  `TREE_SCALE = 0.6` is applied via helper functions `treeY()`, `treeSizeW()`, `treeSizeH()` in
+  `blob_generators.ts`. Hard-coded pixel constants (trunk widths, branch widths, stage offsets) use
+  pre-500 values — helpers apply the scaling. `GROUND_LINE_Y = VIEWBOX_HEIGHT * 0.95 = 475`.
 - **REQ-R-02** The SVG contains five z-order render layers for branching shapes (painter's order):
-  back branches, trunk quads, front branches, back canopy blobs, front canopy blobs.
-  Branchless shapes retain the original 3-layer model: `trunk`, `branches`, `canopy`.
-  (See REQ-EV2-Z-04 for full z-ordering specification.)
-- **REQ-R-03** The `canopy` group contains one `<g>` child per blob/tier, ordered back-to-front
-  by depth index (blobs rendered later appear in front).
-- **REQ-R-04** Each polygon in the output has a `color` expressed as a hex string (`#rrggbb`),
-  a `group` tag (`'canopy' | 'trunk' | 'branch'`), and either three (`Triangle`) or four
-  (`Quad`) `Point2D` vertices. Trunk/branch segments produce quads.
+  back branches, trunk quads, front branches, back canopy blobs, front canopy blobs. Branchless
+  shapes retain the original 3-layer model: `trunk`, `branches`, `canopy`. (See REQ-EV2-Z-04 for
+  full z-ordering specification.)
+- **REQ-R-03** The `canopy` group contains one `<g>` child per blob/tier, ordered back-to-front by
+  depth index (blobs rendered later appear in front).
+- **REQ-R-04** Each polygon in the output has a `color` expressed as a hex string (`#rrggbb`), a
+  `group` tag (`'canopy' | 'trunk' | 'branch'`), and either three (`Triangle`) or four (`Quad`)
+  `Point2D` vertices. Trunk/branch segments produce quads.
 
 ### 2.2 TreeGeometry Output
 
@@ -68,8 +67,8 @@ GitHub issues track execution; this file tracks the specification.
 
 ### 2.4 Deterministic Generation
 
-- **REQ-R-05** Given the same `seed` and the same `TreeConfig`, the generator always
-  produces the exact same `TreeGeometry` output. Use seeded PRNG exclusively.
+- **REQ-R-05** Given the same `seed` and the same `TreeConfig`, the generator always produces the
+  exact same `TreeGeometry` output. Use seeded PRNG exclusively.
 
 ---
 
@@ -114,12 +113,12 @@ All parameters are read-only. Defaults apply when a value is omitted.
 | REQ-P-41 | `trunkTwist`          | `number` | `10`    | 0 – 100 | 5    | "10 %"         | Advanced |
 | REQ-P-42 | `branchWidthVariance` | `number` | `25`    | 0 – 50  | 5    | "25 %"         | Advanced |
 
-- **REQ-P-40** `trunkStripCount` — Number of visible strip faces on the trunk cross-section.
-  Total cross-section faces = `2 * trunkStripCount`. Default 3 (hexagonal). UI label: "Trunk Strips".
-- **REQ-P-41** `trunkTwist` — default 10. Controls cumulative rotational drift of strips along
-  the trunk. At 100%, faces can fully rotate in/out of view.
-- **REQ-P-42** `branchWidthVariance` — Controls spread of individual branch widths. At 0%:
-  all branches at same width ratio. At 50%: +/-50% random spread. Disabled when `branchDepth === 0`.
+- **REQ-P-40** `trunkStripCount` — Number of visible strip faces on the trunk cross-section. Total
+  cross-section faces = `2 * trunkStripCount`. Default 3 (hexagonal). UI label: "Trunk Strips".
+- **REQ-P-41** `trunkTwist` — default 10. Controls cumulative rotational drift of strips along the
+  trunk. At 100%, faces can fully rotate in/out of view.
+- **REQ-P-42** `branchWidthVariance` — Controls spread of individual branch widths. At 0%: all
+  branches at same width ratio. At 50%: +/-50% random spread. Disabled when `branchDepth === 0`.
 
 ### 3.4 Branch Parameters
 
@@ -192,7 +191,8 @@ Two-zone trunk segment defaults:
 | cypress | 0      | 3                       | unchanged (no branches)    |
 | bush    | 0      | 3                       | unchanged (no branches)    |
 
-Additional shapes (cypress, apple, cherry, bush, baobab, acacia, custom) have defaults tuned per shape.
+Additional shapes (cypress, apple, cherry, bush, baobab, acacia, custom) have defaults tuned per
+shape.
 
 ### 3.9 Per-Shape Default Colors
 
@@ -209,7 +209,8 @@ Additional shapes (cypress, apple, cherry, bush, baobab, acacia, custom) have de
 
 ## 4. Tree Shapes
 
-13 shapes, each with tuned config defaults producing characteristic silhouettes. All use the unified trunk/branch system.
+13 shapes, each with tuned config defaults producing characteristic silhouettes. All use the unified
+trunk/branch system.
 
 | Shape   | Trunk                                    | Branch Depth | Blobs                  | Key Visual                          |
 | ------- | ---------------------------------------- | ------------ | ---------------------- | ----------------------------------- |
@@ -233,14 +234,14 @@ Additional shapes (cypress, apple, cherry, bush, baobab, acacia, custom) have de
 
 ### Shape-Specific Visual Requirements
 
-**Birch** — trunk displays dark horizontal bars (black/dark-grey stripes) as characteristic markings.
-Render as additional SVG elements overlaid on trunk quads.
+**Birch** — trunk displays dark horizontal bars (black/dark-grey stripes) as characteristic
+markings. Render as additional SVG elements overlaid on trunk quads.
 
 **Pine** — `trunkHeight` percentage must map correctly to actual trunk height. At `trunkHeight=10%`,
 the displayed trunk height must be ~10% of maximum trunk height.
 
-**Willow** — branches reach lower blob positions for visual droop. Default `branchAngle=30%`.
-Blob placement targets lower positions relative to trunk tip.
+**Willow** — branches reach lower blob positions for visual droop. Default `branchAngle=30%`. Blob
+placement targets lower positions relative to trunk tip.
 
 ---
 
@@ -248,50 +249,50 @@ Blob placement targets lower positions relative to trunk tip.
 
 ### 5.1 Blob System (oak, birch, maple, willow)
 
-- **REQ-C-01** Canopy is composed of `blobCount` overlapping shapes. Blob 0 is always the
-  largest blob and is positioned on or very near the trunk axis.
+- **REQ-C-01** Canopy is composed of `blobCount` overlapping shapes. Blob 0 is always the largest
+  blob and is positioned on or very near the trunk axis.
 - **REQ-C-01a** When `blobCount = 1`, blob 0 is placed directly on the trunk axis
   (`cx = trunkCenterX`).
 - **REQ-C-01b** When `blobCount > 1`, blob 0 stays on/near the trunk axis. Remaining blobs are
-  distributed radially around the main blob. Non-primary blobs maintain a
-  minimum distance from the center axis.
-- **REQ-C-02** `blobSizeVariance` stores the largest-to-smallest ratio (1.0x-10.0x). At `1.0`
-  all blobs are the same size; at `10.0` the largest blob is 10x the area of the smallest.
-  `minScale = 1 / blobSizeVariance`;
-  `blobScale[i] = lerp(1.0, minScale, i / (blobCount - 1))`.
-- **REQ-C-02a** For pine/fir, `blobSizeVariance` controls the ratio of top tier base width to
-  bottom tier base width. At 1.0x: equal widths. At 10.0x: bottom tier is 10x wider.
-- **REQ-C-03** Depth ordering: if blob A fully contains blob B, blob B renders in
-  front of blob A (higher depth index). Otherwise depth is assigned randomly (seeded).
-- **REQ-C-03a** `blobCloseness` (20-80 %) controls how tightly blobs cluster. For oak/birch:
-  higher values = tighter clustering around the trunk axis. Main blob (blob 0) is affected at
-  1/10th the magnitude of other blobs.
+  distributed radially around the main blob. Non-primary blobs maintain a minimum distance from the
+  center axis.
+- **REQ-C-02** `blobSizeVariance` stores the largest-to-smallest ratio (1.0x-10.0x). At `1.0` all
+  blobs are the same size; at `10.0` the largest blob is 10x the area of the smallest.
+  `minScale = 1 / blobSizeVariance`; `blobScale[i] = lerp(1.0, minScale, i / (blobCount - 1))`.
+- **REQ-C-02a** For pine/fir, `blobSizeVariance` controls the ratio of top tier base width to bottom
+  tier base width. At 1.0x: equal widths. At 10.0x: bottom tier is 10x wider.
+- **REQ-C-03** Depth ordering: if blob A fully contains blob B, blob B renders in front of blob A
+  (higher depth index). Otherwise depth is assigned randomly (seeded).
+- **REQ-C-03a** `blobCloseness` (20-80 %) controls how tightly blobs cluster. For oak/birch: higher
+  values = tighter clustering around the trunk axis. Main blob (blob 0) is affected at 1/10th the
+  magnitude of other blobs.
 - **REQ-C-03b** `canopySize` (25-200 %) scales all blob radii AND the blob spread distance
   proportionally. SVG overflow is clipped at viewBox edges for extreme values.
 
 ### 5.2 Base Value Scaling
 
 - **REQ-C-14** Internal base values for blob radii, trunk widths, and branch widths use a 1.75x
-  scaling factor baked into shape definitions. No runtime multiplication — constants are
-  baked into shape definitions.
+  scaling factor baked into shape definitions. No runtime multiplication — constants are baked into
+  shape definitions.
 
 ### 5.3 Blob Boundary Shapes
 
 - **REQ-C-15** Blob boundaries can be one of: `circle` (default for oak/birch/maple/willow),
-  `teardrop` (fir top blob), `egg`, `isoscelesTriangle`, or `equilateralTriangle` (the last
-  three are available for custom tree).
-- **REQ-C-15a** **Teardrop shape**: an ellipse where the top half is compressed to a point via
-  a parametric power curve. For vertical parameter `t in [-1, +1]` (-1 = pointy top,
-  +1 = rounded bottom): top half (`t < 0`) -> `x(t) = rx * sqrt(1 - t^2) * (1 + t)^p` with `p = 0.6`;
-  bottom half (`t >= 0`) -> `x(t) = rx * sqrt(1 - t^2)` (standard ellipse). `y(t) = ry * t`. Pointy at
-  the top, smoothly rounded at the bottom.
-- **REQ-C-15b** **Egg shape**: slightly narrower top half, wider bottom half, no sharp point.
-  For vertical parameter `t in [-1, +1]`: top half (`t < 0`) -> `x(t) = rx * sqrt(1 - t^2) * (1 - a * |t|)`
-  with `a = 0.15`; bottom half (`t >= 0`) -> `x(t) = rx * sqrt(1 - t^2) * (1 + b * t)` with `b = 0.15`.
-  `y(t) = ry * t`. `a` and `b` may be tuned for visual fit during implementation.
+  `teardrop` (fir top blob), `egg`, `isoscelesTriangle`, or `equilateralTriangle` (the last three
+  are available for custom tree).
+- **REQ-C-15a** **Teardrop shape**: an ellipse where the top half is compressed to a point via a
+  parametric power curve. For vertical parameter `t in [-1, +1]` (-1 = pointy top, +1 = rounded
+  bottom): top half (`t < 0`) -> `x(t) = rx * sqrt(1 - t^2) * (1 + t)^p` with `p = 0.6`; bottom half
+  (`t >= 0`) -> `x(t) = rx * sqrt(1 - t^2)` (standard ellipse). `y(t) = ry * t`. Pointy at the top,
+  smoothly rounded at the bottom.
+- **REQ-C-15b** **Egg shape**: slightly narrower top half, wider bottom half, no sharp point. For
+  vertical parameter `t in [-1, +1]`: top half (`t < 0`) ->
+  `x(t) = rx * sqrt(1 - t^2) * (1 - a * |t|)` with `a = 0.15`; bottom half (`t >= 0`) ->
+  `x(t) = rx * sqrt(1 - t^2) * (1 + b * t)` with `b = 0.15`. `y(t) = ry * t`. `a` and `b` may be
+  tuned for visual fit during implementation.
 - **REQ-C-15c** All non-circle boundaries support an arbitrary rotation angle (0-360 deg).
-  Triangulation uses the custom boundary for point-in-shape tests and boundary sampling.
-  Rotation is applied to sampled `(x, y)` pairs via a standard 2D rotation matrix.
+  Triangulation uses the custom boundary for point-in-shape tests and boundary sampling. Rotation is
+  applied to sampled `(x, y)` pairs via a standard 2D rotation matrix.
 - **REQ-C-15d** **Isosceles triangle boundary**: fixed 40 deg apex angle (70 deg/70 deg base). Tip
   points up at `(0, -ry)`; base corners flank the bottom. No per-shape apex angle control.
 - **REQ-C-15e** **Equilateral triangle boundary**: 60 deg/60 deg/60 deg angles, vertices on a circle
@@ -303,41 +304,40 @@ Blob placement targets lower positions relative to trunk tip.
 
 ### 5.4 Pine Tier System
 
-- **REQ-C-04** For `shape = 'pine'`, canopy is composed of `blobCount` triangular tiers
-  (isoceles triangles pointing upward), not ellipses.
-- **REQ-C-05** Tiers stack from top (smallest, narrowest) to bottom (widest). Each tier's
-  base is wider than the tier above. `blobCloseness` controls how much each tier's tip extends
-  into the tier above: `overlapFraction = blobCloseness / 100` (20 % to 80 % of tier height).
+- **REQ-C-04** For `shape = 'pine'`, canopy is composed of `blobCount` triangular tiers (isoceles
+  triangles pointing upward), not ellipses.
+- **REQ-C-05** Tiers stack from top (smallest, narrowest) to bottom (widest). Each tier's base is
+  wider than the tier above. `blobCloseness` controls how much each tier's tip extends into the tier
+  above: `overlapFraction = blobCloseness / 100` (20 % to 80 % of tier height).
 - **REQ-C-05a** Pine tier centers follow the trunk lean axis:
   `offsetX = trunkLean * (1 - (tierY - trunkTop) / (trunkBottom - trunkTop))`.
 - **REQ-C-06** Point-in-canopy tests for pine use a point-in-triangle test (`isPointInTier()`).
 
 ### 5.5 Fir Tree Canopy
 
-- **REQ-C-16** For `shape = 'fir'`, canopy has `blobCount` blobs (default 4). Blob 0 (top) uses
-  a teardrop boundary shape — pointy at top, rounded at bottom. Remaining blobs use circle
-  boundary and cluster below the top blob, accumulating at the bottom of the canopy.
-- **REQ-C-16a** The top teardrop blob is placed on the trunk axis, larger than the bottom
-  blobs, with `rx ~ W*0.18` and `ry ~ H*0.28`. The 3 bottom circle blobs are arranged in a
-  **horizontal row** at the bottom of the canopy region: center blob on trunk axis, left/right
-  blobs at `cx = trunkCenterX +/- (0.25 - 0.40)*W` with seeded jitter. All three bottom blobs
-  share a common `cy` near the canopy bottom with small +/-5-10 px vertical jitter. Bottom blob
-  `rx/ry` ranges: `W * 0.22 - W * 0.32` / `H * 0.14 - H * 0.20` (wider than the top teardrop).
+- **REQ-C-16** For `shape = 'fir'`, canopy has `blobCount` blobs (default 4). Blob 0 (top) uses a
+  teardrop boundary shape — pointy at top, rounded at bottom. Remaining blobs use circle boundary
+  and cluster below the top blob, accumulating at the bottom of the canopy.
+- **REQ-C-16a** The top teardrop blob is placed on the trunk axis, larger than the bottom blobs,
+  with `rx ~ W*0.18` and `ry ~ H*0.28`. The 3 bottom circle blobs are arranged in a **horizontal
+  row** at the bottom of the canopy region: center blob on trunk axis, left/right blobs at
+  `cx = trunkCenterX +/- (0.25 - 0.40)*W` with seeded jitter. All three bottom blobs share a common
+  `cy` near the canopy bottom with small +/-5-10 px vertical jitter. Bottom blob `rx/ry` ranges:
+  `W * 0.22 - W * 0.32` / `H * 0.14 - H * 0.20` (wider than the top teardrop).
 
 ### 5.6 Maple Tree Canopy
 
 - **REQ-C-17** For `shape = 'maple'`, canopy has `blobCount` blobs (default 5) spread in a
-  half-circle from left to right at the top. Each blob gets its own dedicated branch from the
-  trunk. `blobCloseness` is low (default 30) so blobs are visually separated with room for
-  branches.
+  half-circle from left to right at the top. Each blob gets its own dedicated branch from the trunk.
+  `blobCloseness` is low (default 30) so blobs are visually separated with room for branches.
 - **REQ-C-17a** Blobs are distributed radially in a 180 deg arc above the trunk, evenly spaced.
 
 ### 5.7 Oak Blob Spread
 
-- **REQ-C-18** For `shape = 'oak'`, secondary blobs (indices 1+) are distributed radially
-  (360 deg around main blob). Non-primary blobs maintain a minimum distance from the trunk
-  center axis of `|cx - trunkCenterX| >= 0.15*W` to reduce excessive overlap near the trunk.
-  Rejected samples are re-rolled up to 5 times before being clamped outward.
+- **REQ-C-18** For `shape = 'oak'`, secondary blobs (indices 1+) are distributed radially (360 deg
+  around main blob). Non-primary blobs maintain a minimum distance from the trunk center axis of
+  `|cx - trunkCenterX| >= 0.15*W` to reduce excessive overlap near the trunk. Rejected samples are
+  re-rolled up to 5 times before being clamped outward.
 
 ### 5.8 Birch Canopy Width
 
@@ -345,23 +345,23 @@ Blob placement targets lower positions relative to trunk tip.
 
 ### 5.9 Per-Blob Triangulation
 
-- **REQ-C-07** Each blob/tier is triangulated independently. The polygon budget is
-  distributed across blobs proportional to their area.
+- **REQ-C-07** Each blob/tier is triangulated independently. The polygon budget is distributed
+  across blobs proportional to their area.
 - **REQ-C-08** Boundary point count for each blob is approximately 15% of its allocated polygon
   budget. Boundary points use irregular angular spacing with +/-15-30 deg jitter and +/-10-20%
   radial jitter.
-- **REQ-C-09** Recommended boundary vertex counts by polygon budget: 50 -> 8-10, 100 -> 10-14,
-  200 -> 14-20, 500 -> 20-30.
+- **REQ-C-09** Recommended boundary vertex counts by polygon budget: 50 -> 8-10, 100 -> 10-14, 200
+  -> 14-20, 500 -> 20-30.
 - **REQ-C-10** Interior points are sampled with Poisson-disk rejection sampling inside each blob.
 - **REQ-C-11** After triangulation, only triangles whose centroid lies inside the blob are kept.
 
 ### 5.10 Canopy Outline Smoothing
 
-- **REQ-C-12** For `oak`, `birch`, `maple`, `willow`: after boundary sampling, post-process
-  boundary points so that no interior angle at any boundary vertex is acute (< 90 deg). Acute
-  vertices are either moved outward radially or removed.
-- **REQ-C-13** For `pine`/`fir`: the acute-angle smoothing is skipped at tier tips / teardrop
-  tips (acute angles are desired). Non-tip edges may still be smoothed.
+- **REQ-C-12** For `oak`, `birch`, `maple`, `willow`: after boundary sampling, post-process boundary
+  points so that no interior angle at any boundary vertex is acute (< 90 deg). Acute vertices are
+  either moved outward radially or removed.
+- **REQ-C-13** For `pine`/`fir`: the acute-angle smoothing is skipped at tier tips / teardrop tips
+  (acute angles are desired). Non-tip edges may still be smoothed.
 
 ### 5.11 Per-Species Canopy Envelope
 
@@ -382,14 +382,15 @@ Blob placement targets lower positions relative to trunk tip.
 
 ### 5.13 Branch Tip Trimming to Canopy Boundary
 
-- After clustering, trim branch tip endpoints that extend past their associated canopy blob boundary.
+- After clustering, trim branch tip endpoints that extend past their associated canopy blob
+  boundary.
 - Project the tip back onto the blob ellipse along the branch direction.
 - Branches visually enter the canopy but do not extend past the far side.
 
 ### 5.14 L2/L3 Branch Length Reduction
 
-- Reduce L2 branch length by 15% (change `CHILD_LENGTH_RATIO_MAX` from 0.8 → ~0.68 or apply a
-  0.85 multiplier).
+- Reduce L2 branch length by 15% (change `CHILD_LENGTH_RATIO_MAX` from 0.8 → ~0.68 or apply a 0.85
+  multiplier).
 - Reduce L3 branch length by 30-40% — L3 branches render as noticeably short stubs.
 - Reduction is compatible with `branchLength` and `branchLengthVariance` slider ranges.
 
@@ -402,7 +403,8 @@ Blob placement targets lower positions relative to trunk tip.
 ### 5.16 Blob Count
 
 - Blob count slider max = 25 for all species.
-- The existing inverse-sqrt scaling (`targetRadius = sqrt(envelopeArea / blobCount / pi)`) handles sizing.
+- The existing inverse-sqrt scaling (`targetRadius = sqrt(envelopeArea / blobCount / pi)`) handles
+  sizing.
 - Enforce a minimum blob radius so blobs remain visible at high counts.
 - Per-species default blob counts are unchanged (oak=5, birch=6, etc.).
 
@@ -431,7 +433,8 @@ Blob placement targets lower positions relative to trunk tip.
 
 - Same quad + centerline rendering as trunk
 - Centerline follows branch direction (not always vertical)
-- Per-level count via dual-thumb range sliders: `branchesLevel1Range`, `branchesLevel2Range`, `branchesLevel3Range`
+- Per-level count via dual-thumb range sliders: `branchesLevel1Range`, `branchesLevel2Range`,
+  `branchesLevel3Range`
 - Sub-branches originate from upper 50-100% of parent (not tip-only)
 - Independent segments and crookedness per branch
 - Dynamic slider maximums based on available trunk/parent length
@@ -444,7 +447,8 @@ Blob placement targets lower positions relative to trunk tip.
 - Random L/R direction per junction — enables S-curves, zigzags
 - Self-intersection prevention: absolute angle from vertical clamped to +/-85 deg
 - Separate trunk and branch crookedness sliders
-- Default mode: **alternating** — if segment N bends left, segment N+1 bends right (natural S-curves)
+- Default mode: **alternating** — if segment N bends left, segment N+1 bends right (natural
+  S-curves)
 - Secondary mode: **random** — for edge cases (dead stage, extreme crookedness)
 - `crookednessMode: 'alternating' | 'random'` config param, default `'alternating'`
 - Segment length variation: each segment +/-30% of average segment length
@@ -478,51 +482,50 @@ Blob placement targets lower positions relative to trunk tip.
 
 ### 6.8 Strip Continuity
 
-- **REQ-EV2-S-01** Strip width ratios are computed at each trunk junction point (not per
-  segment). For N trunk segments there are N+1 junction ratio sets. Each segment interpolates
-  linearly between its bottom and top junction ratios. This guarantees continuity — adjacent
-  segments share the same junction point data.
+- **REQ-EV2-S-01** Strip width ratios are computed at each trunk junction point (not per segment).
+  For N trunk segments there are N+1 junction ratio sets. Each segment interpolates linearly between
+  its bottom and top junction ratios. This guarantees continuity — adjacent segments share the same
+  junction point data.
 - **REQ-EV2-S-02** Strip width at each junction has two independent variation sources that
   accumulate: **Base randomness** — always present; even at `trunkTwist=0`, strip widths are
   non-uniform (organic, not mechanical 25/50/25), seeded per-junction. **Twist** — cumulative
-  rotational drift from base to tip, plus a per-junction random perturbation. `trunkTwist`
-  slider controls magnitude of both drift rate and perturbation. At `trunkTwist=0` only base
-  randomness applies.
-- **REQ-EV2-S-03** The twist model is **hybrid cumulative**: a base angle starts at a seeded
-  random value and drifts at each junction by a small twist delta (proportional to `trunkTwist`).
-  On top of the cumulative drift, each junction gets an additional random perturbation. This
-  produces organic spirals rather than mechanical rotation.
+  rotational drift from base to tip, plus a per-junction random perturbation. `trunkTwist` slider
+  controls magnitude of both drift rate and perturbation. At `trunkTwist=0` only base randomness
+  applies.
+- **REQ-EV2-S-03** The twist model is **hybrid cumulative**: a base angle starts at a seeded random
+  value and drifts at each junction by a small twist delta (proportional to `trunkTwist`). On top of
+  the cumulative drift, each junction gets an additional random perturbation. This produces organic
+  spirals rather than mechanical rotation.
 
 ### 6.9 Cross-Section Model
 
-- **REQ-EV2-X-01** The trunk is modeled as a regular polygon cross-section projected onto the
-  screen plane. The number of visible (front-facing) strip faces = `trunkStripCount` (REQ-P-40,
-  range 2-4, default 3). The total number of cross-section faces = `2 * trunkStripCount`.
-- **REQ-EV2-X-02** At maximum twist, strip faces can fully rotate out of view (width -> 0) and
-  new faces can appear on the opposite side. Buffer strips on each side of the visible range are
+- **REQ-EV2-X-01** The trunk is modeled as a regular polygon cross-section projected onto the screen
+  plane. The number of visible (front-facing) strip faces = `trunkStripCount` (REQ-P-40, range 2-4,
+  default 3). The total number of cross-section faces = `2 * trunkStripCount`.
+- **REQ-EV2-X-02** At maximum twist, strip faces can fully rotate out of view (width -> 0) and new
+  faces can appear on the opposite side. Buffer strips on each side of the visible range are
   maintained at 0 width by default and grow positive when another strip rotates out.
-- **REQ-EV2-X-03** `trunkTwist` default is **10%**, giving all trees subtle strip variation. Per-shape
-  `SHAPE_DEFAULTS` override as appropriate.
+- **REQ-EV2-X-03** `trunkTwist` default is **10%**, giving all trees subtle strip variation.
+  Per-shape `SHAPE_DEFAULTS` override as appropriate.
 
 ### 6.10 Junction Geometry
 
-- **REQ-EV2-J-01** At each internal trunk junction, the segment boundary is perpendicular to
-  the **angle bisector** between the incoming and outgoing segment directions. This tilts the
-  boundary at crooked junctions, producing natural-looking bends instead of horizontal cuts.
-  Base junction (no incoming segment): boundary perpendicular to first segment direction.
-  Tip junction (no outgoing segment): boundary perpendicular to last segment direction.
+- **REQ-EV2-J-01** At each internal trunk junction, the segment boundary is perpendicular to the
+  **angle bisector** between the incoming and outgoing segment directions. This tilts the boundary
+  at crooked junctions, producing natural-looking bends instead of horizontal cuts. Base junction
+  (no incoming segment): boundary perpendicular to first segment direction. Tip junction (no
+  outgoing segment): boundary perpendicular to last segment direction.
 - **REQ-EV2-J-02** All junction points — outer edges AND internal strip split points — are
   **shared** by both adjacent segments. Zero gaps guaranteed by construction.
 - **REQ-EV2-J-03** Trunk width at each junction is measured **perpendicular to the bisector
-  direction**, not horizontally. This prevents the trunk from appearing to pinch or bulge at
-  bends.
+  direction**, not horizontally. This prevents the trunk from appearing to pinch or bulge at bends.
 
 ### 6.11 Trunk Taper
 
-- **REQ-EV2-T-01** Trunk taper uses a **hybrid** model: **Gentle base taper** — slow natural
-  conical narrowing along the full trunk length, present even on branchless trunks. **Fork taper**
-  — discrete width reduction at each branch junction, proportional to branch depth (see
-  REQ-EV2-F-04). Both compound.
+- **REQ-EV2-T-01** Trunk taper uses a **hybrid** model: **Gentle base taper** — slow natural conical
+  narrowing along the full trunk length, present even on branchless trunks. **Fork taper** —
+  discrete width reduction at each branch junction, proportional to branch depth (see REQ-EV2-F-04).
+  Both compound.
 - **REQ-EV2-T-02** The existing `trunkTopWidth` in shape definitions becomes the **minimum floor**.
   The trunk narrows to this value at most regardless of fork count.
 - **REQ-EV2-T-03** The `trunkThickness` slider scales the base width only. It does not scale the
@@ -531,9 +534,9 @@ Blob placement targets lower positions relative to trunk tip.
 ### 6.12 Two-Zone Trunk Segments
 
 - **REQ-EV2-TZ-01** The trunk is divided into two zones: **Upper zone (branch zone)** — contains
-  junctions where L1 branches can spawn; segment count = `max(branchesLevel1Range[1], 2)`.
-  **Lower zone (bare trunk)** — below the branch zone; minimum 1 segment, still has twist
-  variation and crookedness. Branches spawn only at upper-zone junctions.
+  junctions where L1 branches can spawn; segment count = `max(branchesLevel1Range[1], 2)`. **Lower
+  zone (bare trunk)** — below the branch zone; minimum 1 segment, still has twist variation and
+  crookedness. Branches spawn only at upper-zone junctions.
 - **REQ-EV2-TZ-02** `trunkSegments` minimum is enforced: `trunkSegments >= upperZoneSegments + 1`.
   The user can add more segments for visual detail but not go below the minimum.
 
@@ -541,20 +544,20 @@ Blob placement targets lower positions relative to trunk tip.
 
 - **REQ-EV2-G-01** Build the tree from base to tip in a **single bottom-up pass**: (1) Compute
   junction positions from crookedness + lean. (2) Starting from the base junction, process each
-  junction upward. (3) At each upper-zone junction, determine if a branch spawns (pre-determined
-  by seed). (4) If a branch spawns: compute fork width reduction, compute centerline displacement,
+  junction upward. (3) At each upper-zone junction, determine if a branch spawns (pre-determined by
+  seed). (4) If a branch spawns: compute fork width reduction, compute centerline displacement,
   update remaining trunk width. (5) Continue to next junction with updated width and position.
-- **REQ-EV2-G-02** At each fork, the trunk centerline above the fork displaces slightly
-  **opposite** to the branch direction. Displacement is 2-5 px, proportional to the branch
-  width fraction. Alternating left-right branches (Rule I) naturally produce balanced trunks.
+- **REQ-EV2-G-02** At each fork, the trunk centerline above the fork displaces slightly **opposite**
+  to the branch direction. Displacement is 2-5 px, proportional to the branch width fraction.
+  Alternating left-right branches (Rule I) naturally produce balanced trunks.
 - **REQ-EV2-G-03** Branches spawn only at trunk junctions in the upper zone. The fork point IS a
   junction with fully computed shared vertices.
 
 ### 6.14 Branch Fork Model
 
-- **REQ-EV2-F-01** When a branch spawns, it emerges from the trunk via a **shared-vertex fork**.
-  The branch's base quad outer corners coincide exactly with the trunk edge vertices at the fork
-  height. The branch generates its own independent strip system starting from the attachment.
+- **REQ-EV2-F-01** When a branch spawns, it emerges from the trunk via a **shared-vertex fork**. The
+  branch's base quad outer corners coincide exactly with the trunk edge vertices at the fork height.
+  The branch generates its own independent strip system starting from the attachment.
 - **REQ-EV2-F-02** No junction collar by default. If a visible V-wedge appears at wide-angle forks,
   a single interpolated fill triangle MAY be inserted with color
   `lerp(trunkStripColorAtForkHeight, branchStripColorAtBase, 0.5)`. Ship without the fill first.
@@ -574,10 +577,10 @@ Blob placement targets lower positions relative to trunk tip.
 
 - **REQ-EV2-B-01** L1 and L2 branches use the full shared-vertex fork model (REQ-EV2-F-01):
   trunk/parent strip count preserved across the fork, branch starts an independent strip system.
-- **REQ-EV2-B-02** L3 branches use a simplified model: plain quads attached at the parent
-  branch's silhouette edge. No strip system, no fork geometry.
-- **REQ-EV2-B-03** Branches inherit `trunkStripCount` from the trunk. Twist is attenuated per
-  depth: L1 gets full `trunkTwist`, L2 gets ~50% of `trunkTwist`, L3 has no twist.
+- **REQ-EV2-B-02** L3 branches use a simplified model: plain quads attached at the parent branch's
+  silhouette edge. No strip system, no fork geometry.
+- **REQ-EV2-B-03** Branches inherit `trunkStripCount` from the trunk. Twist is attenuated per depth:
+  L1 gets full `trunkTwist`, L2 gets ~50% of `trunkTwist`, L3 has no twist.
 - **REQ-EV2-B-04** `branchSegments` is auto-reduced per depth: L1 gets the slider value, L2 gets
   `max(branchSegments - 1, 1)`, L3 always gets 1. Branch segment count minimum is enforced by
   sub-branch count.
@@ -593,8 +596,8 @@ Blob placement targets lower positions relative to trunk tip.
 
 ### 6.17 Rule L — Trunk Tip Connection
 
-- **REQ-EV2-L-01** Trunk tip always connects to a branch or canopy blob. For `branchDepth=0`
-  shapes (bush, cypress, pine, fir), trunk tip connects to the lowest/nearest canopy blob or tier.
+- **REQ-EV2-L-01** Trunk tip always connects to a branch or canopy blob. For `branchDepth=0` shapes
+  (bush, cypress, pine, fir), trunk tip connects to the lowest/nearest canopy blob or tier.
 - **REQ-EV2-L-02** Rule L is implemented as a post-generation validation step in `generateTree()`.
   If the trunk tip is exposed (no branch and not inside canopy), an emergency branch or connection
   is generated. Complements existing Rule G.
@@ -602,8 +605,8 @@ Blob placement targets lower positions relative to trunk tip.
 ### 6.18 Disabled Parameters
 
 - **REQ-EV2-D-01** `trunkStripCount`: disabled for bush (bush disables all trunk controls).
-- **REQ-EV2-D-02** `branchWidthVariance`: disabled when `branchDepth === 0`. Added to disabled
-  lists for pine, fir, cypress, bush.
+- **REQ-EV2-D-02** `branchWidthVariance`: disabled when `branchDepth === 0`. Added to disabled lists
+  for pine, fir, cypress, bush.
 
 ### 6.19 Tri-Split Face Lighting
 
@@ -611,8 +614,8 @@ Blob placement targets lower positions relative to trunk tip.
   dot-product lighting. Face normals are derived from the polygonal cross-section model (hexagonal
   for 3-strip, octagonal for 4-strip, etc.). Left/right normals: segment perpendicular at 60 deg
   from forward (for 3-strip hex model), adjusted for other strip counts. Center normal: front-facing
-  with seeded random +/-0.15 xy-perturbation. Lightness offset formula:
-  `-10 + ((dot + 1) / 2) * 22` maps dot product to [-10, +12].
+  with seeded random +/-0.15 xy-perturbation. Lightness offset formula: `-10 + ((dot + 1) / 2) * 22`
+  maps dot product to [-10, +12].
 - **REQ-EV2-LT-02** Lighting is consistent across connected segments. No visible color seams at
   segment boundaries.
 - **REQ-EV2-LT-03** Branch lighting uses the same face-normal model as the trunk.
@@ -621,12 +624,12 @@ Blob placement targets lower positions relative to trunk tip.
 
 - **REQ-EV2-Z-01** Classify branches as **front** (in front of trunk) or **back** using
   light-angle-biased randomness: branches on the **lit side** (facing `lightAngle`): 70% chance of
-  front placement. Branches on the **shadow side**: 30% chance of front placement. Classification
-  is seeded for determinism.
-- **REQ-EV2-Z-02** Back branches render **before** trunk quads in SVG order and receive a
-  **-3 lightness offset** (subtle darkness for depth cue). Front branches render after trunk.
-- **REQ-EV2-Z-03** L2 branches inherit their parent L1's front/back status by default, with a
-  small seeded chance (~20%) of flipping.
+  front placement. Branches on the **shadow side**: 30% chance of front placement. Classification is
+  seeded for determinism.
+- **REQ-EV2-Z-02** Back branches render **before** trunk quads in SVG order and receive a **-3
+  lightness offset** (subtle darkness for depth cue). Front branches render after trunk.
+- **REQ-EV2-Z-03** L2 branches inherit their parent L1's front/back status by default, with a small
+  seeded chance (~20%) of flipping.
 - **REQ-EV2-Z-04** Five z-order render layers for branching shapes (painter's order):
     1. Back branches (behind trunk)
     2. Trunk quads
@@ -636,9 +639,9 @@ Blob placement targets lower positions relative to trunk tip.
 
     Branchless shapes retain the original 3-layer model (REQ-R-02).
 
-- **REQ-EV2-Z-05** Each container geometry element (`Quad`, `BranchGeometry`, `BlobGeometry`)
-  gains a `zOrder` field. The renderer sorts by z-order layer. `Triangle` is explicitly waived —
-  triangles always inherit ordering from their parent `BlobGeometry`.
+- **REQ-EV2-Z-05** Each container geometry element (`Quad`, `BranchGeometry`, `BlobGeometry`) gains
+  a `zOrder` field. The renderer sorts by z-order layer. `Triangle` is explicitly waived — triangles
+  always inherit ordering from their parent `BlobGeometry`.
 
 ### 6.21 Generation Pipeline
 
@@ -650,19 +653,19 @@ Blob placement targets lower positions relative to trunk tip.
     5. Cluster branch tips into blob groups
     6. Generate canopy blobs around cluster centroids
     7. Assign z-order to all geometry elements
-- **REQ-EV2-P-02** Branchless shapes (pine, fir, cypress, bush) keep their current generation
-  system entirely.
+- **REQ-EV2-P-02** Branchless shapes (pine, fir, cypress, bush) keep their current generation system
+  entirely.
 
 ### 6.22 Branch-Driven Canopy Blob Placement
 
-- **REQ-EV2-BC-01** Given N branch tips (L1 + L2 + optional trunk tip), cluster them into M
-  groups where M = `blobCount` slider value. Use a clustering algorithm (e.g., k-means, seeded).
-  Tips close together share a blob; tips far apart get individual blobs.
-- **REQ-EV2-BC-02** The trunk tip is included as a cluster point. For shapes like oak, the trunk
-  tip has higher weight (attracts a blob to itself = central crown). For shapes like maple, the
-  trunk tip has low/zero weight (no central blob).
-- **REQ-EV2-BC-03** Branches go into the **middle** of their blob. If a branch tip lands at the
-  edge of a blob, the blob shifts to center on the tip.
+- **REQ-EV2-BC-01** Given N branch tips (L1 + L2 + optional trunk tip), cluster them into M groups
+  where M = `blobCount` slider value. Use a clustering algorithm (e.g., k-means, seeded). Tips close
+  together share a blob; tips far apart get individual blobs.
+- **REQ-EV2-BC-02** The trunk tip is included as a cluster point. For shapes like oak, the trunk tip
+  has higher weight (attracts a blob to itself = central crown). For shapes like maple, the trunk
+  tip has low/zero weight (no central blob).
+- **REQ-EV2-BC-03** Branches go into the **middle** of their blob. If a branch tip lands at the edge
+  of a blob, the blob shifts to center on the tip.
 - **REQ-EV2-BC-04** Weaker branches (higher depth levels) get smaller blobs. Blob size correlates
   with the branch level/thickness of its strongest contributing branch tip.
 
@@ -681,10 +684,10 @@ Blob placement targets lower positions relative to trunk tip.
 - **REQ-EV2-CE-02** `canopySize` scales the envelope from its center (grows outward/upward).
 - **REQ-EV2-CE-03** The canopy envelope grows freely with `canopySize`. SVG overflow clipping
   (REQ-R-01) handles viewport bounds. `canopySize` slider capped at 200%.
-- **REQ-EV2-CE-04** Branch tips outside the envelope: their blob is pulled back to the envelope
-  edge (smaller blob at boundary). Tips very far outside get no blob — just bare branch.
-- **REQ-EV2-CE-05** The envelope adapts to `canopySize` and viewport, preventing both overflow
-  and branch-hiding.
+- **REQ-EV2-CE-04** Branch tips outside the envelope: their blob is pulled back to the envelope edge
+  (smaller blob at boundary). Tips very far outside get no blob — just bare branch.
+- **REQ-EV2-CE-05** The envelope adapts to `canopySize` and viewport, preventing both overflow and
+  branch-hiding.
 
 ### 6.25 Shape Style Parameters
 
@@ -712,30 +715,30 @@ Blob placement targets lower positions relative to trunk tip.
 
 ### 6.26 Canopy Z-Ordering
 
-- **REQ-EV2-CZ-01** Each canopy blob inherits z-order from its cluster's branches:
-  single-branch cluster: blob gets that branch's front/back status.
-  Multi-branch cluster with mixed front/back: blob defaults to front.
-  Trunk-tip blob (e.g., oak center): always front.
+- **REQ-EV2-CZ-01** Each canopy blob inherits z-order from its cluster's branches: single-branch
+  cluster: blob gets that branch's front/back status. Multi-branch cluster with mixed front/back:
+  blob defaults to front. Trunk-tip blob (e.g., oak center): always front.
 - **REQ-EV2-CZ-02** Back canopy blobs render in layer 4, front canopy blobs in layer 5 (per
   REQ-EV2-Z-04).
 
 ### 6.27 Branch Symmetry
 
-- **REQ-PRD7-01** `DEFAULT_TREE_CONFIG.branchMirroring` = `'allowed'`.
-  Per-species overrides: pine/fir/cypress/bush → `'off'`; cherry/acacia → `'preferred'`.
-  Shapes inheriting the default (oak, birch, maple, willow, apple, baobab) omit `branchMirroring`
-  from `SHAPE_DEFAULTS`.
+- **REQ-PRD7-01** `DEFAULT_TREE_CONFIG.branchMirroring` = `'allowed'`. Per-species overrides:
+  pine/fir/cypress/bush → `'off'`; cherry/acacia → `'preferred'`. Shapes inheriting the default
+  (oak, birch, maple, willow, apple, baobab) omit `branchMirroring` from `SHAPE_DEFAULTS`.
 
-The `branchMirroring` control is a 3-state dropdown "Branch Mirroring" in the branch controls section:
+The `branchMirroring` control is a 3-state dropdown "Branch Mirroring" in the branch controls
+section:
 
-- **Off** — current behavior: L1 branches alternate left/right, random junctions, overlap rejection as-is
+- **Off** — current behavior: L1 branches alternate left/right, random junctions, overlap rejection
+  as-is
 - **Allowed** — relaxes same-junction overlap rejection for branches on opposite sides: same-point
   pairs more likely but not forced
 - **Preferred** — actively generates L1 branches in pairs from the same trunk junction: one left,
   one right. Angle and length differ slightly between the pair
 
-When "Preferred": L1 branch count minimum becomes 2 (treat `branchesLevel1Range` min < 2 as 2).
-L2 sub-branches also generate in pairs from L1 tips, with L2 count minimum of 2.
+When "Preferred": L1 branch count minimum becomes 2 (treat `branchesLevel1Range` min < 2 as 2). L2
+sub-branches also generate in pairs from L1 tips, with L2 count minimum of 2.
 
 ### 6.28 Trunk Fork (Y-Split)
 
@@ -772,11 +775,11 @@ all species when `trunkFork` is enabled.
 
 ### 7.1 Canopy Lighting (Two-Color Gradient System)
 
-- **REQ-L-01** Canopy lighting uses a two-color interpolation system. `canopyLightColor` (hex)
-  is the color for fully lit faces. `canopyDarkColor` (hex) is the color for fully shadowed
-  faces. The lighting factor (0-1) interpolates between these in HSL space.
-- **REQ-L-01a** Each canopy blob uses hemisphere lighting mapped to that blob's own center and
-  radii — not global canopy bounds.
+- **REQ-L-01** Canopy lighting uses a two-color interpolation system. `canopyLightColor` (hex) is
+  the color for fully lit faces. `canopyDarkColor` (hex) is the color for fully shadowed faces. The
+  lighting factor (0-1) interpolates between these in HSL space.
+- **REQ-L-01a** Each canopy blob uses hemisphere lighting mapped to that blob's own center and radii
+  — not global canopy bounds.
 - **REQ-L-02** Ambient component is `0.15`; diffuse component is `0.85 * diffuse`:
   `lighting = 0.15 + 0.85 * diffuse`.
 - **REQ-L-04** `depthVariance` scales the hemisphere z-component:
@@ -825,32 +828,34 @@ all species when `trunkFork` is enabled.
 - All shapes support all stages
 
 **Dead stage** applies both crookedness and lean: `trunkCrookedness=50`, `trunkLean=15`,
-`trunkSegments=5`. Use `random` crookedness mode for a broken/twisted look. No canopy,
-desaturated colors.
+`trunkSegments=5`. Use `random` crookedness mode for a broken/twisted look. No canopy, desaturated
+colors.
 
 ---
 
 ## 9. Animations
 
-- **Canopy sway** — CSS transform rotation, 2-3s cycle, per-tree phase offset, ~2-3 deg amplitude. Per-blob
-  stagger (blobIndex \* 0.15s) for within-tree variety. Startup delay 0-0.5s.
-- **Branch movement** — individual CSS animation per branch, 1.5-4s range, transform origin at branch
-  base. Nest child branch `<g>` elements inside parent's animated group so children inherit parent
-  rotation + add their own. Render structure: `trunk -> L1 animated group -> L2 animated group (nested)`.
-- **Growth animation** — **REQ-PRD7-12**: branch tip-only animation: animate branch length by extending
-  tips outward; branch origins stay fixed at trunk/parent attachment point; `transform-origin` at branch
-  base, scaling along branch axis only. Canopy blob position follows the animated branch tip.
-  All branches and canopy blobs share the same animation duration and start simultaneously — no
-  per-branch stagger. `growthVariance` (0-100%) controls amplitude: 0% = static (scale 1.0),
-  100% = dramatic (branches 0.5–1.5x, canopy 0.92–1.08x). Duration: 3 seconds. Purely CSS animations.
+- **Canopy sway** — CSS transform rotation, 2-3s cycle, per-tree phase offset, ~2-3 deg amplitude.
+  Per-blob stagger (blobIndex \* 0.15s) for within-tree variety. Startup delay 0-0.5s.
+- **Branch movement** — individual CSS animation per branch, 1.5-4s range, transform origin at
+  branch base. Nest child branch `<g>` elements inside parent's animated group so children inherit
+  parent rotation + add their own. Render structure:
+  `trunk -> L1 animated group -> L2 animated group (nested)`.
+- **Growth animation** — **REQ-PRD7-12**: branch tip-only animation: animate branch length by
+  extending tips outward; branch origins stay fixed at trunk/parent attachment point;
+  `transform-origin` at branch base, scaling along branch axis only. Canopy blob position follows
+  the animated branch tip. All branches and canopy blobs share the same animation duration and start
+  simultaneously — no per-branch stagger. `growthVariance` (0-100%) controls amplitude: 0% = static
+  (scale 1.0), 100% = dramatic (branches 0.5–1.5x, canopy 0.92–1.08x). Duration: 3 seconds. Purely
+  CSS animations.
 - **Tool animations** — each tool has distinct idle animation with `transform-origin` at snap point.
   "Animate tools" checkbox toggles all visible tool idle animations. 6 tools with individual CSS
   keyframes (`tool-shovel-idle`, `tool-watering-can-idle`, etc.).
-- **Falling leaves** — **REQ-PRD7-15**: leaf particles originate from midpoint between crown center and
-  canopy bottom (`startY = (crownCenter.y + canopyBottomY) / 2`). Each leaf falls to `GROUND_LINE_Y`,
-  then stays visible for ~10 seconds before fading out. Multiple leaves accumulate, creating a pile
-  effect. Landed leaves get ±10-20px horizontal jitter. Maximum 15-20 visible ground leaves per tree.
-  New leaves spawn while old leaves fade. Spawn interval: 800ms.
+- **Falling leaves** — **REQ-PRD7-15**: leaf particles originate from midpoint between crown center
+  and canopy bottom (`startY = (crownCenter.y + canopyBottomY) / 2`). Each leaf falls to
+  `GROUND_LINE_Y`, then stays visible for ~10 seconds before fading out. Multiple leaves accumulate,
+  creating a pile effect. Landed leaves get ±10-20px horizontal jitter. Maximum 15-20 visible ground
+  leaves per tree. New leaves spawn while old leaves fade. Spawn interval: 800ms.
 - All toggleable via checkboxes, loop while checked
 - No performance degradation at 100 trees
 
@@ -987,8 +992,8 @@ All fruits as static SVG assets in `assets/fruits/`. Type locked per tree shape:
 
 ### 14.1 LowPolyTree Component
 
-- **REQ-UI-01** The component accepts all `TreeConfig` fields as individual props with defaults
-  from `DEFAULT_TREE_CONFIG`.
+- **REQ-UI-01** The component accepts all `TreeConfig` fields as individual props with defaults from
+  `DEFAULT_TREE_CONFIG`.
 - **REQ-UI-02** Additional props:
 
 | Prop           | Type                             | Default | Description                                                        |
@@ -1018,8 +1023,8 @@ layers so that anchors remain correct.
     - **Scene Settings**: seed input (advanced tier only) + Randomize, `canopyPolygons`, lifecycle
       stage selector
     - **Canopy**: `blobSizeVariance`, `blobCloseness`, `canopySize`
-    - **Trunk**: `trunkHeight`, `trunkThickness`, `trunkLean`, `trunkSegments`,
-      `trunkCrookedness`, `trunkBranchRatio`
+    - **Trunk**: `trunkHeight`, `trunkThickness`, `trunkLean`, `trunkSegments`, `trunkCrookedness`,
+      `trunkBranchRatio`
     - **Branches**: `branchThickness`, `branchLength`, `branchLengthVariance`
     - **Canopy Color**: 2 color pickers + "Use per-shape defaults" toggle
     - **Trunk Color**: swatches + HSL sliders + per-shape defaults toggle
@@ -1030,24 +1035,24 @@ layers so that anchors remain correct.
 
 ### 14.4 Editor Layout
 
-- **REQ-S-01** Both editor pages (`/` scene, `/editor` single tree) use a `100dvh` CSS grid
-  with a **top/bottom 50:50 split** (`grid-rows-[1fr_1fr]`). Scene/preview in top half,
-  settings panel in bottom half.
+- **REQ-S-01** Both editor pages (`/` scene, `/editor` single tree) use a `100dvh` CSS grid with a
+  **top/bottom 50:50 split** (`grid-rows-[1fr_1fr]`). Scene/preview in top half, settings panel in
+  bottom half.
 - **REQ-S-02** / **REQ-PRD7-18** Settings panel uses a flat responsive grid layout:
-  `grid-cols-[repeat(auto-fill,minmax(280px,1fr))]`. All cards are direct grid items — no
-  grouping wrappers or `col-span-full` containers.
+  `grid-cols-[repeat(auto-fill,minmax(280px,1fr))]`. All cards are direct grid items — no grouping
+  wrappers or `col-span-full` containers.
 - **REQ-S-03** / **REQ-PRD7-03** The tier toggle is **sticky** (`sticky top-0 z-10`) above the
   scrollable settings area. It has a **solid opaque background** matching the panel background,
   spans the full width with horizontal padding matching the cards, and has equal vertical spacing
-  above (to the scene/preview) and below (to the first card). Scrolled card content is fully
-  hidden behind the switcher at all scroll positions.
-- **REQ-S-11** The entire controls panel has `user-select: none` (Tailwind `select-none`)
-  applied to prevent text selection from interfering with slider dragging.
-- **REQ-PRD7-17** Both editors have a sky gradient background (`bg-linear-to-b from-sky-200 to-white`,
-  dark mode: `from-[#0a1628] to-[#1a2744]`) and a visible ground plane. Single tree editor: simple
-  horizontal ground band at `GROUND_LINE_Y` — earth-colored rectangle filling the bottom of the
-  viewport with a subtle gradient fading to transparent ~20% up. Both ground and sky respect
-  dark/light theme.
+  above (to the scene/preview) and below (to the first card). Scrolled card content is fully hidden
+  behind the switcher at all scroll positions.
+- **REQ-S-11** The entire controls panel has `user-select: none` (Tailwind `select-none`) applied to
+  prevent text selection from interfering with slider dragging.
+- **REQ-PRD7-17** Both editors have a sky gradient background
+  (`bg-linear-to-b from-sky-200 to-white`, dark mode: `from-[#0a1628] to-[#1a2744]`) and a visible
+  ground plane. Single tree editor: simple horizontal ground band at `GROUND_LINE_Y` — earth-colored
+  rectangle filling the bottom of the viewport with a subtle gradient fading to transparent ~20% up.
+  Both ground and sky respect dark/light theme.
 
 ### 14.5 Mobile Layout
 
@@ -1058,10 +1063,10 @@ layers so that anchors remain correct.
 
 ### 14.6 Floating Action Buttons
 
-- **REQ-PRD7-04** / **REQ-PRD7-07** Randomize Seed, Reset, and Save actions live exclusively in
-  the floating button menu (`SceneFloatingButtons`). The settings panel contains only tree
-  configuration controls. Use `mergeProps` from bits-ui to compose `Tooltip.Trigger` props with
-  `onclick` handlers, ensuring both tooltip behavior and user actions fire.
+- **REQ-PRD7-04** / **REQ-PRD7-07** Randomize Seed, Reset, and Save actions live exclusively in the
+  floating button menu (`SceneFloatingButtons`). The settings panel contains only tree configuration
+  controls. Use `mergeProps` from bits-ui to compose `Tooltip.Trigger` props with `onclick`
+  handlers, ensuring both tooltip behavior and user actions fire.
 - Absolute-positioned div inside scene container, `top-4 right-4 z-10`, vertical flex column
 - Buttons: theme cycle (Sun/Moon/Monitor icons), reset to defaults, randomize seed
 - Save button shown in single editor only (not scene editor)
@@ -1069,9 +1074,9 @@ layers so that anchors remain correct.
 
 ### 14.7 3-Tier Settings Control (Basic / Intermediate / Advanced)
 
-Segmented control at top of settings panel using shadcn-svelte Tabs or ToggleGroup.
-Tiers are **additive** — higher tiers show all controls from lower tiers plus their own.
-Persistent per session.
+Segmented control at top of settings panel using shadcn-svelte Tabs or ToggleGroup. Tiers are
+**additive** — higher tiers show all controls from lower tiers plus their own. Persistent per
+session.
 
 **Basic** (casual users, quick results):
 
@@ -1112,14 +1117,15 @@ Persistent per session.
 
 ### 14.9 Color Picker UI
 
-- **REQ-S-13** Canopy color pickers use native `<input type="color">` styled to match shadcn
-  design. Each picker shows a colored swatch preview + hex value text.
-- **REQ-S-14** Trunk color preset swatches are rendered as small colored buttons in a row.
-  Clicking a swatch sets the 3 trunk HSL sliders simultaneously.
+- **REQ-S-13** Canopy color pickers use native `<input type="color">` styled to match shadcn design.
+  Each picker shows a colored swatch preview + hex value text.
+- **REQ-S-14** Trunk color preset swatches are rendered as small colored buttons in a row. Clicking
+  a swatch sets the 3 trunk HSL sliders simultaneously.
 
 ### 14.10 Settings Persistence (localStorage)
 
-- `Persisted<T>` class in `src/lib/reactivity/persisted.svelte.ts` handles localStorage + cross-tab sync
+- `Persisted<T>` class in `src/lib/reactivity/persisted.svelte.ts` handles localStorage + cross-tab
+  sync
 - One `Persisted` instance per config type with `jsonSerde` validator:
     - `'tree-config'` → TreeConfig
     - `'scene-config'` → SceneConfig (treeCount, depthSpread, baseSeed)
@@ -1132,11 +1138,11 @@ Persistent per session.
 
 ### 14.11 Reset to Defaults
 
-- **REQ-PRD7-13** A "Reset to [Species] defaults" button below the Tree Type dropdown in the
-  Shape card. Label updates dynamically (e.g., "Reset to Oak defaults"). Reset formula:
+- **REQ-PRD7-13** A "Reset to [Species] defaults" button below the Tree Type dropdown in the Shape
+  card. Label updates dynamically (e.g., "Reset to Oak defaults"). Reset formula:
   `{ ...DEFAULT_TREE_CONFIG, ...SHAPE_DEFAULTS[shape], seed, shape }` — applies
-  `DEFAULT_TREE_CONFIG` as full baseline then overlays shape-specific tuning. Preserves only
-  `seed` and `shape`. Works for all species (skips custom).
+  `DEFAULT_TREE_CONFIG` as full baseline then overlays shape-specific tuning. Preserves only `seed`
+  and `shape`. Works for all species (skips custom).
 
 ### 14.12 All Sliders
 
@@ -1153,19 +1159,19 @@ Persistent per session.
 - **REQ-NAV-01** / **REQ-PRD7-19** The application uses the shadcn-svelte **`sidebar-07`** block
   with `collapsible="offcanvas"` (full-hide — sidebar disappears completely when collapsed).
   Integrated into `src/routes/+layout.svelte`. Collapsed/expanded state persisted via
-  `sidebar:state` cookie (7-day max-age), read in `+layout.server.ts`. Desktop defaults to
-  expanded; mobile defaults to collapsed.
+  `sidebar:state` cookie (7-day max-age), read in `+layout.server.ts`. Desktop defaults to expanded;
+  mobile defaults to collapsed.
 - **REQ-NAV-02** Sidebar includes links to all pages:
     - Single Tree Editor (`/showcase`)
     - Scene Editor (`/showcase/scene`)
     - Gallery (`/gallery`)
-- **REQ-NAV-04** The sidebar renders on **every route**. The Gallery link redirects anonymous
-  users to `/auth` server-side.
+- **REQ-NAV-04** The sidebar renders on **every route**. The Gallery link redirects anonymous users
+  to `/auth` server-side.
 - **REQ-NAV-05** / **REQ-PRD7-06** / **REQ-PRD7-09** The sidebar has a visible `Sidebar.Trigger`
-  icon button positioned outside the sidebar in `Sidebar.Inset`. Icon switches between
-  `PanelLeft` (collapsed) and `PanelLeftClose` (expanded). Navigation icons are horizontally
-  centered within the collapsed sidebar with equal padding from both side borders. Icon size
-  matches the visual weight of floating button icons.
+  icon button positioned outside the sidebar in `Sidebar.Inset`. Icon switches between `PanelLeft`
+  (collapsed) and `PanelLeftClose` (expanded). Navigation icons are horizontally centered within the
+  collapsed sidebar with equal padding from both side borders. Icon size matches the visual weight
+  of floating button icons.
 
 ### 15.2 User Dropdown
 
@@ -1178,8 +1184,8 @@ Persistent per session.
 
 ### 15.3 Theme Switching
 
-- **REQ-PRD7-05** Theme switcher cycles light → dark → system → light, applying changes
-  immediately via `mode-watcher` (`setMode()`). Theme persists across page navigation.
+- **REQ-PRD7-05** Theme switcher cycles light → dark → system → light, applying changes immediately
+  via `mode-watcher` (`setMode()`). Theme persists across page navigation.
 
 ---
 
@@ -1187,8 +1193,8 @@ Persistent per session.
 
 - **REQ-AUTH-01** Implement BetterAuth for user authentication.
 - **REQ-AUTH-02** Supported auth methods: Google OAuth, GitHub OAuth, Passkey (WebAuthn).
-- **REQ-AUTH-02a** Sign-in and sign-up collapse to a **single flow**: first successful
-  OAuth/Passkey auth creates the user row; subsequent auths sign the user in.
+- **REQ-AUTH-02a** Sign-in and sign-up collapse to a **single flow**: first successful OAuth/Passkey
+  auth creates the user row; subsequent auths sign the user in.
 - **REQ-AUTH-03** Auth state is available server-side via hooks and client-side via auth client.
 - **REQ-AUTH-04** User session data is stored in the database (PostgreSQL via Drizzle ORM).
 - **REQ-AUTH-05** The `/auth` route is a single page with three primary buttons:
@@ -1197,15 +1203,14 @@ Persistent per session.
     3. "Continue with Passkey" → `authClient.signIn.passkey()` (falls back to registration flow)
 - **REQ-AUTH-06** Sign-out is a server action at `/auth/sign-out` (POST) that calls
   `auth.api.signOut()` and redirects to `/`.
-- **REQ-AUTH-07** Required environment variables: `AUTH_SECRET`, `ORIGIN`,
-  `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`.
-  Document in `.env.example`.
-- **REQ-AUTH-08** Drizzle auth schema in `src/lib/server/db/auth.schema.ts` includes Passkey
-  plugin tables. Generated via `pnpm dlx @better-auth/cli generate` and committed alongside a
-  Drizzle migration.
-- **REQ-AUTH-09** Sign-in flow for all providers (Google OAuth, GitHub OAuth, passkey) must
-  handle session persistence, OAuth callback handling, and redirect logic reliably without
-  intermittent failures.
+- **REQ-AUTH-07** Required environment variables: `AUTH_SECRET`, `ORIGIN`, `GOOGLE_CLIENT_ID`,
+  `GOOGLE_CLIENT_SECRET`, `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`. Document in `.env.example`.
+- **REQ-AUTH-08** Drizzle auth schema in `src/lib/server/db/auth.schema.ts` includes Passkey plugin
+  tables. Generated via `pnpm dlx @better-auth/cli generate` and committed alongside a Drizzle
+  migration.
+- **REQ-AUTH-09** Sign-in flow for all providers (Google OAuth, GitHub OAuth, passkey) must handle
+  session persistence, OAuth callback handling, and redirect logic reliably without intermittent
+  failures.
 
 ---
 
@@ -1213,13 +1218,13 @@ Persistent per session.
 
 ### 17.1 Save Mechanism
 
-- **REQ-SAVE-01** A "Save" button in the single tree editor (placed at top of controls panel
-  beside shape picker) saves the current `TreeConfig` to the database.
-- **REQ-SAVE-02** Saved trees are associated with the authenticated user. Anonymous users
-  cannot save — the button is disabled with a "Sign in to save" tooltip.
+- **REQ-SAVE-01** A "Save" button in the single tree editor (placed at top of controls panel beside
+  shape picker) saves the current `TreeConfig` to the database.
+- **REQ-SAVE-02** Saved trees are associated with the authenticated user. Anonymous users cannot
+  save — the button is disabled with a "Sign in to save" tooltip.
 - **REQ-SAVE-03** Each saved tree stores: all `TreeConfig` fields as a JSONB snapshot, an
-  auto-generated name, creation timestamp, `updatedAt` timestamp, and user ID. Row identified
-  by a nanoid primary key.
+  auto-generated name, creation timestamp, `updatedAt` timestamp, and user ID. Row identified by a
+  nanoid primary key.
 - **REQ-SAVE-03a** Auto-name format: **`"{Shape} #{N}"`** where `Shape` is the capitalized tree
   shape and `N` is the next sequential integer scoped to that user + shape.
 - **REQ-SAVE-04** The `saved_trees` table Drizzle schema:
@@ -1238,8 +1243,8 @@ Persistent per session.
     Lives in `src/lib/server/db/saved-trees.schema.ts`. A Drizzle migration is committed in
     `src/lib/server/db/migrations/`.
 - **REQ-SAVE-05** Forward-compatibility: on restore, stored JSONB is merged with
-  `DEFAULT_TREE_CONFIG`: `{ ...DEFAULT_TREE_CONFIG, ...stored.config }`. New fields inherit
-  defaults on old saved rows.
+  `DEFAULT_TREE_CONFIG`: `{ ...DEFAULT_TREE_CONFIG, ...stored.config }`. New fields inherit defaults
+  on old saved rows.
 
 ### 17.2 Gallery Page
 
@@ -1247,18 +1252,18 @@ Persistent per session.
   redirects to `/auth`.
 - **REQ-GALLERY-02** Each saved tree is rendered as a preview thumbnail:
   `<LowPolyTree {...savedTree.config} />`, sized to a fixed 200x200 aspect square with
-  `overflow: hidden`. Displays tree name (inline-editable) and relative creation date
-  (e.g., "2 hours ago" via `Intl.RelativeTimeFormat`).
+  `overflow: hidden`. Displays tree name (inline-editable) and relative creation date (e.g., "2
+  hours ago" via `Intl.RelativeTimeFormat`).
 - **REQ-GALLERY-03** Clicking a saved tree navigates to **`/showcase?saved=<id>`**. The load
-  function reads the `saved` query param, fetches the row by id (404 if not owned by current
-  user), merges config with `DEFAULT_TREE_CONFIG`, and passes as `data.initialConfig`.
+  function reads the `saved` query param, fetches the row by id (404 if not owned by current user),
+  merges config with `DEFAULT_TREE_CONFIG`, and passes as `data.initialConfig`.
 - **REQ-GALLERY-04** Users can delete saved trees via a trash icon. Delete triggers a confirmation
   dialog before the server delete action runs.
 - **REQ-GALLERY-05** Gallery is user-specific — scoped by `event.locals.user.id`. Delete and rename
   actions enforce ownership server-side.
 - **REQ-GALLERY-06** Gallery cells: `grid-template-columns: repeat(auto-fill, minmax(200px, 1fr))`.
-- **REQ-GALLERY-07** Inline rename: single-click on the tree name turns it into an `<input>`;
-  blur or Enter commits via a rename server action with ownership check. Escape cancels.
+- **REQ-GALLERY-07** Inline rename: single-click on the tree name turns it into an `<input>`; blur
+  or Enter commits via a rename server action with ownership check. Escape cancels.
 
 ### 17.3 Server CRUD Module
 
@@ -1274,39 +1279,39 @@ Persistent per session.
 ## 18. Custom Tree
 
 - **REQ-CUSTOM-01** The `'custom'` shape is available only in the single tree editor.
-- **REQ-CUSTOM-02** `blobCount` (1-8) controls how many blobs are visible and editable. Each
-  blob gets its own collapsible UI section in a card (shadcn-svelte Accordion with
-  `type="multiple"`).
+- **REQ-CUSTOM-02** `blobCount` (1-8) controls how many blobs are visible and editable. Each blob
+  gets its own collapsible UI section in a card (shadcn-svelte Accordion with `type="multiple"`).
 - **REQ-CUSTOM-03** Each custom blob is a `CustomBlob` record stored in
   `TreeConfig.customBlobs?: CustomBlob[]`:
-    - `boundaryKind`: one of `'circle' | 'egg' | 'teardrop' | 'isoscelesTriangle' | 'equilateralTriangle'`
+    - `boundaryKind`: one of
+      `'circle' | 'egg' | 'teardrop' | 'isoscelesTriangle' | 'equilateralTriangle'`
     - `rotationDeg`: `number` in `[0, 360]`, step 5
-    - `sizeScale`: `number` in `[0.5, 2.0]`, step 0.05 (UI shows 50%-200%); scales `rx` and `ry` uniformly
+    - `sizeScale`: `number` in `[0.5, 2.0]`, step 0.05 (UI shows 50%-200%); scales `rx` and `ry`
+      uniformly
     - `position`: `{ x: number; y: number }` with each axis in `[-1, +1]`, step 0.05
-- **REQ-CUSTOM-03a** Position is **normalized** relative to canopy half-extent. `x = -1` →
-  left edge; `x = +1` → right edge; `y = -1` → top; `y = +1` → bottom. At render time:
+- **REQ-CUSTOM-03a** Position is **normalized** relative to canopy half-extent. `x = -1` → left
+  edge; `x = +1` → right edge; `y = -1` → top; `y = +1` → bottom. At render time:
   `cx = canopyCenterX + position.x * spreadRadius`,
-  `cy = canopyCenterY + position.y * spreadRadius`. Resolution-independent — survives
-  `canopySize` slider changes without retuning.
+  `cy = canopyCenterY + position.y * spreadRadius`. Resolution-independent — survives `canopySize`
+  slider changes without retuning.
 - **REQ-CUSTOM-03b** Per-blob UI shows exactly 5 controls per blob:
     1. Boundary shape `<Select>` (5 options)
     2. Rotation `<input type="range" min="0" max="360" step="5">`
     3. Size `<input type="range" min="0.5" max="2" step="0.05">`
     4. Position X `<input type="range" min="-1" max="1" step="0.05">`
     5. Position Y `<input type="range" min="-1" max="1" step="0.05">`
-- **REQ-CUSTOM-04** The `customBlobs` array is grown lazily. When UI `blobCount = M`, only
-  indices `[0, M)` are rendered. When `blobCount` exceeds `customBlobs.length`, append new
-  seeded entries (random position, `boundaryKind = 'circle'`, `rotationDeg = 0`,
-  `sizeScale = 1.0`). Decreasing `blobCount` preserves trailing entries — growing back reveals
-  previously tuned values.
+- **REQ-CUSTOM-04** The `customBlobs` array is grown lazily. When UI `blobCount = M`, only indices
+  `[0, M)` are rendered. When `blobCount` exceeds `customBlobs.length`, append new seeded entries
+  (random position, `boundaryKind = 'circle'`, `rotationDeg = 0`, `sizeScale = 1.0`). Decreasing
+  `blobCount` preserves trailing entries — growing back reveals previously tuned values.
 - **REQ-CUSTOM-04a** Custom tree generation is deterministic. Seeded random is used **only** to
   initialize newly appended `customBlobs` entries. Once a blob has user-set values, those are
   authoritative and override seeded random on subsequent generation.
 - **REQ-CUSTOM-05** All other tree parameters (branches, trunk, lighting, colors) apply normally.
   Custom trees use the generic `generateBranches()`.
-- **REQ-CUSTOM-06** `SHAPE_DEFAULTS` has no entry for `'custom'`. When switching TO custom,
-  current `TreeConfig` values carry through and `customBlobs` is lazily seeded. When switching
-  AWAY, `customBlobs` is preserved but unused.
+- **REQ-CUSTOM-06** `SHAPE_DEFAULTS` has no entry for `'custom'`. When switching TO custom, current
+  `TreeConfig` values carry through and `customBlobs` is lazily seeded. When switching AWAY,
+  `customBlobs` is preserved but unused.
 - **REQ-CUSTOM-07** Custom shape is excluded from scene-editor shape lists and shape-cycling
   helpers.
 
@@ -1333,11 +1338,13 @@ Persistent per session.
 7 effects, all scene-wide and independently toggleable:
 
 - **Rain** — CSS-animated SVG lines, intensity slider (light to heavy), diagonal fall
-- **Lightning** — random flashes 5-15s, 100-200ms white overlay, optional bolt SVG; accessibility-safe flash rate
+- **Lightning** — random flashes 5-15s, 100-200ms white overlay, optional bolt SVG;
+  accessibility-safe flash rate
 - **Fireflies** — glowing dots, random walk + pulse, ~2/sec spawn, ~8s lifetime
 - **Wind particles** — leaf/petal sprites drifting horizontally, rotation, varied size/opacity
 - **Snow** — slow-falling white flakes, gentle horizontal drift, no accumulation
-- **Sun rays** — semi-transparent diagonal gradient lines from upper corner, golden tone; works with `lightAngle`
+- **Sun rays** — semi-transparent diagonal gradient lines from upper corner, golden tone; works with
+  `lightAngle`
 - **Clouds** — low-poly polygon shapes (3-5 triangles), slow horizontal drift, sky area only
 
 ---
@@ -1384,16 +1391,16 @@ Reusable SVG overlays. Visual shapes only — consumer applies semantics.
 
 - **REQ-PRD8-01** Add a "grill" tool (BBQ grill) to the tool system. Uses existing tool
   infrastructure: `ToolType`, `ToolDefinition`, snap point, pivot point, size slider.
-- **REQ-PRD8-01a** Anchor target: `trunkBase` (same as shovel/axe/rake) with a slight x-offset
-  so it sits beside the trunk.
-- **REQ-PRD8-01b** Initial SVG is a placeholder (simple geometric shape — rectangle base with
-  2-3 horizontal grate lines). Will be replaced with a polished SVG later.
-- **REQ-PRD8-01c** Flame animation: 2-3 small SVG flame shapes above the grill. Flames fade
-  in/out and sway slightly on a continuous loop. Activated by `animateTools` toggle (same as
-  other tool animations). Each flame has slightly offset timing for organic feel.
+- **REQ-PRD8-01a** Anchor target: `trunkBase` (same as shovel/axe/rake) with a slight x-offset so it
+  sits beside the trunk.
+- **REQ-PRD8-01b** Initial SVG is a placeholder (simple geometric shape — rectangle base with 2-3
+  horizontal grate lines). Will be replaced with a polished SVG later.
+- **REQ-PRD8-01c** Flame animation: 2-3 small SVG flame shapes above the grill. Flames fade in/out
+  and sway slightly on a continuous loop. Activated by `animateTools` toggle (same as other tool
+  animations). Each flame has slightly offset timing for organic feel.
 - **REQ-PRD8-01d** Size range: 0.5-2.0 (same as existing tools). Default size: 1.0.
-- **REQ-PRD8-01e** Follows all existing tool conventions: individual visibility checkbox in
-  Tools & Accessories card, snap/pivot points editable via point editor.
+- **REQ-PRD8-01e** Follows all existing tool conventions: individual visibility checkbox in Tools &
+  Accessories card, snap/pivot points editable via point editor.
 
 **Acceptance Criteria:**
 
@@ -1411,11 +1418,11 @@ Reusable SVG overlays. Visual shapes only — consumer applies semantics.
 - **REQ-PRD8-02** Migrate speech bubble from overlay system to tool system. Remove from
   `OverlayPersistedState`; add to `ToolType` union and `ToolDefinition` map.
 - **REQ-PRD8-02a** Shape: rectangular with rounded corners and a curved pointer/tail pointing
-  downward toward the tree canopy top. The tail originates near the center or slightly to the
-  right of the bubble, curves first to the right then back toward the canopy center. Replaces
-  the current blob-shaped speech bubble.
-- **REQ-PRD8-02b** Anchor target: `crownTop` (positioned above canopy). Has snap point, pivot
-  point, and size controls like all other tools.
+  downward toward the tree canopy top. The tail originates near the center or slightly to the right
+  of the bubble, curves first to the right then back toward the canopy center. Replaces the current
+  blob-shaped speech bubble.
+- **REQ-PRD8-02b** Anchor target: `crownTop` (positioned above canopy). Has snap point, pivot point,
+  and size controls like all other tools.
 - **REQ-PRD8-02c** Text content: configurable via a text input in the tool settings area (appears
   when speech bubble tool is visible). Supports multi-line text via `\n`.
 - **REQ-PRD8-02d** No animation for speech bubble (static tool).
@@ -1436,12 +1443,12 @@ Reusable SVG overlays. Visual shapes only — consumer applies semantics.
 - **REQ-PRD8-03** Migrate storm cloud from overlay system to tool system. Remove from
   `OverlayPersistedState`; add to `ToolType` union and `ToolDefinition` map.
 - **REQ-PRD8-03a** Redesign: replace current triangular procedural shape with 3-4 overlapping
-  circles/ellipses in medium-dark gray. Style matches other tool SVGs (flat design, not
-  necessarily low-poly).
-- **REQ-PRD8-03b** Anchor target: `crownTop` (above canopy). Has snap point, pivot point, and
-  size controls.
-- **REQ-PRD8-03c** Rain is the tool's animation. When `animateTools` is enabled and storm cloud
-  is visible, rain lines fall from the cloud. The separate `showRain` toggle is removed.
+  circles/ellipses in medium-dark gray. Style matches other tool SVGs (flat design, not necessarily
+  low-poly).
+- **REQ-PRD8-03b** Anchor target: `crownTop` (above canopy). Has snap point, pivot point, and size
+  controls.
+- **REQ-PRD8-03c** Rain is the tool's animation. When `animateTools` is enabled and storm cloud is
+  visible, rain lines fall from the cloud. The separate `showRain` toggle is removed.
 - **REQ-PRD8-03d** Rain animation: 12 lines falling from cloud bottom with staggered delays and
   variable speeds (reuse existing rain generation logic).
 
@@ -1458,22 +1465,22 @@ Reusable SVG overlays. Visual shapes only — consumer applies semantics.
 
 ## 27. Seasonal Stage (Replaces Autumn)
 
-- **REQ-PRD8-04** Replace the `autumn` stage with a `seasonal` stage. The `seasonal` stage
-  renders differently based on whether the tree shape is evergreen or deciduous.
+- **REQ-PRD8-04** Replace the `autumn` stage with a `seasonal` stage. The `seasonal` stage renders
+  differently based on whether the tree shape is evergreen or deciduous.
 - **REQ-PRD8-04a** Tree classification:
 
     | Evergreen (→ snow)       | Deciduous (→ autumn colors)                                      |
     | ------------------------ | ---------------------------------------------------------------- |
     | pine, fir, cypress, bush | oak, birch, maple, willow, apple, cherry, baobab, acacia, custom |
 
-- **REQ-PRD8-04b** Deciduous trees in `seasonal` stage: canopy colors shift to warm
-  autumn tones (orange/red/brown). Uses existing autumn color logic (`canopyLightColor: #E8A028`,
+- **REQ-PRD8-04b** Deciduous trees in `seasonal` stage: canopy colors shift to warm autumn tones
+  (orange/red/brown). Uses existing autumn color logic (`canopyLightColor: #E8A028`,
   `canopyDarkColor: #8B2010`). Falling leaf particles active.
 - **REQ-PRD8-04c** Evergreen trees in `seasonal` stage: snow rendering. White semi-transparent
-  blobs/patches positioned on top of existing canopy blob positions. Canopy colors remain
-  green (normal). No falling leaves.
-- **REQ-PRD8-04d** Add an `isEvergreen` property to shape definitions (or derive from a
-  lookup). Used by the `seasonal` stage modifier to branch rendering logic.
+  blobs/patches positioned on top of existing canopy blob positions. Canopy colors remain green
+  (normal). No falling leaves.
+- **REQ-PRD8-04d** Add an `isEvergreen` property to shape definitions (or derive from a lookup).
+  Used by the `seasonal` stage modifier to branch rendering logic.
 - **REQ-PRD8-04e** The `custom` shape defaults to deciduous behavior in `seasonal` stage.
 
 **Acceptance Criteria:**
@@ -1488,19 +1495,18 @@ Reusable SVG overlays. Visual shapes only — consumer applies semantics.
 
 ## 28. Wilting Stage (Replaces Ready)
 
-- **REQ-PRD8-05** Remove the `ready` stage. Add a `wilting` stage in its position
-  (after `seasonal`, before `bare`).
+- **REQ-PRD8-05** Remove the `ready` stage. Add a `wilting` stage in its position (after `seasonal`,
+  before `bare`).
 - **REQ-PRD8-05a** Wilting stage applies: dramatic canopy color change to sickly yellow-brown
-  (desaturated, hue-shifted), canopy size reduction to ~90% (signaling leaf loss has begun),
-  and a slight 3° skew/droop via `skewY` transform. Affects all tree shapes.
-- **REQ-PRD8-05b** Color change should be dramatic relative to `leafy` stage — clearly
-  communicates "dying tree." Suggested colors: light `#c4a43a` (sickly yellow), dark `#5a3a1a`
-  (dark brown).
-- **REQ-PRD8-05c** Remove the wilting overlay from `OverlayPersistedState` and overlay
-  components. Wilting is now exclusively a stage, not an overlay.
-- **REQ-PRD8-05d** The glow effect remains as an overlay (not tied to any stage). Its existing
-  API (`enabled`, `color`, `intensity`, `pulse`) is unchanged. Grovekeeper uses it for hover
-  effects or any other purpose.
+  (desaturated, hue-shifted), canopy size reduction to ~90% (signaling leaf loss has begun), and a
+  slight 3° skew/droop via `skewY` transform. Affects all tree shapes.
+- **REQ-PRD8-05b** Color change should be dramatic relative to `leafy` stage — clearly communicates
+  "dying tree." Suggested colors: light `#c4a43a` (sickly yellow), dark `#5a3a1a` (dark brown).
+- **REQ-PRD8-05c** Remove the wilting overlay from `OverlayPersistedState` and overlay components.
+  Wilting is now exclusively a stage, not an overlay.
+- **REQ-PRD8-05d** The glow effect remains as an overlay (not tied to any stage). Its existing API
+  (`enabled`, `color`, `intensity`, `pulse`) is unchanged. Grovekeeper uses it for hover effects or
+  any other purpose.
 
 **Acceptance Criteria:**
 
@@ -1509,21 +1515,22 @@ Reusable SVG overlays. Visual shapes only — consumer applies semantics.
 - Wilting visuals: yellow-brown canopy, 90% canopy size, 3° droop
 - Glow remains as an independent overlay
 - Wilting overlay removed (functionality moved to stage)
-- Stage lineup: seed → sprouting → sapling → growing → leafy → flowering → fruiting → seasonal → wilting → bare → dead → stump
+- Stage lineup: seed → sprouting → sapling → growing → leafy → flowering → fruiting → seasonal →
+  wilting → bare → dead → stump
 
 ---
 
 ## 29. Disabled Tree State
 
-- **REQ-PRD8-06** Add a `disabled` boolean prop to `<LowPolyTree>` component. When `true`:
-  CSS `filter: grayscale(1) opacity(0.5)` applied to the entire tree SVG, `pointer-events: none`
-  set on the SVG element, no hover effects, no click handling.
+- **REQ-PRD8-06** Add a `disabled` boolean prop to `<LowPolyTree>` component. When `true`: CSS
+  `filter: grayscale(1) opacity(0.5)` applied to the entire tree SVG, `pointer-events: none` set on
+  the SVG element, no hover effects, no click handling.
 - **REQ-PRD8-06a** Disabled trees render all their content (canopy, trunk, branches, tools,
   overlays) but everything appears greyed out.
 - **REQ-PRD8-06b** `disabled` is independent of `stage` — any stage can be disabled.
-- **REQ-PRD8-06c** In the showcase app, add a "Disable trees from row 2+" checkbox in the
-  Debug card (scene editor only). When checked, all trees in rows 2-10 render with
-  `disabled={true}`. Default: unchecked. This is a debug/demo feature.
+- **REQ-PRD8-06c** In the showcase app, add a "Disable trees from row 2+" checkbox in the Debug card
+  (scene editor only). When checked, all trees in rows 2-10 render with `disabled={true}`. Default:
+  unchecked. This is a debug/demo feature.
 - **REQ-PRD8-06d** The `disabled` prop is part of the library's public API surface for Grovekeeper
   consumption.
 
@@ -1539,24 +1546,24 @@ Reusable SVG overlays. Visual shapes only — consumer applies semantics.
 
 ## 30. Avatar Settings
 
-- **REQ-PRD8-07** Add user avatar settings: avatar preset selection (animal SVG) + background
-  color. Stored in the database, tied to the authenticated user account.
+- **REQ-PRD8-07** Add user avatar settings: avatar preset selection (animal SVG) + background color.
+  Stored in the database, tied to the authenticated user account.
 - **REQ-PRD8-07a** Database: add two columns to the `user` table: `avatarPreset` (text, nullable,
   default null) and `avatarColor` (text, nullable, default null). Requires a Drizzle migration.
-- **REQ-PRD8-07b** 10 animal avatar presets: cat, dog, fox, owl, bear, rabbit, penguin, deer,
-  wolf, frog. Simple silhouette/outline style SVGs, uniform design language.
-- **REQ-PRD8-07c** 10 preset background colors (muted/pastel tones suitable as avatar
-  backgrounds) displayed as circular swatches. Plus a native `<input type="color">` picker as
-  the 11th option for custom color. All swatches and the color picker trigger have the same size.
-- **REQ-PRD8-07d** Avatar selection UI: new "Avatar" section on the Settings page. Animal
-  presets displayed as circular swatches (matching the circular avatar shape in the sidebar).
-  Color presets also displayed as circular swatches.
-- **REQ-PRD8-07e** Sidebar display: when a user has an avatar set, the sidebar account circle
-  shows the selected animal SVG on the chosen background color. Replaces the initials fallback.
+- **REQ-PRD8-07b** 10 animal avatar presets: cat, dog, fox, owl, bear, rabbit, penguin, deer, wolf,
+  frog. Simple silhouette/outline style SVGs, uniform design language.
+- **REQ-PRD8-07c** 10 preset background colors (muted/pastel tones suitable as avatar backgrounds)
+  displayed as circular swatches. Plus a native `<input type="color">` picker as the 11th option for
+  custom color. All swatches and the color picker trigger have the same size.
+- **REQ-PRD8-07d** Avatar selection UI: new "Avatar" section on the Settings page. Animal presets
+  displayed as circular swatches (matching the circular avatar shape in the sidebar). Color presets
+  also displayed as circular swatches.
+- **REQ-PRD8-07e** Sidebar display: when a user has an avatar set, the sidebar account circle shows
+  the selected animal SVG on the chosen background color. Replaces the initials fallback.
 - **REQ-PRD8-07f** Guest users: show a gray person silhouette (anonymous avatar) in the sidebar
   account circle. No avatar settings for guests. No localStorage fallback.
-- **REQ-PRD8-07g** On account creation, assign a random animal preset + random color from the
-  10 presets. Each new user gets a unique-looking default avatar.
+- **REQ-PRD8-07g** On account creation, assign a random animal preset + random color from the 10
+  presets. Each new user gets a unique-looking default avatar.
 - **REQ-PRD8-07h** Avatar changes persist immediately to the database (no separate save button —
   selecting a swatch triggers an update).
 
@@ -1575,33 +1582,32 @@ Reusable SVG overlays. Visual shapes only — consumer applies semantics.
 
 ## 31. Point Editor Fixes
 
-- **REQ-PRD8-08** Fix all outstanding point editor issues from #145 and user-reported bugs.
-  The point editor must be fully functional.
-- **REQ-PRD8-08a** **Drag handle persistence:** When dragging snap point or pivot point handles,
-  the handle must remain visible throughout the drag operation. Currently handles disappear
-  during drag. Handles must stay rendered and follow the cursor.
-- **REQ-PRD8-08b** **Live preview reactivity:** All changes in the point editor (size slider,
-  snap point position, pivot point position) must be immediately reflected in the preview panel
-  (left side). The preview tree must re-render in real-time showing the tool at its updated
-  position/size.
+- **REQ-PRD8-08** Fix all outstanding point editor issues from #145 and user-reported bugs. The
+  point editor must be fully functional.
+- **REQ-PRD8-08a** **Drag handle persistence:** When dragging snap point or pivot point handles, the
+  handle must remain visible throughout the drag operation. Currently handles disappear during drag.
+  Handles must stay rendered and follow the cursor.
+- **REQ-PRD8-08b** **Live preview reactivity:** All changes in the point editor (size slider, snap
+  point position, pivot point position) must be immediately reflected in the preview panel (left
+  side). The preview tree must re-render in real-time showing the tool at its updated position/size.
 - **REQ-PRD8-08c** **SVG upload immediate display:** When an SVG file is uploaded via the Upload
   button, it must immediately appear in both the snap/pivot points editor card and the preview
   panel. No manual refresh required.
-- **REQ-PRD8-08d** **Upload button wiring:** Wire the Upload button to a file picker and a
-  dev-only server endpoint. The endpoint accepts an `.svg` file, runs conversion logic (strip
-  outer `<svg>` tag, namespace IDs), and writes the resulting `.svelte` component file to disk.
-  Page hot-reloads after write.
-- **REQ-PRD8-08e** **Apply button wiring:** Wire the Apply button to a dev-only server endpoint.
-  The endpoint receives updated definition values (snap offset, pivot point, scale) and writes
-  them back to the appropriate TypeScript definition files (`tool_definitions.ts`,
-  `fruit_definitions.ts`, etc.).
+- **REQ-PRD8-08d** **Upload button wiring:** Wire the Upload button to a file picker and a dev-only
+  server endpoint. The endpoint accepts an `.svg` file, runs conversion logic (strip outer `<svg>`
+  tag, namespace IDs), and writes the resulting `.svelte` component file to disk. Page hot-reloads
+  after write.
+- **REQ-PRD8-08e** **Apply button wiring:** Wire the Apply button to a dev-only server endpoint. The
+  endpoint receives updated definition values (snap offset, pivot point, scale) and writes them back
+  to the appropriate TypeScript definition files (`tool_definitions.ts`, `fruit_definitions.ts`,
+  etc.).
 - **REQ-PRD8-08f** **Definition files as source of truth:** Refactor the rendering pipeline to
   consume definition files (`tool_definitions.ts`, `fruit_definitions.ts`, `flower_definitions.ts`,
-  `ground_definitions.ts`, `stage_definitions.ts`, `overlay_definitions.ts`) as the single source
-  of truth. Remove parallel component maps (`FRUIT_SVG_COMPONENTS`, `FLOWER_SVG_COMPONENTS`, etc.).
+  `ground_definitions.ts`, `stage_definitions.ts`, `overlay_definitions.ts`) as the single source of
+  truth. Remove parallel component maps (`FRUIT_SVG_COMPONENTS`, `FLOWER_SVG_COMPONENTS`, etc.).
 - **REQ-PRD8-08g** **CLI interface alignment:** Align the SVG conversion script CLI to use
-  positional args (`pnpm convert-svg <input> <name>`) as specified, or update documentation
-  to match the current named-flag interface. Pick one and be consistent.
+  positional args (`pnpm convert-svg <input> <name>`) as specified, or update documentation to match
+  the current named-flag interface. Pick one and be consistent.
 - **REQ-PRD8-08h** Rename the "Demo Preview" card/section to just "Preview."
 
 **Acceptance Criteria:**
@@ -1620,12 +1626,12 @@ Reusable SVG overlays. Visual shapes only — consumer applies semantics.
 
 ## 32. Ground Element Controls
 
-- **REQ-PRD8-09** Add a count slider to ground elements: range 1-20, default 4-6 (current
-  generation count). Controls how many ground elements (grass + stones) spawn per tree.
+- **REQ-PRD8-09** Add a count slider to ground elements: range 1-20, default 4-6 (current generation
+  count). Controls how many ground elements (grass + stones) spawn per tree.
 - **REQ-PRD8-09a** Add a size slider to ground elements: range 0.5-2.0, step 0.1, default 1.0.
   Scales all ground element SVGs uniformly.
-- **REQ-PRD8-09b** Ground elements remain in the overlay/ground system (not migrated to tools).
-  The two new sliders appear in the ground elements config area within the Overlays card.
+- **REQ-PRD8-09b** Ground elements remain in the overlay/ground system (not migrated to tools). The
+  two new sliders appear in the ground elements config area within the Overlays card.
 - **REQ-PRD8-09c** Both sliders are disabled when ground elements are toggled off.
 
 **Acceptance Criteria:**
@@ -1641,16 +1647,17 @@ Reusable SVG overlays. Visual shapes only — consumer applies semantics.
 ## 33. UI Layout: Resizable Panels
 
 - **REQ-PRD8-10** Install `paneforge` via `npx shadcn-svelte@latest add resizable`. Use the
-  shadcn-svelte `Resizable` component (PaneGroup + Pane + PaneResizeHandle) to create a
-  draggable divider between the scene/preview area and the settings panel.
+  shadcn-svelte `Resizable` component (PaneGroup + Pane + PaneResizeHandle) to create a draggable
+  divider between the scene/preview area and the settings panel.
 - **REQ-PRD8-10a** Scene editor (multi-tree, `/`): default ratio 30% scene / 70% settings.
 - **REQ-PRD8-10b** Single tree editor (`/editor`): default ratio 50% scene / 50% settings.
-- **REQ-PRD8-10c** Minimum scene height: defined as a pixel constant (e.g., `MIN_SCENE_HEIGHT = 180`)
-  that can be easily adjusted. Enforced via `minSize` prop on the scene pane.
-- **REQ-PRD8-10d** User's drag ratio persisted to localStorage (separate keys for scene editor
-  and single tree editor). Restored on page load.
-- **REQ-PRD8-10e** Direction: vertical (`direction="vertical"`) — divider is horizontal, user
-  drags up/down.
+- **REQ-PRD8-10c** Minimum scene height: defined as a pixel constant (e.g.,
+  `MIN_SCENE_HEIGHT = 180`) that can be easily adjusted. Enforced via `minSize` prop on the scene
+  pane.
+- **REQ-PRD8-10d** User's drag ratio persisted to localStorage (separate keys for scene editor and
+  single tree editor). Restored on page load.
+- **REQ-PRD8-10e** Direction: vertical (`direction="vertical"`) — divider is horizontal, user drags
+  up/down.
 - **REQ-PRD8-10f** Resize handle styled to match the app theme — subtle, non-intrusive.
 
 **Acceptance Criteria:**
@@ -1666,13 +1673,13 @@ Reusable SVG overlays. Visual shapes only — consumer applies semantics.
 
 ## 34. UI Layout: Card Reorder & Animate Tools Migration
 
-- **REQ-PRD8-11** Move the "Animate Tools" checkbox from ToolAccessoriesCard into
-  AnimationsCard. AnimationsCard controls become: Canopy Sway, Branch Movement, Growth,
-  Growth Variance, Animate Tools.
+- **REQ-PRD8-11** Move the "Animate Tools" checkbox from ToolAccessoriesCard into AnimationsCard.
+  AnimationsCard controls become: Canopy Sway, Branch Movement, Growth, Growth Variance, Animate
+  Tools.
 - **REQ-PRD8-11a** Reorder settings cards so AnimationsCard is directly after ToolAccessoriesCard.
   New order (both editors): `...ToolAccessoriesCard → AnimationsCard → DebugCard → OverlaysCard`.
-- **REQ-PRD8-11b** Apply the same card reorder and checkbox migration to both the single tree
-  editor (`/editor`) and the scene editor (`/`).
+- **REQ-PRD8-11b** Apply the same card reorder and checkbox migration to both the single tree editor
+  (`/editor`) and the scene editor (`/`).
 
 **Acceptance Criteria:**
 
@@ -1686,8 +1693,8 @@ Reusable SVG overlays. Visual shapes only — consumer applies semantics.
 ## 35. UI: Color Swatch Sizing & Trunk Presets
 
 - **REQ-PRD8-12** Unify color swatch sizes: all canopy color swatches and trunk color preset
-  swatches use `h-9 w-9` (36×36px). This matches the measured height of the text input next
-  to the canopy color swatches. Swatches remain square with rounded corners.
+  swatches use `h-9 w-9` (36×36px). This matches the measured height of the text input next to the
+  canopy color swatches. Swatches remain square with rounded corners.
 - **REQ-PRD8-12a** The color picker trigger (native `<input type="color">`) wrapper also uses
   `h-9 w-9` to match swatch sizes.
 - **REQ-PRD8-12b** Add 4 new trunk color presets:
@@ -1713,12 +1720,11 @@ Reusable SVG overlays. Visual shapes only — consumer applies semantics.
 
 ## 36. UI: Disabled Slider Styling
 
-- **REQ-PRD8-13** Disabled sliders must show `cursor-not-allowed` on the entire slider track
-  and thumb. The thumb (drag handle) must not show a highlight/hover effect when the slider
-  is disabled.
-- **REQ-PRD8-13a** Use the bits-ui `Slider` component's built-in `disabled` prop. Apply
-  additional CSS via `data-disabled` attribute selectors: `data-[disabled]:cursor-not-allowed`
-  on track and thumb, remove hover highlight on thumb when disabled.
+- **REQ-PRD8-13** Disabled sliders must show `cursor-not-allowed` on the entire slider track and
+  thumb. The thumb (drag handle) must not show a highlight/hover effect when the slider is disabled.
+- **REQ-PRD8-13a** Use the bits-ui `Slider` component's built-in `disabled` prop. Apply additional
+  CSS via `data-disabled` attribute selectors: `data-[disabled]:cursor-not-allowed` on track and
+  thumb, remove hover highlight on thumb when disabled.
 - **REQ-PRD8-13b** Existing `data-disabled:opacity-50` behavior is preserved.
 
 **Acceptance Criteria:**
@@ -1732,8 +1738,8 @@ Reusable SVG overlays. Visual shapes only — consumer applies semantics.
 
 ## 37. Depth Spread Maximum
 
-- **REQ-PRD8-14** Change `depthSpreadMax` from 100 to 30 in `scene_config.ts`. 30 is the new
-  maximum for the depth spread slider in the scene editor.
+- **REQ-PRD8-14** Change `depthSpreadMax` from 100 to 30 in `scene_config.ts`. 30 is the new maximum
+  for the depth spread slider in the scene editor.
 
 **Acceptance Criteria:**
 

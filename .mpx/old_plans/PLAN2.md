@@ -1,7 +1,7 @@
 # Low-Poly 2D Tree Generator — Plan v2
 
-Builds on [PLAN.md](PLAN.md). This plan addresses visual quality issues and architectural
-changes identified after the first implementation round.
+Builds on [PLAN.md](PLAN.md). This plan addresses visual quality issues and architectural changes
+identified after the first implementation round.
 
 ---
 
@@ -48,9 +48,9 @@ Updated range: `branchCount` max increased from 5 → 20.
    └─ blob 0 (closest to viewer)
 ```
 
-Each canopy blob is a separate `<g>` element containing its own triangulated triangles.
-SVG painter's algorithm means later elements paint over earlier ones — no clipping or
-z-buffer needed for overlap resolution.
+Each canopy blob is a separate `<g>` element containing its own triangulated triangles. SVG
+painter's algorithm means later elements paint over earlier ones — no clipping or z-buffer needed
+for overlap resolution.
 
 ---
 
@@ -58,8 +58,8 @@ z-buffer needed for overlap resolution.
 
 ### 1. Per-blob triangulation and lighting
 
-**Problem:** All blobs blended into one hemisphere, producing a single smooth canopy with
-no visible blob separation.
+**Problem:** All blobs blended into one hemisphere, producing a single smooth canopy with no visible
+blob separation.
 
 **Fix:**
 
@@ -68,27 +68,25 @@ no visible blob separation.
     - If blob A fully contains blob B → B gets a higher depth (rendered later = in front).
     - Otherwise, depth is assigned randomly (seeded).
 3. Distribute `canopyPolygons` budget across blobs proportional to their area.
-4. For each blob independently:
-   a. Sample boundary points around that blob's ellipse (or triangle for pine tiers).
-   b. Sample interior points via Poisson disk within that blob.
-   c. Triangulate those points with Delaunator.
-   d. Filter triangles to those whose centroid is inside that blob.
-   e. Color each triangle using hemisphere lighting mapped to **that blob's** center/radii.
+4. For each blob independently: a. Sample boundary points around that blob's ellipse (or triangle
+   for pine tiers). b. Sample interior points via Poisson disk within that blob. c. Triangulate
+   those points with Delaunator. d. Filter triangles to those whose centroid is inside that blob. e.
+   Color each triangle using hemisphere lighting mapped to **that blob's** center/radii.
 5. Render blob groups in depth order (back-to-front).
 
 **Result:** Each blob has its own shading gradient, creating visible "bumps" in the canopy.
-Overlapping regions are resolved by depth ordering — front blob's triangles cover back
-blob's triangles.
+Overlapping regions are resolved by depth ordering — front blob's triangles cover back blob's
+triangles.
 
 ### 2. Blob depth ordering rules
 
-- **Containment rule:** If blob A's ellipse fully contains blob B's ellipse, B is always
-  in front of A. This prevents "dead" invisible blobs.
-- **Default rule:** If no containment relationship, assign random depth (seeded by blob
-  index and tree seed).
-- **Trunk connection:** The largest blob must be in the bottom half of the canopy, and the
-  trunk top must enter this blob. Enforce by adjusting `trunkTop` to enter the largest blob
-  (already partially implemented via `computeTrunkTop`).
+- **Containment rule:** If blob A's ellipse fully contains blob B's ellipse, B is always in front of
+  A. This prevents "dead" invisible blobs.
+- **Default rule:** If no containment relationship, assign random depth (seeded by blob index and
+  tree seed).
+- **Trunk connection:** The largest blob must be in the bottom half of the canopy, and the trunk top
+  must enter this blob. Enforce by adjusting `trunkTop` to enter the largest blob (already partially
+  implemented via `computeTrunkTop`).
 
 ### 3. Blob sizing variability
 
@@ -109,8 +107,8 @@ Every blob must be structurally connected to the tree:
 - Either the blob overlaps with at least one other blob, OR
 - At least one branch reaches into that blob.
 
-After generating blobs and branches, validate this invariant. If an isolated blob exists
-with no branch reaching it, extend an existing branch toward it or add a new branch.
+After generating blobs and branches, validate this invariant. If an isolated blob exists with no
+branch reaching it, extend an existing branch toward it or add a new branch.
 
 ### 5. Pine tree — triangular tier system
 
@@ -142,31 +140,31 @@ interface Tier {
 
 **Containment test:** `isPointInTier()` — standard point-in-triangle test.
 
-**Boundary sampling:** Trace the tier's triangle outline. Tips produce acute angles
-naturally. Non-tip edges can be subdivided for more polygons.
+**Boundary sampling:** Trace the tier's triangle outline. Tips produce acute angles naturally.
+Non-tip edges can be subdivided for more polygons.
 
-**Lighting:** Per-tier hemisphere lighting (same system as blobs). Each tier is treated
-as its own hemisphere. May iterate to unified lighting if per-tier doesn't look right.
+**Lighting:** Per-tier hemisphere lighting (same system as blobs). Each tier is treated as its own
+hemisphere. May iterate to unified lighting if per-tier doesn't look right.
 
 ### 6. Trunk mesh — separate layer, linear taper
 
-**Problem:** Branch vertices interfered with trunk triangulation, creating "cut-off"
-artifacts. Trunk appeared to not reach canopy.
+**Problem:** Branch vertices interfered with trunk triangulation, creating "cut-off" artifacts.
+Trunk appeared to not reach canopy.
 
 **Fix:**
 
-- Trunk is its own SVG `<g>` layer with its own triangulation — completely independent of
-  branch and canopy geometry.
+- Trunk is its own SVG `<g>` layer with its own triangulation — completely independent of branch and
+  canopy geometry.
 - Linear taper from `trunkBaseWidth` at bottom to `trunkTopWidth` at top.
-- `trunkTop` is dynamically computed to enter the largest canopy blob (at least 15px into
-  the blob's bounding box).
-- Optional: slightly flared base (wider bottom triangle) for a natural root look, if
-  trivial to implement. Not required.
+- `trunkTop` is dynamically computed to enter the largest canopy blob (at least 15px into the blob's
+  bounding box).
+- Optional: slightly flared base (wider bottom triangle) for a natural root look, if trivial to
+  implement. Not required.
 
 ### 7. Branch system — separate layer, hierarchical
 
-**Problem:** Branches merged with trunk mesh caused artifacts. Branch endpoints visible
-outside canopy.
+**Problem:** Branches merged with trunk mesh caused artifacts. Branch endpoints visible outside
+canopy.
 
 **Fix:**
 
@@ -175,13 +173,13 @@ outside canopy.
     - The trunk (thicker, `widthStart` ~5–8px)
     - Another branch (thinner, `widthStart` ~2–4px)
 - Branch endpoint rules:
-    - If the endpoint is **above** the canopy bottom → it must end inside a canopy blob
-      (hidden by canopy layer).
-    - If the endpoint is **below** the canopy bottom → it may end in open air (bare branch
-      visible below canopy, which is natural).
+    - If the endpoint is **above** the canopy bottom → it must end inside a canopy blob (hidden by
+      canopy layer).
+    - If the endpoint is **below** the canopy bottom → it may end in open air (bare branch visible
+      below canopy, which is natural).
 - `branchCount` range: 0–20 (default per shape: oak=2, pine=0, bushy=1).
-- **Isolated blob targeting:** If a canopy blob has no overlap with any other blob, at
-  least one branch must reach into it (no floating blobs).
+- **Isolated blob targeting:** If a canopy blob has no overlap with any other blob, at least one
+  branch must reach into it (no floating blobs).
 
 ### 8. Canopy outline smoothness
 
@@ -194,8 +192,8 @@ outside canopy.
 3. If the angle at B is acute (< 90°) for oak/bushy:
     - Move B outward along its radial direction until the angle is ≥ 90°, OR
     - Remove B and let A-C form the edge directly.
-4. For pine tiers: skip this check at tier tips (acute angles desired). Apply smoothing
-   only along the non-tip edges of each tier.
+4. For pine tiers: skip this check at tier tips (acute angles desired). Apply smoothing only along
+   the non-tip edges of each tier.
 
 ### 9. UI layout overhaul
 

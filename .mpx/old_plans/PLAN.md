@@ -3,8 +3,8 @@
 ## Overview
 
 A procedural low-poly 2D tree generator for a Tauri+Svelte application. Trees serve as visual
-metaphors for Git worktrees; tools (shovel, kettle, etc.) can be pinned to anchor points on
-the tree. Output is static SVG per tree, rendered via a reusable `<LowPolyTree>` Svelte component.
+metaphors for Git worktrees; tools (shovel, kettle, etc.) can be pinned to anchor points on the
+tree. Output is static SVG per tree, rendered via a reusable `<LowPolyTree>` Svelte component.
 
 ---
 
@@ -48,15 +48,16 @@ Showcase pages exist:
 
 ### 1. Separate canopy and trunk polygon counts
 
-**Files:** `types.ts`, `generate.ts`, UI pages
-**Change:** Replace single `polygonCount` with `canopyPolygons` (default 50, range 10–150) and `trunkPolygons` (default 30, range 10–100). Each budget is used directly for its respective geometry group.
+**Files:** `types.ts`, `generate.ts`, UI pages **Change:** Replace single `polygonCount` with
+`canopyPolygons` (default 50, range 10–150) and `trunkPolygons` (default 30, range 10–100). Each
+budget is used directly for its respective geometry group.
 
 ---
 
 ### 2. Add `depthVariance` parameter
 
-Controls how deep/shallow the hemisphere is, affecting the range of dark-to-light shading.
-Higher values = more dramatic shadows; lower values = flatter look.
+Controls how deep/shallow the hemisphere is, affecting the range of dark-to-light shading. Higher
+values = more dramatic shadows; lower values = flatter look.
 
 **Type definition:**
 
@@ -71,8 +72,7 @@ readonly depthVariance: number; // 0.0–2.0, default 1.0
 - `1.0` = standard hemisphere depth (current behavior)
 - `2.0` = exaggerated depth (deep shadows, bright highlights)
 
-**Implementation in `lighting.ts`:**
-Multiply the hemisphere z-component by `depthVariance`:
+**Implementation in `lighting.ts`:** Multiply the hemisphere z-component by `depthVariance`:
 
 ```
 z = sqrt(1 - r²) * depthVariance
@@ -86,54 +86,51 @@ This stretches or flattens the virtual dome.
 
 ### 3. Fewer boundary vertices + irregular angles on canopy outline
 
-**Problem:** Current boundary sampling uses too many evenly-spaced points, creating an
-overly smooth, circular outline. Reference images show irregular, angular outlines with
-relatively few vertices on the outside.
+**Problem:** Current boundary sampling uses too many evenly-spaced points, creating an overly
+smooth, circular outline. Reference images show irregular, angular outlines with relatively few
+vertices on the outside.
 
 **Changes to `generate.ts` and `shapes.ts`:**
 
-- Reduce boundary point ratio from 30% to ~15% of canopy budget
-  (e.g., for 100 polygons → ~12 boundary points instead of ~25)
+- Reduce boundary point ratio from 30% to ~15% of canopy budget (e.g., for 100 polygons → ~12
+  boundary points instead of ~25)
 - Boundary points should NOT be evenly spaced — use irregular angular sampling
-- Add angular jitter: each boundary point's angle is offset by a random amount
-  (±15° to ±30°) from a uniform distribution
+- Add angular jitter: each boundary point's angle is offset by a random amount (±15° to ±30°) from a
+  uniform distribution
 - Radial jitter: each boundary point's distance from the blob center varies by ±10-20%
 - The boundary should not be perfectly convex; allow concavities between blobs
 
-**Recommended boundary vertex count by polygon budget:**
-| Polygon count | Boundary vertices |
-|---|---|
-| 50 | 8–10 |
-| 100 | 10–14 |
-| 200 | 14–20 |
-| 500 | 20–30 |
+**Recommended boundary vertex count by polygon budget:** | Polygon count | Boundary vertices |
+|---|---| | 50 | 8–10 | | 100 | 10–14 | | 200 | 14–20 | | 500 | 20–30 |
 
 ---
 
 ### 4. Trunk and branches must touch the canopy
 
-**Problem:** Branches may currently terminate in empty space if the blob configuration
-doesn't extend low enough. Trunk top may not visually connect to canopy.
+**Problem:** Branches may currently terminate in empty space if the blob configuration doesn't
+extend low enough. Trunk top may not visually connect to canopy.
 
 **Fix in `shapes.ts` → `generateBranches()`:**
 
 - Each branch endpoint (`x2, y2`) must be verified to lie inside the canopy blobs
-- If not, extend the branch along its direction until it enters a blob, or adjust the
-  blob positions to cover branch tips
-- The trunk's `trunkTop` Y-coordinate must be ≤ the lowest point of the canopy blobs'
-  bounding box (i.e., trunk enters the canopy)
+- If not, extend the branch along its direction until it enters a blob, or adjust the blob positions
+  to cover branch tips
+- The trunk's `trunkTop` Y-coordinate must be ≤ the lowest point of the canopy blobs' bounding box
+  (i.e., trunk enters the canopy)
 
 **Fix in shape definitions:**
 
-- Ensure each shape's `trunkTop` is positioned so that it overlaps with the canopy blobs
-  by at least 10-20px (already roughly the case, but verify for all blob configurations)
+- Ensure each shape's `trunkTop` is positioned so that it overlaps with the canopy blobs by at least
+  10-20px (already roughly the case, but verify for all blob configurations)
 
 **Critical shape definition changes:**
 
-- Oak: `trunkTop` must be at H \* 0.45 (was 0.55) so trunk enters deep into canopy. Blobs must spread around canopy center with visible separation.
+- Oak: `trunkTop` must be at H \* 0.45 (was 0.55) so trunk enters deep into canopy. Blobs must
+  spread around canopy center with visible separation.
 - Pine: `trunkTop` must be at H \* 0.55 (was 0.72) so trunk enters the tiered canopy.
 - Bushy: `trunkTop` must be at H \* 0.42 (was 0.55) so trunk enters the wide bushy canopy.
-- All shapes: after generating blobs, dynamically adjust trunkTop to be at least 15px below the lowest blob bottom (maxY of blobs bounding box).
+- All shapes: after generating blobs, dynamically adjust trunkTop to be at least 15px below the
+  lowest blob bottom (maxY of blobs bounding box).
 
 ---
 
@@ -159,9 +156,8 @@ interface BranchSegment {
 - `widthStart`: 4–7px (random)
 - `widthEnd`: 1–3px (random, always < widthStart)
 
-**Point sampling in `generate.ts`:**
-At each segment step, interpolate width: `w = widthStart + t * (widthEnd - widthStart)`
-where `t` goes 0→1 from trunk to tip.
+**Point sampling in `generate.ts`:** At each segment step, interpolate width:
+`w = widthStart + t * (widthEnd - widthStart)` where `t` goes 0→1 from trunk to tip.
 
 ---
 
@@ -267,7 +263,8 @@ Each `Triangle`:
 
 1. **`src/lib/trees/types.ts`**
     - Add `depthVariance` to `TreeConfig` (default: `1.0`)
-    - Replace `polygonCount` with `canopyPolygons` (default: `50`) and `trunkPolygons` (default: `30`)
+    - Replace `polygonCount` with `canopyPolygons` (default: `50`) and `trunkPolygons` (default:
+      `30`)
 
 2. **`src/lib/trees/lighting.ts`**
     - Accept `depthVariance` in lighting config

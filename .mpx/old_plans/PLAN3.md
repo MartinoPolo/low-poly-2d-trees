@@ -1,8 +1,8 @@
 # Low-Poly 2D Tree Generator — Plan v3
 
-Builds on [PLAN2.md](PLAN2.md) and [REQUIREMENTS.md](REQUIREMENTS.md). This plan addresses
-visual bugs, introduces new parameters, replaces the "bushy" shape with "birch," and
-establishes a real-value UI convention for all sliders.
+Builds on [PLAN2.md](PLAN2.md) and [REQUIREMENTS.md](REQUIREMENTS.md). This plan addresses visual
+bugs, introduces new parameters, replaces the "bushy" shape with "birch," and establishes a
+real-value UI convention for all sliders.
 
 ---
 
@@ -34,19 +34,18 @@ establishes a real-value UI convention for all sliders.
 **Problem:** All branch control points were pooled into a single Delaunator call, producing
 triangles that span across different branches — branches "cut into" each other.
 
-**Fix:** Triangulate each `BranchSegment` independently. Each branch produces its own
-trapezoid mesh. The branch meshes are concatenated into the `<g class="branches">` layer.
+**Fix:** Triangulate each `BranchSegment` independently. Each branch produces its own trapezoid
+mesh. The branch meshes are concatenated into the `<g class="branches">` layer.
 
 ### D2 — Branch angle constraint (≥ 30°)
 
-Every branch's axis must diverge by at least 30° from the axis of its parent (trunk center
-line or parent branch direction). During `generateBranches()`, reject candidate angles that
-violate this and re-roll until the constraint is met (with a max-attempts guard).
+Every branch's axis must diverge by at least 30° from the axis of its parent (trunk center line or
+parent branch direction). During `generateBranches()`, reject candidate angles that violate this and
+re-roll until the constraint is met (with a max-attempts guard).
 
 ### D3 — `trunkBranchRatio` parameter
 
-Controls what fraction of `branchCount` originates from the trunk vs. from existing
-branches.
+Controls what fraction of `branchCount` originates from the trunk vs. from existing branches.
 
 | Property       | Value                      |
 | -------------- | -------------------------- |
@@ -132,16 +131,15 @@ Controls how tightly canopy elements cluster together.
 | UI label       | "Blob Closeness: 50 %" |
 | Step           | 1                      |
 
-**Pine:** `overlapFraction = blobCloseness / 100`. Each tier's tip extends into the tier
-above by `overlapFraction × tierHeight`. At 20 %: tiers barely overlap. At 80 %: heavy
-overlap.
+**Pine:** `overlapFraction = blobCloseness / 100`. Each tier's tip extends into the tier above by
+`overlapFraction × tierHeight`. At 20 %: tiers barely overlap. At 80 %: heavy overlap.
 
 **Oak / birch:** Controls blob spread distance.
-`maxSpread = lerp(spreadRadius × 0.9, spreadRadius × 0.3, (blobCloseness − 20) / 60)`.
-At 20 %: blobs far apart. At 80 %: tightly clustered.
+`maxSpread = lerp(spreadRadius × 0.9, spreadRadius × 0.3, (blobCloseness − 20) / 60)`. At 20 %:
+blobs far apart. At 80 %: tightly clustered.
 
-**Main blob (blob 0):** Affected by closeness at 1/10th the magnitude of other blobs.
-It may shift slightly off the trunk axis but never significantly.
+**Main blob (blob 0):** Affected by closeness at 1/10th the magnitude of other blobs. It may shift
+slightly off the trunk axis but never significantly.
 
 ### D8 — `blobSizeVariance` reworked to ratio-based
 
@@ -153,11 +151,11 @@ It may shift slightly off the trunk axis but never significantly.
 | UI label       | "Blob Size Ratio: 3.0x"    |
 | Step           | 0.1                        |
 
-**Oak / birch:** `minScale = 1 / blobSizeVariance`. Blob 0 is full size; blob N is scaled
-by `lerp(1.0, minScale, i / (blobCount − 1))`.
+**Oak / birch:** `minScale = 1 / blobSizeVariance`. Blob 0 is full size; blob N is scaled by
+`lerp(1.0, minScale, i / (blobCount − 1))`.
 
-**Pine:** Controls the ratio of top tier base width to bottom tier base width. At 1.0x: all
-tiers have equal width. At 10.0x: bottom tier is 10× wider than top tier.
+**Pine:** Controls the ratio of top tier base width to bottom tier base width. At 1.0x: all tiers
+have equal width. At 10.0x: bottom tier is 10× wider than top tier.
 
 ### D9 — Canopy centering & balanced blob distribution
 
@@ -166,8 +164,8 @@ tiers have equal width. At 10.0x: bottom tier is 10× wider than top tier.
 **Fix:**
 
 1. **blobCount = 1:** Blob 0 is placed directly on the trunk axis (`cx = trunkCenterX`).
-2. **blobCount > 1:** Blob 0 stays on/near the trunk axis. Remaining blobs are split
-   evenly left/right:
+2. **blobCount > 1:** Blob 0 stays on/near the trunk axis. Remaining blobs are split evenly
+   left/right:
     - Odd indices (1, 3, 5 …) go left of center.
     - Even indices (2, 4, 6 …) go right of center.
     - Each side-blob gets a random radial offset constrained to its side.
@@ -205,8 +203,8 @@ Three new **display-only** props on `<LowPolyTree>` (not part of `TreeConfig`):
 | `showBranches` | `boolean` | `true`  | Toggle `<g class="branches">`         |
 | `showTrunk`    | `boolean` | `true`  | Toggle `<g class="trunk">`            |
 
-These control SVG layer visibility only — generation still runs for all layers (so anchors
-remain correct). The showcase UI gets three checkboxes in the Lighting/Debug card.
+These control SVG layer visibility only — generation still runs for all layers (so anchors remain
+correct). The showcase UI gets three checkboxes in the Lighting/Debug card.
 
 ### D13 — UI convention: show real values
 
