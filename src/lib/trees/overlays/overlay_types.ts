@@ -48,8 +48,6 @@ export interface RainLine {
 	readonly speed: number;
 }
 
-export const OVERLAY_VIEWBOX_HEADROOM = 40;
-
 export function hasActiveOverlay(config: OverlayConfig): boolean {
 	return config.glow.enabled;
 }
