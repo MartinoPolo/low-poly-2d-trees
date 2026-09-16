@@ -1,0 +1,11 @@
+{
+	"projectId": "MartinoPolo/low-poly-2d-trees",
+	"repository": {
+		"provider": "github",
+		"remote": "origin"
+	},
+	"issues": {
+		"provider": "github"
+	},
+	"packageManager": "pnpm"
+}
